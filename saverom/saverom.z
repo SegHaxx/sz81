@@ -1,0 +1,69 @@
+;saverom - save ZX81 ROM, for loading via zx81get.
+;shouldn't be changed without good cause, as it
+;may have to be typed in by hand.
+;
+;(which is why some bits are so weird...)
+
+org 16514
+
+call 0f23h	;fast mode	;LN 7 ?
+
+;silent delay
+ld hl,121ch			;5 0 >
+loop:
+djnz loop			;( RETURN
+dec hl				;F
+xor a				;invJ
+or h				;invO
+or l				;invP
+jp nz,jrloop			;TAB invM RND
+
+;filename. I originally had a
+; nice filename, but since I'm
+; trying to keep this typeable
+; without too much pain, just a
+; single char picked from
+; early in the ROM.
+;(h already zero from above)
+ld l,010h	;point to invB	;I (
+call 031eh			;LN 2 graph7
+
+;save from 0 to 1FFFh
+ld hl,0				;5 space space
+filelp:
+;check for break
+ld a,0f7h			;Y RUN
+rrca		;a=7fh		;?
+in a,(0feh)			;<= RETURN
+rra				;3
+ret nc				;SQR
+
+call 031eh			;LN 2 graph7
+inc hl				;7
+;testing for hl>=2000h is
+;really painful if we want it
+;typeable, but here goes...
+push hl				;FAST
+add hl,hl	;8k to 16k	;D
+add hl,hl	;...32k		;D
+add hl,hl	;...carry	;D
+pop hl				;LPRINT
+jp nc,jrfilelp			;ABS invO RND
+
+;brief wait before slow
+ld c,0				;: space
+ld b,c				;INKEY$
+lastlp:
+djnz lastlp			;( RETURN
+
+;stays in fast mode, but
+; that shouldn't be a problem.
+ret				;TAN
+
+;these jumps are used to avoid
+;having awkward LSBs in JPs,
+;and need to be distant to make
+;the offsets less awkward to
+;type.
+jrloop: jr loop			;/ USR
+jrfilelp: jr filelp		;/ STOP

@@ -1,0 +1,133 @@
+* -*- outline -*-
+
+   ZX81 Tetris/TetrisHR/Tetris1k - public domain by Russell Marks, 1996
+
+	   Text-mode and hi-res tetris clones for the ZX81.
+
+
+* License
+
+Tetris, TetrisHR, and Tetris1k are public domain, you can do what you
+want with them. I would appreciate it if you could copy this text file
+whenever you copy the games, though.
+
+
+* About Tetris and TetrisHR
+
+ZX81 Tetris, TetrisHR and Tetris1k are tetris clones. `tetris' should
+run on any emulator. `tetrishr' uses a pseudo-high-res mode and will,
+as far as I know, only run on Xtender and my Z81 emulator. Needless to
+say, they both run ok on a real ZX81. :-)
+
+`tetris1k' is a version which runs on a 1k ZX81. It's mostly a
+complete implementation, but there are some problems with it, so be
+sure to read the "About Tetris1k" section before trying to load/run
+it.
+
+
+* Playing ZX81 Tetris
+
+It's tetris. Surely you've played tetris!?
+
+Ok, the basics. Blocks fall from the top of the screen. You have to
+fit them together to make solid horizontal lines, as a horizontal line
+of blocks disappears to make room for more blocks. And why is this the
+case? Well, if the pile of blocks reaches the top of the screen, it's
+game over. So it quickly gets important to fit the shapes together
+well, and not leave any gaps.
+
+You can rotate the blocks with `s', move them left or right with `k'
+and `l', and `drop' them with `d'.
+
+ZX81 Tetris does not (yet) speed up. It starts pretty fast and stays
+that way. This is IMHO a better test of the player (persistence and
+all that). Yes, it's a feature, not a bug. Really. :-)
+
+
+* The hi-res one's graphics are corrupted!
+
+Well, the hi-res hack possible on the ZX81 isn't really hi-res, and
+only a subset of possible pixel combinations can be obtained. This
+should explain the funny-looking text, etc.
+
+
+* Assembling
+
+You don't have to assemble tetris or tetrishr, they come as .P files
+along with the source. But, since I'm distributing the source, it
+makes sense to describe how to assemble it.
+
+You'll need a Unix box, and `zmac' (look on sunsite.unc.edu in
+/pub/Linux/devel/lang/assemblers). Compile and install zmac, then do
+`make' and it should build tetris.p, tetrishr.p, and tetris1k.p.
+
+
+* About zx81send
+
+Zx81send isn't needed for tetris but I figured I'd bundle it anyway;
+it might be helpful if you want to play it/them (or any other .P file)
+on a real ZX81. It `saves' a .P file with output to /dev/dsp on a
+Linux box, such that if you crank the volume enough, connect the sound
+output to a ZX81 and do LOAD "", you can load the .P file on the ZX.
+What's even better is that it isn't as slow as loading from tape;
+since all the vagaries of tape are avoided, there's no need to hold
+back, and it goes as fast as the ROM load routine can handle - about
+twice as fast as normal. (There's a compile-time option TAPE_VERSION
+to slow it down if you want to record the output on tape for some
+reason.)
+
+It should also work on Suns, as it outputs u-law via /dev/audio if
+`linux' isn't defined. It could probably be made to output a raw
+sample file on other systems.
+
+Note that your sound hardware will have to go LOUD for the transfer to
+work. On my SB16 I have to have the master volume at about 80%, with
+output gain at 100% (and PCM volume at the usual 75%). This isn't far
+short of maximum volume. If your hardware won't go loud enough, you
+may need to go through a hi-fi or use some other external amplifier.
+
+
+* Distributing bin2p, zx81send, etc., separately
+
+It's quite possible ZX81 hackers might find bin2p useful, and perhaps
+some derivative of gentitle could be handy too. And doubtless the
+hi-res routines will be of interest, and all true retrocomputing nerds
+will be interested in zx81send. :-) No problem - everything here is
+public domain. Copy/modify/distribute as you see fit. But I'd prefer
+it if I was given credit in the source.
+
+
+* About Tetris1k
+
+Tetris1k is a 1k tetris clone. Usually you have to run 1k programs on
+a 1k ZX81 (or strictly speaking, one with less than about 3k), due to
+oddities in the way the ZX81's screen works. But Tetris1k is built in
+such a way that it should work on any ZX81.
+
+This 1k version was non-trivial, and I had to cut some rather major
+corners. The most obvious problem is that there's no score at all.
+(Sorry - I really didn't have the room to do it. The 10x21 screen
+(this is HUGE for a 1k game) takes about 230 bytes, the shape data
+takes 56, and the code 484. Figure in another 230 or so for sys. vars
+etc., and there's barely room for the stack, let alone a decimal
+output routine.) And the only prompt you get for "press a key to play"
+is a question mark in the top-left of the screen. But apart from those
+two problems, it's a complete tetris.
+
+[2004 Oct 1 update - I added a lines-cleared display recently, by not
+using a decimal output routine as such but just incrementing an
+onscreen number. :-) tetris1k.p here is now that version, and
+tetris1k-src-newer.tar.gz contains the source for it.
+
+I should also point out a bug I've found in Tetris1k - if you press
+Shift, it hangs. (!) So, errr... don't do that. :-)]
+
+
+* Contacting me
+
+You can email me at russell.marks@ntlworld.com.
+
+
+Share and enjoy! 
+
+-Rus.

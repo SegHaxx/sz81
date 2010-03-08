@@ -1,0 +1,19 @@
+osssound_frame() somehow manages to take (on my machine) 30% CPU,
+despite apparently never needing to do more than a single blocking
+write(). I've never quite figured out what exactly is up with that.
+The sample rate doesn't affect it, and replacing the write() with an
+equivalent usleep() stops it, which seems to suggest that it's either
+some weird interaction with cache, or an equally weird kernel problem.
+
+Still, if it can be reproduced on other machines (anyone fancy trying
+that? just leaving e.g. `time xz81 -a z aydemo.p' going for 30 seconds
+or so would be a good enough test) it would certainly count as a bug,
+and if I can't avoid it I should at least document it in the man page.
+
+
+Make SCALE a command-line option rather than a compile-time one.
+
+
+Add support for further AY-based sound addons, if any. The QS and Zon
+were easily the most important ones, so this isn't that important
+really.

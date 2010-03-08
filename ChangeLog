@@ -1,0 +1,519 @@
+2004-10-01  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Version 2.1.
+
+	* z81.1: added a more practical `best' emulation example, and
+	trimmed down see-also section.
+
+	* Added current version of tetris1k (with lines-cleared display),
+	and matching source in tetris1k-src-newer.tar.gz. Also moved the
+	games/demos to a new `games-etc' dir.
+
+2004-09-17  Russell Marks  <russell.marks@ntlworld.com>
+
+	* zx81get.c: was missing #include <stdlib.h>. Thanks to Brian
+	Schau for spotting this.
+
+2001-11-03  Russell Marks  <russell.marks@ntlworld.com>
+
+	* sound.c (sound_ay_overlay): envelope now applied when period is
+	zero. Fixes post-death sound in QS Defender.
+
+2001-10-16  Russell Marks  <russell.marks@ntlworld.com>
+
+	* sound.c (sound_beeper): fix for slight `spike' problem on VSYNC
+	tones.
+
+2001-10-15  Russell Marks  <russell.marks@ntlworld.com>
+
+	* sound.c (sound_ay_overlay): removed tone/noise counter
+	wraparound (which was mistaken).
+
+2001-09-27  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Signal handler called on `bad' signals no longer tries to
+	immediately exit (which is potentially a bad idea), but merely
+	sets a flag so we can deal with it next time we would
+	ordinarily draw the screen and so on.
+
+	* common.c (usage_help): removed embedded LFs from string.
+
+2001-08-12  Russell Marks  <russell.marks@ntlworld.com>
+
+	* saverom/README: after a successful test of saverom with my ZX81,
+	tweaked a few things here slightly (having two `lines' of the
+	listing end with "LN 2 graphs7" was confusing, for example).
+
+2001-08-06  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (out): it looks like OUTs to FEh should turn off VSYNC
+	on ZX80. With this fix, the ZX80 space-invaders clone works.
+
+	* README: changed to say that only the ZX81 ROM is really required
+	before you can run z81. Bit of a simplification, but better than
+	saying you need both (which was never true).
+
+	* Added `saverom' dir, containing a program to save the ROM from a
+	ZX81, for loading via zx81get.
+
+2001-08-02  Russell Marks  <russell.marks@ntlworld.com>
+
+	* z80.h: `interrupted' isn't volatile these days. Thanks to Adam
+	again.
+
+2001-07-31  Russell Marks  <russell.marks@ntlworld.com>
+
+	* z80.c: needed #include <string.h> to avoid warnings (though
+	curiously, I didn't get any on gcc 2.95.2). Thanks to Adam J.
+	Richter for spotting this.
+
+2001-07-27  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Version 2.0.
+
+2001-06-26  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (startsigsandtimer): fixed some signal-handling
+	problems; all `bad' signals which are handled are now blocked
+	while in the handler (via sigaction()'s sa_mask), and any planned
+	exit now works by raising a signal so that our signal-blocking
+	happens for that too.
+
+2001-06-23  Russell Marks  <russell.marks@ntlworld.com>
+
+	* New `GAMENOTES' file covering problems you might have loading
+	certain games (or more commonly, certain modified versions of
+	them).
+
+	* common.c (load_p): didn't previously load programs from
+	command-line which ended in `.P' (it tried to add a further `.p')
+	- it does now.
+
+2001-06-21  Russell Marks  <russell.marks@ntlworld.com>
+
+	* New `-i' option inverts the screen, giving a white-on-black
+	display.
+
+	* Added aydemo.p (along with source), intended as a demo of the
+	various AY-based addons. Currently only works with the Zon X, but
+	that should change in time. The tune is a port of my ingame music
+	for `zblast'. :-)
+
+2001-06-20  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (parseoptions): added option for ACB stereo. It's not
+	generally much use on the '81, but again, I had the code just
+	sitting there... :-) You add an `s' suffix to the AY board type,
+	e.g. `-a qs'.
+
+	* common.c: the LOAD "" file selector is no longer optional. There
+	was never much point in having that option anyway.
+
+	* Added Bi-Pak Zon X-81 sound addon support. Thanks to Andy
+	Styles for providing the necessary details to add this.
+
+	* common.c: you can now boot directly to the file selector (at
+	least when emulating a 16k ZX81), with `-l'. Aborting (with Space)
+	currently aborts the emulator, which is arguably inconsistent
+	given what the normal autoload does on error, but I think is
+	probably what you'd want.
+
+2001-06-18  Russell Marks  <russell.marks@ntlworld.com>
+
+	* sound.c: added support for AY-3-8910/8912-based sound chip
+	addons. Hey, I'd already written the AY code, so why not? :-)
+	Currently supports Quicksilva's one (start with `-a q' to enable
+	it), which gives effects in their Asteroids, Invaders and Defender
+	games. (The effects in Defender are quite good, BTW...) The clock
+	speed is currently a guesstimate, until I can find some
+	documentation.
+
+	* common.c (initmem): ok, it looks like an unexpanded ZX80 has 1k,
+	not 4. :-)
+
+	* When using `-V', you now get a visual indication of (busy) FAST
+	mode as you might expect; the screen turns black. My previous
+	non-synced display wasn't triggered when always in VSYNC, as it is
+	when grinding away in FAST mode.
+
+	* You can now enable display of the VSYNC signal with `-V'. This
+	is nice if you want to see LOAD/SAVE signals onscreen when using
+	LOAD/SAVE and `-L' or `-S', but it can be an annoyance when typing
+	in programs, as you get the line-entry flicker the ZX81 used to
+	have, which the default frameskip makes particularly off-putting
+	since it'll only be shown half the time...!
+
+	* common.c: you can now disable the LOAD and SAVE hooks, with `-L'
+	and `-S' respectively. This is mainly so there's something easy to
+	get at which makes a noise :-) (i.e. use `-sS' then save
+	something), though you don't get the matching display yet.
+
+	* Added sound support (ouch). Only for OSS (e.g. Linux) I'm
+	afraid. It's based on VSYNC, which I think is probably how sound
+	was usually produced. The code is based on my sound code for Fuse,
+	so Matan Ziv-Av deserves a large slice of credit for fixing many
+	problems with the original implementation :-), and the code would
+	never have been written in the first place without Philip
+	Kendall's emulator.
+
+	* common.c (printer_inout): fixed slight bug in the printer
+	support; previously, the first pixel line of a character was
+	shifted right one pixel, which was visible on block graphics and
+	inverse text.
+
+2001-06-17  Russell Marks  <russell.marks@ntlworld.com>
+
+	* z81.1: made option listing consistently bold, not a bold/italic
+	mix. This is a bad habit exhibited in a lot of my old man pages,
+	and I've got to start fixing them somewhen - this may as well be
+	the first. :-)
+
+	* Added printer support, very directly ported from xz80, so thanks
+	are entirely due to Ian Collier for this. Again. :-) The main
+	difference in z81 is that it outputs (as a picture) to a PBM file
+	rather than an X bitmap; they're even simpler, take less space,
+	and everything reads them. The printer support is *normally
+	disabled*, but you can enable it by running with `-p foo.pbm',
+	where foo.pbm is the file to direct any printout to. Note that
+	even when printing is disabled, the emulation goes through the
+	motions; this e.g. stops COPY from hanging the machine, as it
+	would otherwise.
+
+	* common.c (load_selector): wait for them to let go of all keys
+	before starting. Needed particularly for the 1k ZX81, as that
+	responds rather more quickly to LOAD "" than the 16k...
+	(in): now resets bit 7 of input port FEh, which fixes Namtir
+	Raiders. Also fixed reversed key-reading when more than one
+	bit was zero in the port's MSB.
+
+	* xmain.c: got rid of the rrshm vs. rrnoshm thing - most will be
+	using shared memory, and you'll probably have to drop the frame
+	rate a *lot* for non-local use (it only halved it). So it's best
+	to just stick to a 25fps default in all cases. Which has the added
+	advantage of matching the documented behaviour. :-)
+
+2001-06-16  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (parseoptions): ok, formalised that - removed `-s'
+	option for normal (slow) booting, as it always does that now
+	except when auto-loading.
+
+	* z80.c (mainloop): auto-load works again, and is actually better
+	than before - it starts up the program `instantly'. This is
+	probably just as well, as I don't think I'll be re-enabling
+	fast-boot apart from that (loading a program is a nice clean point
+	to hook into without video-related hassles, but such opportunities
+	are pretty rare).
+
+	* z81txt removed. I thought about some way of making it work by
+	interpreting characters in the screen bitmap, but it was really
+	just too nasty an idea to be worth bothering with.
+
+2001-06-15  Russell Marks  <russell.marks@ntlworld.com>
+
+	* You can now emulate a 1k ZX81, with `-u' (= unexpanded). (With
+	`-o', this emulates a 4k ZX80, which I think was the unexpanded
+	RAM size...?)
+
+	* xmain.c (main): X version previously ignored any `-r' setting,
+	fixed that. Also removed some unnecessary code.
+
+	* common.c (load_selector): selector works again.
+
+	* Massive reworking of display code and lots of related stuff.
+	It now works by actually emulating the workings of the display
+	(rather than just having the emulator look at D_FILE and draw
+	it), avoiding a lot of unsightly kludges previously needed in
+	order to get the thing running. This fixes a few things
+	relative to the previous behaviour - Rock Crush and Dan's
+	Revenge now work, high-score entry in ZX Galaxians works, the
+	ZX80 display no longer `goes weird' when updating :-), QS
+	Defender works better than it did before (but the screen is
+	strangely placed, etc.), the ZX81 emulation speed is more
+	accurate. The changes have left a few things broken for now -
+	the file selector, snapshot-based fast booting on the ZX81,
+	and auto-load. Oh, and the ZX80 screen is offset to the right
+	for some reason.
+
+2001-05-13  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Version 1.3.1.
+
+	* common.c (load_p): incredibly moronic bug fixed - it seems I
+	managed to completely break all loading and saving *except* LOAD
+	"". Conclusive proof that I can type in my sleep, I guess. :-/
+	It's been a long time since I last did an x.y.1 release of
+	anything, but I think this is bad enough to call for it...
+
+2001-05-11  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (startsigsandtimer): now uses SA_RESETHAND if
+	SA_ONESHOT isn't available, which should avoid a compilation
+	problem on Solaris. Thanks to Philip Kendall for pointing this
+	out.
+
+2001-03-21  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Version 1.3.
+
+	* The ROMs are no longer included, as the legal situation seems
+	more uncertain than I'd previously thought. (This change was
+	actually made a few weeks ago, but I forgot to mention it here.)
+
+2001-03-02  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (libdir): fixed several possible buffer overruns.
+	Package maintainers doing an audit are advised to do more than
+	just grep for strcpy/strcat etc. ;-), as I've not just used
+	snprintf() everywhere...
+	(load_selector): selector now supports shift-q and shift-a (from
+	the ZX81's perspective, so Alt/Meta also works) for paging up and
+	down in the file list.
+
+	* Makefile: added uninstall target, and removed z81txt from
+	default (`all') target such that you have to explicitly choose to
+	make it.
+
+2001-02-19  Russell Marks  <russell.marks@ntlworld.com>
+
+	* Removed zx81*.gif and zx81.cdr.gz. While I drew this myself, it
+	could easily be seen as infringing on Sinclair's keyboard design,
+	since it was obviously intended to be a close match. Better not to
+	risk it, I think. I'd hope zx8[01]kybd.pbm are ok, as these are
+	more like abstracted diagrams than close copies.
+
+2000-12-16  Russell Marks  <russell.marks@ntlworld.com>
+
+	* common.c (do_interrupt): avoid gcc `ambiguous else' warning.
+	(load_selector): selector now allows simple directory navigation.
+
+1999-07-19  Russell Marks  <rus@cartman>
+
+	* Makefile: z81 doesn't use vgagl, so don't link it! Also, removed
+	WHITE_ON_BLACK def for z81txt; that should really apply to all
+	versions or none, and shouldn't be a compile-time option even
+	then.
+
+1999-06-17  Russell Marks  <rus@cartman>
+
+	* xmain.c: added support for `delete window' message from window
+	manager. (The code is pinched from dosemu, which in turn pinched
+	it from xloadimage. :-))
+
+1999-06-15  Russell Marks  <rus@cartman>
+
+	* xmain.c: fixed the old bug where the X version wasn't redrawing.
+	This was due to Expose events on the image window not being
+	propagated to the parent (the slightly larger `borderwin').
+
+1999-06-12  Russell Marks  <rus@cartman>
+
+	* Makefile: changed default SCALE to 2. I didn't quite have the
+	guts to do this until getting a faster machine myself (i.e. one
+	which can cope with it), but now I have I can see how much more
+	sensible a default it is. :-)
+
+1999-05-29  Russell Marks  <rus@lifeson>
+
+	* common.c: gave IMC credit in usage message.
+
+1999-05-11  Russell Marks  <rus@lifeson>
+
+	* Version 1.2.
+
+	* z81.1: reformatted synopsis to avoid horrible line-break.
+
+1999-04-26  Russell Marks  <rus@lifeson>
+
+	* common.c: fixed auto-load bug, where most programs which didn't
+	just do an immediate USR after loading acted oddly or simply
+	crashed. The way I've avoided this is to reimplement the auto-load
+	in a slightly more BFI manner, by automatically `typing' a LOAD
+	command. :-)
+
+	* common.c: massively sped up checking for hi-res screen. Unlikely
+	to be noticeable in practice, though. :-)
+
+1999-04-24  Russell Marks  <rus@lifeson>
+
+	* README: various corrections and clarifications.
+
+	* Added `zx81get', which loads ZX81 programs via /dev/dsp
+	(presumably from tape). It's not perfect, but it's worked
+	pretty well for me - I've managed to get a couple of really
+	horrible-sounding recordings to load successfully. However,
+	it's Linux-specific (AFAIK) and needs a sound device which can
+	record in 22kHz 8-bit mono.
+
+1999-04-17  Russell Marks  <rus@lifeson>
+
+	* xmain.c: fixed 1-bit mono support to work on servers with
+	`LSBFirst' bit order. Thanks to Christopher Allen for pointing me
+	in the right direction on this one.
+
+1999-03-11  Russell Marks  <rus@lifeson>
+
+	* Version 1.1.
+
+	* Updated tetris-src etc. so it refers to my hacked copy of zmac
+	rather than relying on a patch to the old comp.sources.unix one.
+	Also added mine81, another PD ZX81 program I wrote a while back.
+
+1999-02-28  Russell Marks  <rus@lifeson>
+
+	* common.c: no longer assumes struct sigaction's sa_mask can be
+	zeroed with a simple `=0' (this fix was needed for glibc).
+
+1998-11-03  Russell Marks  <rus@lifeson>
+
+	* common.c: made reading from keyboard port work if more than one
+	bit of a8..a15 is zeroed, which mostly fixes "ZX Galaxians" (but
+	see TODO).
+
+	* z80.c: now sets top bit of R on reset. Thanks to Claudio
+	Carlquist for finding this bug.
+
+1998-10-16  Russell Marks  <rus@lifeson>
+
+	* xmain.c: now supports every bit depth I could test - in all
+	that's 1-bit, 4, 8, 15, 16, 24, and 32. The way it does it is
+	impressively stupid :-), but it should at least work.
+
+1998-10-15  Russell Marks  <rus@lifeson>
+
+	* Made Z81 use svgalib's raw keyboard support. Unfortunately,
+	Z81txt still has to use the rawkey stuff, so I put that in
+	txtrawkey.c.
+
+Tue Sep  1 12:09:17 1998  Russell Marks  <rus@lifeson>
+
+	* common.c: if Esc was pressed when file selector was being used,
+	it effectively locked up. Fixed that by ignoring Esc when in file
+	selector (which seems the most sensible thing to do).
+
+Mon Mar 30 20:31:29 1998  Russell Marks  <rus@lifeson>
+
+	* Version 1.0.
+
+	* common.c: added file selector. It works via the ZX81's screen,
+ 	and so works on all three versions.
+
+	* The ZX81 now boots instantly, by using a snapshot of a
+ 	booted machine. Use `-s' for the old behaviour.
+
+Thu Mar 12 19:36:39 1998  Russell Marks  <rus@lifeson>
+
+	* commonraw.c: fixed sneaky little bug introduced in the recent
+	code reorganisation which meant that the `z' key didn't work.
+
+	* Finished off ZX80 support.
+
+Wed Feb 18 03:16:46 1998  Russell Marks  <rus@lifeson>
+
+	* Added support for starting a .P file from the cmdline.
+
+Tue Feb 17 21:33:01 1998  Russell Marks  <rus@lifeson>
+
+	* Started adding ZX80 support. Haven't got the rom yet, so there
+	are limits to how much I can do, but... :-)
+
+Tue Feb 10 04:49:36 1998  Russell Marks  <rus@lifeson>
+
+	* Fairly major reorganisation of the code, ANSIfying it and moving
+ 	out previously duplicated bits (where possible) to common*.c. Also
+	removed the rather pointless top-speed and low-rate toggles in
+	Z81/Z81txt.
+
+	* xmain.c: added support for help screen.
+
+	* main.c: switched to an uglier but more readable hand-hacked help
+ 	screen (zx81kybd.pbm) which I should be able to also use in the X
+	version.
+
+	* xmain.c: partially `fixed' problem with opaque movement under X;
+ 	at least now it redraws after the movement has finished.
+
+Tue Feb  3 04:21:44 1998  Russell Marks  <rus@lifeson>
+
+	* Makefile: moved default position for rom etc. to
+	/usr/local/lib/z81. The idea behind having it in /usr/local/lib
+	was that other emulators could share the rom, but in practice I
+	doubt there are going to be too many other Unix-based ZX81
+	emulators. :-) (Besides, it's only 8k, so having unnecessary
+	copies wouldn't be a big deal.)
+
+Sat Jan 11 04:06:46 1997  Russell Marks  <rus@lifeson>
+
+	* Version 0.2.
+
+	* Added 1k tetris.
+
+Thu Oct 17 16:23:06 1996  Russell Marks  <rus@lifeson>
+
+	* Added zx81{sml,big}.gif and zx81.cdr.gz.
+
+Sun Oct 13 03:55:05 1996  Russell Marks  <rus@lifeson>
+
+	* main.c: made similar change. No point doing it for txtmain.c,
+	that's so fast already it'd probably just make it slower.
+
+	* xmain.c: speeded up screen refresh hugely, by following xz80's
+	lead and updating differentially. This is a real pain given the
+	ZX81's screen, and a fair bit of BFI is required to implement it,
+	but it's *so* much faster.
+
+Sat Oct 12 01:27:07 1996  Russell Marks  <rus@lifeson>
+
+	* Made detection of end of `booting' a lot more sensible.
+
+	* Updated z81/z81txt to use sigaction rather than signal.
+
+	* xmain.c: (and others) quick hack to support reset. Fairly
+	painful, but it works well enough.
+
+Fri Oct 11 16:33:53 1996  Russell Marks  <rus@lifeson>
+
+	* xmain.c: created, after semi-infinite amounts of hacking. :-) An
+	X version (finally).
+
+Fri May 10 02:21:09 1996  Russell Marks  <rus@lifeson>
+
+	* Added rather kludgey but working PAUSE support.
+
+Sat Apr  6 20:25:29 1996  Russell Marks  <rus@lifeson>
+
+	* Fixed keyboard hardware emulation - top 3 bits were 0 before
+	(now are all 1). "3D Grand Prix" didn't work before due to this
+	bug. And does now. :-)
+
+	* Added maximum-speed and low-refresh-rate toggles on F9 and F8
+	respectively.
+
+Sat Apr  6 04:38:42 1996  Russell Marks  <rus@lifeson>
+
+	* main.c: added help screen with ZX81 keyboard layout.
+
+Wed Apr  3 02:05:46 1996  Russell Marks  <rus@lifeson>
+
+	* main.c: added high-res support.
+
+Mon Mar 25 04:32:28 1996  Russell Marks  <rus@lifeson>
+
+	* txtmain.c: fixed screen updating here, too.
+
+	* main.c: fixed screen updating so it works properly with less
+	than 32x24.
+
+	* z81.1: added.
+
+	* main.c: made it read rom from /usr/local/lib.
+
+Tue Sep 26 17:59:21 1995  Russell Marks  <rus@lifeson>
+
+	* New text-mode variant, 'z81txt'. Still requires a console, but 
+	will work on MDA/CGA/EGA displays (as well as VGA, though 'z81' is
+	preferable in that case).
+
+Mon Aug 28 20:40:48 1995  Russell Marks  <rus@lifeson>
+
+	* Version 0.1.

@@ -1,0 +1,17 @@
+* Notes on running certain games		-*- outline -*-
+
+* QS Defender
+
+The version of QS Defender on both WoS and NVG just dumps some Dutch
+text at you when you run it. What you have to do to get a runnable
+version is delete lines 3 to 18 inclusive - you'll probably want to
+save it before running, to save having to do this every time.
+
+And don't forget to run the emulator with `-a q' for sound. :-)
+
+
+* Rock Crush and Dan's Revenge
+
+These load in a slightly odd way, using multiple .p files. Make sure
+you have *all* of them in the directory you're loading e.g. crush.p
+from, or it won't work.

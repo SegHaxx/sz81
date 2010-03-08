@@ -1,0 +1,76 @@
+* -*- outline -*-
+
+	    Mine81 - public domain by Russell Marks, 1997
+
+		  A minesweeper clone for the ZX81.
+
+
+* License
+
+Mine81 is public domain, you can do what you want with it. I would
+appreciate it if you could copy this text file whenever you copy the
+game, though.
+
+
+* Playing Mine81
+
+Mine81 is much the same as any other minesweeper game, right down to
+the smiley face at the top of the screen. :-) But here's a brief
+description all the same:
+
+You have to mark off all the mines (and not tread on any!), given only
+the number of mines next to each square you tread on - there can be up
+to 8. This is displayed on each square you step on as a digit, except
+for those squares with zero mines around them which simply appear
+blank. If you tread on a `blank' square like this, all similarly blank
+squares connected to it are shown - and the same for *those* blank
+squares, etc. - so finding blank squares is a Good Thing, as it can
+reveal large parts of the minefield.
+
+There isn't as much luck involved in the game as there may initially
+seem to be. If you get a reasonable start, you can often deduce where
+each mine is with luck taking no further role in the game at all. As
+ever, practice is the key; if you've not played a minesweeper game
+before you may want to play the "very easy" game quite a bit before
+attempting the higher levels.
+
+Minesweeper games traditionally use mouse control. Since this is
+clearly not practical on a ZX81, Mine81 lets you control a cursor
+which - other than being moved with keys - acts in the same way.
+
+You move left/down/up/right with H/J/K/L (vi keys), or S/X/E/D
+(old-style wordstar-ish keys). You tread on a square with either V or
+Space, mark a square you believe to be mined with 1 or M, and you can
+unmark a square you think you marked wrongly with 3 or U.
+
+
+* Known bugs
+
+It takes ages to show the blank bits. My code probably isn't hugely
+efficient, and hey, it *is* only a ZX81! :-) Besides, the timer is
+deliberately stopped during the blank-finding bit to avoid any
+unfairness.
+
+There's no high-score table, so if you want to beat your own best time
+you have to check this by hand.
+
+
+* Assembling
+
+You don't have to assemble Mine81, it comes as a .P file along with
+the source. But, since I'm distributing the source, it makes sense to
+describe how to assemble it.
+
+You'll need a Unix box, and `zmac' (look on sunsite.unc.edu in
+/pub/Linux/devel/lang/assemblers). Compile and install zmac, then do
+`make' and it should build mine81.p.
+
+
+* Contacting me
+
+You can email me at russell.marks@ntlworld.com.
+
+
+Share and enjoy! 
+
+-Rus.

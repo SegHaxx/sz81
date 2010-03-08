@@ -1,0 +1,116 @@
+.\" -*- nroff -*-
+.\"
+.\" zx81get.1
+.\"
+.TH zx81get 1 "23rd April, 1999" "Version 1.0" "Emulators"
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH NAME
+zx81get \- load ZX81 programs from tape via /dev/dsp
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH SYNOPSIS
+.PD 0
+.B zx81get
+.RB [ -v ]
+.P
+.PD 1
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH DESCRIPTION
+Zx81get reads ZX81 programs (generally from tape) via /dev/dsp, i.e.,
+using a soundcard. It writes (or verifies) the files under the
+filenames they were saved with, in the `.P' format supported by z81.
+.PP
+Usage is either simply `zx81get', to transfer files, or `zx81get -v',
+to verify files which have already been transferred. Once you're
+finished, you can raise SIGINT (e.g. by doing a ^C) to exit zx81get.
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH OPTIONS
+.TP
+.I -v
+verify existing files (instead of writing new ones). After running
+zx81get to copy files from a tape, you should generally verify that
+the files were read correctly by going through the tape a second time
+with `zx81get -v'.
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH "TROUBLESHOOTING"
+The main problem you're likely to have getting zx81get to work is
+getting the output from the tape player at the right level (just the
+same as when loading on a real ZX81, in fact :-)). Generally you want
+it to fill the sample range as much as possible, but this isn't easy
+to judge. Some ideas which may help:
+.PP
+- if you can't hear the tape hiss shortly before the program data
+starts, it's probably not loud enough.
+.PP
+- if
+.I all
+you can hear is tape hiss, it's probably too loud. :-)
+.PP
+- as a general guide, the sound should be uncomfortably loud, but not
+ear-splitting.
+.PP
+- an alternative approach to the above is to push the volume as far as
+it will go without distorting.
+.PP
+But apart from that, you'll just have to experiment to find the most
+reliable settings.
+.PP
+Two other problems are caused by inadequacies in the ZX81's tape
+format:
+.PP
+Firstly, there is no lead-in tone, so if your sampling device uses an
+auto-gain control (a manifestation of purest evil) on its `mic' input,
+you may want to try `line-in' or similar instead, as an AGC will
+completely destroy the start of the signal.
+.PP
+(If you're not familiar with the effect of an AGC, listen to the way
+the volume changes on the input. If it gets louder and louder (to a
+certain point) during silent parts, then suddenly adjusts when the
+program starts, it's likely an AGC is involved.)
+.PP
+Secondly, there is no checksum, no CRC, absolutely no check of any
+kind whatsoever. That means there's no way to tell if what you've
+loaded bears even the slightest resemblance to what was saved. As
+such, I
+.I strongly
+recommend you use the
+.RI ` -v '
+option after reading a tape to `verify' the files.
+.PP
+Another recommendation - if you have any Psion programs (e.g.
+.IR "Flight Simulation" ),
+try them first, as they do a CRC check when they start up. If you can
+get such a check to work, you can be reasonably confident that you
+have a working setup.
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH BUGS
+The sound device must be capable of 22kHz 8-bit mono recording.
+.PP
+The boundary between noise (bits) and silence (gaps between them) is
+hard-coded; it might be better if that could be adjusted.
+.PP
+I don't have that many ZX81 tapes any more, so I could only test it on
+15 programs, the largest of which wasn't much over 4k. (I'd appreciate
+knowing if it seems to be at all reliable for larger programs - it
+should be, but I can't easily check.)
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH SEE ALSO
+.IR z81 "(1)"
+.\"
+.\"------------------------------------------------------------------
+.\"
+.SH AUTHOR
+Russell Marks (rus@svgalib.org).

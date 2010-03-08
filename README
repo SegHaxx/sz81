@@ -1,0 +1,169 @@
+z81    - a ZX81 and ZX80 emulator for the Linux console
+xz81   - a ZX81 and ZX80 emulator for X
+
+Z80 emulation and much X code from `xz80', copyright (C) 1994 Ian Collier.
+ZX81/ZX80 support and svgalib front-end (C) 1995-2004 Russell Marks.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+
+ROM issues
+----------
+
+While Amstrad allow free use (in emulators) of the Sinclair ROMs they
+own the rights to, it seems they *don't* own the rights to the ZX80
+and ZX81 ROMs. With the situation therefore being rather uncertain, I
+can't include the ROMs. I will, however, note that they're available
+from ftp://ftp.nvg.ntnu.no/pub/sinclair/roms :-), and that you require
+at least the ZX81 ROM for the emulator to work.
+
+Alternatively, if you have a real ZX81 and can use zx81get (see
+below), you could use `saverom' to get a copy of its ROM; see
+saverom/README.
+
+If you put the ROM files in the directory you're installing from,
+`make install' will install them for you.
+
+
+Roadmap
+-------
+
+The COPYING file contains a copy of the GPL described above.
+
+NEWS and ChangeLog describe differences between versions.
+
+GAMENOTES contains, well, notes on certain games. :-) (For example,
+how to get the commonly-distributed version of QS Defender working.)
+
+The games-etc directory contains some old PD games I wrote for the
+ZX81, and a crude sound demo.
+
+
+Description
+-----------
+
+`z81' is a Sinclair ZX81 (also known as the Timex TS1000) emulator,
+which can optionally emulate a ZX80. It uses svgalib. It supports most
+programs and games. It supports the pseudo-hi-res mode, overscanned
+modes, the ZX Printer, and both VSYNC-based and AY-3-891x-based sound.
+It saves and loads programs in Xtender's .P format, but should also be
+able to load .81 format files. (It works on the ones I've tried, but I
+haven't tried many.)
+
+`xz81' is a version of `z81' for X. It should work on non-Linux
+systems, though it probably needs a relatively modern Unix box. xz81
+should work on most displays - depths of 1/4/8/15/16/24/32-bit are
+supported, though 4-bit is currently untested.
+
+In addition to the emulators, z81 comes with `zx81get', a
+(Linux-specific) program to transfer programs from ZX81 tapes using a
+soundcard (or more precisely, via /dev/dsp). Loading from ZX81 tapes
+is no easier than it ever was :-), but it seems to work fairly well.
+
+Failing that, at the time of writing you can get various ZX81 programs
+from:
+
+  ftp://ftp.worldofspectrum.org/pub/sinclair/zx81
+
+  http://www.unsatisfactory.freeserve.co.uk/zx81search/
+	(largely a nicer frontend for the above)
+
+  ftp://ftp.nvg.ntnu.no/pub/sinclair/zx81
+
+
+Installation
+------------
+
+You'll need an ANSI C compiler. `gcc' is fine - as should anything
+else be, these days.
+
+Check/edit the Makefile first - it should be ok as-is for Linux.
+
+Then, on non-Linux systems, or if you only want the X version, or if
+you have no idea what I'm talking about here :-), do `make xz81' then
+(as root) `make install'. That should compile/install only the X
+version. If you're running Linux, you should note that only compiling
+the X version means zx81get isn't compiled - do `make xz81 zx81get'
+(then `make install') instead if you want that too.
+
+If you have a Linux box with svgalib installed, just do `make' then
+(as root) `make install'. That should compile z81/xz81 and zx81get,
+and install them in /usr/local/bin.
+
+Once z81 is installed, don't forget to read the man page.
+
+
+About the programs in the `games-etc' directory
+-----------------------------------------------
+
+A while back I wrote a few Tetris clones, one boring ordinary one, one
+`hi-res' one, and a 1k version. I've bundled them with z81. See
+`tetris.txt' for details. There's also mine81, a `minesweeper' clone;
+see `mine81.txt' for more on that.
+
+Having added support for AY-3-891x-based sound addons in 2.0, I
+thought I might as well port a tune I wrote for the speccy (or rather,
+that I ported to it - it's the ingame music from my `zblast') as a
+generic AY-thingy test. :-) That's `aydemo.p'. At the moment it only
+works on the Zon X.
+
+They're all public domain (apart from the GPL'd tune in aydemo.p), so
+you can do whatever you want with them. Source is in *-src*.tar.gz.
+
+Some ZX81-related utils are included in tetris-src.tar.gz - these are
+zx81send, which transfers a .P file to a real ZX81; and bin2p, which
+converts a binary m/c program into a self-running .P file.
+
+
+About `xz81.xpm'
+----------------
+
+This is a slightly nicer colour version of xz81's `built-in' mono
+icon. If you're using xz81 and your window manager supports loading
+XPMs from files to use as icons, then you might want to use it instead
+of the default icon. It's installed in the same directory as other z81
+data files - /usr/local/lib/z81 by default.
+
+
+History etc.
+------------
+
+I decided to write a ZX81 emulator in 1995, having got a bit tired of
+having to run dosemu to use Xtender 1.x, which aside from being for
+DOS, and being shareware, was a good emulator. (sigh)
+
+Thanks to the GNU GPL, I could use Ian Collier's Z80 emulator from
+xz80, a ZX Spectrum emulator for X, and replace the X and Spectrum
+support code with that for svgalib and the ZX81. (I wrote xz81 later.)
+And I was writing this README the following evening. This is an
+argument for open source. :-)
+
+I give Ian the main author credit for z81, as the Z80 emulation is
+much harder to do than emulating the ZX81's hardware and patching the
+ROM for save/load etc. However, any correspondence regarding z81
+should be to me, as Ian hasn't had anything else to do with it and,
+being more of a speccy fan (I think), may not appreciate being hassled
+by those of the ZX81 persuasion. :-)
+
+
+Contacting me
+-------------
+
+You can email me at rus@svgalib.org.
+
+
+Share and enjoy! 
+
+-Rus.

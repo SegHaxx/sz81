@@ -1,0 +1,187 @@
+* Changes between versions   -*- mode:indented-text; mode:outline-minor -*-
+
+This file (NEWS) documents the significant changes between all
+versions of z81, with the newest changes first.
+
+
+* Changes in z81 2.1
+
+Fixed several compilation warnings with gcc, as well as something gcc
+now likes to call an "error" which prevented compilation of z81 2.0
+with current versions. Thanks to Adam J. Richter and Brian Schau for
+pointing out the problems.
+
+Added a "saverom" program for the ZX81, which lets you save your
+own ZX81's ROM.
+
+Changed ZX80 VSYNC behaviour slightly, the Space Invaders clone for it
+works now.
+
+Various sound fixes - fixed post-death sound in QS Defender, fixed a
+slight `spike' problem on VSYNC tones, and removed AY tone/noise
+counter wraparound (which was mistaken).
+
+Improved signal handling.
+
+
+* Changes in z81 2.0
+
+Better display emulation, leading to better emulation all-round. This
+still isn't perfect, but it already seems to cope with everything z81
+1.x did, plus a bit more. Notable additions are Rock Crush, Dan's
+Revenge, and QS Defender (though it's so overscanned it doesn't fit in
+the normal display). Also, high-score entry now works in ZX Galaxians,
+and the display no longer `goes weird' when updating on the ZX80. :-)
+Thanks to Wilf Rigter (and his zx81vid.txt) for the timing info and
+detailed description the new display stuff was based on.
+
+Optional sound emulation. This comes in two forms - VSYNC-based (aka
+`turn up the volume on the TV' :-)), and AY-3-891x-based (sound
+addons). The sound addons currently supported are the Quicksilva sound
+board, and the Bi-Pak Zon X-81 (thanks to Andy Styles for info on
+this). The sound code was based on my work for Fuse, so Matan Ziv-Av
+and Philip Kendall also deserve some credit here.
+
+Added ZX Printer support, which was an easy port from xz80. Thanks to
+Ian Collier for this, obviously. :-) The main difference in z81 is
+that it outputs (as a picture) to a PBM file rather than an X bitmap.
+
+With `-l', you can now boot directly to the file selector (at least
+when emulating a 16k ZX81).
+
+You can now enable display of the VSYNC signal with `-V'. This is
+useful if you want FAST mode to blank the screen, or want to see
+LOAD/SAVE signals onscreen when using `-L' or `-S' (see below), but
+tends to be an annoyance otherwise which is why it's not enabled by
+default.
+
+The LOAD and SAVE hooks can now be disabled, with `-L' and `-S'
+respectively. This is mainly so there's something easy to get at which
+makes a noise :-) (i.e. use `-sS' then save something).
+
+A keyboard port fix means that Namtir Raiders now works. Also fixed
+reversed key-reading when more than one bit was zero in the port's
+MSB - I don't think that affected much though.
+
+You can now directly emulate a 1k machine, with `-u' (= unexpanded).
+
+The new `-i' option inverts the screen, giving a white-on-black
+display.
+
+Fixed some problems with signal blocking when exiting.
+
+The X version previously ignored any `-r' setting - fixed.
+
+Auto-load (loading from the command-line) is slightly better
+than before - it now starts up the program `instantly'. This is
+probably just as well, as the better display emulation means the
+emulator can't really `fast-boot' any more except when loading a
+program.
+
+It didn't previously load programs from command-line which ended in
+`.P' (it tried to add a further `.p') - it does now.
+
+Removed the old `-s' for normal (slow) booting, as the only fast-boot
+option now available is auto-loading (see above).
+
+Removed z81txt (the Linux-console-specific text version). I thought
+about some way of making it work with the new display code by
+interpreting characters in the screen bitmap, but it was really just
+too nasty an idea to be worth bothering with.
+
+
+* Changes in z81 1.3.1
+
+Incredibly moronic bug fixed - it seems that in 1.3, I managed to
+completely break all loading and saving *except* LOAD "".
+
+Now uses SA_RESETHAND if SA_ONESHOT isn't available, which should
+avoid a compilation problem on Solaris. Thanks to Philip Kendall for
+pointing this out.
+
+
+* Changes in z81 1.3
+
+Fixed several possible buffer overruns.
+
+The LOAD "" file selector now allows simple directory navigation, and
+shift-q/shift-a to page up/down in the file list.
+
+A few changes to avoid possible problems with copyright etc. - in
+particular, the ROMs are no longer included.
+
+Added support in X version for `delete window' message from window
+manager.
+
+Fixed the old bug where the X version wasn't redrawing in some
+circumstances. This was due to Expose events on the image window not
+being propagated to the parent (the slightly larger `borderwin').
+
+The default SCALE (as specified in the Makefile) is now 2, giving a
+more reasonable window size for the X version.
+
+Added uninstall target to Makefile.
+
+z81txt is no longer built by default.
+
+
+* Changes in z81 1.2
+
+Added `zx81get', a (Linux-specific) program to read ZX81 tapes using a
+soundcard (or more precisely, using /dev/dsp :-)).
+
+Fixed xz81's 1-bit mono support to work on X servers with `LSBFirst'
+bit order. Thanks to Christopher Allen for pointing me in the right
+direction on this one.
+
+Fixed auto-load bug (for programs loaded from the command-line), where
+most programs which didn't just do an immediate USR after loading
+acted oddly or simply crashed.
+
+
+* Changes in z81 1.1
+
+xz81 should support pretty much all display depths now. At any rate,
+it works for me at 1/8/15/16/24/32 bpp; 4-bit should work, but is
+currently untested.
+
+There's an important bugfix relating to glibc - previously it wouldn't
+have compiled!
+
+There are a few bugfixes in the emulation, meaning that a couple of
+games which didn't work before (e.g. Artic's "ZX Galaxians") do now.
+Thanks to Claudio Carlquist for pointing out one of these bugs.
+
+Z81 now uses svgalib's raw keyboard support rather than rawkey.
+
+I'm including yet another naff ZX81 PD game I wrote :-) - `mine81', a
+minesweeper clone.
+
+
+* Changes in z81 1.0
+
+ZX80 support.
+
+When emulating a ZX81, you get a file selector if you do LOAD "" (in
+all versions).
+
+Help screen supported in X version (8-bit displays only, as yet).
+
+Uglier but more readable (and thus more useful) hand-hacked help
+screen. (This also has the advantage of being B&W, so I don't have to
+worry about allocating colours in xz81 - which I would otherwise have
+had to do *just* for the help screen!)
+
+The ZX81 now boots instantly, by using a snapshot of a booted machine.
+Use `-s' if you don't want this to happen for some reason.
+
+Removed misguided top-speed and extremely-low-refresh-rate options.
+You can achieve the same effect as the latter by starting with `z81 -r
+25' or similar. Anyone who used the top-speed feature probably used it
+for entering programs - using FAST mode is good for this.
+
+ANSIfied the code and cleaned up almost all the code duplicated
+between versions.
+
+Data files are now installed in /usr/local/lib/z81 by default. Also,
+xz81.xpm and zx81sml.gif are installed there (they weren't before).
