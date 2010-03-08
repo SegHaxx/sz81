@@ -24,16 +24,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifndef SZ81	/* Added by Thunor */
 #include <signal.h>
+#endif
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <dirent.h>
+#ifdef SZ81	/* Added by Thunor */
+#include <SDL/SDL.h>	/* For SDL_Delay */
+#endif
 #include "common.h"
 #include "sound.h"
 #include "z80.h"
 #include "allmain.h"
+#ifdef __amigaos4__
+#include "amiga.h"
+#endif
 
 unsigned char mem[65536],*helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
@@ -62,10 +70,13 @@ int fakedispx=0,fakedispy=0;	/* set by main.c/xmain.c */
 static int zxpframes,zxpcycles,zxpspeed,zxpnewspeed;
 static int zxpheight,zxppixel,zxpstylus;
 static FILE *zxpfile=NULL;
-static char *zxpfilename=NULL;
+char *zxpfilename=NULL;
 static unsigned char zxpline[256];
 
-
+#ifdef SZ81	/* Added by Thunor */
+int nosound_hz = 50;
+int load_selector_state = 0;
+#endif
 
 int refresh_screen=1;
 
@@ -84,10 +95,12 @@ char *load_selector(void);
 
 
 
+#ifndef SZ81	/* Added by Thunor */
 void sighandler(int a)
 {
 signal_int_flag=1;
 }
+#endif
 
 
 char *libdir(char *file)
@@ -114,17 +127,22 @@ else
 }
 
 
+#ifndef SZ81	/* Added by Thunor: made redundant as a result of culling startsigsandtimer */
 static void exit_program_flag_set(int foo)
 {
 exit_program_flag=1;
 }
+#endif
 
 
 void startsigsandtimer()
 {
+#ifndef SZ81	/* Added by Thunor */
+int f,tmp=1000/50;	/* 50 ints/sec */ 
+/*#ifndef __amigaos4__	Thunor: redundant now as we don't even call this function anymore */
 struct sigaction sa;
 struct itimerval itv;
-int f,tmp=1000/50;	/* 50 ints/sec */
+
 int badsig[]={SIGHUP,SIGINT,SIGQUIT,SIGILL,SIGSEGV,SIGTERM,SIGBUS};
 int numsig=sizeof(badsig)/sizeof(badsig[0]);
 
@@ -167,6 +185,8 @@ itv.it_interval.tv_usec=(tmp%1000)*1000;
 itv.it_value.tv_sec=itv.it_interval.tv_sec;
 itv.it_value.tv_usec=itv.it_interval.tv_usec;
 setitimer(ITIMER_REAL,&itv,NULL);
+/*#endif	Thunor: redundant now as we don't even call this function anymore */
+#endif
 }
 
 
@@ -280,13 +300,16 @@ else
 
 void loadhelp(void)
 {
+#ifndef SZ81	/* Added by Thunor */
 FILE *in;
 char buf[128];
+#endif
 
 /* but first, set up location of help/selector */
 fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 fakedispy=ZX_VID_MARGIN;
 
+#ifndef SZ81	/* Added by Thunor. Note that helpscrn below is never freed */
 if((in=fopen(libdir(zx80?"zx80kybd.pbm":"zx81kybd.pbm"),"rb"))!=NULL)
   {
   /* ditch header lines */
@@ -305,6 +328,7 @@ else
   fprintf(stderr,"z81: couldn't load help screen.\n");
   exit(1);
   }
+#endif
 }
 
 
@@ -632,6 +656,7 @@ if(!(l&1)) l=0xfe;
 
 switch(l)
   {
+#ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
   case 0x0f:		/* Zon X data */
     if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
       sound_ay_write(ay_reg,a);
@@ -640,7 +665,8 @@ switch(l)
     if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
       ay_reg=(a&15);
     break;
-  
+#endif
+
   case 0xfb:
     return(ts|printer_inout(1,a));
   case 0xfd:
@@ -693,7 +719,12 @@ unsigned char *ptr=mem+a,*dptr=fname;
 FILE *out;
 
 if(zx80)
+  {
   strcpy(fname,"zx80prog.p");
+#ifdef __amigaos4__
+  strcpy(fname, amiga_file_request(""));
+#endif
+  }
 else
   {
   /* so the filename is at ptr, in the ZX81 char set, with the last char
@@ -733,7 +764,12 @@ FILE *in;
 int got_ascii_already=0;
 
 if(zx80)
+  {
   strcpy(fname,"zx80prog.p");
+#ifdef __amigaos4__
+  strcpy(fname, amiga_file_request(""));
+#endif
+  }
 else
   {
   if(a>=32768) 	/* they did LOAD "" */
@@ -754,6 +790,10 @@ else
       {
       char *ret=load_selector();
 
+      #ifdef SZ81	/* Added by Thunor */
+      load_selector_state = 0;
+      #endif
+
       if(ret==NULL || strlen(ret)+1>=sizeof(fname))
         {
         /* if autolist is aborted or goes wrong, we exit completely */
@@ -763,6 +803,7 @@ else
         }
 
       autoload=autolist=0;	/* in case it was `-l' */
+
       strcpy(fname,ret);
       }
     }
@@ -856,8 +897,10 @@ void reset81()
 interrupted=2;	/* will cause a reset */
 memset(mem+16384,0,49152);
 refresh_screen=1;
+#ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
 if(sound_ay)
   sound_ay_reset();
+#endif
 }
 
 
@@ -908,11 +951,20 @@ void parseoptions(int argc,char *argv[])
 {
 int done=0;
 
+#ifdef __amigaos4__
+if(argc == 0)
+{
+  amiga_read_tooltypes((struct WBStartup *)argv);
+  return;
+}
+#endif
+
 opterr=0;
 
 do
   switch(getopt(argc,argv,"a:hilLop:r:sSTuV"))
     {
+    #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
     case 'a':
       sound=1;
       sound_ay=1;
@@ -931,6 +983,7 @@ do
       if(*optarg && optarg[1]=='s')
         sound_stereo=1,sound_stereo_acb=1;
       break;
+    #endif
     case 'h':
       usage_help(argv[0]);
       exit(1);
@@ -954,10 +1007,12 @@ do
       if(scrn_freq<1) scrn_freq=1;
       if(scrn_freq>50) scrn_freq=50;
       break;
+    #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
     case 's':	/* sound (!) - specifically, VSYNC-based sound */
       sound=1;
       sound_vsync=1;
       break;
+    #endif
     case 'S':	/* no SAVE hook */
       save_hook=0;
       break;
@@ -1017,8 +1072,10 @@ if(optind==argc-1 || autolist)	/* if filename or `-l' given... */
 
 void frame_pause(void)
 {
+#ifndef SZ81	/* Added by Thunor */
 static int first=1;
 static sigset_t mask,oldmask;
+#endif
 
 #ifdef OSS_SOUND_SUPPORT
 if(sound_enabled)
@@ -1037,9 +1094,15 @@ if(sound_enabled)
 /* we leave it blocked most of the time, only unblocking
  * temporarily with sigsuspend().
  */
+#ifdef SZ81	/* Added by Thunor */
+while(!signal_int_flag)
+  SDL_Delay(10);
+#else
+/*#ifndef __amigaos4__	Thunor: redundant since sz81 won't get here */
 if(first)
   {
   first=0;
+
   sigemptyset(&mask);
   sigaddset(&mask,SIGALRM);
   sigprocmask(SIG_BLOCK,&mask,&oldmask);
@@ -1048,7 +1111,8 @@ if(first)
 /* the procmask stuff is to avoid a race condition */
 while(!signal_int_flag)
   sigsuspend(&oldmask);
-
+/*#endif	Thunor: redundant since sz81 won't get here */
+#endif
 signal_int_flag=0;
 
 if(interrupted<2)
@@ -1205,6 +1269,7 @@ while(make_lastk()!=0xffff)
 char *load_selector()
 {
 static char returned_filename[256];
+#ifndef __amigaos4__
 static unsigned char selscrn[33*24+1];	/* pseudo-DFILE */
 int f,height=18;
 char *files=NULL;
@@ -1220,9 +1285,18 @@ char *ptr;
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
 int krheld=0,krsubh=0;
 int oldkey,key,virtkey;
+#endif
+
+#ifdef SZ81	/* Added by Thunor */
+load_selector_state = 1;
+#endif
 
 /* should never get here if emulating ZX80, but FWIW... */
 if(zx80) return(NULL);
+
+#ifdef __amigaos4__
+strcpy(returned_filename, amiga_file_request(""));
+#else
 
 /* usually won't need this on a 16k, but a 1k responds to LOAD ""
  * much more quickly... :-)
@@ -1424,6 +1498,7 @@ ignore_esc=0;
 
 /* or error, if the chdir() failed */
 if(got_one && isdir) return(NULL);
+#endif
 
 return(returned_filename);
 }

@@ -66,6 +66,10 @@ int sound_freq=32000;
 int sound_stereo=0;
 int sound_stereo_acb=0;		/* 1 for ACB stereo, else 0 */
 
+#ifdef SZ81	/* Added by Thunor */
+int sound_hz = 50;
+#endif
+
 /* sound_vsync and sound_ay are in common.c */
 
 
@@ -155,7 +159,13 @@ int frag,tmp;
 if((soundfd=open("/dev/dsp",O_WRONLY))<0)
   return(0);
 
+#ifdef PLATFORM_GP2X	/* Added by Thunor */
+tmp=AFMT_S16_LE;
+sixteenbit=1;
+#else
 tmp=AFMT_U8;
+#endif
+
 if(ioctl(soundfd,SNDCTL_DSP_SETFMT,&tmp)==-1)
   {
   /* try 16-bit - may be a 16-bit-only device */
@@ -298,7 +308,12 @@ if(!sound_stereo)
   sound_stereo_acb=0;
 
 sound_enabled=1;
+
+#ifdef SZ81	/* Added by Thunor */
+sound_framesiz=sound_freq/sound_hz;
+#else
 sound_framesiz=sound_freq/50;
+#endif
 
 if((sound_buf=malloc(sound_framesiz*(sound_stereo+1)))==NULL)
   {

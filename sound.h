@@ -26,6 +26,10 @@ extern int sound_freq;
 extern int sound_stereo;
 extern int sound_stereo_acb;
 
+#ifdef SZ81	/* Added by Thunor */
+extern int sound_hz;
+#endif
+
 extern void sound_init(void);
 extern void sound_end(void);
 extern void sound_frame(void);

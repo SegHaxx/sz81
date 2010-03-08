@@ -20,7 +20,7 @@ XDEF=-DSCALE=2 -DMITSHM
 # comment this out if you're not compiling on Linux, or some other
 # platform with the OSS API available.
 #
-SOUNDDEF=-DOSS_SOUND_SUPPORT
+#SOUNDDEF=-DOSS_SOUND_SUPPORT
 
 # this should point to where X is installed. (If you don't know where
 # it is, try `/usr/X11', that's a common culprit.) On Linux it's
@@ -45,7 +45,7 @@ INLINEDEF=-DINLINE_DRAWPIX
 
 # dest for no install i.e. running from source folder as user
 #
-PREFIX=.
+PREFIX=lib
 BINDIR=$(PREFIX)
 XBINDIR=$(BINDIR)
 MANDIR=$(PREFIX)
@@ -62,10 +62,10 @@ LIBDIR=$(PREFIX)
 # this looks wrong, but *ops.c are actually #include'd by z80.c
 Z81_OBJS=main.o common.o sound.o z80.o
 XZ81_OBJS=xmain.o common.o sound.o z80.o
-SZ81_OBJS=smain.o common.o sound.o z80.o sdl.o
+SZ81_OBJS=smain.o common.o sound.o z80.o sdl.o amiga.o
 
 CFLAGS=-I$(XROOT)/include -O -Wall $(SOUNDDEF) \
-	$(XDEF) $(INLINEDEF) -DLIBDIR=\"$(LIBDIR)\" -DSZ81
+	$(XDEF) $(INLINEDEF) -DLIBDIR=\"$(LIBDIR)\" -DSZ81 -use-dynld
 
 all: sz81
 

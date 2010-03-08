@@ -83,8 +83,9 @@ extern int refresh_screen;
 extern int zx80;
 extern int ignore_esc;
 
-
+#ifndef SZ81	/* Added by Thunor */
 extern void sighandler(int a);
+#endif
 extern char *libdir(char *file);
 extern void startsigsandtimer();
 extern void exit_program(void);

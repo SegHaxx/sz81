@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# This script executes the GP2X binary with stereo AY-chip-based sound
+# support and boots directly into the file selector.
+
+# Joystick input has been mapped to keyboard keys sufficient enough to
+# run aydemo.p and play mine81.p (see README.sdl for all controls).
+
+./sz81 -a zs -l
+sync
+cd /usr/gp2x
+exec ./gp2xmenu
