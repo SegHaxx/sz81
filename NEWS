@@ -1,0 +1,22 @@
+2010-03-08
+* 2.1-4 released
+* Converted non OSS timing to use a more portable SDL timer
+* Added an icon based control bar with several useful options
+* Added ZX bitmap fonts and a bitmap font engine for future use within
+  the GUI
+* Added Chris Young's AmigaOS4 specific code
+
+2010-02-27
+* 2.1-3 released
+* Added mouse/stylus interactivity to the keyboard with adjustable
+  opacity and autohide on newline
+
+2010-02-17
+* 2.1-2 released
+* Added new keyboard images
+* The renderer now centres the emulator regardless of resolution
+
+2010-02-14
+* 2.1-1 released
+* Initial stable and fully functioning (except OSS sound) SDL port
+  of z81

@@ -15,8 +15,9 @@ along with this program; if not, write to the Free Software
 Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
-*** Please read the original README for information about this entire
-project. The following information is specific to sz81 ***
+*** Please read README.z81 for information about [x]z81, zx81get and
+the contents of games-etc and the saverom folders. Contained within
+the README you are reading now is information specific to sz81 only ***
 
 
 Description
@@ -38,11 +39,6 @@ Features:
  * User-definable (actually currently developer-definable) keys
  * Joystick to keyboard remapping (joystick navigation is to follow)
  * Maximum porting potential since it only requires SDL
-
-Note that this includes the missing OSS_SOUND_SUPPORT directives which
-I found independently even though there is a patch on the z81 website
-http://www.svgalib.org/rus/z81.html that does a similar thing.
-Therefore you needn't and shouldn't apply that patch.
 
 To-Do:
  * Virtual keyboard navigation and activation using a joystick
@@ -118,14 +114,14 @@ For the GPH GP2X:
 Installation
 ------------
 
-In previous version of sz81 you were required to download the z81
-source package and apply a patch, but this is no longer necessary since
-sz81 is now packaged as a whole. You should still visit the z81 website
-http://www.svgalib.org/rus/z81.html and follow the links to grab both
-zx80.rom and zx81.rom as they are a requirement.
+To function correctly sz81 expects to find the zx80.rom and zx81.rom
+ROMs, but these files are NOT included within this package. The z81
+project that sz81 is based upon has links to these files on its website
+http://www.svgalib.org/rus/z81.html and so you might want to visit
+there first before continuing.
 
-So, extract the sz81 source package, copy zx80.rom and zx81.rom into
-the same folder and change into it.
+Extract the sz81 source package, copy the zx80.rom and zx81.rom ROMs
+into the same folder and change into it.
 
 For the PC:
 
