@@ -1,12 +1,13 @@
 # You won't need to alter these
-TARGET=sz81
+TARGET=$(shell cat TARGET)
 SOURCES=smain.c common.c sound.c z80.c sdl.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
-VERSION=2.1-4
-LIBDIR=.
+VERSION=$(shell cat VERSION)
+export LIBDIR=.
 
 # This uses the default cross compiler directory of /opt/Embedix and
 # the default QPE directory of /opt/Qtopia
+# 
 DEVPREFIX=/opt/Qtopia/sharp
 CC=/opt/Embedix/tools/bin/arm-linux-gcc
 CFLAGS=-O3 -pipe -Wall -fomit-frame-pointer -I$(DEVPREFIX)/include \
@@ -22,6 +23,7 @@ all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+#	zaurus/_buildipk
 
 %.o: %.c 
 	$(CC) $(CFLAGS) -c $< -o $@

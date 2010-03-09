@@ -22,8 +22,10 @@ project. The following information is specific to sz81 ***
 Description
 -----------
 
-sz81 is a port of Russell Marks's SVGAlib z81 Sinclair ZX80/81 emulator
-to SDL with some additional functionality.
+sz81 is a Sinclair ZX80/ZX81 emulator very much based upon the work of
+Ian Collier's xz80 and Russell Marks's z81 but employing the highly
+portable SDL and including additional functionality and features for
+desktop computers and portable devices.
 
 Features:
  * Virtual keyboard with adjustable opacity, autohide on newline,
