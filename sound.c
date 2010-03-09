@@ -159,7 +159,7 @@ int frag,tmp;
 if((soundfd=open("/dev/dsp",O_WRONLY))<0)
   return(0);
 
-#ifdef PLATFORM_GP2X	/* Added by Thunor */
+#if defined(SZ81) && defined(PLATFORM_GP2X)	/* Added by Thunor */
 tmp=AFMT_S16_LE;
 sixteenbit=1;
 #else

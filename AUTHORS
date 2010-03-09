@@ -1,0 +1,21 @@
+
+Ian Collier <imc_at_comlab.ox.ac.uk 1994
+========================================
+Z80 emulation and much X code from xz80.
+
+
+Russell Marks <russell.marks_at_ntlworld.com> 1995-2004
+=======================================================
+[x]z81: ZX81/ZX80 support and svgalib front-end.
+
+
+Thunor <thunorsif_at_hotmail.com> 2007-2010
+===========================================
+sz81: SDL conversion, new artwork, virtual keyboard implementation,
+GP2X and Sharp Zaurus ports.
+
+
+Chris Young <cdyoung_at_ntlworld.com> 2010
+==========================================
+AmigaOS4 code and port.
+

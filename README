@@ -115,13 +115,12 @@ Installation
 ------------
 
 To function correctly sz81 expects to find the zx80.rom and zx81.rom
-ROMs, but these files are NOT included within this package. The z81
-project that sz81 is based upon has links to these files on its website
-http://www.svgalib.org/rus/z81.html and so you might want to visit
-there first before continuing.
+ROMs which are not included within this source package. You might find
+them at ftp://ftp.nvg.ntnu.no/pub/sinclair/roms, or perhaps through
+searching the internet for "zx80.rom" and "zx81.rom".
 
 Extract the sz81 source package, copy the zx80.rom and zx81.rom ROMs
-into the same folder and change into it.
+into the data folder and change into the extracted directory.
 
 For the PC:
 
@@ -145,10 +144,7 @@ For the Sharp Zaurus (requires SDK):
     /home/zaurus/sz81 :-
 
     sz81
-    sz81icons.bmp
-    zx80.rom and zx81.rom
-    zx80kybd.bmp and zx81kybd.bmp
-    zx80font.bmp, zx81font.bmp and zx82font.bmp
+    data
 
     and some or all of the p files from games-etc and execute sz81
     from the terminal.
@@ -161,14 +157,11 @@ For the GPH GP2X (requires SDK):
     Copy the following files to a folder on your SD card :-
 
     sz81 and sz81.gpe
-    sz81icons.bmp
-    zx80.rom and zx81.rom
-    zx80kybd.bmp and zx81kybd.bmp
-    zx80font.bmp, zx81font.bmp and zx82font.bmp
+    data
 
     and mine81.p and aydemo.p from games-etc and execute sz81.gpe
     from the GP2X GUI. If you require an icon for gmenu2x then you
-    can use the supplied sz81.bmp.
+    can use the supplied sz81.png.
 
 
 Contacting me

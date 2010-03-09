@@ -107,6 +107,9 @@ char *libdir(char *file)
 {
 static char buf[1024];
 
+#ifdef SZ81	/* Added by Thunor: LIBDIR is only referenced here */
+#define LIBDIR PACKAGE_DATA_DIR
+#endif
 if(strlen(LIBDIR)+strlen(file)+2>sizeof(buf))
   strcpy(buf,file);	/* we know file is a short constant */
 else

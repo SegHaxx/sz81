@@ -4,7 +4,7 @@
 # support and boots directly into the file selector.
 
 # Joystick input has been mapped to keyboard keys sufficient enough to
-# run aydemo.p and play mine81.p (see README.sdl for all controls).
+# run aydemo.p and play mine81.p (see README for all controls).
 
 ./sz81 -a zs -l
 sync

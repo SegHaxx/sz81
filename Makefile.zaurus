@@ -3,17 +3,17 @@ TARGET=$(shell cat TARGET)
 SOURCES=smain.c common.c sound.c z80.c sdl.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
-export LIBDIR=.
+export PACKAGE_DATA_DIR=./data
 
 # This uses the default cross compiler directory of /opt/Embedix and
 # the default QPE directory of /opt/Qtopia
 # 
 DEVPREFIX=/opt/Qtopia/sharp
 CC=/opt/Embedix/tools/bin/arm-linux-gcc
-CFLAGS=-O3 -pipe -Wall -fomit-frame-pointer -I$(DEVPREFIX)/include \
+CFLAGS=-O3 -Wall -I$(DEVPREFIX)/include \
 	`$(DEVPREFIX)/bin/sdl-config --prefix=$(DEVPREFIX) --cflags` \
-	-DNO_DEBUG -DQWS -DPLATFORM_ZAURUS -DSZ81 -DVERSION=\"$(VERSION)\" \
-	-DLIBDIR=\"$(LIBDIR)\" -DINLINE_DRAWPIX -DOSS_SOUND_SUPPORT
+	-DNO_DEBUG -DQWS -DPLATFORM_ZAURUS -DVERSION=\"$(VERSION)\" \
+	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" -DOSS_SOUND_SUPPORT -DSZ81 
 LINK=$(CC)
 LDFLAGS=-L$(DEVPREFIX)/lib
 LIBS=`$(DEVPREFIX)/bin/sdl-config --prefix=$(DEVPREFIX) --libs`
@@ -31,4 +31,4 @@ $(TARGET): $(OBJECTS)
 .PHONY: all clean
 
 clean:
-	rm $(OBJECTS)
+	rm -f *.o

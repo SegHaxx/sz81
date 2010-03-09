@@ -321,7 +321,7 @@ int vga_init(void) {
 	#if defined (PLATFORM_GP2X)
 	#elif defined (PLATFORM_ZAURUS)
 	#else
-		strcpy (filename, LIBDIR "/");
+		strcpy (filename, PACKAGE_DATA_DIR "/");
 		strcat (filename, IMG_WM_ICON);
 
 		/* Load the bitmap */
@@ -1340,7 +1340,7 @@ int fonts_init(void) {
 			ptrfont = &zx82font;
 		}
 		if (ptrfont->original == NULL) {
-			strcpy (filename, LIBDIR "/");
+			strcpy (filename, PACKAGE_DATA_DIR "/");
 			if (count == BMF_FONT_ZX80) {
 				strcat (filename, IMG_ZX80_FONT);
 			} else if (count == BMF_FONT_ZX81) {
@@ -1435,7 +1435,7 @@ int vkeyb_init(void) {
 
 	/* Load the appropriate original scale keyboard image once */
 	if (vkeyb.original == NULL) {
-		strcpy (filename, LIBDIR "/");
+		strcpy (filename, PACKAGE_DATA_DIR "/");
 		if (zx80) {
 			strcat (filename, IMG_ZX80_KYBD);
 		} else {
@@ -1505,7 +1505,7 @@ int sz81icons_init(void) {
 
 	/* Load the original scale icons once */
 	if (sz81icons.original == NULL) {
-		strcpy (filename, LIBDIR "/");
+		strcpy (filename, PACKAGE_DATA_DIR "/");
 		strcat (filename, IMG_SZ81_ICONS);
 		/* Load the bitmap */
 		if ((unconverted = SDL_LoadBMP(filename)) == NULL) {

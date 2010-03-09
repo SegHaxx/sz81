@@ -2,6 +2,7 @@
 * Appended z81's Makefile and docs with .z81 and added new files for
   our use since now sz81 is the main target.
 * Reorganised some newly added files.
+* Added a new sz81 specific Makefile and an AUTHORS file.
 
 2010-03-08 Thunor <thunorsif_at_hotmail.com>
 * Version 2.1-4 released
