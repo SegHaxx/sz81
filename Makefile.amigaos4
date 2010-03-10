@@ -12,10 +12,12 @@
 #PACKAGE_DATA_DIR=$(PREFIX)/data
 
 # Run from current folder i.e. no installation
-PREFIX=lib
+PREFIX=RAM:sz81
 BINDIR=$(PREFIX)
-DOCDIR=$(PREFIX)
+DOCDIR=$(PREFIX)/Docs
 PACKAGE_DATA_DIR=$(PREFIX)/data
+
+PACKAGE_DATA_DIR_INT=PROGDIR:data
 
 # Comment this out if you're not compiling on Linux, or some other
 # platform with the OSS (Open Sound System) API available.
@@ -30,7 +32,7 @@ VERSION=$(shell cat VERSION)
 # These should be ok for most
 SDL_CONFIG=sdl-config
 CFLAGS=-O3 -Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
-	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -use-dynld 
+	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR_INT)\" $(SOUNDDEF) -DSZ81 -use-dynld 
 LINK=$(CC)
 LDFLAGS=
 LIBS=`$(SDL_CONFIG) --libs` 
@@ -58,6 +60,7 @@ install:
 	mkdir -p $(DOCDIR)
 	mkdir -p $(PACKAGE_DATA_DIR)
 	cp $(TARGET) $(BINDIR)
+	cp amiga/sz81.info $(BINDIR)
 	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
 	if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
