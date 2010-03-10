@@ -17,6 +17,7 @@ struct AslIFace *IAsl;
 
 extern int unexpanded, autolist, load_hook, save_hook;
 extern char *zxpfilename;
+static char USED ver[] = "\0$VER:sz81 " VERSION " (" DATE ")\0";
 
 extern void autoload_setup(char *filename);
 
@@ -91,7 +92,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 
 			if((s = IIcon->FindToolType(toolarray,"INVERT")))
 			{
-			 	invert_screen=1;
+				invert_screen=1;
 			}
 
 			if((s = IIcon->FindToolType(toolarray,"AUTOLIST")))
@@ -142,7 +143,10 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 		wbarg--;
 		autoload_setup(wbarg->wa_Name);
 	}
-
+	else
+	{
+		if(autolist) autoload_setup(NULL);
+	}
 }
 
 char *amiga_file_request(char *path)
@@ -157,7 +161,7 @@ char *amiga_file_request(char *path)
 	if((freq = (struct FileRequester *)IAsl->AllocAslRequest(ASL_FileRequest,NULL)))
 	{
 		if(IAsl->AslRequestTags(freq,
-								ASLFR_TitleText,"PSPZX81",
+								ASLFR_TitleText,"SZ81",
                              	ASLFR_InitialPattern,&pattern,
                              	ASLFR_InitialDrawer,path,
                              	ASLFR_DoPatterns,TRUE,

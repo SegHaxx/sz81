@@ -28,10 +28,12 @@ TARGET=$(shell cat TARGET)
 SOURCES=smain.c common.c sound.c z80.c sdl.c amiga.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
+DATE=$(shell date +%d.%m.%Y)
 
 # These should be ok for most
 SDL_CONFIG=sdl-config
 CFLAGS=-O3 -Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
+	-DDATE=\"$(DATE)\" \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR_INT)\" $(SOUNDDEF) -DSZ81 -use-dynld 
 LINK=$(CC)
 LDFLAGS=
