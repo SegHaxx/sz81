@@ -15,9 +15,9 @@ along with this program; if not, write to the Free Software
 Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
-*** Please read README.z81 for information about [x]z81, zx81get and
+*** Please see README.z81 for information about [x]z81, zx81get and
 the contents of games-etc and the saverom folders. Contained within
-the README you are reading now is information specific to sz81 only ***
+this document is information specific to sz81 only ***
 
 
 Description
@@ -124,15 +124,16 @@ into the data folder and change into the extracted directory.
 
 For the PC:
 
-    Comment/uncomment the PREFIX BINDIR XBINDIR MANDIR LIBDIR group
-    half-way down the Makefile depending on whether you want to do a
-    system-wide install or run from the source folder (default), and
-    then type :-
+    Comment/uncomment the PREFIX BINDIR DOCDIR PACKAGE_DATA_DIR group
+    at the top of the Makefile depending on whether you want to do a
+    local install, system-wide install or run from the source folder
+    (default) and then type :-
 
     make clean
     make
     (If you're running from the source folder then that's it, but if
-    installing system-wide then login as root now and continue)
+    you're installing this locally or system-wide then continue)
+    (Installing system-wide requires that you login as root now)
     make install
 
 For the Sharp Zaurus (requires SDK):
@@ -156,12 +157,12 @@ For the GPH GP2X (requires SDK):
 
     Copy the following files to a folder on your SD card :-
 
-    sz81 and sz81.gpe
+    sz81 and gp2x/sz81.gpe
     data
 
     and mine81.p and aydemo.p from games-etc and execute sz81.gpe
     from the GP2X GUI. If you require an icon for gmenu2x then you
-    can use the supplied sz81.png.
+    can use the supplied icon32.png.
 
 
 Contacting me

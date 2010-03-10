@@ -316,6 +316,8 @@ int vga_init(void) {
 
 	atexit(clean_up_before_exit);
 
+	fprintf(stdout, "PACKAGE_DATA_DIR is %s\n", PACKAGE_DATA_DIR);
+
 	/* Set WM icon and title if required for platform before
 	 * setting a video mode as per SDL docs instructions */
 	#if defined (PLATFORM_GP2X)
