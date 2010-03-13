@@ -1,3 +1,10 @@
+2010-03-12 Thunor <thunorsif_at_hotmail.com>
+* Reworked the control remapping feature. Now a device can be
+  remapped to any other device including a virtual cursor device, and
+  be tied to a particular component such as the load selector.
+* Added joystick support throughout. Joystick controls are currently
+  hardcoded control remappings awaiting transferral to an rcfile.
+
 2010-03-09 Thunor <thunorsif_at_hotmail.com>
 * Appended z81's Makefile and docs with .z81 and added new files for
   our use since now sz81 is the main target.
@@ -7,7 +14,7 @@
 2010-03-08 Thunor <thunorsif_at_hotmail.com>
 * Version 2.1-4 released
 * An SDL timer now manages timing if sound isn't being enabled from the
-  command line or OSS_SOUND_SUPPORT is not enabledwithin the Makefile.
+  command line or OSS_SOUND_SUPPORT is not enabled within the Makefile.
 
 2010-03-05 Thunor <thunorsif_at_hotmail.com>
 * Added some additional controls and reorganised them all.
@@ -20,7 +27,7 @@
 * Added three Sinclair fonts, two for the control bar and the ZX
   Spectrum's for future use within the GUI.
 
-2010-02-28 Chris Young <cdyoung_at_ntlworld.com>
+2010-02-28 Chris Young <cdyoung_at_unsatisfactorysoftware.co.uk>
 * Added code for the AmigaOS4 build.
 
 2010-02-27 Thunor <thunorsif_at_hotmail.com>

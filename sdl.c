@@ -32,9 +32,17 @@
 #define TRUE 1
 #define FALSE 0
 #define UNDEFINED -1
-#define MAX_CTRL_REMAPS 32
+#define MAX_CTRL_REMAPS 64
 #define MAX_HOTSPOTS 64
 #define MAX_FONTS 8
+#define MAX_JOY_AXES 20
+
+#define DEVICE_KEYBOARD 1
+#define DEVICE_JOYSTICK 2
+#define DEVICE_CURSOR 3
+
+#define JOYSTICK_DEAD_ZONE 50
+#define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
 #define IMG_WM_ICON "sz81.bmp"
 #define IMG_ZX80_KYBD "zx80kybd.bmp"
@@ -66,8 +74,12 @@
 #define ICON_ALPHA_UP_X 144
 #define ICON_ALPHA_UP_Y 0
 
-#define DEVICE_KEYBOARD 1
-#define DEVICE_JOYSTICK 2
+/* Component IDs */
+#define COMP_EMU 1
+#define COMP_LOAD 2
+#define COMP_VKEYB 4
+/*#define COMP_CTB 8	ctb and vkeyb are one, so this is redundant */
+#define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB)
 
 /* Hotspot group IDs */
 #define HS_GRP_ROOT 0
@@ -110,6 +122,13 @@
 #define BMF_FONT_ZX81 1
 #define BMF_FONT_ZX82 2
 
+/* Cursor (virtual) device control IDs */
+#define CURSOR_BTN_N 1
+#define CURSOR_BTN_S 2
+#define CURSOR_BTN_W 3
+#define CURSOR_BTN_E 4
+#define CURSOR_BTN_A 5
+
 /* GP2X button IDs */
 #define GP2X_JOY_N 0x00
 #define GP2X_JOY_NW 0x01
@@ -143,7 +162,9 @@ extern volatile int signal_int_flag;
 
 /* My variables */
 SDL_Surface *wm_icon = NULL;
+SDL_Surface *highlight = NULL;
 SDL_Joystick *joystick = NULL;
+int joystick_dead_zone = JOYSTICK_DEAD_ZONE;
 
 struct {
 	SDL_Surface *screen;
@@ -194,17 +215,23 @@ struct {
 	Uint32 bmf_fg_default;
 	Uint32 emu_fg;
 	Uint32 emu_bg;
+	Uint32 hs_load_selected;
 	Uint32 hs_load_pressed;
+	Uint32 hs_vkeyb_zx80_selected;
 	Uint32 hs_vkeyb_zx80_pressed;
 	Uint32 hs_vkeyb_zx80_toggle_pressed;
+	Uint32 hs_vkeyb_zx81_selected;
 	Uint32 hs_vkeyb_zx81_pressed;
 	Uint32 hs_vkeyb_zx81_toggle_pressed;
+	Uint32 hs_ctb_selected;
 	Uint32 hs_ctb_pressed;
 } colours;
 
 struct ctrlremap {
+	int components;		/* An OR'd combination of COMP_ ids */
 	int device;			/* The source device e.g. DEVICE_JOYSTICK */
 	int id;				/* The source control id */
+	int remap_device;	/* The destination device e.g. DEVICE_KEYBOARD */
 	int remap_id;		/* The main destination control id */
 	int remap_mod_id;	/* An additional modifier destination control id */
 };
@@ -224,6 +251,7 @@ extern void exit_program(void);
 extern void reset81(void);
 
 /* My functions */
+void keyboard_buffer_reset(void);
 void hotspots_init(void);
 void hotspots_resize(void);
 void hotspots_update(void);
@@ -300,11 +328,15 @@ int vga_init(void) {
 	colours.bmf_fg_default = 0xffffff;
 	colours.emu_fg = 0x0;
 	colours.emu_bg = 0xffffff;
+	colours.hs_load_selected = 0x00ff00;
 	colours.hs_load_pressed = 0xffc000;
+	colours.hs_vkeyb_zx80_selected = 0x00ff00;
 	colours.hs_vkeyb_zx80_pressed = 0xffff00;
 	colours.hs_vkeyb_zx80_toggle_pressed = 0xff4000;
+	colours.hs_vkeyb_zx81_selected = 0x00ff00;
 	colours.hs_vkeyb_zx81_pressed = 0xffc000;
 	colours.hs_vkeyb_zx81_toggle_pressed = 0xff4000;
+	colours.hs_ctb_selected = 0x00ff00;
 	colours.hs_ctb_pressed = 0xffc000;
 
 	/* Initialise SDL */
@@ -444,10 +476,8 @@ unsigned char *vga_getgraphmem(void) {
 /***************************************************************************
  * Keyboard Initialise                                                     *
  ***************************************************************************/
-/* This initialises the keyboard buffer, sets up the control remappings,
- * initialises the hotspots and opens joystick 0 if available. At the moment
- * the control remapping is hardcoded but in the future it would be nice
- * (and with a joystick a necessity) to offer this as a runtime feature.
+/* This initialises the keyboard buffer, opens joystick 0 if available,
+ * sets up the control remappings and initialises the hotspots.
  * 
  * On exit: returns 0 on success or -1 on failure */
 
@@ -459,14 +489,27 @@ int keyboard_init(void) {
 	for (count = 0; count < MAX_SCANCODES; count++)
 		keyboard_buffer[count] = KEY_NOTPRESSED;
 	
-	/* Undefine all the control remappings */
+	/* Undefine/default all the control remappings */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-		ctrl_remaps[count].device = UNDEFINED;
-		ctrl_remaps[count].remap_mod_id = UNDEFINED;
+		ctrl_remaps[count].components = COMP_ALL;	/* Active throughout */
+		ctrl_remaps[count].device = ctrl_remaps[count].id = UNDEFINED;
+		ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
+		ctrl_remaps[count].remap_id = ctrl_remaps[count].remap_mod_id = UNDEFINED;
 	}
 
-	/* Set-up some input device to keyboard remappings */
+	/* Open joystick 0 if available */
+	SDL_JoystickEventState(SDL_ENABLE);			
+	joystick = SDL_JoystickOpen(0);
+	if (joystick) {
+		fprintf(stdout, "Joystick opened: 0:%s\n", SDL_JoystickName(0));
+		/* Flush events as opening a joystick releases all the buttons */
+		while (SDL_PollEvent (&event));
+	}
+
+	/* Set-up some default remappings */
 	index = -1;
+	/* Keyboard to keyboard (very likely to remain static) */
+	/* Universally active */
 	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
 	ctrl_remaps[index].remap_id = SDLK_7;
@@ -501,83 +544,328 @@ int keyboard_init(void) {
 	ctrl_remaps[index].id = SDLK_RSHIFT;
 	ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-	#if defined(PLATFORM_GP2X)
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_JOY_N;
-		ctrl_remaps[index].remap_id = SDLK_k;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_JOY_E;
-		ctrl_remaps[index].remap_id = SDLK_l;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_JOY_S;
-		ctrl_remaps[index].remap_id = SDLK_j;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_JOY_W;
-		ctrl_remaps[index].remap_id = SDLK_h;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_START;
-		ctrl_remaps[index].remap_id = SDLK_F10;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_SELECT;
-		ctrl_remaps[index].remap_id = SDLK_F1;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_LTRIG;
-		ctrl_remaps[index].remap_id = SDLK_q;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_RTRIG;
-		ctrl_remaps[index].remap_id = SDLK_a;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_BTN_A;
-		ctrl_remaps[index].remap_id = SDLK_1;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_BTN_X;
-		ctrl_remaps[index].remap_id = SDLK_3;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_BTN_Y;
-		ctrl_remaps[index].remap_id = SDLK_SPACE;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_BTN_B;
-		ctrl_remaps[index].remap_id = SDLK_RETURN;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_VOL_DN;
-		ctrl_remaps[index].remap_id = SDLK_2;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_VOL_UP;
-		ctrl_remaps[index].remap_id = SDLK_4;
-		ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-		ctrl_remaps[index].id = GP2X_BTN_JOY;
-		ctrl_remaps[index].remap_id = SDLK_5;
+	/* Joystick to keyboard and joystick to virtual device */
+	if (joystick) {
+		if (strcmp(SDL_JoystickName(0),
+			"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
+			/* My own PC joystick for testing */
+			/* Universally active */
+			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 8;	/* Shift */
+			ctrl_remaps[index].remap_id = SDLK_F1;
 
-	#elif defined(PLATFORM_ZAURUS)
+			/* Active within the emulator only */
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 12;	/* Up */
+			ctrl_remaps[index].remap_id = SDLK_q;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 13;	/* Down */
+			ctrl_remaps[index].remap_id = SDLK_a;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 10;	/* Left */
+			ctrl_remaps[index].remap_id = SDLK_o;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 11;	/* Right */
+			ctrl_remaps[index].remap_id = SDLK_p;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 4;	/* Y */
+			ctrl_remaps[index].remap_id = SDLK_0;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 0;	/* A */
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 3;	/* X */
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 1;	/* B */
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 6;	/* LTrig */
+			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+			/* Active within the load selector only */
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 12;	/* Up */
+			ctrl_remaps[index].remap_id = SDLK_q;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 13;	/* Down */
+			ctrl_remaps[index].remap_id = SDLK_a;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 10;	/* Left */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 11;	/* Right */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 0;	/* A */
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 3;	/* X */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 1;	/* B */
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			/* Active within the vkeyb only */
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 12;	/* Up */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_N;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 13;	/* Down */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_S;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 10;	/* Left */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 11;	/* Right */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 4;	/* Y */
+			ctrl_remaps[index].remap_id = SDLK_0;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 0;	/* A */
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 3;	/* X */
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 1;	/* B */
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = 6;	/* LTrig */
+			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+		} else if (strcmp(SDL_JoystickName(0), "PEP Joy") == 0) {
+			/* GP2X joystick */
+			/* Universally active */
+			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_START;
+			ctrl_remaps[index].remap_id = SDLK_F1;
+
+			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_SELECT;
+			ctrl_remaps[index].remap_id = SDLK_F10;
+
+			/* Active within the emulator only */
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_id = SDLK_q;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_id = SDLK_a;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_W;
+			ctrl_remaps[index].remap_id = SDLK_o;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_E;
+			ctrl_remaps[index].remap_id = SDLK_p;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_Y;
+			ctrl_remaps[index].remap_id = SDLK_0;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_A;
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+			/* Active within the load selector only */
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_id = SDLK_q;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_id = SDLK_a;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_W;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_E;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_A;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			/* Active within the vkeyb only */
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_N;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_S;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_W;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_E;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_Y;
+			ctrl_remaps[index].remap_id = SDLK_0;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_A;
+			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+		}
+	}
+	#ifdef SDL_DEBUG_EVENTS
+		printf("%s: ctrl_remaps index=%i\n", __func__, index);
 	#endif
-	
+
 	/* Initialise the hotspots now */
 	hotspots_init();
 
-	/* Open joystick 0 if available */
-	SDL_JoystickEventState(SDL_ENABLE);			
-	joystick = SDL_JoystickOpen(0);
-	if (joystick) {
-		fprintf(stdout, "Joystick opened: 0:%s\n", SDL_JoystickName (0));
-		/* Flush events as opening a joystick releases all the buttons */
-		if (joystick) while (SDL_PollEvent (&event));
-	}
-
 	/* This function can be used to override certain emulator variables
 	 * as following this all that's remaining is sound and timer
-	 * intialisation before entering the emulator's main loop */
-
-	/* Setting sound_hz = nosound_hz = 50*4 and scrn_freq = 2*4
+	 * intialisation before entering the emulator's main loop.
+	 * 
+	 * Setting sound_hz = nosound_hz = 50*4 and scrn_freq = 2*4
 	 * significantly speeds-up the emulator and can be useful when
 	 * developing software using the emulator itself as it makes
 	 * keyboard input much more responsive. This would be useful as a
 	 * runtime reconfigurable option i.e. overclocking since BASIC
-	 * programs are so much better :) */
-	nosound_hz = 50;		/* z81 default (50Hz) */
-	#ifdef OSS_SOUND_SUPPORT
-		sound_hz = nosound_hz;
-	#endif
-	scrn_freq = 2;			/* z81 default (50Hz/2=25Hz) */
+	 * programs are so much better :)
+	 * 
+	 * nosound_hz = 50;		z81 default (50Hz)
+	 * #ifdef OSS_SOUND_SUPPORT
+	 * sound_hz = nosound_hz;
+	 * #endif
+	 * scrn_freq = 2;		z81 default (50Hz/2=25Hz) */
 	
 	if (!sound) {
 		/* Create a 10ms timer if sound isn't enabled and managing timing */
@@ -586,7 +874,7 @@ int keyboard_init(void) {
 	} else {
 		/*printf("Timing is being managed using OSS sound\n");	temp temp */
 	}
-	
+
 	return 0;
 }
 
@@ -619,11 +907,13 @@ char *keyboard_getstate(void) {
 
 int keyboard_update(void) {
 	static int skip_update = TRUE, last_hs_pressed = UNDEFINED;
-	static int cursor_x = 0, cursor_y = 0;
+	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
+	int hs_load_selected, hs_vkeyb_ctb_selected;
 	int eventfound = FALSE, count, found;
+	int axis_end = 0, active_component;
 	int device, id, mod_id, state;
+	SDL_Event event, virtualevent;
 	SDLMod modstate;
-	SDL_Event event, myevent;
 	#ifdef SDL_DEBUG_TIMING
 		static Uint32 lasttime = 0;
 		static int Hz = 0;
@@ -635,6 +925,16 @@ int keyboard_update(void) {
 			Hz = 0;
 		}
 	#endif
+
+	/* Do some first time initialisation */
+	if (init) {
+		init = FALSE;
+		for (count = 0; count < MAX_JOY_AXES; count++)
+			axisstates[count * 2] = axisstates[count * 2 + 1] = SDL_RELEASED;
+		/* Flush events (may have been done earlier too when opening a joystick */
+		while (SDL_PollEvent (&event));
+		event.type = SDL_NOEVENT;	/* Important */
+	}
 
 	/* Process events every other call otherwise the emulator or the
 	 * emulated machine has trouble keeping up with event creation */
@@ -651,14 +951,6 @@ int keyboard_update(void) {
 					state = event.key.state;
 					break;
 				case SDL_MOUSEMOTION:
-					cursor_x = event.motion.x;
-					cursor_y = event.motion.y;
-					break;
-				case SDL_JOYBUTTONUP:
-				case SDL_JOYBUTTONDOWN:
-					device = DEVICE_JOYSTICK;
-					id = event.jbutton.button;
-					state = event.jbutton.state;
 					break;
 				case SDL_MOUSEBUTTONUP:
 				case SDL_MOUSEBUTTONDOWN:
@@ -670,10 +962,10 @@ int keyboard_update(void) {
 						for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
 							if (hotspots[count].gid != UNDEFINED &&
 								hotspots[count].flags & HS_PROP_VISIBLE &&
-								cursor_x >= hotspots[count].hit_x &&
-								cursor_x < hotspots[count].hit_x + hotspots[count].hit_w &&
-								cursor_y >= hotspots[count].hit_y &&
-								cursor_y < hotspots[count].hit_y + hotspots[count].hit_h) {
+								event.button.x >= hotspots[count].hit_x &&
+								event.button.x < hotspots[count].hit_x + hotspots[count].hit_w &&
+								event.button.y >= hotspots[count].hit_y &&
+								event.button.y < hotspots[count].hit_y + hotspots[count].hit_h) {
 								if (hotspots[count].remap_id != UNDEFINED) {
 									/* Is the hotspot sticky or a toggle? */
 									if (hotspots[count].flags & HS_PROP_STICKY ||
@@ -703,10 +995,10 @@ int keyboard_update(void) {
 										hotspots[count].flags & HS_PROP_STICKY &&
 										hotspots[count].flags & HS_PROP_STUCK) {
 										hotspots[count].flags &= ~HS_PROP_STUCK;
-										myevent.type = SDL_KEYUP;
-										myevent.key.keysym.sym = hotspots[count].remap_id;
-										myevent.key.state = SDL_RELEASED;
-										SDL_PushEvent(&myevent);
+										virtualevent.type = SDL_KEYUP;
+										virtualevent.key.keysym.sym = hotspots[count].remap_id;
+										virtualevent.key.state = SDL_RELEASED;
+										SDL_PushEvent(&virtualevent);
 									}
 								}
 							}
@@ -717,17 +1009,111 @@ int keyboard_update(void) {
 					}
 					if (!found) device = UNDEFINED;	/* Ignore id */
 					break;
+				case SDL_JOYBUTTONUP:
+				case SDL_JOYBUTTONDOWN:
+					device = DEVICE_JOYSTICK;
+					id = event.jbutton.button;
+					state = event.jbutton.state;
+					break;
+				case SDL_JOYAXISMOTION:
+					/* The following joy axis code I wrote for the GNU Robbo project :-
+					 * 
+					 * The axis motion will be reported as a value from -32768 to +32767
+					 * with 0 being the theoretical middle point. Some analogue joysticks
+					 * are actually digital and offer limited analogue functionality by
+					 * firing off a few values throughout this range (these joysticks will
+					 * tend to rest at 0) whilst a truly analogue joystick will fire lots
+					 * of different values with the middle firing anything but 0. The
+					 * JOYDEADZONE offers us a reasonable user configurable middle region.
+					 * 
+					 * To simulate digital on/off button functionality from an analogue
+					 * axis we need to record previous axis motion activity so that we can
+					 * see if we've already generated an SDL_JOYBUTTONDOWN/UP event. This
+					 * activity is stored within the axisstates array as pairs of values
+					 * representing both ends of an axis, with each value belonging to a
+					 * virtual button. The first integer records the up/down state of the
+					 * negative end of an axis with the positive end stored in the other.
+					 * 
+					 * Following are the situations that this code will account for :-
+					 *   SDL_JOYBUTTONDOWN - axis middle to any axis end
+					 *   SDL_JOYBUTTONDOWN - one axis end to another axis end with the
+					 *   opposite end generating SDL_JOYBUTTONUP
+					 *   SDL_JOYBUTTONUP - any axis end to the middle */
+					if (abs(event.jaxis.value) >= JOYDEADZONE) {
+						/* Identify which end of the axis we are operating upon:
+						 * 0 for -32768 to JOYDEADZONE, 1 for JOYDEADZONE to +32767 */
+						axis_end = 0;
+						if (event.jaxis.value >= JOYDEADZONE) axis_end = 1;
+
+						if (axisstates[event.jaxis.axis * 2 + axis_end] == SDL_RELEASED) {
+							/* Generate a virtual joystick button event */
+							virtualevent.jbutton.button = event.jaxis.axis * 2 +
+								axis_end + SDL_JoystickNumButtons (joystick);
+							virtualevent.type = SDL_JOYBUTTONDOWN;
+							virtualevent.jbutton.state = SDL_PRESSED;
+							SDL_PushEvent(&virtualevent);
+
+							/* Record its SDL_PRESSED state within axisstates */
+							axisstates[event.jaxis.axis * 2 + axis_end] = SDL_PRESSED;
+						}
+
+						/* Do we need to release the opposite end of the axis? */
+						if (axisstates[event.jaxis.axis * 2 + (1 - axis_end)] == SDL_PRESSED) {
+							/* Generate a virtual joystick button event */
+							virtualevent.jbutton.button = event.jaxis.axis * 2 +
+								(1 - axis_end) + SDL_JoystickNumButtons (joystick);
+							virtualevent.type = SDL_JOYBUTTONUP;
+							virtualevent.jbutton.state = SDL_RELEASED;
+							SDL_PushEvent(&virtualevent);
+
+							/* Record its SDL_RELEASED state within axisstates */
+							axisstates[event.jaxis.axis * 2 + (1 - axis_end)] = SDL_RELEASED;
+						}
+					} else {
+						/* Do we need to release either end of the axis? */
+						for (count = 0; count < 2; count++) {
+							if (axisstates[event.jaxis.axis * 2 + count] == SDL_PRESSED) {
+								/* Generate a virtual joystick button event */
+								virtualevent.jbutton.button = event.jaxis.axis * 2 +
+									count + SDL_JoystickNumButtons (joystick);
+								virtualevent.type = SDL_JOYBUTTONUP;
+								virtualevent.jbutton.state = SDL_RELEASED;
+								SDL_PushEvent(&virtualevent);
+
+								/* Record its SDL_RELEASED state within axisstates */
+								axisstates[event.jaxis.axis * 2 + count] = SDL_RELEASED;
+							}
+						}
+					}
+					break;
 				case SDL_QUIT:
 					exit_program();
 					break;
+				default:
+					break;
 			}
 
-			/* Perform control remapping here. This could expand one event
-			 * into two - id and mod_id - so this should be taken into account */
+			/* Remap controls from any input device to any input device including
+			 * a virtual cursor device ;) So whatever was found above we can now
+			 * convert into anything we like, including expanding one event into
+			 * two - id and mod_id. The virtual cursor device and controls are used
+			 * for example to navigate the virtual keyboard. Controls can also be
+			 * tied to all, some or only one component e.g. when the load selector
+			 * is active, joy up and down are q and a, but at other times they can
+			 * be something else. These control remappings are defined elsewhere */
+			if (vkeyb.state) {
+				active_component = COMP_VKEYB;
+			} else if (load_selector_state) {
+				active_component = COMP_LOAD;
+			} else {
+				active_component = COMP_EMU;
+			}
 			if (device != UNDEFINED) {
 				for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 					if (ctrl_remaps[count].device != UNDEFINED &&
+						active_component & ctrl_remaps[count].components &&
 						device == ctrl_remaps[count].device && id == ctrl_remaps[count].id) {
+						device = ctrl_remaps[count].remap_device;
 						id = ctrl_remaps[count].remap_id;
 						mod_id = ctrl_remaps[count].remap_mod_id;
 						break;
@@ -742,8 +1128,197 @@ int keyboard_update(void) {
 				}
 			#endif
 
+			/* Manage virtual cursor device input here. This is currently only used
+			 * for joystick navigation of various GUI components and I will explain
+			 * how it works :-
+			 * A real hardware joystick event occurs which will go through the control
+			 * remapper above and reach here as either a keyboard event or a cursor event.
+			 * Keyboard events will just continue on down through this function, possibly
+			 * getting grabbed (ooh matron) or intercepted and stored in the keyboard
+			 * buffer for the emulator to pick up. Cursor events though need to be dealt
+			 * with now as either they are moving a selection box around a GUI component
+			 * or the user has "pressed" a hotspot which will result in the "press" being
+			 * remapped again to a mouse button :p This whole system is very powerful */
+			if (device == DEVICE_CURSOR) {
+				/* Locate currently selected hotspot for group LOAD visible or not */
+				for (count = 0; count < MAX_HOTSPOTS; count++)
+					if (hotspots[count].gid == HS_GRP_LOAD &&
+						hotspots[count].flags & HS_PROP_SELECTED) break;
+				hs_load_selected = count;
+				/* Locate currently selected hotspot for group VKEYB + CTB visible or not */
+				for (count = 0; count < MAX_HOTSPOTS; count++)
+					if ((hotspots[count].gid == HS_GRP_VKEYB || hotspots[count].gid == HS_GRP_CTB) &&
+						hotspots[count].flags & HS_PROP_SELECTED) break;
+				hs_vkeyb_ctb_selected = count;
+				/* Process the events */
+				if (state == SDL_PRESSED) {
+					if (id == CURSOR_BTN_A) {
+						/* Remap the virtual cursor event to a mouse button event
+						 * which will hit a hotspot and generate a keyboard event */
+						if (load_selector_state) {
+							virtualevent.type = SDL_MOUSEBUTTONDOWN;
+							virtualevent.button.button = SDL_BUTTON_LEFT;
+							virtualevent.button.state = SDL_PRESSED;
+							virtualevent.button.x = hotspots[hs_load_selected].hit_x;
+							virtualevent.button.y = hotspots[hs_load_selected].hit_y;
+							SDL_PushEvent(&virtualevent);
+						} else if (vkeyb.state) {
+							virtualevent.type = SDL_MOUSEBUTTONDOWN;
+							virtualevent.button.button = SDL_BUTTON_LEFT;
+							virtualevent.button.state = SDL_PRESSED;
+							virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x;
+							virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y;
+							SDL_PushEvent(&virtualevent);
+						}
+					} else if (id == CURSOR_BTN_N) {
+						if (load_selector_state) {
+						} else if (vkeyb.state) {
+							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
+							if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
+								hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_RESET) {
+								hotspots[HS_VKEYB_SHIFT + 1].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_AUTOHIDE) {
+								hotspots[HS_VKEYB_SHIFT + 2].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_SHIFT_TYPE) {
+								hotspots[HS_VKEYB_SHIFT + 3].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_INVERSE) {
+								hotspots[HS_VKEYB_SHIFT + 4].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_DN) {
+								hotspots[HS_VKEYB_SHIFT + 5].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_UP) {
+								hotspots[HS_VKEYB_SHIFT + 6].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1) {
+								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 1) {
+								hotspots[HS_CTB_RESET].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 2) {
+								hotspots[HS_CTB_AUTOHIDE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 3) {
+								hotspots[HS_CTB_SHIFT_TYPE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 4) {
+								hotspots[HS_CTB_INVERSE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 5) {
+								hotspots[HS_CTB_ALPHA_DN].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 6) {
+								hotspots[HS_CTB_ALPHA_UP].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 7) {
+								hotspots[HS_VKEYB_SHIFT + 7].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 8) {
+								hotspots[HS_VKEYB_SHIFT + 8].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9) {
+								hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_Q) {
+								hotspots[hs_vkeyb_ctb_selected - 10].flags |= HS_PROP_SELECTED;
+							}
+						}
+					} else if (id == CURSOR_BTN_S) {
+						if (load_selector_state) {
+						} else if (vkeyb.state) {
+							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
+							if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
+								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 1) {
+								hotspots[HS_CTB_RESET].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 2) {
+								hotspots[HS_CTB_AUTOHIDE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 3) {
+								hotspots[HS_CTB_SHIFT_TYPE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 4) {
+								hotspots[HS_CTB_INVERSE].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 5) {
+								hotspots[HS_CTB_ALPHA_DN].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 6) {
+								hotspots[HS_CTB_ALPHA_UP].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 7) {
+								hotspots[HS_VKEYB_1 + 7].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 8) {
+								hotspots[HS_VKEYB_1 + 8].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
+								hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
+								hotspots[HS_VKEYB_1].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_RESET) {
+								hotspots[HS_VKEYB_1 + 1].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_AUTOHIDE) {
+								hotspots[HS_VKEYB_1 + 2].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_SHIFT_TYPE) {
+								hotspots[HS_VKEYB_1 + 3].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_INVERSE) {
+								hotspots[HS_VKEYB_1 + 4].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_DN) {
+								hotspots[HS_VKEYB_1 + 5].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_UP) {
+								hotspots[HS_VKEYB_1 + 6].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected <= HS_VKEYB_A + 9) {
+								hotspots[hs_vkeyb_ctb_selected + 10].flags |= HS_PROP_SELECTED;
+							}
+						}
+					} else if (id == CURSOR_BTN_W) {
+						if (load_selector_state) {
+							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
+							if (--hs_load_selected < HS_LOAD_Q) hs_load_selected = HS_LOAD_SPACE;
+							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
+						} else if (vkeyb.state) {
+							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
+							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
+								if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
+									hs_vkeyb_ctb_selected = HS_CTB_ALPHA_UP;
+								hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+							} else {
+								if (hs_vkeyb_ctb_selected == HS_VKEYB_1 ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_Q ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_A ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
+									hotspots[hs_vkeyb_ctb_selected + 9].flags |= HS_PROP_SELECTED;
+								} else {
+									hotspots[--hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+								}
+							}
+						}
+					} else if (id == CURSOR_BTN_E) {
+						if (load_selector_state) {
+							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
+							if (++hs_load_selected > HS_LOAD_SPACE) hs_load_selected = HS_LOAD_Q;
+							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
+						} else if (vkeyb.state) {
+							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
+							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
+								if (++hs_vkeyb_ctb_selected > HS_CTB_ALPHA_UP)
+									hs_vkeyb_ctb_selected = HS_CTB_EXIT;
+								hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+							} else {
+								if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9 ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_Q + 9 ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_A + 9 ||
+									hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
+									hotspots[hs_vkeyb_ctb_selected - 9].flags |= HS_PROP_SELECTED;
+								} else {
+									hotspots[++hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+								}
+							}
+						}
+					}
+				} else {
+					if (id == CURSOR_BTN_A) {
+						/* Release a previous press (it's not important where) */
+						virtualevent.type = SDL_MOUSEBUTTONUP;
+						virtualevent.button.button = SDL_BUTTON_LEFT;
+						virtualevent.button.state = SDL_RELEASED;
+						virtualevent.button.x = 0;
+						virtualevent.button.y = 0;
+						SDL_PushEvent(&virtualevent);
+					} else if (id == CURSOR_BTN_N) {
+					} else if (id == CURSOR_BTN_S) {
+					} else if (id == CURSOR_BTN_W) {
+					} else if (id == CURSOR_BTN_E) {
+					}
+				}
+				device = UNDEFINED;	/* Erase it - it'll be ignored below anyway */
+			}
+
 			/* Grab input for my own use but don't report it */
-			if (device != UNDEFINED) {
+			if (device == DEVICE_KEYBOARD) {
 				found = FALSE;
 				modstate = SDL_GetModState();
 				if (id == SDLK_r && (modstate & (KMOD_ALT | KMOD_MODE))) {
@@ -758,12 +1333,15 @@ int keyboard_update(void) {
 			}
 
 			/* Intercept input for my own use but continue to report it */
-			if (device != UNDEFINED) {
+			if (device == DEVICE_KEYBOARD) {
 				if (id == SDLK_F1) {
 					/* Toggle the virtual keyboard */
 					if (state == SDL_PRESSED) {
 						vkeyb.state = !vkeyb.state;
-						if (!vkeyb.state) video.redraw = TRUE;
+						if (!vkeyb.state) {
+							keyboard_buffer_reset();
+							video.redraw = TRUE;
+						}
 					}
 				} else if (id == SDLK_F2) {
 					if (state == SDL_PRESSED) {
@@ -854,9 +1432,9 @@ int keyboard_update(void) {
 			}
 			
 			/* Make sure that stuck sticky and toggle hotspots are not released
-			 * by other means which would leave their stuck states intact but
+			 * by real hardware which would leave their stuck states intact but
 			 * erase their pressed states within the keyboard buffer */
-			if (device != UNDEFINED && state == SDL_RELEASED) {
+			if (device == DEVICE_KEYBOARD && state == SDL_RELEASED) {
 				for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
 					/* Since the necessary property checks would have been applied when
 					 * the hotspot was stuck we can just check for stuck and the remap_id */
@@ -867,8 +1445,8 @@ int keyboard_update(void) {
 				}
 			}
 		
-			/* Record what's left in the keyboard buffer */
-			if (device != UNDEFINED) {
+			/* Record the real/virtual/remapped event within the keyboard buffer */
+			if (device == DEVICE_KEYBOARD) {
 				eventfound = TRUE;
 				if (state == SDL_PRESSED) {
 					keyboard_buffer[keysym_to_scancode(FALSE, id)] = KEY_PRESSED;
@@ -882,22 +1460,17 @@ int keyboard_update(void) {
 			}
 
 			/* Should the vkeyb be hidden on ENTER? */
-			if (vkeyb.state && vkeyb.autohide && device != UNDEFINED &&
-				id == SDLK_RETURN && state == SDL_RELEASED &&
+			if (device == DEVICE_KEYBOARD && id == SDLK_RETURN &&
+				state == SDL_RELEASED && vkeyb.state && vkeyb.autohide &&
 				keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_NOTPRESSED) {
-				vkeyb.state = FALSE; video.redraw = TRUE;
+				vkeyb.state = FALSE;
+				keyboard_buffer_reset();
+				video.redraw = TRUE;
 			}
 
 			/* If we've recorded something then quit now */
 			if (eventfound) break;
 		}
-
-
-		/*for (count = 0; count < MAX_SCANCODES; count++) {
-			if (keyboard_buffer[count] == KEY_PRESSED) {
-				printf("%i is pressed\n", count);
-			}
-		} temp temp */
 
 	}
 
@@ -924,6 +1497,22 @@ void keyboard_translatekeys(int mask) {
 /* ------------------------------------------------------------------------*
  * --------------------------- My functions -------------------------------*
  * ------------------------------------------------------------------------*/
+
+/***************************************************************************
+ * Keyboard Buffer Reset                                                   *
+ ***************************************************************************/
+/* This unpresses any pressed controls within the keyboard buffer except
+ * SHIFT. It's used when hiding program components to make sure that any
+ * controls that the user still has pressed don't remain unreleased which
+ * can happen if the controls are component specific */
+
+void keyboard_buffer_reset(void) {
+	int scancode;
+	
+	for (scancode = 0; scancode < MAX_SCANCODES; scancode++) {
+		if (scancode != SCANCODE_LEFTSHIFT) keyboard_buffer[scancode] = KEY_NOTPRESSED;
+	}
+}
 
 /***************************************************************************
  * Hotspots Initialise                                                     *
@@ -1155,7 +1744,9 @@ void hotspots_update(void) {
 
 	/* Hide the vkeyb if the file selector is active */
 	if (load_selector_state && vkeyb.state) {
-		vkeyb.state = FALSE; video.redraw = TRUE;
+		vkeyb.state = FALSE;
+		keyboard_buffer_reset();
+		video.redraw = TRUE;
 	}
 
 	/* Update the virtual keyboard hotspots */
@@ -1183,128 +1774,159 @@ void hotspots_update(void) {
  ***************************************************************************/
 /* This renders visible hotspots over everything else and is called towards
  * the end of sdl-video-refresh. What the hotspot will look like is decided
- * here and depends especially on the gid and occassionally on the flags. */
+ * here and depends especially on the gid and occasionally on the flags.
+ * It's efficient since it will attempt to resuse a previously created and
+ * filled highlight if possible */
 
 void hotspots_render(void) {
+	static Uint32 last_colour = UNDEFINED;
 	int hl_x, hl_y, hl_w, hl_h;
-	SDL_Surface *highlight;
-	int count, surround;
-	int scancode, alpha;
-	SDL_Rect dstrect;
+	int count, surround, alpha;
 	Uint32 colour;
+	int selected, pressed;
+	SDL_Rect dstrect;
 
-	/* Scan through the keyboard buffer and highlight any hotspots that
-	 * are currently visible that have ids that are recorded as pressed */
-	for (scancode = 0; scancode < MAX_SCANCODES; scancode++) {
-	#ifndef SDL_DEBUG_HOTSPOTS
-		if (keyboard_buffer[scancode] == KEY_PRESSED) {
-	#endif
-			for (count = 0; count < MAX_HOTSPOTS; count++) {
-				if (hotspots[count].gid != UNDEFINED &&
-					hotspots[count].gid != HS_GRP_ROOT &&
-					hotspots[count].flags & HS_PROP_VISIBLE &&
-					keysym_to_scancode(TRUE, scancode) == hotspots[count].remap_id) {
-					/* Set the size of the hotspot's highlight.
-					 * If hl_x/y/w/h are all UNDEFINED then use hit_x/y/w/h instead */
-					if (hotspots[count].hl_x == UNDEFINED && hotspots[count].hl_y == UNDEFINED &&
-						hotspots[count].hl_w == UNDEFINED && hotspots[count].hl_h == UNDEFINED) {
-						hl_x = hotspots[count].hit_x; hl_y = hotspots[count].hit_y;
-						hl_w = hotspots[count].hit_w; hl_h = hotspots[count].hit_h;
-					} else {
-						hl_x = hotspots[count].hl_x; hl_y = hotspots[count].hl_y;
-						hl_w = hotspots[count].hl_w; hl_h = hotspots[count].hl_h;
-					}
-					/* Choose a suitable colour */
-					if (hotspots[count].gid == HS_GRP_LOAD) {
+	/* Highlight any hotspots that are currently visible that have ids
+	 * that are recorded as being pressed, and also selected hotspots
+	 * if a joystick is enabled */
+	for (count = 0; count < MAX_HOTSPOTS; count++) {
+		if (hotspots[count].gid != UNDEFINED &&
+			hotspots[count].flags & HS_PROP_VISIBLE &&
+			hotspots[count].gid != HS_GRP_ROOT &&
+			hotspots[count].remap_id != UNDEFINED) {
+
+			pressed = keyboard_buffer[keysym_to_scancode(FALSE, hotspots[count].remap_id)];
+			selected = hotspots[count].flags & HS_PROP_SELECTED;
+
+		#ifndef SDL_DEBUG_HOTSPOTS
+			if (pressed || (joystick && selected)) {
+		#endif
+				/* Set the size of the hotspot's highlight.
+				 * If hl_x/y/w/h are all UNDEFINED then use hit_x/y/w/h instead */
+				if (hotspots[count].hl_x == UNDEFINED && hotspots[count].hl_y == UNDEFINED &&
+					hotspots[count].hl_w == UNDEFINED && hotspots[count].hl_h == UNDEFINED) {
+					hl_x = hotspots[count].hit_x; hl_y = hotspots[count].hit_y;
+					hl_w = hotspots[count].hit_w; hl_h = hotspots[count].hit_h;
+				} else {
+					hl_x = hotspots[count].hl_x; hl_y = hotspots[count].hl_y;
+					hl_w = hotspots[count].hl_w; hl_h = hotspots[count].hl_h;
+				}
+				/* Choose a suitable colour (pressed overrides selected) */
+				if (hotspots[count].gid == HS_GRP_LOAD) {
+					if (pressed) {
 						colour = colours.hs_load_pressed;
-					} else if (hotspots[count].gid == HS_GRP_VKEYB) {
-						if (hotspots[count].flags & HS_PROP_TOGGLE &&
-							hotspots[count].flags & HS_PROP_STUCK) {
-							if (zx80) {
-								colour = colours.hs_vkeyb_zx80_toggle_pressed;
-							} else {
-								colour = colours.hs_vkeyb_zx81_toggle_pressed;
-							}
+					} else {
+						colour = colours.hs_load_selected;
+					}
+				} else if (hotspots[count].gid == HS_GRP_VKEYB) {
+					if (hotspots[count].flags & HS_PROP_TOGGLE &&
+						hotspots[count].flags & HS_PROP_STUCK) {
+						/* If it's stuck it must be pressed */
+						if (zx80) {
+							colour = colours.hs_vkeyb_zx80_toggle_pressed;
 						} else {
+							colour = colours.hs_vkeyb_zx81_toggle_pressed;
+						}
+					} else {
+						if (pressed) {
 							if (zx80) {
 								colour = colours.hs_vkeyb_zx80_pressed;
 							} else {
 								colour = colours.hs_vkeyb_zx81_pressed;
 							}
+						} else {
+							if (zx80) {
+								colour = colours.hs_vkeyb_zx80_selected;
+							} else {
+								colour = colours.hs_vkeyb_zx81_selected;
+							}
 						}
-					} else if (hotspots[count].gid == HS_GRP_CTB) {
+					}
+				} else if (hotspots[count].gid == HS_GRP_CTB) {
+					if (pressed) {
 						colour = colours.hs_ctb_pressed;
 					} else {
-						colour = 0xff00ff;
+						colour = colours.hs_ctb_selected;
 					}
-					#ifdef SDL_DEBUG_HOTSPOTS	/* Ooh, pretty Christmas Lights Edition(tm) ;) */
-						colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
-					#endif
-					/* Create an RGB surface to accommodate the highlight */
+				} else {
+					colour = UNDEFINED;
+				}
+				#ifdef SDL_DEBUG_HOTSPOTS	/* Ooh, pretty Christmas Lights Edition(tm) ;) */
+					colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
+				#endif
+				/* Create an RGB surface to accommodate the highlight.
+				 * The chances are that we can reuse the last highlight created */
+				if (!highlight ||
+					(highlight && (highlight->w != hl_w || highlight->h != hl_h))) {
+					/* Free the surface first if it exists */
+					if (highlight) SDL_FreeSurface(highlight);
+					/* Undefine the last fill colour */
+					last_colour = UNDEFINED;
 					highlight = SDL_CreateRGBSurface(SDL_SWSURFACE, hl_w, hl_h,
 						video.screen->format->BitsPerPixel,
 						video.screen->format->Rmask, video.screen->format->Gmask,
 						video.screen->format->Bmask, video.screen->format->Amask);
-					/* Fill the highlight */
+				}
+				/* Fill the highlight if colour is not the last colour used */
+				if (colour != last_colour) {
+					last_colour = colour;
 					if (SDL_FillRect(highlight, NULL, SDL_MapRGB(video.screen->format,
 						colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
 						fprintf(stderr, "%s: FillRect error: %s\n", __func__,
 							SDL_GetError ());
 						exit(1);
 					}
-					/* Choose a suitable alpha */
-					if (hotspots[count].gid == HS_GRP_VKEYB) {
-						alpha = (vkeyb.alpha + 1) / 2;
+				}
+				/* Choose a suitable alpha */
+				if (hotspots[count].gid == HS_GRP_VKEYB) {
+					alpha = (vkeyb.alpha + 1) / 2;
+				} else {
+					alpha = 128;
+				}
+				/* Set the alpha for the entire surface */
+				if (SDL_SetAlpha(highlight, SDL_SRCALPHA, alpha) < 0) {
+					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
+						SDL_GetError());
+					exit(1);
+				}
+				/* Blit it to the screen */
+				dstrect.x = hl_x; dstrect.y = hl_y; dstrect.w = hl_w; dstrect.h = hl_h;
+				if (SDL_BlitSurface (highlight, NULL, video.screen, &dstrect) < 0) {
+					fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+						SDL_GetError ());
+					exit(1);
+				}
+				/* For the load selector, add interior left and right
+				 * solid bars using the current background colour */
+				if (hotspots[count].gid == HS_GRP_LOAD) {
+					if (!invert_screen) {
+						colour = colours.emu_bg;
 					} else {
-						alpha = 128;
+						colour = colours.emu_fg;
 					}
-					/* Set the alpha for the entire surface */
-					if (SDL_SetAlpha(highlight, SDL_SRCALPHA, alpha) < 0) {
-						fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
-							SDL_GetError());
-						exit(1);
-					}
-					/* Blit it to the screen */
-					dstrect.x = hl_x; dstrect.y = hl_y; dstrect.w = hl_w; dstrect.h = hl_h;
-					if (SDL_BlitSurface (highlight, NULL, video.screen, &dstrect) < 0) {
-						fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
-							SDL_GetError ());
-						exit(1);
-					}
-					SDL_FreeSurface(highlight);
-
-					/* For the load selector, add interior left and right
-					 * solid bars using the current background colour */
-					if (hotspots[count].gid == HS_GRP_LOAD) {
-						if (!invert_screen) {
-							colour = colours.emu_bg;
+					#ifdef SDL_DEBUG_HOTSPOTS
+						colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
+					#endif
+					for (surround = 0; surround < 2; surround++) {
+						if (surround == 0) {
+							dstrect.x = hl_x; dstrect.y = hl_y;
+							dstrect.w = video.scale; dstrect.h = hl_h;
 						} else {
-							colour = colours.emu_fg;
+							dstrect.x = hl_x + hl_w - video.scale; dstrect.y = hl_y;
+							dstrect.w = video.scale; dstrect.h = hl_h;
 						}
-						#ifdef SDL_DEBUG_HOTSPOTS	/* Ooh, pretty Christmas Lights Edition(tm) ;) */
-							colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
-						#endif
-						for (surround = 0; surround < 2; surround++) {
-							if (surround == 0) {
-								dstrect.x = hl_x; dstrect.y = hl_y;
-								dstrect.w = video.scale; dstrect.h = hl_h;
-							} else {
-								dstrect.x = hl_x + hl_w - video.scale; dstrect.y = hl_y;
-								dstrect.w = video.scale; dstrect.h = hl_h;
-							}
-							if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
-								colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
-								fprintf(stderr, "%s: FillRect error: %s\n", __func__,
-									SDL_GetError ());
-								exit(1);
-							}
+						if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
+							colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
+							fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+								SDL_GetError ());
+							exit(1);
 						}
 					}
 				}
+		#ifndef SDL_DEBUG_HOTSPOTS
 			}
-	#ifndef SDL_DEBUG_HOTSPOTS
+		#endif
 		}
-	#endif
 	}
 }
 
@@ -2320,6 +2942,7 @@ void clean_up_before_exit(void) {
 		if (joystick) SDL_JoystickClose(joystick);
 	#endif
 
+	if (highlight) SDL_FreeSurface(highlight);
 	if (wm_icon) SDL_FreeSurface(wm_icon);
 
 	SDL_Quit();
