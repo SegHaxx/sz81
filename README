@@ -32,18 +32,24 @@ Features:
  * Virtual keyboard with adjustable opacity, autohide on newline,
    sticky shift or toggle shift
  * Control bar with access to several regularly used options
+ * Full mouse/stylus and joystick support throughout
  * The ability to run centred within any resolution
  * Runtime switchable scaling up to 3x on supported platforms
  * Toggling between a window and fullscreen on supported platforms
  * Support for portrait orientated screens such as 240x320 and 480x640
- * User-definable (actually currently developer-definable) keys
- * Joystick to keyboard remapping (joystick navigation is to follow)
  * Maximum porting potential since it only requires SDL
 
-To-Do:
- * Virtual keyboard navigation and activation using a joystick
- * Key repeating within the GUI
+Immediate To-Do:
+ * Loading of remapped controls from an rcfile
+ * Runtime joystick button remapping and saving to rcfile
  * OSS to SDL API sound conversion
+For the Future:
+ * Foreground and background colour chooser
+ * Input macros
+ * Program state saving and loading
+Good Ideas:
+ * Program text extraction to a selectable text bar for input line
+   insertion (e.g. for text adventures)
 
 
 Controls
@@ -78,37 +84,28 @@ For the Sharp Zaurus:
     Backspace    - Rubout i.e. equivalent to CTRL or SHIFT + 0
     Comma        - Equivalent to using CTRL or SHIFT + .
     Cursors      - Equivalent to using CTRL or SHIFT + 5, 6, 7 and 8
-
-    To access the file selector type "J", SHIFT + "P" twice and ENTER
-    from within the emulator.
+    
+    See PC controls for an explanation of the control bar and how to
+    access the file selector.
 
 For the GPH GP2X:
 
-    Since by default the GP2X is controlled via a digital joystick and
-    buttons, the joystick controls have been mapped so that the user
-    can load and play the aydemo.p music demo and the mine81.p mines
-    game only. This build demonstrates the framework that has been
-    provided by this SDL port rather than suggesting that it is
-    currently in any way generally usable on such a device.
-    
-    Select       - Toggle virtual keyboard and control bar
-    Start        - Exit emulator
-    Joy Up       - K
-    Joy Right    - L
-    Joy Down     - J
-    Joy Left     - H
-    LTrigger     - Q
-    RTrigger     - A
-    Button Y     - Space
+    Start        - Toggle virtual keyboard and control bar
+    LTrigger     - SHIFT
+    Button Y     - Rubout i.e. equivalent to CTRL or SHIFT + 0
     Button B     - Enter
-    Button A     - 1
-    Volume Down  - 2
-    Button X     - 3
-    Volume Up    - 4
-    Joy Push     - 5
+    Button X     - Space
 
-    The GP2X build boots straight into the file selector and has the
-    screen colours inverted by default (see sz81.gpe).
+    In the emulator      | In the GUI
+    -------------------------------------------------------------
+    Joy Up       - Q     | Selector up
+    Joy Down     - A     | Selector down
+    Joy Left     - O     | Selector left
+    Joy Right    - P     | Selector right
+    Button A     - Enter | Select
+
+    See PC controls for an explanation of the control bar and how to
+    access the file selector.
 
 
 Installation

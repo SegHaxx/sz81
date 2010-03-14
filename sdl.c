@@ -41,8 +41,11 @@
 #define DEVICE_JOYSTICK 2
 #define DEVICE_CURSOR 3
 
-#define JOYSTICK_DEAD_ZONE 50
+#define JOYSTICK_DEAD_ZONE 75
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
+
+#define KEY_REPEAT_DELAY 300
+#define KEY_REPEAT_INTERVAL 100
 
 #define IMG_WM_ICON "sz81.bmp"
 #define IMG_ZX80_KYBD "zx80kybd.bmp"
@@ -74,11 +77,16 @@
 #define ICON_ALPHA_UP_X 144
 #define ICON_ALPHA_UP_Y 0
 
+/* Key repeat manager function IDs */
+#define KRM_FUNC_RELEASE 0
+#define KRM_FUNC_REPEAT 1
+#define KRM_FUNC_TICK 2
+
 /* Component IDs */
 #define COMP_EMU 1
 #define COMP_LOAD 2
 #define COMP_VKEYB 4
-/*#define COMP_CTB 8	ctb and vkeyb are one, so this is redundant */
+/*#define COMP_CTB 8	ctb and vkeyb are one, so this is unnecessary */
 #define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB)
 
 /* Hotspot group IDs */
@@ -251,6 +259,7 @@ extern void exit_program(void);
 extern void reset81(void);
 
 /* My functions */
+void key_repeat_manager(int funcid, SDL_Event *event);
 void keyboard_buffer_reset(void);
 void hotspots_init(void);
 void hotspots_resize(void);
@@ -699,10 +708,6 @@ int keyboard_init(void) {
 			ctrl_remaps[index].id = GP2X_START;
 			ctrl_remaps[index].remap_id = SDLK_F1;
 
-			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_SELECT;
-			ctrl_remaps[index].remap_id = SDLK_F10;
-
 			/* Active within the emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -940,6 +945,9 @@ int keyboard_update(void) {
 	 * emulated machine has trouble keeping up with event creation */
 	if (!(skip_update = !skip_update)) {
 
+		/* If there's something to repeat then maybe do it now */
+		key_repeat_manager(KRM_FUNC_TICK, NULL);
+
 		while (SDL_PollEvent(&event)) {
 			/* Get something we're interested in */
 			device = id = mod_id = state = UNDEFINED;
@@ -1173,6 +1181,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_N) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
 								hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
@@ -1215,6 +1224,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_S) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
 								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
@@ -1256,10 +1266,12 @@ int keyboard_update(void) {
 						}
 					} else if (id == CURSOR_BTN_W) {
 						if (load_selector_state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (--hs_load_selected < HS_LOAD_Q) hs_load_selected = HS_LOAD_SPACE;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
@@ -1278,10 +1290,12 @@ int keyboard_update(void) {
 						}
 					} else if (id == CURSOR_BTN_E) {
 						if (load_selector_state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (++hs_load_selected > HS_LOAD_SPACE) hs_load_selected = HS_LOAD_Q;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (++hs_vkeyb_ctb_selected > HS_CTB_ALPHA_UP)
@@ -1313,6 +1327,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_W) {
 					} else if (id == CURSOR_BTN_E) {
 					}
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL);
 				}
 				device = UNDEFINED;	/* Erase it - it'll be ignored below anyway */
 			}
@@ -1338,10 +1353,9 @@ int keyboard_update(void) {
 					/* Toggle the virtual keyboard */
 					if (state == SDL_PRESSED) {
 						vkeyb.state = !vkeyb.state;
-						if (!vkeyb.state) {
-							keyboard_buffer_reset();
-							video.redraw = TRUE;
-						}
+						keyboard_buffer_reset();
+						key_repeat_manager(KRM_FUNC_RELEASE, NULL);
+						if (!vkeyb.state) video.redraw = TRUE;
 					}
 				} else if (id == SDLK_F2) {
 					if (state == SDL_PRESSED) {
@@ -1392,14 +1406,15 @@ int keyboard_update(void) {
 					if (vkeyb.state) {
 						/* Adjust the vkeyb alpha */
 						if (state == SDL_PRESSED) {
+							key_repeat_manager(KRM_FUNC_REPEAT, &event);
 							if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
-								vkeyb.alpha -= 31;
-							} else if (id == SDLK_HOME && vkeyb.alpha >= 64) {
-								vkeyb.alpha -= 32;
-							} else if (id == SDLK_END && vkeyb.alpha == 224) {
-								vkeyb.alpha += 31;
-							} else if (id == SDLK_END && vkeyb.alpha < 224) {
-								vkeyb.alpha += 32;
+								vkeyb.alpha -= 15;
+							} else if (id == SDLK_HOME && vkeyb.alpha >= 32) {
+								vkeyb.alpha -= 16;
+							} else if (id == SDLK_END && vkeyb.alpha == 240) {
+								vkeyb.alpha += 15;
+							} else if (id == SDLK_END && vkeyb.alpha < 240) {
+								vkeyb.alpha += 16;
 							}
 							if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
 								fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
@@ -1408,6 +1423,8 @@ int keyboard_update(void) {
 							}
 							control_bar_init();
 							video.redraw = TRUE;
+						} else {
+							key_repeat_manager(KRM_FUNC_RELEASE, NULL);
 						}
 					}
 				} else if (id == SDLK_F10) {
@@ -1465,6 +1482,7 @@ int keyboard_update(void) {
 				keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_NOTPRESSED) {
 				vkeyb.state = FALSE;
 				keyboard_buffer_reset();
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL);
 				video.redraw = TRUE;
 			}
 
@@ -1499,12 +1517,66 @@ void keyboard_translatekeys(int mask) {
  * ------------------------------------------------------------------------*/
 
 /***************************************************************************
+ * Key Repeat Manager                                                      *
+ ***************************************************************************/
+/* Here's how to use this simple and very effective key repeating function :-
+ * 
+ * If an event has triggered something that you'd like to repeat then call
+ * key_repeat_manager(KRM_FUNC_REPEAT, &event) and it will repeat after a
+ * period of time. Additionally you will need to call
+ * key_repeat_manager(KRM_FUNC_RELEASE, NULL) in your event release code to
+ * stop it repeating else you'll cause a catastrophic chain reaction :s
+ * 
+ * At the top of your event managing function call
+ * key_repeat_manager(KRM_FUNC_TICK, NULL) to provide this function with a
+ * heartbeat.
+ * 
+ * On entry: funcid = KRM_FUNC_TICK to provide key repeat functionality
+ *                    from your event manager with event being NULL
+ *           funcid = KRM_FUNC_REPEAT to set a key repeat with
+ *                    event pointing to the event to repeat
+ *           funcid = KRM_FUNC_RELEASE to clear any current key repeat
+ *                    with event being NULL
+ */
+
+void key_repeat_manager(int funcid, SDL_Event *event) {
+	static SDL_Event repeatevent;
+	static int interval = 0, init = TRUE;
+	
+	if (funcid == KRM_FUNC_RELEASE || init == TRUE) {
+		init = FALSE;
+		repeatevent.type = SDL_NOEVENT;
+		/* Reset to the initial delay */
+		#ifdef OSS_SOUND_SUPPORT
+			interval = KEY_REPEAT_DELAY / (1000 / (sound_hz / 2));
+		#else
+			interval = KEY_REPEAT_DELAY / (1000 / (nosound_hz / 2));
+		#endif
+	}
+	if (funcid == KRM_FUNC_TICK) {
+		if (repeatevent.type != SDL_NOEVENT) {
+			if (--interval <= 0) {
+				/* Reset to the initial delay */
+				#ifdef OSS_SOUND_SUPPORT
+					interval = KEY_REPEAT_INTERVAL / (1000 / (sound_hz / 2));
+				#else
+					interval = KEY_REPEAT_INTERVAL / (1000 / (nosound_hz / 2));
+				#endif
+				SDL_PushEvent(&repeatevent);
+			}
+		}
+	} else if (funcid == KRM_FUNC_REPEAT) {
+		repeatevent = *event;
+	}
+}
+
+/***************************************************************************
  * Keyboard Buffer Reset                                                   *
  ***************************************************************************/
 /* This unpresses any pressed controls within the keyboard buffer except
- * SHIFT. It's used when hiding program components to make sure that any
- * controls that the user still has pressed don't remain unreleased which
- * can happen if the controls are component specific */
+ * SHIFT. It's used when changing the states of program components to make
+ * sure that any controls that the user still has pressed don't remain
+ * unreleased which can happen if the controls are component specific */
 
 void keyboard_buffer_reset(void) {
 	int scancode;
@@ -1746,6 +1818,7 @@ void hotspots_update(void) {
 	if (load_selector_state && vkeyb.state) {
 		vkeyb.state = FALSE;
 		keyboard_buffer_reset();
+		key_repeat_manager(KRM_FUNC_RELEASE, NULL);
 		video.redraw = TRUE;
 	}
 

@@ -1,3 +1,8 @@
+2010-03-13 Thunor <thunorsif_at_hotmail.com>
+* Added key repeating within the GUI for selected features.
+* Adjusted the units of alpha used in the opacity DN/UP hotspots to
+  16 since key repeating now makes this usable and more desirable.
+  
 2010-03-12 Thunor <thunorsif_at_hotmail.com>
 * Reworked the control remapping feature. Now a device can be
   remapped to any other device including a virtual cursor device, and
