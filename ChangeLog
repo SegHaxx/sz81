@@ -10,6 +10,10 @@
 * Added joystick support throughout. Joystick controls are currently
   hardcoded control remappings awaiting transferral to an rcfile.
 
+2010-03-10 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
+* Added version string for the AmigaOS4 build.
+* Fixed AUTOLIST tooltype.
+
 2010-03-09 Thunor <thunorsif_at_hotmail.com>
 * Appended z81's Makefile and docs with .z81 and added new files for
   our use since now sz81 is the main target.
@@ -32,7 +36,7 @@
 * Added three Sinclair fonts, two for the control bar and the ZX
   Spectrum's for future use within the GUI.
 
-2010-02-28 Chris Young <cdyoung_at_unsatisfactorysoftware.co.uk>
+2010-02-28 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
 * Added code for the AmigaOS4 build.
 
 2010-02-27 Thunor <thunorsif_at_hotmail.com>
