@@ -1,3 +1,17 @@
+2010-03-14 Thunor <thunorsif_at_hotmail.com>
+* Vkeyb hotspots now have transparent corners, and their alpha's
+  increase/decrease in relative units which means that they can still
+  be seen when the vkeyb is almost invisible.
+* Changed load selector selected default to Enter, and vkeyb to J.
+* Fixed a situation whereby joystick fake-mouse button events and
+  real mouse button events being both used to hit hotspots would leave
+  a key unreleased. Admittedly this isn't going to happen under most
+  situations and I found it through testing using multiple input
+  devices, but now one joystick and one mouse can coexist together
+  which is as many of these devices that this program is going to
+  handle at any one time. Now it's possible (if such a game exists)
+  for two players to use the same virtual keyboard - cool :D
+
 2010-03-13 Thunor <thunorsif_at_hotmail.com>
 * Added key repeating within the GUI for selected features.
 * Adjusted the units of alpha used in the opacity DN/UP hotspots to

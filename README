@@ -41,7 +41,7 @@ Features:
 
 Immediate To-Do:
  * Loading of remapped controls from an rcfile
- * Runtime joystick button remapping and saving to rcfile
+ * Runtime joystick button remapping and auto-saving to rcfile
  * OSS to SDL API sound conversion
 For the Future:
  * Foreground and background colour chooser
@@ -97,7 +97,7 @@ For the GPH GP2X:
     Button X     - Space
 
     In the emulator      | In the GUI
-    -------------------------------------------------------------
+    -------------------------------------
     Joy Up       - Q     | Selector up
     Joy Down     - A     | Selector down
     Joy Left     - O     | Selector left

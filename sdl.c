@@ -44,8 +44,8 @@
 #define JOYSTICK_DEAD_ZONE 75
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
-#define KEY_REPEAT_DELAY 300
-#define KEY_REPEAT_INTERVAL 100
+#define KEY_REPEAT_DELAY 400		/* Granularity of 20ms */
+#define KEY_REPEAT_INTERVAL 80		/* Granularity of 20ms */
 
 #define IMG_WM_ICON "sz81.bmp"
 #define IMG_ZX80_KYBD "zx80kybd.bmp"
@@ -86,8 +86,8 @@
 #define COMP_EMU 1
 #define COMP_LOAD 2
 #define COMP_VKEYB 4
-/*#define COMP_CTB 8	ctb and vkeyb are one, so this is unnecessary */
-#define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB)
+#define COMP_CTB 8
+#define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB | COMP_CTB)
 
 /* Hotspot group IDs */
 #define HS_GRP_ROOT 0
@@ -259,7 +259,8 @@ extern void exit_program(void);
 extern void reset81(void);
 
 /* My functions */
-void key_repeat_manager(int funcid, SDL_Event *event);
+void component_executive(void);
+void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(void);
 void hotspots_init(void);
 void hotspots_resize(void);
@@ -911,7 +912,7 @@ char *keyboard_getstate(void) {
  * On exit: returns non-zero if there are keyboard events else 0 */
 
 int keyboard_update(void) {
-	static int skip_update = TRUE, last_hs_pressed = UNDEFINED;
+	static int skip_update = TRUE, last_hs_pressed[2];
 	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
 	int hs_load_selected, hs_vkeyb_ctb_selected;
 	int eventfound = FALSE, count, found;
@@ -934,6 +935,7 @@ int keyboard_update(void) {
 	/* Do some first time initialisation */
 	if (init) {
 		init = FALSE;
+		last_hs_pressed[0] = last_hs_pressed[1] = UNDEFINED;
 		for (count = 0; count < MAX_JOY_AXES; count++)
 			axisstates[count * 2] = axisstates[count * 2 + 1] = SDL_RELEASED;
 		/* Flush events (may have been done earlier too when opening a joystick */
@@ -941,12 +943,14 @@ int keyboard_update(void) {
 		event.type = SDL_NOEVENT;	/* Important */
 	}
 
+	/* If there's something to repeat then maybe do it now. It's done
+	 * here and not inside the skip-update so that the granularity is
+	 * 20ms (from the default 50Hz), otherwise it would be 25Hz=40ms */
+	key_repeat_manager(KRM_FUNC_TICK, NULL, 0);
+
 	/* Process events every other call otherwise the emulator or the
 	 * emulated machine has trouble keeping up with event creation */
 	if (!(skip_update = !skip_update)) {
-
-		/* If there's something to repeat then maybe do it now */
-		key_repeat_manager(KRM_FUNC_TICK, NULL);
 
 		while (SDL_PollEvent(&event)) {
 			/* Get something we're interested in */
@@ -962,60 +966,67 @@ int keyboard_update(void) {
 					break;
 				case SDL_MOUSEBUTTONUP:
 				case SDL_MOUSEBUTTONDOWN:
-					device = DEVICE_KEYBOARD;
-					state = event.button.state;
-					/* Convert a hotspot hit into an id */
-					found = FALSE;
-					if (state == SDL_PRESSED) {
-						for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
-							if (hotspots[count].gid != UNDEFINED &&
-								hotspots[count].flags & HS_PROP_VISIBLE &&
-								event.button.x >= hotspots[count].hit_x &&
-								event.button.x < hotspots[count].hit_x + hotspots[count].hit_w &&
-								event.button.y >= hotspots[count].hit_y &&
-								event.button.y < hotspots[count].hit_y + hotspots[count].hit_h) {
-								if (hotspots[count].remap_id != UNDEFINED) {
-									/* Is the hotspot sticky or a toggle? */
-									if (hotspots[count].flags & HS_PROP_STICKY ||
-										hotspots[count].flags & HS_PROP_TOGGLE) {
-										/* If it's currently stuck then release it */
-										if (hotspots[count].flags & HS_PROP_STUCK) {
+					/* This code is also visited by joystick button events
+					 * masquerading as mouse button events. To enable them
+					 * to coexit peacefully, the joy buttons start at 128 */
+					if (event.button.button % 128 == SDL_BUTTON_LEFT) {
+						device = DEVICE_KEYBOARD;
+						state = event.button.state;
+						/* Convert a hotspot hit into an id */
+						found = FALSE;
+						if (state == SDL_PRESSED) {
+							for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
+								if (hotspots[count].gid != UNDEFINED &&
+									hotspots[count].flags & HS_PROP_VISIBLE &&
+									event.button.x >= hotspots[count].hit_x &&
+									event.button.x < hotspots[count].hit_x + hotspots[count].hit_w &&
+									event.button.y >= hotspots[count].hit_y &&
+									event.button.y < hotspots[count].hit_y + hotspots[count].hit_h) {
+									if (hotspots[count].remap_id != UNDEFINED) {
+										/* Is the hotspot sticky or a toggle? */
+										if (hotspots[count].flags & HS_PROP_STICKY ||
+											hotspots[count].flags & HS_PROP_TOGGLE) {
+											/* If it's currently stuck then release it */
+											if (hotspots[count].flags & HS_PROP_STUCK) {
+												hotspots[count].flags &= ~HS_PROP_STUCK;
+												state = SDL_RELEASED;
+											} else {
+												hotspots[count].flags |= HS_PROP_STUCK;
+											}
+										}
+										id = hotspots[count].remap_id;
+										last_hs_pressed[event.button.button / 128] = count;
+										found = TRUE;
+									}
+									break;
+								}
+							}
+						} else {
+							if (hotspots[last_hs_pressed[event.button.button / 128]].flags &
+								HS_PROP_ONOFF) {
+								/* If a virtual keyboard hotspot was last pressed
+								 * then release stuck sticky hotspots */
+								if (hotspots[last_hs_pressed[event.button.button / 128]].gid ==
+									HS_GRP_VKEYB) {
+									for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
+										if (hotspots[count].gid != UNDEFINED &&
+											hotspots[count].flags & HS_PROP_STICKY &&
+											hotspots[count].flags & HS_PROP_STUCK) {
 											hotspots[count].flags &= ~HS_PROP_STUCK;
-											state = SDL_RELEASED;
-										} else {
-											hotspots[count].flags |= HS_PROP_STUCK;
+											virtualevent.type = SDL_KEYUP;
+											virtualevent.key.keysym.sym = hotspots[count].remap_id;
+											virtualevent.key.state = SDL_RELEASED;
+											SDL_PushEvent(&virtualevent);
 										}
 									}
-									id = hotspots[count].remap_id;
-									last_hs_pressed = count;
-									found = TRUE;
 								}
-								break;
+								id = hotspots[last_hs_pressed[event.button.button / 128]].remap_id;
+								last_hs_pressed[event.button.button / 128] = UNDEFINED;
+								found = TRUE;
 							}
 						}
-					} else {
-						if (hotspots[last_hs_pressed].flags & HS_PROP_ONOFF) {
-							/* If a virtual keyboard hotspot was last pressed
-							 * then release stuck sticky hotspots */
-							if (hotspots[last_hs_pressed].gid == HS_GRP_VKEYB) {
-								for (count = MAX_HOTSPOTS - 1; count >= 0; count--) {
-									if (hotspots[count].gid != UNDEFINED &&
-										hotspots[count].flags & HS_PROP_STICKY &&
-										hotspots[count].flags & HS_PROP_STUCK) {
-										hotspots[count].flags &= ~HS_PROP_STUCK;
-										virtualevent.type = SDL_KEYUP;
-										virtualevent.key.keysym.sym = hotspots[count].remap_id;
-										virtualevent.key.state = SDL_RELEASED;
-										SDL_PushEvent(&virtualevent);
-									}
-								}
-							}
-							id = hotspots[last_hs_pressed].remap_id;
-							last_hs_pressed = UNDEFINED;
-							found = TRUE;
-						}
+						if (!found) device = UNDEFINED;	/* Ignore id */
 					}
-					if (!found) device = UNDEFINED;	/* Ignore id */
 					break;
 				case SDL_JOYBUTTONUP:
 				case SDL_JOYBUTTONDOWN:
@@ -1162,17 +1173,19 @@ int keyboard_update(void) {
 				if (state == SDL_PRESSED) {
 					if (id == CURSOR_BTN_A) {
 						/* Remap the virtual cursor event to a mouse button event
-						 * which will hit a hotspot and generate a keyboard event */
+						 * which will hit a hotspot and generate a keyboard event.
+						 * I'm adding 128 to the mouse button index to make them
+						 * uniquely identifiable in the hotspot code above */
 						if (load_selector_state) {
 							virtualevent.type = SDL_MOUSEBUTTONDOWN;
-							virtualevent.button.button = SDL_BUTTON_LEFT;
+							virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 							virtualevent.button.state = SDL_PRESSED;
 							virtualevent.button.x = hotspots[hs_load_selected].hit_x;
 							virtualevent.button.y = hotspots[hs_load_selected].hit_y;
 							SDL_PushEvent(&virtualevent);
 						} else if (vkeyb.state) {
 							virtualevent.type = SDL_MOUSEBUTTONDOWN;
-							virtualevent.button.button = SDL_BUTTON_LEFT;
+							virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 							virtualevent.button.state = SDL_PRESSED;
 							virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x;
 							virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y;
@@ -1181,7 +1194,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_N) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_N);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
 								hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
@@ -1224,7 +1237,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_S) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_S);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
 								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
@@ -1266,12 +1279,12 @@ int keyboard_update(void) {
 						}
 					} else if (id == CURSOR_BTN_W) {
 						if (load_selector_state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_BTN_W);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (--hs_load_selected < HS_LOAD_Q) hs_load_selected = HS_LOAD_SPACE;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_W);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
@@ -1290,12 +1303,12 @@ int keyboard_update(void) {
 						}
 					} else if (id == CURSOR_BTN_E) {
 						if (load_selector_state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_BTN_E);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (++hs_load_selected > HS_LOAD_SPACE) hs_load_selected = HS_LOAD_Q;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_E);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (++hs_vkeyb_ctb_selected > HS_CTB_ALPHA_UP)
@@ -1317,7 +1330,7 @@ int keyboard_update(void) {
 					if (id == CURSOR_BTN_A) {
 						/* Release a previous press (it's not important where) */
 						virtualevent.type = SDL_MOUSEBUTTONUP;
-						virtualevent.button.button = SDL_BUTTON_LEFT;
+						virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 						virtualevent.button.state = SDL_RELEASED;
 						virtualevent.button.x = 0;
 						virtualevent.button.y = 0;
@@ -1327,7 +1340,7 @@ int keyboard_update(void) {
 					} else if (id == CURSOR_BTN_W) {
 					} else if (id == CURSOR_BTN_E) {
 					}
-					key_repeat_manager(KRM_FUNC_RELEASE, NULL);
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 				device = UNDEFINED;	/* Erase it - it'll be ignored below anyway */
 			}
@@ -1352,10 +1365,9 @@ int keyboard_update(void) {
 				if (id == SDLK_F1) {
 					/* Toggle the virtual keyboard */
 					if (state == SDL_PRESSED) {
-						vkeyb.state = !vkeyb.state;
-						keyboard_buffer_reset();
-						key_repeat_manager(KRM_FUNC_RELEASE, NULL);
-						if (!vkeyb.state) video.redraw = TRUE;
+						if (!load_selector_state) {
+							vkeyb.state = !vkeyb.state;
+						}
 					}
 				} else if (id == SDLK_F2) {
 					if (state == SDL_PRESSED) {
@@ -1406,7 +1418,7 @@ int keyboard_update(void) {
 					if (vkeyb.state) {
 						/* Adjust the vkeyb alpha */
 						if (state == SDL_PRESSED) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
 							if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
 								vkeyb.alpha -= 15;
 							} else if (id == SDLK_HOME && vkeyb.alpha >= 32) {
@@ -1424,7 +1436,7 @@ int keyboard_update(void) {
 							control_bar_init();
 							video.redraw = TRUE;
 						} else {
-							key_repeat_manager(KRM_FUNC_RELEASE, NULL);
+							key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 						}
 					}
 				} else if (id == SDLK_F10) {
@@ -1481,9 +1493,6 @@ int keyboard_update(void) {
 				state == SDL_RELEASED && vkeyb.state && vkeyb.autohide &&
 				keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_NOTPRESSED) {
 				vkeyb.state = FALSE;
-				keyboard_buffer_reset();
-				key_repeat_manager(KRM_FUNC_RELEASE, NULL);
-				video.redraw = TRUE;
 			}
 
 			/* If we've recorded something then quit now */
@@ -1517,55 +1526,114 @@ void keyboard_translatekeys(int mask) {
  * ------------------------------------------------------------------------*/
 
 /***************************************************************************
+ * Component Executive                                                     *
+ ***************************************************************************/
+/* This function monitors program component state changes and if something
+ * needs to be done as a result of a state change then it is managed from
+ * here to keep things organised and to cut down on code duplication */
+
+void component_executive(void) {
+	static int active_components = COMP_EMU;
+	int found = FALSE;
+	
+	/* If the load selector's state has changed then do something */
+	if ((active_components & COMP_LOAD) != (load_selector_state * COMP_LOAD)) {
+		/* Hide the vkeyb if the file selector is active */
+		if (load_selector_state && vkeyb.state) vkeyb.state = FALSE;
+		found = TRUE;
+	}
+
+	/* If the vkeyb's state has changed then do something */
+	if ((active_components & COMP_VKEYB) != (vkeyb.state * COMP_VKEYB)) {
+		keyboard_buffer_reset();
+		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+		if (!vkeyb.state) video.redraw = TRUE;
+		found = TRUE;
+	}
+
+	/* Update hotspot states if a state has changed */
+	if (found) hotspots_update();
+
+	/* Maintain a copy of current program component states  */
+	active_components = COMP_EMU;
+	if (load_selector_state) {
+		active_components |= COMP_LOAD;
+	} else {
+		active_components &= ~COMP_LOAD;
+	}
+	if (vkeyb.state) {
+		active_components |= COMP_VKEYB;
+	} else {
+		active_components &= ~COMP_VKEYB;
+	}
+}
+
+/***************************************************************************
  * Key Repeat Manager                                                      *
  ***************************************************************************/
 /* Here's how to use this simple and very effective key repeating function :-
  * 
  * If an event has triggered something that you'd like to repeat then call
- * key_repeat_manager(KRM_FUNC_REPEAT, &event) and it will repeat after a
- * period of time. Additionally you will need to call
- * key_repeat_manager(KRM_FUNC_RELEASE, NULL) in your event release code to
- * stop it repeating else you'll cause a catastrophic chain reaction :s
+ * key_repeat_manager(KRM_FUNC_REPEAT, &event, eventid) and it will repeat
+ * after a period of time. Additionally you will need to call
+ * key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0) in your event release code
+ * to stop it repeating else you'll cause a catastrophic chain reaction :s
+ * 
+ * The eventid is a unique id that can be used to detect when a new event is
+ * being repeated and the user hasn't released the previous one so that the
+ * interval can be reset to the initial delay.
  * 
  * At the top of your event managing function call
- * key_repeat_manager(KRM_FUNC_TICK, NULL) to provide this function with a
- * heartbeat.
+ * key_repeat_manager(KRM_FUNC_TICK, NULL, 0) to provide this function with
+ * a heartbeat.
+ * 
+ * That's it. Focus on the action that you want to repeat and repeat the
+ * event that triggered it. Then the input device becomes irrelevant.
  * 
  * On entry: funcid = KRM_FUNC_TICK to provide key repeat functionality
- *                    from your event manager with event being NULL
+ *                    from your event manager with event being NULL and
+ *                    eventid being 0
  *           funcid = KRM_FUNC_REPEAT to set a key repeat with
- *                    event pointing to the event to repeat
+ *                    event pointing to the event to repeat and
+ *                    eventid = something unique
  *           funcid = KRM_FUNC_RELEASE to clear any current key repeat
- *                    with event being NULL
+ *                    with event being NULL and
+ *                    eventid being 0
  */
 
-void key_repeat_manager(int funcid, SDL_Event *event) {
+void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
+	static int interval = 0, last_eventid = 0, init = TRUE;
 	static SDL_Event repeatevent;
-	static int interval = 0, init = TRUE;
-	
-	if (funcid == KRM_FUNC_RELEASE || init == TRUE) {
+		
+	if (init) {
 		init = FALSE;
+		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+	}
+
+	if (funcid == KRM_FUNC_RELEASE) {
 		repeatevent.type = SDL_NOEVENT;
+		last_eventid = eventid;
 		/* Reset to the initial delay */
 		#ifdef OSS_SOUND_SUPPORT
-			interval = KEY_REPEAT_DELAY / (1000 / (sound_hz / 2));
+			interval = KEY_REPEAT_DELAY / (1000 / sound_hz);
 		#else
-			interval = KEY_REPEAT_DELAY / (1000 / (nosound_hz / 2));
+			interval = KEY_REPEAT_DELAY / (1000 / nosound_hz);
 		#endif
-	}
-	if (funcid == KRM_FUNC_TICK) {
+	} else if (funcid == KRM_FUNC_TICK) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset to the initial delay */
 				#ifdef OSS_SOUND_SUPPORT
-					interval = KEY_REPEAT_INTERVAL / (1000 / (sound_hz / 2));
+					interval = KEY_REPEAT_INTERVAL / (1000 / sound_hz);
 				#else
-					interval = KEY_REPEAT_INTERVAL / (1000 / (nosound_hz / 2));
+					interval = KEY_REPEAT_INTERVAL / (1000 / nosound_hz);
 				#endif
 				SDL_PushEvent(&repeatevent);
 			}
 		}
 	} else if (funcid == KRM_FUNC_REPEAT) {
+		if (last_eventid != eventid)
+			key_repeat_manager(KRM_FUNC_RELEASE, NULL, eventid);
 		repeatevent = *event;
 	}
 }
@@ -1618,9 +1686,9 @@ void hotspots_init(void) {
 		hotspots[HS_LOAD_Q + count].gid = HS_GRP_LOAD;
 	}
 	hotspots[HS_LOAD_Q].remap_id = SDLK_q;
-	hotspots[HS_LOAD_Q].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LOAD_A].remap_id = SDLK_a;
 	hotspots[HS_LOAD_ENTER].remap_id = SDLK_RETURN;
+	hotspots[HS_LOAD_ENTER].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LOAD_SPACE].remap_id = SDLK_SPACE;
 
 	/* Initialise virtual keyboard hotspots */
@@ -1633,7 +1701,6 @@ void hotspots_init(void) {
 		hotspots[HS_VKEYB_SHIFT + count].gid = HS_GRP_VKEYB;
 	}
 	hotspots[HS_VKEYB_1].remap_id = SDLK_1;
-	hotspots[HS_VKEYB_1].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_1 + 1].remap_id = SDLK_2;
 	hotspots[HS_VKEYB_1 + 2].remap_id = SDLK_3;
 	hotspots[HS_VKEYB_1 + 3].remap_id = SDLK_4;
@@ -1660,6 +1727,7 @@ void hotspots_init(void) {
 	hotspots[HS_VKEYB_A + 4].remap_id = SDLK_g;
 	hotspots[HS_VKEYB_A + 5].remap_id = SDLK_h;
 	hotspots[HS_VKEYB_A + 6].remap_id = SDLK_j;
+	hotspots[HS_VKEYB_A + 6].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_A + 7].remap_id = SDLK_k;
 	hotspots[HS_VKEYB_A + 8].remap_id = SDLK_l;
 	hotspots[HS_VKEYB_A + 9].remap_id = SDLK_RETURN;
@@ -1799,8 +1867,7 @@ void hotspots_resize(void) {
  * Hotspots Update                                                         *
  ***************************************************************************/
 /* This sets hotspots [in]visible depending on the states of the components
- * that affect them. It's called from within the renderer since then we will
- * know what the emulator has done since keyboard-update */
+ * that affect them */
 
 void hotspots_update(void) {
 	int count;
@@ -1812,14 +1879,6 @@ void hotspots_update(void) {
 	} else {
 		for (count = 0; count < MAX_HOTSPOTS; count++)
 			if (hotspots[count].gid == HS_GRP_LOAD) hotspots[count].flags &= ~HS_PROP_VISIBLE;
-	}
-
-	/* Hide the vkeyb if the file selector is active */
-	if (load_selector_state && vkeyb.state) {
-		vkeyb.state = FALSE;
-		keyboard_buffer_reset();
-		key_repeat_manager(KRM_FUNC_RELEASE, NULL);
-		video.redraw = TRUE;
 	}
 
 	/* Update the virtual keyboard hotspots */
@@ -1848,7 +1907,7 @@ void hotspots_update(void) {
 /* This renders visible hotspots over everything else and is called towards
  * the end of sdl-video-refresh. What the hotspot will look like is decided
  * here and depends especially on the gid and occasionally on the flags.
- * It's efficient since it will attempt to resuse a previously created and
+ * It's efficient since it will attempt to reuse a previously created and
  * filled highlight if possible */
 
 void hotspots_render(void) {
@@ -1949,10 +2008,38 @@ void hotspots_render(void) {
 							SDL_GetError ());
 						exit(1);
 					}
+					/* For the vkeyb make the hotspot corners transparent */
+					if (hotspots[count].gid == HS_GRP_VKEYB) {
+						colour = SDL_MapRGB(video.screen->format, colours.colour_key >> 16 & 0xff,
+							colours.colour_key >> 8 & 0xff, colours.colour_key & 0xff);
+						dstrect.w = video.scale; dstrect.h = video.scale;
+						for (surround = 0; surround < 4; surround++) {
+							if (surround == 0) {
+								dstrect.x = 0; dstrect.y = 0;
+							} else if (surround == 1) {
+								dstrect.x = hl_w - video.scale; dstrect.y = 0;
+							} else if (surround == 2) {
+								dstrect.x = hl_w - video.scale; dstrect.y = hl_h - video.scale;
+							} else if (surround == 3) {
+								dstrect.x = 0; dstrect.y = hl_h - video.scale;
+							}
+							if (SDL_FillRect(highlight, &dstrect, colour) < 0) {
+								fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+									SDL_GetError ());
+								exit(1);
+							}
+						}
+						/* Set the transparent colour */
+						if (SDL_SetColorKey (highlight, SDL_SRCCOLORKEY, colour) < 0) {
+							fprintf(stderr, "%s: Cannot set surface colour key: %s\n", __func__,
+								SDL_GetError ());
+							exit(1);
+						}
+					}
 				}
 				/* Choose a suitable alpha */
 				if (hotspots[count].gid == HS_GRP_VKEYB) {
-					alpha = (vkeyb.alpha + 1) / 2;
+					alpha = 128 - (256 - vkeyb.alpha) / 4;
 				} else {
 					alpha = 128;
 				}
@@ -1980,13 +2067,12 @@ void hotspots_render(void) {
 					#ifdef SDL_DEBUG_HOTSPOTS
 						colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
 					#endif
+					dstrect.w = video.scale; dstrect.h = hl_h;
 					for (surround = 0; surround < 2; surround++) {
 						if (surround == 0) {
 							dstrect.x = hl_x; dstrect.y = hl_y;
-							dstrect.w = video.scale; dstrect.h = hl_h;
 						} else {
 							dstrect.x = hl_x + hl_w - video.scale; dstrect.y = hl_y;
-							dstrect.w = video.scale; dstrect.h = hl_h;
 						}
 						if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
 							colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
@@ -2773,8 +2859,8 @@ void sdl_video_refresh(void) {
 		}
 	#endif
 
-	/* Update hotspot states now */
-	hotspots_update();
+	/* Monitor and manage component states */
+	component_executive();
 
 	/* Prepare the colours we shall be using */
 	fg_colour = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
