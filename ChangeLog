@@ -1,3 +1,8 @@
+2010-03-15 Thunor <thunorsif_at_hotmail.com>
+* For some reason I had the GNU GPL v3 at the top of my sdl.c/h when
+  I should have used the same v2 from z81. I've now fixed them.
+* I've split the 3100+ line sdl.c up into several more organised files.
+
 2010-03-14 Thunor <thunorsif_at_hotmail.com>
 * Vkeyb hotspots now have transparent corners, and their alpha's
   increase/decrease in relative units which means that they can still

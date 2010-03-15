@@ -25,7 +25,8 @@ PACKAGE_DATA_DIR_INT=PROGDIR:data
 
 # You won't need to alter these
 TARGET=$(shell cat TARGET)
-SOURCES=smain.c common.c sound.c z80.c sdl.c amiga.c
+SOURCES=smain.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
+	sdl_input.c sdl_resources.c sdl_video.c amiga.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
 DATE=$(shell date +%d.%m.%Y)

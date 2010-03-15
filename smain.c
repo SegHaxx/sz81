@@ -45,8 +45,8 @@ void exit_program(void)
 sound_end();
 #endif
 zxpclose();
-keyboard_close();
-vga_setmode(TEXTMODE);
+/*keyboard_close();			Thunor: redundant
+vga_setmode(TEXTMODE); */
 #ifdef __amigaos4__
 amiga_close_libs();
 #endif
@@ -83,7 +83,7 @@ memcpy(scrnbmp_old,scrnbmp,ZX_VID_FULLHEIGHT*ZX_VID_FULLWIDTH/8);
 
 refresh_screen=0;
 
-sdl_video_refresh();	/* Added by Thunor */
+sdl_update_scrn();	/* Added by Thunor */
 }
 
 
@@ -212,17 +212,19 @@ initmem();
 loadhelp();
 zxpopen();
 
-vga_setmode(G320x200x256);
+/*vga_setmode(G320x200x256);*/
+vga_setmode();	/* Added by Thunor */
 vptr=vga_getgraphmem();
 refresh_screen=1;
 keyboard_init();
-keyboard_translatekeys(DONT_CATCH_CTRLC);
+/*keyboard_translatekeys(DONT_CATCH_CTRLC);	Thunor: redundant */
 
 #ifdef OSS_SOUND_SUPPORT
 if(sound)
   sound_init();
 #endif
 /*startsigsandtimer();	Thunor: redundant since I use an SDL timer for non OSS sound */
+sdl_timer_init();	/* Added by Thunor */
 mainloop();
 
 /* not reached, but just in case */

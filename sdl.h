@@ -1,32 +1,35 @@
 /* sz81 Copyright (C) 2007-2010 Thunor <thunorsif@hotmail.com>
  * 
- * This program is free software: you can redistribute it and/or modify
+ * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* My defines */
-#define MAX_SCANCODES 128
+/* This is how the SDL part of sz81 is organised :-
+ * 
+ *      sdl.h <-- sdl_engine.h --> sdl_*.h
+ *        ^             ^
+ *       /              |
+ *   smain.c         sdl_*.c
+ */ 
 
+/* Includes */
+#include <SDL/SDL.h>
 
-/* Defines relevant to SVGAlib's vga */
-#define TEXTMODE 0
+/* Defines */
 #define G320x200x256 5
 
-
-/* Defines relevant to SVGAlib's vgakeyboard */
-#define DONT_CATCH_CTRLC 8
-#define KEY_NOTPRESSED 0
-#define KEY_PRESSED 1
+/* SVGAlib keyboard scancodes (z81 uses these) */
 #define SCANCODE_ESCAPE 1
 #define SCANCODE_F1 59
 #define SCANCODE_F2 60
@@ -86,39 +89,14 @@
 #define SCANCODE_N 49
 #define SCANCODE_B 48
 
-
-/* Variables relevant to SVGAlib's vga */
-unsigned char vga_graphmemory[64 * 1024];
-
-
-/* Variables relevant to SVGAlib's vgakeyboard */
-char keyboard_buffer[MAX_SCANCODES];
-
-
-/* Functions relevant to SVGAlib's vga */
+/* Function prototypes */
 int vga_init(void);
-int vga_setmode(int mode);
+int vga_setmode(void);
 unsigned char *vga_getgraphmem(void);
-
-
-/* Functions relevant to SVGAlib's vgakeyboard */
 int keyboard_init(void);
-void keyboard_close(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);
-int keyboard_keypressed(int scancode);
-void keyboard_translatekeys(int mask);
-
-
-/* My functions */
-void sdl_video_refresh(void);
-void sdl_delay(void);
-
-
-
-
-
-
-
+void sdl_update_scrn(void);
+void sdl_timer_init(void);
 
 

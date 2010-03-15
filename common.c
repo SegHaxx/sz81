@@ -33,7 +33,7 @@
 #include <sys/time.h>
 #include <dirent.h>
 #ifdef SZ81	/* Added by Thunor */
-#include <SDL/SDL.h>	/* For SDL_Delay */
+#include "sdl.h"
 #endif
 #include "common.h"
 #include "sound.h"
