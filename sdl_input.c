@@ -26,11 +26,11 @@
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
 /* Cursor (virtual) device control IDs */
-#define CURSOR_BTN_N 1
-#define CURSOR_BTN_S 2
-#define CURSOR_BTN_W 3
-#define CURSOR_BTN_E 4
-#define CURSOR_BTN_A 5
+#define CURSOR_N 1
+#define CURSOR_S 2
+#define CURSOR_W 3
+#define CURSOR_E 4
+#define CURSOR_HIT 5
 
 /* GP2X button IDs */
 #define GP2X_JOY_N 0x00
@@ -201,13 +201,13 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 10;	/* Left */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+			ctrl_remaps[index].remap_id = CURSOR_W;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 11;	/* Right */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+			ctrl_remaps[index].remap_id = CURSOR_E;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -218,7 +218,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 3;	/* X */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+			ctrl_remaps[index].remap_id = CURSOR_HIT;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -230,25 +230,25 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 12;	/* Up */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_N;
+			ctrl_remaps[index].remap_id = CURSOR_N;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 13;	/* Down */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_S;
+			ctrl_remaps[index].remap_id = CURSOR_S;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 10;	/* Left */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+			ctrl_remaps[index].remap_id = CURSOR_W;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 11;	/* Right */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+			ctrl_remaps[index].remap_id = CURSOR_E;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -265,7 +265,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = 3;	/* X */
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+			ctrl_remaps[index].remap_id = CURSOR_HIT;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -346,13 +346,13 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+			ctrl_remaps[index].remap_id = CURSOR_W;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+			ctrl_remaps[index].remap_id = CURSOR_E;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -363,7 +363,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+			ctrl_remaps[index].remap_id = CURSOR_HIT;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -375,25 +375,25 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_N;
+			ctrl_remaps[index].remap_id = CURSOR_N;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_S;
+			ctrl_remaps[index].remap_id = CURSOR_S;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_W;
+			ctrl_remaps[index].remap_id = CURSOR_W;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_E;
+			ctrl_remaps[index].remap_id = CURSOR_E;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -410,7 +410,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_BTN_A;
+			ctrl_remaps[index].remap_id = CURSOR_HIT;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -655,14 +655,12 @@ int keyboard_update(void) {
 					break;
 			}
 
-			/* Remap controls from any input device to any input device including
-			 * a virtual cursor device ;) So whatever was found above we can now
-			 * convert into anything we like, including expanding one event into
-			 * two - id and mod_id. The virtual cursor device and controls are used
-			 * for example to navigate the virtual keyboard. Controls can also be
-			 * tied to all, some or only one component e.g. when the load selector
-			 * is active, joy up and down are q and a, but at other times they can
-			 * be something else. These control remappings are defined elsewhere */
+			/* Remap controls from any input device to any input device including a
+			 * virtual cursor device. So whatever was found above we can now convert
+			 * into anything we like, including expanding one event into two -
+			 * id and mod_id. Controls can also be assigned to one or more components
+			 * so for example when the load selector is active, joy up and down are
+			 * "q" and "a", but at other times they can be something else */
 			if (vkeyb.state) {
 				active_component = COMP_VKEYB;
 			} else if (load_selector_state) {
@@ -690,17 +688,17 @@ int keyboard_update(void) {
 				}
 			#endif
 
-			/* Manage virtual cursor device input here. This is currently only used
-			 * for joystick navigation of various GUI components and I will explain
-			 * how it works :-
+			/* Manage virtual cursor device input here. This is how it works :-
 			 * A real hardware joystick event occurs which will go through the control
 			 * remapper above and reach here as either a keyboard event or a cursor event.
 			 * Keyboard events will just continue on down through this function, possibly
 			 * getting grabbed (ooh matron) or intercepted and stored in the keyboard
 			 * buffer for the emulator to pick up. Cursor events though need to be dealt
 			 * with now as either they are moving a selection box around a GUI component
-			 * or the user has "pressed" a hotspot which will result in the "press" being
-			 * remapped again to a mouse button :p This whole system is very powerful */
+			 * or the user has hit a hotspot which will result in the hit being remapped
+			 * again to a mouse button. This system maintains a physical hardware input 
+			 * layer at the top, a dynamic virtual input layer in the middle with the
+			 * target actions at the bottom */
 			if (device == DEVICE_CURSOR) {
 				/* Locate currently selected hotspot for group LOAD visible or not */
 				for (count = 0; count < MAX_HOTSPOTS; count++)
@@ -714,120 +712,76 @@ int keyboard_update(void) {
 				hs_vkeyb_ctb_selected = count;
 				/* Process the events */
 				if (state == SDL_PRESSED) {
-					if (id == CURSOR_BTN_A) {
+					if (id == CURSOR_HIT) {
 						/* Remap the virtual cursor event to a mouse button event
 						 * which will hit a hotspot and generate a keyboard event.
 						 * I'm adding 128 to the mouse button index to make them
 						 * uniquely identifiable in the hotspot code above */
+						virtualevent.type = SDL_MOUSEBUTTONDOWN;
+						virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
+						virtualevent.button.state = SDL_PRESSED;
 						if (load_selector_state) {
-							virtualevent.type = SDL_MOUSEBUTTONDOWN;
-							virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
-							virtualevent.button.state = SDL_PRESSED;
 							virtualevent.button.x = hotspots[hs_load_selected].hit_x;
 							virtualevent.button.y = hotspots[hs_load_selected].hit_y;
 							SDL_PushEvent(&virtualevent);
 						} else if (vkeyb.state) {
-							virtualevent.type = SDL_MOUSEBUTTONDOWN;
-							virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
-							virtualevent.button.state = SDL_PRESSED;
 							virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x;
 							virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y;
 							SDL_PushEvent(&virtualevent);
 						}
-					} else if (id == CURSOR_BTN_N) {
+					} else if (id == CURSOR_N) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_N);
+							/* Move the selector up */
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-							if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
-								hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_RESET) {
-								hotspots[HS_VKEYB_SHIFT + 1].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_AUTOHIDE) {
-								hotspots[HS_VKEYB_SHIFT + 2].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_SHIFT_TYPE) {
-								hotspots[HS_VKEYB_SHIFT + 3].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_INVERSE) {
-								hotspots[HS_VKEYB_SHIFT + 4].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_DN) {
-								hotspots[HS_VKEYB_SHIFT + 5].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_UP) {
-								hotspots[HS_VKEYB_SHIFT + 6].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1) {
-								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 1) {
-								hotspots[HS_CTB_RESET].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 2) {
-								hotspots[HS_CTB_AUTOHIDE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 3) {
-								hotspots[HS_CTB_SHIFT_TYPE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 4) {
-								hotspots[HS_CTB_INVERSE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 5) {
-								hotspots[HS_CTB_ALPHA_DN].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 6) {
-								hotspots[HS_CTB_ALPHA_UP].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 7) {
-								hotspots[HS_VKEYB_SHIFT + 7].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 8) {
-								hotspots[HS_VKEYB_SHIFT + 8].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9) {
-								hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
+							if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
+								hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
+								hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
+									HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 &&
+								hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 6) {
+								hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
+									HS_VKEYB_1].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 + 7 &&
+								hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 9) {
+								hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
+									HS_VKEYB_1].flags |= HS_PROP_SELECTED;
 							} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_Q) {
 								hotspots[hs_vkeyb_ctb_selected - 10].flags |= HS_PROP_SELECTED;
 							}
 						}
-					} else if (id == CURSOR_BTN_S) {
+					} else if (id == CURSOR_S) {
 						if (load_selector_state) {
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_S);
+							/* Move the selector down */
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_S);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-							if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
-								hotspots[HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 1) {
-								hotspots[HS_CTB_RESET].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 2) {
-								hotspots[HS_CTB_AUTOHIDE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 3) {
-								hotspots[HS_CTB_SHIFT_TYPE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 4) {
-								hotspots[HS_CTB_INVERSE].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 5) {
-								hotspots[HS_CTB_ALPHA_DN].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 6) {
-								hotspots[HS_CTB_ALPHA_UP].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 7) {
-								hotspots[HS_VKEYB_1 + 7].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 8) {
-								hotspots[HS_VKEYB_1 + 8].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
-								hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_EXIT) {
-								hotspots[HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_RESET) {
-								hotspots[HS_VKEYB_1 + 1].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_AUTOHIDE) {
-								hotspots[HS_VKEYB_1 + 2].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_SHIFT_TYPE) {
-								hotspots[HS_VKEYB_1 + 3].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_INVERSE) {
-								hotspots[HS_VKEYB_1 + 4].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_DN) {
-								hotspots[HS_VKEYB_1 + 5].flags |= HS_PROP_SELECTED;
-							} else if (hs_vkeyb_ctb_selected == HS_CTB_ALPHA_UP) {
-								hotspots[HS_VKEYB_1 + 6].flags |= HS_PROP_SELECTED;
+							if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT &&
+								hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 6) {
+								hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
+									HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT + 7 &&
+								hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 9) {
+								hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
+									HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
+							} else if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
+								hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
+								hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
+									HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
 							} else if (hs_vkeyb_ctb_selected <= HS_VKEYB_A + 9) {
 								hotspots[hs_vkeyb_ctb_selected + 10].flags |= HS_PROP_SELECTED;
 							}
 						}
-					} else if (id == CURSOR_BTN_W) {
+					} else if (id == CURSOR_W) {
+						/* Move the selector left */
 						if (load_selector_state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_BTN_W);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_W);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (--hs_load_selected < HS_LOAD_Q) hs_load_selected = HS_LOAD_SPACE;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_W);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
@@ -844,14 +798,15 @@ int keyboard_update(void) {
 								}
 							}
 						}
-					} else if (id == CURSOR_BTN_E) {
+					} else if (id == CURSOR_E) {
+						/* Move the selector right */
 						if (load_selector_state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_BTN_E);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_E);
 							hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
 							if (++hs_load_selected > HS_LOAD_SPACE) hs_load_selected = HS_LOAD_Q;
 							hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
 						} else if (vkeyb.state) {
-							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_BTN_E);
+							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
 							hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 							if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 								if (++hs_vkeyb_ctb_selected > HS_CTB_ALPHA_UP)
@@ -870,7 +825,7 @@ int keyboard_update(void) {
 						}
 					}
 				} else {
-					if (id == CURSOR_BTN_A) {
+					if (id == CURSOR_HIT) {
 						/* Release a previous press (it's not important where) */
 						virtualevent.type = SDL_MOUSEBUTTONUP;
 						virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
@@ -878,10 +833,6 @@ int keyboard_update(void) {
 						virtualevent.button.x = 0;
 						virtualevent.button.y = 0;
 						SDL_PushEvent(&virtualevent);
-					} else if (id == CURSOR_BTN_N) {
-					} else if (id == CURSOR_BTN_S) {
-					} else if (id == CURSOR_BTN_W) {
-					} else if (id == CURSOR_BTN_E) {
 					}
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
@@ -903,7 +854,8 @@ int keyboard_update(void) {
 				if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 			}
 
-			/* Intercept input for my own use but continue to report it */
+			/* Intercept input for my own use but continue to report it.
+			 * Note that I'm currently ignoring modifier states */
 			if (device == DEVICE_KEYBOARD) {
 				if (id == SDLK_F1) {
 					/* Toggle the virtual keyboard */
@@ -964,7 +916,7 @@ int keyboard_update(void) {
 							key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
 							if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
 								vkeyb.alpha -= 15;
-							} else if (id == SDLK_HOME && vkeyb.alpha >= 32) {
+							} else if (id == SDLK_HOME && vkeyb.alpha >= 16) {
 								vkeyb.alpha -= 16;
 							} else if (id == SDLK_END && vkeyb.alpha == 240) {
 								vkeyb.alpha += 15;

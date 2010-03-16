@@ -52,7 +52,7 @@ int vga_init(void) {
 		video.xres = 320; video.yres = 240; video.scale = 1;
 		video.fullscreen = SDL_FULLSCREEN;
 	#elif defined(PLATFORM_ZAURUS)
-		video.xres = 240; video.yres = 320; video.scale = 1;
+		video.xres = 640; video.yres = 480; video.scale = 2;
 		video.fullscreen = SDL_FULLSCREEN;
 	#else
 		video.xres = 640; video.yres = 480; video.scale = 2;

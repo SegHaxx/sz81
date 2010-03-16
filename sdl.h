@@ -27,7 +27,6 @@
 #include <SDL/SDL.h>
 
 /* Defines */
-#define G320x200x256 5
 
 /* SVGAlib keyboard scancodes (z81 uses these) */
 #define SCANCODE_ESCAPE 1
