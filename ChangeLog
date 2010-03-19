@@ -1,3 +1,7 @@
+2010-03-19 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
+* Added RESOURCEFILE tooltype for Amiga build to configure where
+  the rcfile is located (and the filename)
+
 2010-03-18 Thunor <thunorsif_at_hotmail.com>
 * Added an rcfile sz81rc which is located wherever the target platform
   requires it to be. Currently the joystick_dead_zone and the control
