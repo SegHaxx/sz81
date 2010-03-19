@@ -17,12 +17,17 @@
 
 /* Includes */
 #include "sdl_engine.h"
+#ifdef __amigaos4__
+#include "amiga.h" /* Amiga-specifics */
+#endif
 
 /* Defines */
 #if defined(PLATFORM_GP2X)
 	#define RESOURCE_FILE "sz81rc"
 #elif defined(PLATFORM_ZAURUS)
 	#define RESOURCE_FILE ".sz81rc"
+#elif defined(__amigaos4__)
+	#define RESOURCE_FILE amiga_resource_file
 #else
 	#define RESOURCE_FILE ".sz81rc"
 #endif
@@ -71,6 +76,8 @@ void sdl_read_rcfile(void) {
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
+	#elif defined(__amigaos4__)
+		strcpy(filename, "");
 	#else
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
@@ -245,6 +252,8 @@ void sdl_write_rcfile(void) {
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
+	#elif defined(__amigaos4__)
+		strcpy(filename, "");
 	#else
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");

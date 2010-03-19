@@ -7,6 +7,8 @@
 
 #include <workbench/startup.h>
 
+char *amiga_resource_file;
+
 int amiga_open_libs(void);
 void amiga_close_libs(void);
 

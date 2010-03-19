@@ -4,6 +4,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
+#include <stdlib.h>
 #include "amiga.h"
 #include "common.h"
 #include <proto/exec.h>
@@ -25,7 +27,7 @@ int amiga_open_libs(void)
 {
 	int ret=1;
 
-	if(IconBase = IExec->OpenLibrary("icon.library",50))
+	if((IconBase = IExec->OpenLibrary("icon.library",50)))
 	{
 		IIcon=(struct IconIFace *)IExec->GetInterface(IconBase,"main",1,NULL);
 	}
@@ -34,7 +36,7 @@ int amiga_open_libs(void)
 		ret=0;
 	}
 
-	if(AslBase = IExec->OpenLibrary("asl.library",50))
+	if((AslBase = IExec->OpenLibrary("asl.library",50)))
 	{
 		IAsl=(struct AslIFace *)IExec->GetInterface(AslBase,"main",1,NULL);
 	}
@@ -59,6 +61,8 @@ void amiga_close_libs(void)
 		IExec->DropInterface((struct Interface *)IAsl);
 		IExec->CloseLibrary(AslBase);
 	}
+
+	free(amiga_resource_file);
 }
 
 void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
@@ -130,6 +134,15 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 			if((s = IIcon->FindToolType(toolarray,"VSYNC")))
 			{
 			 	vsync_visuals=1;
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
+			{
+			 	amiga_resource_file = strdup(s);
+			}
+			else
+			{
+			 	amiga_resource_file = strdup("PROGDIR:.sz81rc");
 			}
 
 			IIcon->FreeDiskObject(dobj);
