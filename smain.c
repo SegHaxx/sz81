@@ -218,7 +218,7 @@ vptr=vga_getgraphmem();
 refresh_screen=1;
 keyboard_init();
 /*keyboard_translatekeys(DONT_CATCH_CTRLC);	Thunor: redundant */
-
+sdl_read_rcfile();	/* Added by Thunor */
 #ifdef OSS_SOUND_SUPPORT
 if(sound)
   sound_init();

@@ -21,7 +21,7 @@ this document is information specific to sz81 only ***
 
 
 Description
------------
+===========
 
 sz81 is a Sinclair ZX80/ZX81 emulator very much based upon the work of
 Ian Collier's xz80 and Russell Marks's z81 but employing the highly
@@ -44,7 +44,7 @@ To-Do:
 
 
 Controls
---------
+========
 
 For the PC:
 
@@ -100,7 +100,7 @@ For the GPH GP2X:
 
 
 Installation
-------------
+============
 
 To function correctly sz81 expects to find the zx80.rom and zx81.rom
 ROMs which are not included within this source package. You might find
@@ -154,7 +154,7 @@ For the GPH GP2X (requires SDK):
 
 
 Contacting me
--------------
+=============
 
 You can email me at thunorsif_at_hotmail.com.
 

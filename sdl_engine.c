@@ -97,7 +97,7 @@ int vga_init(void) {
 	colours.hs_ctb_pressed = 0xffc000;
 
 	/* Initialise SDL */
-	if(SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
 		fprintf(stderr, "%s: Cannot initialise SDL: %s", __func__,
 			SDL_GetError());
 		return -1;
@@ -112,8 +112,8 @@ int vga_init(void) {
 	#if defined (PLATFORM_GP2X)
 	#elif defined (PLATFORM_ZAURUS)
 	#else
-		strcpy (filename, PACKAGE_DATA_DIR "/");
-		strcat (filename, IMG_WM_ICON);
+		strcpy(filename, PACKAGE_DATA_DIR "/");
+		strcat(filename, IMG_WM_ICON);
 
 		/* Load the bitmap */
 		if ((wm_icon = SDL_LoadBMP(filename)) == NULL) {

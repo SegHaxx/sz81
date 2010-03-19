@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define MAX_CTRL_REMAPS 64
+#define MAX_CTRL_REMAPS 96
 #define MAX_JOY_AXES 20
 #define MAX_SCANCODES 128
 
@@ -24,7 +24,7 @@
 #define DEVICE_JOYSTICK 2
 #define DEVICE_CURSOR 3
 
-#define JOYSTICK_DEAD_ZONE 75
+#define JOYSTICK_DEAD_ZONE 50
 
 #define KEY_REPEAT_DELAY 400		/* Granularity of 20ms */
 #define KEY_REPEAT_INTERVAL 80		/* Granularity of 20ms */
@@ -53,5 +53,8 @@ struct ctrlremap ctrl_remaps[MAX_CTRL_REMAPS];
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(void);
 int keysym_to_scancode(int reverse, int value);
+int keysym_to_keycode(char *keysym);
+char *keycode_to_keysym(int keycode);
+
 
 

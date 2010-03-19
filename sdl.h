@@ -97,5 +97,6 @@ char *keyboard_getstate(void);
 int keyboard_update(void);
 void sdl_update_scrn(void);
 void sdl_timer_init(void);
+void sdl_read_rcfile(void);
 
 

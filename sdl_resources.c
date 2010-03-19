@@ -19,6 +19,14 @@
 #include "sdl_engine.h"
 
 /* Defines */
+#if defined(PLATFORM_GP2X)
+	#define RESOURCE_FILE "sz81rc"
+#elif defined(PLATFORM_ZAURUS)
+	#define RESOURCE_FILE ".sz81rc"
+#else
+	#define RESOURCE_FILE ".sz81rc"
+#endif
+
 /* Icon bitmap offsets that must be multiplied by video.scale */
 #define ICON_EXIT_X 0
 #define ICON_EXIT_Y 0
@@ -44,7 +52,296 @@
 /* Variables */
 
 /* Function prototypes */
+void sdl_write_rcfile(void);
 
+
+/***************************************************************************
+ * Read Resource File                                                      *
+ ***************************************************************************/
+
+void sdl_read_rcfile(void) {
+	char filename[256], line[256], key[64], value[192];
+	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
+	int read_joystick_dead_zone = UNDEFINED;
+	int count, index, line_count;
+	FILE *fp;
+	
+	#if defined(PLATFORM_GP2X)
+		strcpy(filename, "./");
+	#elif defined(PLATFORM_ZAURUS)
+		strcpy(filename, getenv ("HOME"));
+		strcat(filename, "/");
+	#else
+		strcpy(filename, getenv ("HOME"));
+		strcat(filename, "/");
+	#endif
+	strcat(filename, RESOURCE_FILE);
+
+	fprintf(stdout, "Reading from %s\n", filename);
+	if ((fp = fopen(filename, "r")) == NULL) {
+		fprintf(stderr, "Cannot read from %s\n", filename);
+		/* Write a new default rcfile */
+		sdl_write_rcfile();
+		return;
+	}
+
+	/* Undefine everything within read_ctrl_remaps */
+	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+		read_ctrl_remaps[count].components = UNDEFINED;
+		read_ctrl_remaps[count].device = UNDEFINED;
+		read_ctrl_remaps[count].id = UNDEFINED;
+		read_ctrl_remaps[count].remap_device = UNDEFINED;
+		read_ctrl_remaps[count].remap_id = UNDEFINED;
+		read_ctrl_remaps[count].remap_mod_id = UNDEFINED;
+	}
+
+	/* Read the rcfile one line at a time (trailing [CR]LFs are read too) */
+	index = -1;
+	line_count = 0;
+	while ((fgets(line, 256, fp)) != NULL) {
+		line_count++;
+		/* Remove the trailing [CR]LFs */
+		for (count = strlen(line) - 1; count >= 0; count--)
+			if (line[count] == 13 || line[count] == 10) line[count] = 0;
+		/* Process the line ignoring comments */
+		if (strlen(line) && line[0] != '#') {
+			strcpy(key, "joystick_dead_zone=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_joystick_dead_zone);
+			}
+			strcpy(key, "ctrl_remap.components=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (++index >= MAX_CTRL_REMAPS) {
+					fprintf(stderr, "%s: Too many remapped controls within rcfile:%03i: "
+						"max %i\n", __func__, line_count, MAX_CTRL_REMAPS);
+					index = MAX_CTRL_REMAPS - 1;	/* Simply overwrite last slot */
+				}
+				read_ctrl_remaps[index].components = 0;
+				if (strstr(value, "COMP_ALL") != NULL)
+					read_ctrl_remaps[index].components |= COMP_ALL;
+				if (strstr(value, "COMP_EMU") != NULL)
+					read_ctrl_remaps[index].components |= COMP_EMU;
+				if (strstr(value, "COMP_LOAD") != NULL)
+					read_ctrl_remaps[index].components |= COMP_LOAD;
+				if (strstr(value, "COMP_VKEYB") != NULL)
+					read_ctrl_remaps[index].components |= COMP_VKEYB;
+				if (strstr(value, "COMP_CTB") != NULL)
+					read_ctrl_remaps[index].components |= COMP_CTB;
+			}
+			strcpy(key, "ctrl_remap.device=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				if (strstr(value, "DEVICE_KEYBOARD") != NULL) {
+					read_ctrl_remaps[index].device = DEVICE_KEYBOARD;
+				} else if (strstr(value, "DEVICE_JOYSTICK") != NULL) {
+					read_ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				} else if (strstr(value, "DEVICE_CURSOR") != NULL) {
+					read_ctrl_remaps[index].device = DEVICE_CURSOR;
+				}
+			}
+			strcpy(key, "ctrl_remap.id=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				read_ctrl_remaps[index].id = keysym_to_keycode(value);
+			}
+			strcpy(key, "ctrl_remap.remap_device=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				if (strstr(value, "DEVICE_KEYBOARD") != NULL) {
+					read_ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				} else if (strstr(value, "DEVICE_JOYSTICK") != NULL) {
+					read_ctrl_remaps[index].remap_device = DEVICE_JOYSTICK;
+				} else if (strstr(value, "DEVICE_CURSOR") != NULL) {
+					read_ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				}
+			}
+			strcpy(key, "ctrl_remap.remap_id=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				read_ctrl_remaps[index].remap_id = keysym_to_keycode(value);
+			}
+			strcpy(key, "ctrl_remap.remap_mod_id=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				read_ctrl_remaps[index].remap_mod_id = keysym_to_keycode(value);
+			}
+		}
+	}
+	fclose(fp);
+
+	#ifdef SDL_DEBUG_RCFILE
+		printf("read_joystick_dead_zone=%i\n", read_joystick_dead_zone);
+		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+			if (read_ctrl_remaps[count].device != UNDEFINED) {
+				printf("read_ctrl_remaps[%i].components=%i\n", count, read_ctrl_remaps[count].components);
+				printf("  read_ctrl_remaps[%i].device=%i\n", count, read_ctrl_remaps[count].device);
+				printf("  read_ctrl_remaps[%i].id=%i\n", count, read_ctrl_remaps[count].id);
+				printf("  read_ctrl_remaps[%i].remap_device=%i\n", count, read_ctrl_remaps[count].remap_device);
+				printf("  read_ctrl_remaps[%i].remap_id=%i\n", count, read_ctrl_remaps[count].remap_id);
+				printf("  read_ctrl_remaps[%i].remap_mod_id=%i\n", count, read_ctrl_remaps[count].remap_mod_id);
+			}
+		}
+	#endif
+
+	/* Store settings after first checking their validity */
+	if (read_joystick_dead_zone != UNDEFINED) {
+		if (read_joystick_dead_zone >=0 && read_joystick_dead_zone <= 100) {
+			joystick_dead_zone = read_joystick_dead_zone;
+		} else {
+			fprintf(stderr, "%s: joystick_dead_zone within rcfile is invalid: try 5 to 95\n",
+				__func__);
+		}
+	}
+	/* read_ctrl_remaps have pretty much validated themselves since if
+	 * something was found to be invalid then they'll still be UNDEFINED
+	 * and they won't overwrite/insert into ctrl_remaps.
+	 * Attempt to find a match on device and id and overwrite the existing
+	 * default ctrl_remaps; insert new ones following the defaults */
+	for (index = 0; index < MAX_CTRL_REMAPS; index++) {
+		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+			if (read_ctrl_remaps[index].components > 0 &&
+				read_ctrl_remaps[index].device != UNDEFINED &&
+				read_ctrl_remaps[index].id != UNDEFINED) {
+				if (ctrl_remaps[count].device != UNDEFINED &&
+					read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
+					read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
+					read_ctrl_remaps[index].id == ctrl_remaps[count].id) {
+					/* Overwrite existing */
+					#ifdef SDL_DEBUG_RCFILE
+						printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
+					#endif
+					ctrl_remaps[count] = read_ctrl_remaps[index];
+					break;
+				} else if (ctrl_remaps[count].device == UNDEFINED) {
+					/* Insert new */
+					#ifdef SDL_DEBUG_RCFILE
+						printf("Inserting read_ctrl_remaps[%i] into ctrl_remaps[%i]\n", index, count);
+					#endif
+					ctrl_remaps[count] = read_ctrl_remaps[index];
+					break;
+				}
+			}
+		}
+	}
+}
+
+/***************************************************************************
+ * Write Resource File                                                     *
+ ***************************************************************************/
+
+void sdl_write_rcfile(void) {
+	char filename[256], key[64], value[192];;
+	int count, found;
+	FILE *fp;
+
+	#if defined(PLATFORM_GP2X)
+		strcpy(filename, "./");
+	#elif defined(PLATFORM_ZAURUS)
+		strcpy(filename, getenv ("HOME"));
+		strcat(filename, "/");
+	#else
+		strcpy(filename, getenv ("HOME"));
+		strcat(filename, "/");
+	#endif
+	strcat(filename, RESOURCE_FILE);
+
+	fprintf(stdout, "Writing to %s\n", filename);
+	if ((fp = fopen(filename, "w")) == NULL) {
+		fprintf(stderr, "Cannot write to %s\n", filename);
+		return;
+	}
+
+	fprintf(fp, "\n");
+	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
+	fprintf(fp, "\n");
+
+	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+		if (ctrl_remaps[count].device != UNDEFINED) {
+			/* .components */
+			strcpy(key, "ctrl_remap.components");
+			strcpy(value, "");
+			found = FALSE;
+			if ((ctrl_remaps[count].components & COMP_ALL) == COMP_ALL) {
+				strcat(value, "COMP_ALL");
+			} else {
+				if (ctrl_remaps[count].components & COMP_EMU) {
+					strcat(value, "COMP_EMU");
+					found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_LOAD) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_LOAD");
+				}				
+				if (ctrl_remaps[count].components & COMP_VKEYB) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_VKEYB");
+				}				
+				if (ctrl_remaps[count].components & COMP_CTB) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_CTB");
+				}				
+			}				
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .device */
+			strcpy(key, "ctrl_remap.device");
+			strcpy(value, "");
+			if (ctrl_remaps[count].device == DEVICE_KEYBOARD) {
+				strcat(value, "DEVICE_KEYBOARD");
+			} else if (ctrl_remaps[count].device == DEVICE_JOYSTICK) {
+				strcat(value, "DEVICE_JOYSTICK");
+			} else if (ctrl_remaps[count].device == DEVICE_CURSOR) {
+				strcat(value, "DEVICE_CURSOR");
+			}
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .id */
+			strcpy(key, "ctrl_remap.id");
+			if (ctrl_remaps[count].device == DEVICE_KEYBOARD ||
+				ctrl_remaps[count].device == DEVICE_CURSOR) {
+				strcpy(value, keycode_to_keysym(ctrl_remaps[count].id));
+			} else {
+				sprintf(value, "%i", ctrl_remaps[count].id);
+			}
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .remap_device */
+			strcpy(key, "ctrl_remap.remap_device");
+			strcpy(value, "");
+			if (ctrl_remaps[count].remap_device == DEVICE_KEYBOARD) {
+				strcat(value, "DEVICE_KEYBOARD");
+			} else if (ctrl_remaps[count].remap_device == DEVICE_JOYSTICK) {
+				strcat(value, "DEVICE_JOYSTICK");
+			} else if (ctrl_remaps[count].remap_device == DEVICE_CURSOR) {
+				strcat(value, "DEVICE_CURSOR");
+			}
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .remap_id */
+			strcpy(key, "ctrl_remap.remap_id");
+			if (ctrl_remaps[count].remap_device == DEVICE_KEYBOARD ||
+				ctrl_remaps[count].remap_device == DEVICE_CURSOR) {
+				strcpy(value, keycode_to_keysym(ctrl_remaps[count].remap_id));
+			} else {
+				sprintf(value, "%i", ctrl_remaps[count].remap_id);
+			}
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .remap_mod_id */
+			strcpy(key, "ctrl_remap.remap_mod_id");
+			if (ctrl_remaps[count].remap_device == DEVICE_KEYBOARD ||
+				ctrl_remaps[count].remap_device == DEVICE_CURSOR) {
+				strcpy(value, keycode_to_keysym(ctrl_remaps[count].remap_mod_id));
+			} else {
+				sprintf(value, "%i", ctrl_remaps[count].remap_mod_id);
+			}
+			fprintf(fp, "%s=%s\n", key, value);
+			fprintf(fp, "\n");
+		}
+	}
+	fclose(fp);
+}
 
 /***************************************************************************
  * Fonts Initialise                                                        *
@@ -80,13 +377,13 @@ int fonts_init(void) {
 			ptrfont = &zx82font;
 		}
 		if (ptrfont->original == NULL) {
-			strcpy (filename, PACKAGE_DATA_DIR "/");
+			strcpy(filename, PACKAGE_DATA_DIR "/");
 			if (count == BMF_FONT_ZX80) {
-				strcat (filename, IMG_ZX80_FONT);
+				strcat(filename, IMG_ZX80_FONT);
 			} else if (count == BMF_FONT_ZX81) {
-				strcat (filename, IMG_ZX81_FONT);
+				strcat(filename, IMG_ZX81_FONT);
 			} else {
-				strcat (filename, IMG_ZX82_FONT);
+				strcat(filename, IMG_ZX82_FONT);
 			}
 			/* Load the bitmap */
 			if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
@@ -175,11 +472,11 @@ int vkeyb_init(void) {
 
 	/* Load the appropriate original scale keyboard image once */
 	if (vkeyb.original == NULL) {
-		strcpy (filename, PACKAGE_DATA_DIR "/");
+		strcpy(filename, PACKAGE_DATA_DIR "/");
 		if (zx80) {
-			strcat (filename, IMG_ZX80_KYBD);
+			strcat(filename, IMG_ZX80_KYBD);
 		} else {
-			strcat (filename, IMG_ZX81_KYBD);
+			strcat(filename, IMG_ZX81_KYBD);
 		}
 		/* Load the bitmap */
 		if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
@@ -245,8 +542,8 @@ int sz81icons_init(void) {
 
 	/* Load the original scale icons once */
 	if (sz81icons.original == NULL) {
-		strcpy (filename, PACKAGE_DATA_DIR "/");
-		strcat (filename, IMG_SZ81_ICONS);
+		strcpy(filename, PACKAGE_DATA_DIR "/");
+		strcat(filename, IMG_SZ81_ICONS);
 		/* Load the bitmap */
 		if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
 			fprintf(stderr, "%s: Cannot load icons image %s: %s\n", __func__,

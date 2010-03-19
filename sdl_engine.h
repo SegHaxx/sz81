@@ -32,6 +32,7 @@
 #define SDL_DEBUG_EVENTS
 #define SDL_DEBUG
 #define SDL_DEBUG_HOTSPOTS
+#define SDL_DEBUG_RCFILE
 #define SDL_DEBUG_FONTS */
 
 #define TRUE 1

@@ -19,18 +19,20 @@
 #include "sdl_engine.h"
 
 /* Defines */
-/* SVGAlib stuff that'll go soon */
+#define MAX_KEYSYMS (138 + 5)
+
+/* SVGAlib stuff that remains */
 #define KEY_NOTPRESSED 0
 #define KEY_PRESSED 1
 
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
 /* Cursor (virtual) device control IDs */
-#define CURSOR_N 1
-#define CURSOR_S 2
-#define CURSOR_W 3
-#define CURSOR_E 4
-#define CURSOR_HIT 5
+#define CURSOR_N 32763
+#define CURSOR_S 32764
+#define CURSOR_W 32765
+#define CURSOR_E 32766
+#define CURSOR_HIT 32767
 
 /* GP2X button IDs */
 #define GP2X_JOY_N 0x00
@@ -54,6 +56,66 @@
 #define GP2X_BTN_JOY 0x12
 
 /* Variables */
+char *keysyms[] = {
+	"SDLK_UNKNOWN", "SDLK_FIRST", "SDLK_BACKSPACE", "SDLK_TAB", "SDLK_CLEAR", 
+	"SDLK_RETURN", "SDLK_PAUSE", "SDLK_ESCAPE", "SDLK_SPACE", "SDLK_EXCLAIM", 
+	"SDLK_QUOTEDBL", "SDLK_HASH", "SDLK_DOLLAR", "SDLK_AMPERSAND", "SDLK_QUOTE",
+	"SDLK_LEFTPAREN", "SDLK_RIGHTPAREN", "SDLK_ASTERISK", "SDLK_PLUS", "SDLK_COMMA",
+	"SDLK_MINUS", "SDLK_PERIOD", "SDLK_SLASH", "SDLK_0", "SDLK_1", 
+	"SDLK_2", "SDLK_3", "SDLK_4", "SDLK_5", "SDLK_6", 
+	"SDLK_7", "SDLK_8", "SDLK_9", "SDLK_COLON", "SDLK_SEMICOLON", 
+	"SDLK_LESS", "SDLK_EQUALS", "SDLK_GREATER", "SDLK_QUESTION", "SDLK_AT", 
+	"SDLK_LEFTBRACKET", "SDLK_BACKSLASH", "SDLK_RIGHTBRACKET", "SDLK_CARET", "SDLK_UNDERSCORE", 
+	"SDLK_BACKQUOTE", "SDLK_a", "SDLK_b", "SDLK_c", "SDLK_d", 
+	"SDLK_e", "SDLK_f", "SDLK_g", "SDLK_h", "SDLK_i", 
+	"SDLK_j", "SDLK_k", "SDLK_l", "SDLK_m", "SDLK_n", 
+	"SDLK_o", "SDLK_p", "SDLK_q", "SDLK_r", "SDLK_s", 
+	"SDLK_t", "SDLK_u", "SDLK_v", "SDLK_w", "SDLK_x", 
+	"SDLK_y", "SDLK_z", "SDLK_DELETE", "SDLK_KP0", "SDLK_KP1", 
+	"SDLK_KP2", "SDLK_KP3", "SDLK_KP4", "SDLK_KP5", "SDLK_KP6", 
+	"SDLK_KP7", "SDLK_KP8", "SDLK_KP9", "SDLK_KP_PERIOD", "SDLK_KP_DIVIDE", 
+	"SDLK_KP_MULTIPLY", "SDLK_KP_MINUS", "SDLK_KP_PLUS", "SDLK_KP_ENTER", "SDLK_KP_EQUALS", 
+	"SDLK_UP", "SDLK_DOWN", "SDLK_RIGHT", "SDLK_LEFT", "SDLK_INSERT", 
+	"SDLK_HOME", "SDLK_END", "SDLK_PAGEUP", "SDLK_PAGEDOWN", "SDLK_F1", 
+	"SDLK_F2", "SDLK_F3", "SDLK_F4", "SDLK_F5", "SDLK_F6", 
+	"SDLK_F7", "SDLK_F8", "SDLK_F9", "SDLK_F10", "SDLK_F11", 
+	"SDLK_F12", "SDLK_F13", "SDLK_F14", "SDLK_F15", "SDLK_NUMLOCK", 
+	"SDLK_CAPSLOCK", "SDLK_SCROLLOCK", "SDLK_RSHIFT", "SDLK_LSHIFT", "SDLK_RCTRL", 
+	"SDLK_LCTRL", "SDLK_RALT", "SDLK_LALT", "SDLK_RMETA", "SDLK_LMETA", 
+	"SDLK_LSUPER", "SDLK_RSUPER", "SDLK_MODE", "SDLK_COMPOSE", "SDLK_HELP", 
+	"SDLK_PRINT", "SDLK_SYSREQ", "SDLK_BREAK", "SDLK_MENU", "SDLK_POWER", 
+	"SDLK_EURO", "SDLK_UNDO", "SDLK_LAST", 
+	"CURSOR_N", "CURSOR_S", "CURSOR_W", "CURSOR_E", "CURSOR_HIT"};
+int keycodes[] = {
+	SDLK_UNKNOWN, SDLK_FIRST, SDLK_BACKSPACE, SDLK_TAB, SDLK_CLEAR, 
+	SDLK_RETURN, SDLK_PAUSE, SDLK_ESCAPE, SDLK_SPACE, SDLK_EXCLAIM, 
+	SDLK_QUOTEDBL, SDLK_HASH, SDLK_DOLLAR, SDLK_AMPERSAND, SDLK_QUOTE,
+	SDLK_LEFTPAREN, SDLK_RIGHTPAREN, SDLK_ASTERISK, SDLK_PLUS, SDLK_COMMA,
+	SDLK_MINUS, SDLK_PERIOD, SDLK_SLASH, SDLK_0, SDLK_1, 
+	SDLK_2, SDLK_3, SDLK_4, SDLK_5, SDLK_6, 
+	SDLK_7, SDLK_8, SDLK_9, SDLK_COLON, SDLK_SEMICOLON, 
+	SDLK_LESS, SDLK_EQUALS, SDLK_GREATER, SDLK_QUESTION, SDLK_AT, 
+	SDLK_LEFTBRACKET, SDLK_BACKSLASH, SDLK_RIGHTBRACKET, SDLK_CARET, SDLK_UNDERSCORE, 
+	SDLK_BACKQUOTE, SDLK_a, SDLK_b, SDLK_c, SDLK_d, 
+	SDLK_e, SDLK_f, SDLK_g, SDLK_h, SDLK_i, 
+	SDLK_j, SDLK_k, SDLK_l, SDLK_m, SDLK_n, 
+	SDLK_o, SDLK_p, SDLK_q, SDLK_r, SDLK_s, 
+	SDLK_t, SDLK_u, SDLK_v, SDLK_w, SDLK_x, 
+	SDLK_y, SDLK_z, SDLK_DELETE, SDLK_KP0, SDLK_KP1, 
+	SDLK_KP2, SDLK_KP3, SDLK_KP4, SDLK_KP5, SDLK_KP6, 
+	SDLK_KP7, SDLK_KP8, SDLK_KP9, SDLK_KP_PERIOD, SDLK_KP_DIVIDE, 
+	SDLK_KP_MULTIPLY, SDLK_KP_MINUS, SDLK_KP_PLUS, SDLK_KP_ENTER, SDLK_KP_EQUALS, 
+	SDLK_UP, SDLK_DOWN, SDLK_RIGHT, SDLK_LEFT, SDLK_INSERT, 
+	SDLK_HOME, SDLK_END, SDLK_PAGEUP, SDLK_PAGEDOWN, SDLK_F1, 
+	SDLK_F2, SDLK_F3, SDLK_F4, SDLK_F5, SDLK_F6, 
+	SDLK_F7, SDLK_F8, SDLK_F9, SDLK_F10, SDLK_F11, 
+	SDLK_F12, SDLK_F13, SDLK_F14, SDLK_F15, SDLK_NUMLOCK, 
+	SDLK_CAPSLOCK, SDLK_SCROLLOCK, SDLK_RSHIFT, SDLK_LSHIFT, SDLK_RCTRL, 
+	SDLK_LCTRL, SDLK_RALT, SDLK_LALT, SDLK_RMETA, SDLK_LMETA, 
+	SDLK_LSUPER, SDLK_RSUPER, SDLK_MODE, SDLK_COMPOSE, SDLK_HELP, 
+	SDLK_PRINT, SDLK_SYSREQ, SDLK_BREAK, SDLK_MENU, SDLK_POWER, 
+	SDLK_EURO, SDLK_UNDO, SDLK_LAST, 
+	CURSOR_N, CURSOR_S, CURSOR_W, CURSOR_E, CURSOR_HIT};
 
 /* Function prototypes */
 
@@ -74,12 +136,14 @@ int keyboard_init(void) {
 	for (count = 0; count < MAX_SCANCODES; count++)
 		keyboard_buffer[count] = KEY_NOTPRESSED;
 	
-	/* Undefine/default all the control remappings */
+	/* Undefine all the control remappings */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-		ctrl_remaps[count].components = COMP_ALL;	/* Active throughout */
-		ctrl_remaps[count].device = ctrl_remaps[count].id = UNDEFINED;
-		ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
-		ctrl_remaps[count].remap_id = ctrl_remaps[count].remap_mod_id = UNDEFINED;
+		ctrl_remaps[count].components = UNDEFINED;
+		ctrl_remaps[count].device = UNDEFINED;
+		ctrl_remaps[count].id = UNDEFINED;
+		ctrl_remaps[count].remap_device = UNDEFINED;
+		ctrl_remaps[count].remap_id = UNDEFINED;
+		ctrl_remaps[count].remap_mod_id = UNDEFINED;
 	}
 
 	/* Open joystick 0 if available */
@@ -91,255 +155,139 @@ int keyboard_init(void) {
 		while (SDL_PollEvent (&event));
 	}
 
-	/* Set-up some default remappings */
+	/* Set some default controls for platform */
 	index = -1;
-	/* Keyboard to keyboard (very likely to remain static) */
+	/* Keyboard to keyboard */
 	/* Universally active */
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_7;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_DOWN;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_6;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_5;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_8;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_BACKSPACE;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_0;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_COMMA;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_PERIOD;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].device = DEVICE_KEYBOARD;
+	/* Index 6 */
+	ctrl_remaps[++index].components = COMP_ALL;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RSHIFT;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-	/* Joystick to keyboard and joystick to virtual device */
+	/* Joystick to keyboard and joystick to virtual device.
+	 * Platform specific joysticks can be hardcoded with some defaults
+	 * here but otherwise their configurations should be entirely read
+	 * in from the rcfile since their button/axis layouts are unknown */
 	if (joystick) {
-		if (strcmp(SDL_JoystickName(0),
-			"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
-			/* My own PC joystick for testing */
+		#ifdef PLATFORM_GP2X
 			/* Universally active */
-			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 8;	/* Shift */
-			ctrl_remaps[index].remap_id = SDLK_F1;
-
-			/* Active within the emulator only */
-			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[++index].components = COMP_ALL;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 12;	/* Up */
-			ctrl_remaps[index].remap_id = SDLK_q;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 13;	/* Down */
-			ctrl_remaps[index].remap_id = SDLK_a;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 10;	/* Left */
-			ctrl_remaps[index].remap_id = SDLK_o;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 11;	/* Right */
-			ctrl_remaps[index].remap_id = SDLK_p;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 4;	/* Y */
-			ctrl_remaps[index].remap_id = SDLK_0;
-			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 0;	/* A */
-			ctrl_remaps[index].remap_id = SDLK_SPACE;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 3;	/* X */
-			ctrl_remaps[index].remap_id = SDLK_RETURN;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 1;	/* B */
-			ctrl_remaps[index].remap_id = SDLK_RETURN;
-
-			ctrl_remaps[++index].components = COMP_EMU;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 6;	/* LTrig */
-			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
-
-			/* Active within the load selector only */
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 12;	/* Up */
-			ctrl_remaps[index].remap_id = SDLK_q;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 13;	/* Down */
-			ctrl_remaps[index].remap_id = SDLK_a;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 10;	/* Left */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_W;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 11;	/* Right */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_E;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 0;	/* A */
-			ctrl_remaps[index].remap_id = SDLK_SPACE;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 3;	/* X */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_HIT;
-
-			ctrl_remaps[++index].components = COMP_LOAD;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 1;	/* B */
-			ctrl_remaps[index].remap_id = SDLK_RETURN;
-
-			/* Active within the vkeyb only */
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 12;	/* Up */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_N;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 13;	/* Down */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_S;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 10;	/* Left */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_W;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 11;	/* Right */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_E;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 4;	/* Y */
-			ctrl_remaps[index].remap_id = SDLK_0;
-			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 0;	/* A */
-			ctrl_remaps[index].remap_id = SDLK_SPACE;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 3;	/* X */
-			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-			ctrl_remaps[index].remap_id = CURSOR_HIT;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 1;	/* B */
-			ctrl_remaps[index].remap_id = SDLK_RETURN;
-
-			ctrl_remaps[++index].components = COMP_VKEYB;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = 6;	/* LTrig */
-			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
-
-		} else if (strcmp(SDL_JoystickName(0), "PEP Joy") == 0) {
-			/* GP2X joystick */
-			/* Universally active */
-			ctrl_remaps[++index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_START;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F1;
 
 			/* Active within the emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_q;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_a;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_o;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_p;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_Y;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_0;
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_RETURN;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_RETURN;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
 			/* Active within the load selector only */
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_q;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_a;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
@@ -357,6 +305,7 @@ int keyboard_init(void) {
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
 			ctrl_remaps[++index].components = COMP_LOAD;
@@ -368,9 +317,10 @@ int keyboard_init(void) {
 			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-			/* Active within the vkeyb only */
+			/* Active within the virtual keyboard only */
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
@@ -398,12 +348,14 @@ int keyboard_init(void) {
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_Y;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_0;
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_X;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
@@ -415,14 +367,184 @@ int keyboard_init(void) {
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_B;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_RETURN;
 
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+		#else
+			if (strcmp(SDL_JoystickName(0),
+				"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
+				/* This is my own PC joystick which I've been using for testing
+				 * and I'll leave the configuration here as somebody else might
+				 * use the same joystick (probably not) and it also serves as a
+				 * useful configuration example */
+				/* Universally active */
+				ctrl_remaps[++index].components = COMP_ALL;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 8;	/* Shift */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_F1;
 
-		}
+				/* Active within the emulator only */
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 12;	/* Up */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_q;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 13;	/* Down */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_a;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 10;	/* Left */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_o;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 11;	/* Right */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_p;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 4;	/* Y */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_0;
+				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 0;	/* A */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 3;	/* X */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 1;	/* B */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+				ctrl_remaps[++index].components = COMP_EMU;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 6;	/* LTrig */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+				/* Active within the load selector only */
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 12;	/* Up */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_q;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 13;	/* Down */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_a;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 10;	/* Left */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_W;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 11;	/* Right */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_E;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 0;	/* A */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 3;	/* X */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_HIT;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 1;	/* B */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+				/* Active within the virtual keyboard only */
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 12;	/* Up */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_N;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 13;	/* Down */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_S;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 10;	/* Left */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_W;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 11;	/* Right */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_E;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 4;	/* Y */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_0;
+				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 0;	/* A */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_SPACE;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 3;	/* X */
+				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+				ctrl_remaps[index].remap_id = CURSOR_HIT;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 1;	/* B */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_RETURN;
+
+				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 6;	/* LTrig */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+			}
+		#endif
 	}
 	#ifdef SDL_DEBUG_EVENTS
 		printf("%s: ctrl_remaps index=%i\n", __func__, index);
@@ -1218,4 +1340,62 @@ int keysym_to_scancode(int reverse, int value) {
 		}
 	}
 }
+
+/***************************************************************************
+ * Keysym to Keycode                                                       *
+ ***************************************************************************/
+/* This converts a symbolic key name into its equivalent keycode.
+ * Its primary use is for reading configuration items from the rcfile and it
+ * handles both DEVICE_CURSOR and SDL keysyms.
+ * 
+ * On exit: returns UNDEFINED if keysym not found */
+
+int keysym_to_keycode(char *keysym) {
+	int count, keycode, found = FALSE;
+	
+	if (strlen(keysym) > 0) {	/* Could be a NULL string */
+		/* Firstly check that it isn't already a keycode within a string */
+		if (sscanf(keysym, "%i", &keycode) == 1) return keycode;
+
+		/* Now look for a match within keysyms[] */
+		for (count = 0; count < MAX_KEYSYMS; count++) {
+			if (strcmp(keysyms[count], keysym) == 0) {
+				found = TRUE;
+				break;
+			}
+		}
+		if (found) return keycodes[count];
+	}
+	
+	return UNDEFINED;
+}
+
+/***************************************************************************
+ * Keycode to Keysym                                                       *
+ ***************************************************************************/
+/* This converts a keycode into its equivalent symbolic key name.
+ * Its primary use is for writing configuration items to the rcfile and it
+ * handles both DEVICE_CURSOR and SDL keycodes.
+ * 
+ * On exit: returns a pointer to "" if keycode not found */
+
+char *keycode_to_keysym(int keycode) {
+	int count, found = FALSE;
+	static char nullstring[1] = "";
+
+	/* Look for a match within keycodes[] */
+	for (count = 0; count < MAX_KEYSYMS; count++) {
+		if (keycodes[count] == keycode) {
+			found = TRUE;
+			break;
+		}
+	}
+	if (found) return keysyms[count];
+
+	return nullstring;
+}
+
+
+
+
 
