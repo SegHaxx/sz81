@@ -35,6 +35,10 @@
 SDL_Surface *wm_icon;
 
 struct {
+	int rewrite;
+} rcfile;
+
+struct colourtable {
 	Uint32 colour_key;
 	Uint32 bmf_fg_default;
 	Uint32 emu_fg;
@@ -49,7 +53,8 @@ struct {
 	Uint32 hs_vkeyb_zx81_toggle_pressed;
 	Uint32 hs_ctb_selected;
 	Uint32 hs_ctb_pressed;
-} colours;
+};
+struct colourtable colours;
 
 struct bmpfont {
 	SDL_Surface *original;
@@ -81,6 +86,7 @@ struct {
 } control_bar;
 
 /* Function prototypes */
+void rcfile_write(void);
 int fonts_init(void);
 int vkeyb_init(void);
 int sz81icons_init(void);

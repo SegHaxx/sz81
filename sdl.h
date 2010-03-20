@@ -28,7 +28,7 @@
 
 /* Defines */
 
-/* SVGAlib keyboard scancodes (z81 uses these) */
+/* SVGAlib keyboard scancodes (smain.c currently uses these) */
 #define SCANCODE_ESCAPE 1
 #define SCANCODE_F1 59
 #define SCANCODE_F2 60
@@ -89,14 +89,13 @@
 #define SCANCODE_B 48
 
 /* Function prototypes */
-int vga_init(void);
-int vga_setmode(void);
+int sdl_init(void);
+int sdl_video_setmode(void);
 unsigned char *vga_getgraphmem(void);
 int keyboard_init(void);
+void sdl_rcfile_read(void);
+void sdl_timer_init(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);
-void sdl_update_scrn(void);
-void sdl_timer_init(void);
-void sdl_read_rcfile(void);
-
+void sdl_video_update(void);
 

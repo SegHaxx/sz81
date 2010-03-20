@@ -27,18 +27,17 @@ void clean_up_before_exit(void);
 
 
 /***************************************************************************
- * VGA Initialise                                                          *
+ * SDL Initialise                                                          *
  ***************************************************************************/
 /* Since this is the first function the emulator calls prior to parseoptions
  * (which could exit) many things are done here. Firstly some variables are
  * initialised with defaults, SDL is initialised and then a window manager
  * icon is loaded and a title set if the platform requires it.
  * 
- * This should be thought of now as sz81 and SDL_Init.
- * 
- * On exit: returns 0 on success or -1 on failure */
+ * On exit: returns TRUE on error
+ *          else FALSE */
 
-int vga_init(void) {
+int sdl_init(void) {
 	int count;
 	#if defined (PLATFORM_GP2X)
 	#elif defined (PLATFORM_ZAURUS)
@@ -76,9 +75,6 @@ int vga_init(void) {
 
 	/* Initialise everything to a default here that could possibly be
 	 * overridden by a command line option or from an rcfile */
-	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
-	vkeyb.alpha = SDL_ALPHA_OPAQUE;
-
 	joystick_dead_zone = JOYSTICK_DEAD_ZONE;
 	
 	colours.colour_key = 0xff0080;
@@ -96,11 +92,17 @@ int vga_init(void) {
 	colours.hs_ctb_selected = 0x00ff00;
 	colours.hs_ctb_pressed = 0xffc000;
 
+	/* Initialise other things that need to be done before sdl_video_setmode */
+	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
+	vkeyb.alpha = SDL_ALPHA_OPAQUE;
+
+	rcfile.rewrite = FALSE;
+
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
 		fprintf(stderr, "%s: Cannot initialise SDL: %s", __func__,
 			SDL_GetError());
-		return -1;
+		return TRUE;
 	}
 
 	atexit(clean_up_before_exit);
@@ -127,7 +129,7 @@ int vga_init(void) {
 		SDL_WM_SetCaption("sz81", "sz81");
 	#endif
 
-	return 0;
+	return FALSE;
 }
 
 /***************************************************************************
@@ -139,16 +141,17 @@ int vga_init(void) {
 
 void component_executive(void) {
 	static int active_components = COMP_EMU;
+	static int ctrl_remapper_state = FALSE;
 	int found = FALSE;
 	
-	/* If the load selector's state has changed then do something */
+	/* Monitor load selector's state */
 	if ((active_components & COMP_LOAD) != (load_selector_state * COMP_LOAD)) {
 		/* Hide the vkeyb if the file selector is active */
 		if (load_selector_state && vkeyb.state) vkeyb.state = FALSE;
 		found = TRUE;
 	}
 
-	/* If the vkeyb's state has changed then do something */
+	/* Monitor virtual keyboard's state */
 	if ((active_components & COMP_VKEYB) != (vkeyb.state * COMP_VKEYB)) {
 		keyboard_buffer_reset();
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -159,7 +162,16 @@ void component_executive(void) {
 	/* Update hotspot states if a state has changed */
 	if (found) hotspots_update();
 
+	/* Monitor control remapper's state */ 
+	if (ctrl_remapper_state != ctrl_remapper.state) {
+		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
+	}
+	/* Manage interval decrementing and resetting from here */
+	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
+		ctrl_remapper.interval = ctrl_remapper.master_interval;
+
 	/* Maintain a copy of current program component states  */
+	ctrl_remapper_state = ctrl_remapper.state;
 	active_components = COMP_EMU;
 	if (load_selector_state) {
 		active_components |= COMP_LOAD;
@@ -212,6 +224,8 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 
 void clean_up_before_exit(void) {
 	int count;
+
+	if (rcfile.rewrite) rcfile_write();
 
 	if (emulator.timer_id) SDL_RemoveTimer (emulator.timer_id);
 

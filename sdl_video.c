@@ -30,13 +30,14 @@ void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 
 
 /***************************************************************************
- * VGA Set Mode                                                            *
+ * Set Video Mode                                                          *
  ***************************************************************************/
 /* This can be called multiple times and it is if the resolution is switched.
  * 
- * On exit: returns 0 on success or -1 on failure */
+ * On exit: returns TRUE on error
+ *          else FALSE */
 
-int vga_setmode(void) {
+int sdl_video_setmode(void) {
 	int original_xres = video.xres;
 	
 	/* Try the requested video resolution and if it's unavailable
@@ -100,7 +101,7 @@ int vga_setmode(void) {
 	/* Prepare to redraw everything */
 	video.redraw = TRUE;
 
-	return 0;
+	return FALSE;
 }
 
 /***************************************************************************
@@ -113,7 +114,7 @@ unsigned char *vga_getgraphmem(void) {
 }
 
 /***************************************************************************
- * Update Screen                                                           *
+ * Update Video                                                            *
  ***************************************************************************/
 /* This does the following things :-
  * 
@@ -123,7 +124,7 @@ unsigned char *vga_getgraphmem(void) {
  * Possibly the vkeyb, control bar and associated hotspots will require overlaying.
  * Possibly the load selector's hotspots will need to be overlayed */
 
-void sdl_update_scrn(void) {
+void sdl_video_update(void) {
 	Uint32 colour, fg_colour, bg_colour;
 	int srcx, srcy, desx, desy, srcw;
 	Uint32 *screen_pixels_32;

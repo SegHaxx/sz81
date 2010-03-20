@@ -33,6 +33,7 @@ Features:
    sticky shift or toggle shift
  * Control bar with access to several regularly used options
  * Full mouse/stylus and joystick support throughout
+ * Runtime joystick control remapping
  * The ability to run centred within any resolution
  * Runtime switchable scaling up to 3x on supported platforms
  * Toggling between a window and fullscreen on supported platforms
@@ -82,12 +83,13 @@ For the Sharp Zaurus:
 For the GPH GP2X:
 
     Start        - Toggle virtual keyboard and control bar
+    Select       - Initiate control remapping (see instructions below)
     LTrigger     - SHIFT
     Button Y     - Rubout i.e. equivalent to CTRL or SHIFT + 0
     Button B     - Enter
     Button X     - Space
 
-    In the emulator      | In the GUI
+    Within the emulator  | Within the GUI
     -------------------------------------
     Joy Up       - Q     | Selector up
     Joy Down     - A     | Selector down
@@ -97,6 +99,18 @@ For the GPH GP2X:
 
     See PC controls for an explanation of the control bar and how to
     access the file selector.
+
+    Joystick Control Remapping
+    --------------------------
+    When the virtual keyboard and control bar are visible, press Select
+    over the function that you would like to assign to a joystick 
+    control; the selector will blink. Then press a joystick control to
+    remap the function to the control. Existing controls that have been
+    remapped are active within the emulator (you cannot remap GUI
+    controls) and new controls are active throughout. It is possible to
+    include the SHIFT modifier within the control as long as it is
+    active before you initiate remapping. To cancel remapping simply
+    press Select again.
 
 
 Installation

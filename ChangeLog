@@ -1,3 +1,10 @@
+2010-03-20 Thunor <thunorsif_at_hotmail.com>
+* Changed ZX80's vkeyb selected default to W for LOAD.
+* Added the modifiable project colours to the rcfile.
+* Added runtime joystick controls remapping feature to enable the
+  remapping of existing controls allocated for use within the emulator
+  (COMP_EMU) or new controls for use throughout the program (COMP_ALL).
+
 2010-03-19 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
 * Added RESOURCEFILE tooltype for Amiga build to configure where
   the rcfile is located (and the filename)
@@ -32,7 +39,7 @@
 * Added key repeating within the GUI for selected features.
 * Adjusted the units of alpha used in the opacity DN/UP hotspots to
   16 since key repeating now makes this usable and more desirable.
-  
+ 
 2010-03-12 Thunor <thunorsif_at_hotmail.com>
 * Reworked the control remapping feature. Now a device can be
   remapped to any other device including a virtual cursor device, and

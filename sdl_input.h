@@ -26,8 +26,10 @@
 
 #define JOYSTICK_DEAD_ZONE 50
 
-#define KEY_REPEAT_DELAY 400		/* Granularity of 20ms */
-#define KEY_REPEAT_INTERVAL 80		/* Granularity of 20ms */
+#define KEY_REPEAT_DELAY 400		/* Default granularity of 20ms */
+#define KEY_REPEAT_INTERVAL 80		/* Default granularity of 20ms */
+
+#define CTRL_REMAPPER_INTERVAL 760	/* Default granularity of 40ms */
 
 /* Key repeat manager function IDs */
 #define KRM_FUNC_RELEASE 0
@@ -48,6 +50,12 @@ struct ctrlremap {
 	int remap_mod_id;	/* An additional modifier destination control id */
 };
 struct ctrlremap ctrl_remaps[MAX_CTRL_REMAPS];
+
+struct {
+	int state;
+	int master_interval;
+	int interval;
+} ctrl_remapper;
 
 /* Function prototypes */
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);

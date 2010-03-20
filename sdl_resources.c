@@ -57,17 +57,17 @@
 /* Variables */
 
 /* Function prototypes */
-void sdl_write_rcfile(void);
 
 
 /***************************************************************************
  * Read Resource File                                                      *
  ***************************************************************************/
 
-void sdl_read_rcfile(void) {
+void sdl_rcfile_read(void) {
 	char filename[256], line[256], key[64], value[192];
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	int read_joystick_dead_zone = UNDEFINED;
+	struct colourtable read_colours;
 	int count, index, line_count;
 	FILE *fp;
 	
@@ -87,10 +87,24 @@ void sdl_read_rcfile(void) {
 	fprintf(stdout, "Reading from %s\n", filename);
 	if ((fp = fopen(filename, "r")) == NULL) {
 		fprintf(stderr, "Cannot read from %s\n", filename);
-		/* Write a new default rcfile */
-		sdl_write_rcfile();
+		/* Schedule a new default rcfile */
+		rcfile.rewrite = TRUE;
 		return;
 	}
+
+	/* Undefine everything within read_colours */
+	read_colours.emu_fg = UNDEFINED;
+	read_colours.emu_bg = UNDEFINED;
+	read_colours.hs_load_selected = UNDEFINED;
+	read_colours.hs_load_pressed = UNDEFINED;
+	read_colours.hs_vkeyb_zx80_selected = UNDEFINED;
+	read_colours.hs_vkeyb_zx80_pressed = UNDEFINED;
+	read_colours.hs_vkeyb_zx80_toggle_pressed = UNDEFINED;
+	read_colours.hs_vkeyb_zx81_selected = UNDEFINED;
+	read_colours.hs_vkeyb_zx81_pressed = UNDEFINED;
+	read_colours.hs_vkeyb_zx81_toggle_pressed = UNDEFINED;
+	read_colours.hs_ctb_selected = UNDEFINED;
+	read_colours.hs_ctb_pressed = UNDEFINED;
 
 	/* Undefine everything within read_ctrl_remaps */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
@@ -116,6 +130,56 @@ void sdl_read_rcfile(void) {
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_joystick_dead_zone);
 			}
+			/* Colours */
+			strcpy(key, "colour.emu_fg=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.emu_fg);
+			}
+			strcpy(key, "colour.emu_bg=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.emu_bg);
+			}
+			strcpy(key, "colour.hs_load_selected=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_load_selected);
+			}
+			strcpy(key, "colour.hs_load_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_load_pressed);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx80_selected=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx80_selected);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx80_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx80_pressed);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx80_toggle_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx80_toggle_pressed);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx81_selected=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx81_selected);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx81_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx81_pressed);
+			}
+			strcpy(key, "colour.hs_vkeyb_zx81_toggle_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_vkeyb_zx81_toggle_pressed);
+			}
+			strcpy(key, "colour.hs_ctb_selected=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_ctb_selected);
+			}
+			strcpy(key, "colour.hs_ctb_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_ctb_pressed);
+			}
+			/* Control remappings */
 			strcpy(key, "ctrl_remap.components=");
 			if (!strncmp(line, key, strlen(key))) {
 				strcpy(value, &line[strlen(key)]);
@@ -184,6 +248,18 @@ void sdl_read_rcfile(void) {
 
 	#ifdef SDL_DEBUG_RCFILE
 		printf("read_joystick_dead_zone=%i\n", read_joystick_dead_zone);
+		printf("read_colours.emu_fg=%06x\n", read_colours.emu_fg);
+		printf("read_colours.emu_bg=%06x\n", read_colours.emu_bg);
+		printf("read_colours.hs_load_selected=%06x\n", read_colours.hs_load_selected);
+		printf("read_colours.hs_load_pressed=%06x\n", read_colours.hs_load_pressed);
+		printf("read_colours.hs_vkeyb_zx80_selected=%06x\n", read_colours.hs_vkeyb_zx80_selected);
+		printf("read_colours.hs_vkeyb_zx80_pressed=%06x\n", read_colours.hs_vkeyb_zx80_pressed);
+		printf("read_colours.hs_vkeyb_zx80_toggle_pressed=%06x\n", read_colours.hs_vkeyb_zx80_toggle_pressed);
+		printf("read_colours.hs_vkeyb_zx81_selected=%06x\n", read_colours.hs_vkeyb_zx81_selected);
+		printf("read_colours.hs_vkeyb_zx81_pressed=%06x\n", read_colours.hs_vkeyb_zx81_pressed);
+		printf("read_colours.hs_vkeyb_zx81_toggle_pressed=%06x\n", read_colours.hs_vkeyb_zx81_toggle_pressed);
+		printf("read_colours.hs_ctb_selected=%06x\n", read_colours.hs_ctb_selected);
+		printf("read_colours.hs_ctb_pressed=%06x\n", read_colours.hs_ctb_pressed);
 		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 			if (read_ctrl_remaps[count].device != UNDEFINED) {
 				printf("read_ctrl_remaps[%i].components=%i\n", count, read_ctrl_remaps[count].components);
@@ -205,6 +281,25 @@ void sdl_read_rcfile(void) {
 				__func__);
 		}
 	}
+	/* Colours */
+	if (read_colours.emu_fg != UNDEFINED) colours.emu_fg = read_colours.emu_fg;
+	if (read_colours.emu_bg != UNDEFINED) colours.emu_bg = read_colours.emu_bg;
+	if (read_colours.hs_load_selected != UNDEFINED) colours.hs_load_selected = read_colours.hs_load_selected;
+	if (read_colours.hs_load_pressed != UNDEFINED) colours.hs_load_pressed = read_colours.hs_load_pressed;
+	if (read_colours.hs_vkeyb_zx80_selected != UNDEFINED) 
+	colours.hs_vkeyb_zx80_selected = read_colours.hs_vkeyb_zx80_selected;
+	if (read_colours.hs_vkeyb_zx80_pressed != UNDEFINED) 
+	colours.hs_vkeyb_zx80_pressed = read_colours.hs_vkeyb_zx80_pressed;
+	if (read_colours.hs_vkeyb_zx80_toggle_pressed != UNDEFINED) 
+		colours.hs_vkeyb_zx80_toggle_pressed = read_colours.hs_vkeyb_zx80_toggle_pressed;
+	if (read_colours.hs_vkeyb_zx81_selected != UNDEFINED) 
+	colours.hs_vkeyb_zx81_selected = read_colours.hs_vkeyb_zx81_selected;
+	if (read_colours.hs_vkeyb_zx81_pressed != UNDEFINED) 
+		colours.hs_vkeyb_zx81_pressed = read_colours.hs_vkeyb_zx81_pressed;
+	if (read_colours.hs_vkeyb_zx81_toggle_pressed != UNDEFINED) 
+		colours.hs_vkeyb_zx81_toggle_pressed = read_colours.hs_vkeyb_zx81_toggle_pressed;
+	if (read_colours.hs_ctb_selected != UNDEFINED) colours.hs_ctb_selected = read_colours.hs_ctb_selected;
+	if (read_colours.hs_ctb_pressed != UNDEFINED) colours.hs_ctb_pressed = read_colours.hs_ctb_pressed;
 	/* read_ctrl_remaps have pretty much validated themselves since if
 	 * something was found to be invalid then they'll still be UNDEFINED
 	 * and they won't overwrite/insert into ctrl_remaps.
@@ -242,8 +337,8 @@ void sdl_read_rcfile(void) {
  * Write Resource File                                                     *
  ***************************************************************************/
 
-void sdl_write_rcfile(void) {
-	char filename[256], key[64], value[192];;
+void rcfile_write(void) {
+	char filename[256], key[64], value[192];
 	int count, found;
 	FILE *fp;
 
@@ -270,6 +365,20 @@ void sdl_write_rcfile(void) {
 	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
 	fprintf(fp, "\n");
 
+	fprintf(fp, "colour.emu_fg=%06x\n", colours.emu_fg);
+	fprintf(fp, "colour.emu_bg=%06x\n", colours.emu_bg);
+	fprintf(fp, "colour.hs_load_selected=%06x\n", colours.hs_load_selected);
+	fprintf(fp, "colour.hs_load_pressed=%06x\n", colours.hs_load_pressed);
+	fprintf(fp, "colour.hs_vkeyb_zx80_selected=%06x\n", colours.hs_vkeyb_zx80_selected);
+	fprintf(fp, "colour.hs_vkeyb_zx80_pressed=%06x\n", colours.hs_vkeyb_zx80_pressed);
+	fprintf(fp, "colour.hs_vkeyb_zx80_toggle_pressed=%06x\n", colours.hs_vkeyb_zx80_toggle_pressed);
+	fprintf(fp, "colour.hs_vkeyb_zx81_selected=%06x\n", colours.hs_vkeyb_zx81_selected);
+	fprintf(fp, "colour.hs_vkeyb_zx81_pressed=%06x\n", colours.hs_vkeyb_zx81_pressed);
+	fprintf(fp, "colour.hs_vkeyb_zx81_toggle_pressed=%06x\n", colours.hs_vkeyb_zx81_toggle_pressed);
+	fprintf(fp, "colour.hs_ctb_selected=%06x\n", colours.hs_ctb_selected);
+	fprintf(fp, "colour.hs_ctb_pressed=%06x\n", colours.hs_ctb_pressed);
+	fprintf(fp, "\n");
+	
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 		if (ctrl_remaps[count].device != UNDEFINED) {
 			/* .components */
@@ -350,6 +459,8 @@ void sdl_write_rcfile(void) {
 		}
 	}
 	fclose(fp);
+	
+	rcfile.rewrite = FALSE;
 }
 
 /***************************************************************************
@@ -628,7 +739,7 @@ int control_bar_init(void) {
 		return TRUE;
 	}
 	/* Create outlines for the icons */
-	colour = colours.emu_fg;
+	colour = 0x000000;
 	dstrect.x = dstrect.y = 0; dstrect.w = dstrect.h = 18 * video.scale;
 	for (count = 0; count < 3; count++) {
 		/* 17 and not 18 is used below because the outlines overlap */

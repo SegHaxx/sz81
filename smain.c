@@ -83,7 +83,7 @@ memcpy(scrnbmp_old,scrnbmp,ZX_VID_FULLHEIGHT*ZX_VID_FULLWIDTH/8);
 
 refresh_screen=0;
 
-sdl_update_scrn();	/* Added by Thunor */
+sdl_video_update();	/* Added by Thunor */
 }
 
 
@@ -204,7 +204,8 @@ int main(int argc,char *argv[])
 amiga_close_libs();
 #endif
 
-vga_init();
+/*vga_init();*/
+sdl_init();	/* Added by Thunor */
 
 parseoptions(argc,argv);
 
@@ -213,12 +214,12 @@ loadhelp();
 zxpopen();
 
 /*vga_setmode(G320x200x256);*/
-vga_setmode();	/* Added by Thunor */
+sdl_video_setmode();	/* Added by Thunor */
 vptr=vga_getgraphmem();
 refresh_screen=1;
 keyboard_init();
 /*keyboard_translatekeys(DONT_CATCH_CTRLC);	Thunor: redundant */
-sdl_read_rcfile();	/* Added by Thunor */
+sdl_rcfile_read();	/* Added by Thunor */
 #ifdef OSS_SOUND_SUPPORT
 if(sound)
   sound_init();

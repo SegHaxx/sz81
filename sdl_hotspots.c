@@ -83,6 +83,7 @@ void hotspots_init(void) {
 	hotspots[HS_VKEYB_1 + 9].remap_id = SDLK_0;
 	hotspots[HS_VKEYB_Q].remap_id = SDLK_q;
 	hotspots[HS_VKEYB_Q + 1].remap_id = SDLK_w;
+	if (zx80) hotspots[HS_VKEYB_Q + 1].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_Q + 2].remap_id = SDLK_e;
 	hotspots[HS_VKEYB_Q + 3].remap_id = SDLK_r;
 	hotspots[HS_VKEYB_Q + 4].remap_id = SDLK_t;
@@ -98,7 +99,7 @@ void hotspots_init(void) {
 	hotspots[HS_VKEYB_A + 4].remap_id = SDLK_g;
 	hotspots[HS_VKEYB_A + 5].remap_id = SDLK_h;
 	hotspots[HS_VKEYB_A + 6].remap_id = SDLK_j;
-	hotspots[HS_VKEYB_A + 6].flags |= HS_PROP_SELECTED;	/* Default selected */
+	if (!zx80) hotspots[HS_VKEYB_A + 6].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_A + 7].remap_id = SDLK_k;
 	hotspots[HS_VKEYB_A + 8].remap_id = SDLK_l;
 	hotspots[HS_VKEYB_A + 9].remap_id = SDLK_RETURN;
@@ -300,6 +301,10 @@ void hotspots_render(void) {
 
 			pressed = keyboard_buffer[keysym_to_scancode(FALSE, hotspots[count].remap_id)];
 			selected = hotspots[count].flags & HS_PROP_SELECTED;
+
+			/* If the control remapper state is active then blink the selected highlight */
+			if (selected && ctrl_remapper.state && ctrl_remapper.interval < 
+				ctrl_remapper.master_interval / 2) selected = FALSE;
 
 		#ifndef SDL_DEBUG_HOTSPOTS
 			if (pressed || (joystick && selected)) {
