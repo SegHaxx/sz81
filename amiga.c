@@ -45,6 +45,8 @@ int amiga_open_libs(void)
 		ret=0;
 	}
 
+	amiga_resource_file = strdup("PROGDIR:.sz81rc");
+
 	return(ret);
 }
 
@@ -138,11 +140,8 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
 			{
+				free(amiga_resource_file);
 			 	amiga_resource_file = strdup(s);
-			}
-			else
-			{
-			 	amiga_resource_file = strdup("PROGDIR:.sz81rc");
 			}
 
 			IIcon->FreeDiskObject(dobj);

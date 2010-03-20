@@ -201,7 +201,7 @@ extern "C"			/* Added by Thunor */
 int main(int argc,char *argv[])
 {
 #ifdef __amigaos4__
-amiga_close_libs();
+amiga_open_libs();
 #endif
 
 /*vga_init();*/
