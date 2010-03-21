@@ -1,3 +1,8 @@
+2010-03-21 Thunor <thunorsif_at_hotmail.com>
+* Added a protected property to ctrl_remaps to prevent modifying some
+  important universally active controls such as toggle-keyboard.
+* Tweaked the blinking selector speed.
+
 2010-03-20 Thunor <thunorsif_at_hotmail.com>
 * Changed ZX80's vkeyb selected default to W for LOAD.
 * Added the modifiable project colours to the rcfile.

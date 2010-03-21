@@ -29,7 +29,7 @@
 #define KEY_REPEAT_DELAY 400		/* Default granularity of 20ms */
 #define KEY_REPEAT_INTERVAL 80		/* Default granularity of 20ms */
 
-#define CTRL_REMAPPER_INTERVAL 760	/* Default granularity of 40ms */
+#define CTRL_REMAPPER_INTERVAL 520	/* Default granularity of 40ms */
 
 /* Key repeat manager function IDs */
 #define KRM_FUNC_RELEASE 0
@@ -43,6 +43,7 @@ int joystick_dead_zone;
 
 struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ ids */
+	int protected;		/* TRUE to prevent this from being runtime modified */
 	int device;			/* The source device e.g. DEVICE_JOYSTICK */
 	int id;				/* The source control id */
 	int remap_device;	/* The destination device e.g. DEVICE_KEYBOARD */

@@ -109,6 +109,7 @@ void sdl_rcfile_read(void) {
 	/* Undefine everything within read_ctrl_remaps */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 		read_ctrl_remaps[count].components = UNDEFINED;
+		read_ctrl_remaps[count].protected = UNDEFINED;
 		read_ctrl_remaps[count].device = UNDEFINED;
 		read_ctrl_remaps[count].id = UNDEFINED;
 		read_ctrl_remaps[count].remap_device = UNDEFINED;
@@ -200,15 +201,25 @@ void sdl_rcfile_read(void) {
 				if (strstr(value, "COMP_CTB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_CTB;
 			}
+			strcpy(key, "ctrl_remap.protected=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (index == -1) index++;
+				if (strcmp(value, "TRUE") == 0 || strcmp(value, "1") == 0) {
+					read_ctrl_remaps[index].protected = TRUE;
+				} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
+					read_ctrl_remaps[index].protected = FALSE;
+				}
+			}
 			strcpy(key, "ctrl_remap.device=");
 			if (!strncmp(line, key, strlen(key))) {
 				strcpy(value, &line[strlen(key)]);
 				if (index == -1) index++;
-				if (strstr(value, "DEVICE_KEYBOARD") != NULL) {
+				if (strcmp(value, "DEVICE_KEYBOARD") == 0) {
 					read_ctrl_remaps[index].device = DEVICE_KEYBOARD;
-				} else if (strstr(value, "DEVICE_JOYSTICK") != NULL) {
+				} else if (strcmp(value, "DEVICE_JOYSTICK") == 0) {
 					read_ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				} else if (strstr(value, "DEVICE_CURSOR") != NULL) {
+				} else if (strcmp(value, "DEVICE_CURSOR") == 0) {
 					read_ctrl_remaps[index].device = DEVICE_CURSOR;
 				}
 			}
@@ -222,11 +233,11 @@ void sdl_rcfile_read(void) {
 			if (!strncmp(line, key, strlen(key))) {
 				strcpy(value, &line[strlen(key)]);
 				if (index == -1) index++;
-				if (strstr(value, "DEVICE_KEYBOARD") != NULL) {
+				if (strcmp(value, "DEVICE_KEYBOARD") == 0) {
 					read_ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				} else if (strstr(value, "DEVICE_JOYSTICK") != NULL) {
+				} else if (strcmp(value, "DEVICE_JOYSTICK") == 0) {
 					read_ctrl_remaps[index].remap_device = DEVICE_JOYSTICK;
-				} else if (strstr(value, "DEVICE_CURSOR") != NULL) {
+				} else if (strcmp(value, "DEVICE_CURSOR") == 0) {
 					read_ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 				}
 			}
@@ -263,6 +274,7 @@ void sdl_rcfile_read(void) {
 		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 			if (read_ctrl_remaps[count].device != UNDEFINED) {
 				printf("read_ctrl_remaps[%i].components=%i\n", count, read_ctrl_remaps[count].components);
+				printf("  read_ctrl_remaps[%i].protected=%i\n", count, read_ctrl_remaps[count].protected);
 				printf("  read_ctrl_remaps[%i].device=%i\n", count, read_ctrl_remaps[count].device);
 				printf("  read_ctrl_remaps[%i].id=%i\n", count, read_ctrl_remaps[count].id);
 				printf("  read_ctrl_remaps[%i].remap_device=%i\n", count, read_ctrl_remaps[count].remap_device);
@@ -405,6 +417,15 @@ void rcfile_write(void) {
 					strcat(value, "COMP_CTB");
 				}				
 			}				
+			fprintf(fp, "%s=%s\n", key, value);
+			/* .protected */
+			strcpy(key, "ctrl_remap.protected");
+			strcpy(value, "");
+			if (ctrl_remaps[count].protected) {
+				strcat(value, "TRUE");
+			} else {
+				strcat(value, "FALSE");
+			}
 			fprintf(fp, "%s=%s\n", key, value);
 			/* .device */
 			strcpy(key, "ctrl_remap.device");
