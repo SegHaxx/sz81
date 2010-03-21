@@ -77,7 +77,7 @@ void sdl_rcfile_read(void) {
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
 	#elif defined(__amigaos4__)
-		strcpy(filename, "");
+		filename[0] = '\0';
 	#else
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
@@ -348,7 +348,7 @@ void rcfile_write(void) {
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
 	#elif defined(__amigaos4__)
-		strcpy(filename, "");
+		filename[0] = '\0';
 	#else
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");

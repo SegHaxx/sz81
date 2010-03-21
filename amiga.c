@@ -45,7 +45,7 @@ int amiga_open_libs(void)
 		ret=0;
 	}
 
-	amiga_resource_file = strdup("PROGDIR:.sz81rc");
+	strcpy(amiga_resource_file, "PROGDIR:.sz81rc");
 
 	return(ret);
 }
@@ -63,8 +63,6 @@ void amiga_close_libs(void)
 		IExec->DropInterface((struct Interface *)IAsl);
 		IExec->CloseLibrary(AslBase);
 	}
-
-	free(amiga_resource_file);
 }
 
 void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
@@ -140,8 +138,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
 			{
-				free(amiga_resource_file);
-			 	amiga_resource_file = strdup(s);
+			 	strcpy(amiga_resource_file, s);
 			}
 
 			IIcon->FreeDiskObject(dobj);
