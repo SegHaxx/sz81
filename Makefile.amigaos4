@@ -15,6 +15,7 @@
 PREFIX=RAM:sz81
 BINDIR=$(PREFIX)
 DOCDIR=$(PREFIX)/Docs
+EXTRASDIR=$(PREFIX)/Extras
 PACKAGE_DATA_DIR=$(PREFIX)/data
 
 PACKAGE_DATA_DIR_INT=PROGDIR:data
@@ -62,8 +63,12 @@ install:
 	mkdir -p $(BINDIR)
 	mkdir -p $(DOCDIR)
 	mkdir -p $(PACKAGE_DATA_DIR)
+	mkdir -p $(EXTRASDIR)
+	mkdir -p $(EXTRASDIR)/def_icons
 	cp $(TARGET) $(BINDIR)
 	cp amiga/sz81.info $(BINDIR)
+	cp amiga/*.sz81rc $(EXTRASDIR)
+	cp amiga/def_icons/* $(EXTRASDIR)/def_icons
 	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
 	if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
