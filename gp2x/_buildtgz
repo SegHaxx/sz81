@@ -1,0 +1,40 @@
+#!/bin/sh
+
+#This creates a binary tarball for the GP2X.
+#NOTE: This is run when executing 'make -f Makefile.gp2x'. It also
+#expects PACKAGE_DATA_DIR to have been exported.
+
+if test -a VERSION ; then
+	VERSION="$(cat VERSION)"
+	if test -a TARGET ; then
+		TARGET="$(cat TARGET)"
+		if [ -n "$PACKAGE_DATA_DIR" ] ; then
+#-------------------------------------------------------------
+			echo "Building GP2X binary tarball..."
+			
+			mkdir -p ${TARGET}_${VERSION}_gp2x/${PACKAGE_DATA_DIR}
+			mkdir -p ${TARGET}_${VERSION}_gp2x/games
+
+			cp data/* ${TARGET}_${VERSION}_gp2x/${PACKAGE_DATA_DIR}
+			cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_gp2x/games
+
+			cp icon32.png ${TARGET}_${VERSION}_gp2x/${TARGET}.png
+			cp ${TARGET} gp2x/${TARGET}.gpe ${TARGET}_${VERSION}_gp2x/
+			cp README ${TARGET}_${VERSION}_gp2x/readme.txt
+			cp ChangeLog NEWS COPYING ${TARGET}_${VERSION}_gp2x/
+			
+			tar czvf ${TARGET}_${VERSION}_gp2x.tar.gz ${TARGET}_${VERSION}_gp2x
+			
+			rm -rf ${TARGET}_${VERSION}_gp2x
+			
+			echo "All done."
+#-------------------------------------------------------------
+		else
+			echo "ERROR: Variable \"PACKAGE_DATA_DIR\" has not been set/exported."
+		fi
+	else
+		echo "ERROR: File \"TARGET\" not found. This is a text file with the project name inside it."
+	fi
+else
+	echo "ERROR: File \"VERSION\" not found. This is a text file with the version number inside it."
+fi

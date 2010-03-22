@@ -88,6 +88,9 @@
 #define SCANCODE_N 49
 #define SCANCODE_B 48
 
+/* Variables */
+int sdl_cl_show_input_id;
+
 /* Function prototypes */
 int sdl_init(void);
 int sdl_video_setmode(void);

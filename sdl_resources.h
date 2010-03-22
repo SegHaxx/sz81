@@ -35,6 +35,9 @@
 SDL_Surface *wm_icon;
 
 struct {
+	#ifdef PLATFORM_GP2X
+		char workdir[256];
+	#endif
 	int rewrite;
 } rcfile;
 

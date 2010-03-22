@@ -72,7 +72,14 @@ void sdl_rcfile_read(void) {
 	FILE *fp;
 	
 	#if defined(PLATFORM_GP2X)
-		strcpy(filename, "./");
+		/* If used, the load selector can change the working directory
+		 * and this affects the relatively referenced GP2X rcfile. In
+		 * fact any platform that uses the built-in load selector and
+		 * references the rcfile relatively should be aware of this issue */
+		strcpy(rcfile.workdir, "");
+		getcwd(rcfile.workdir, 256);
+		strcpy(filename, rcfile.workdir);
+		strcat(filename, "/");
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");
@@ -355,7 +362,12 @@ void rcfile_write(void) {
 	FILE *fp;
 
 	#if defined(PLATFORM_GP2X)
-		strcpy(filename, "./");
+		/* If used, the load selector can change the working directory
+		 * and this affects the relatively referenced GP2X rcfile. In
+		 * fact any platform that uses the built-in load selector and
+		 * references the rcfile relatively should be aware of this issue */
+		strcpy(filename, rcfile.workdir);
+		strcat(filename, "/");
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(filename, getenv ("HOME"));
 		strcat(filename, "/");

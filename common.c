@@ -943,6 +943,9 @@ puts("\n"
 "		get when typing in a program line. (This tends to be a bit\n"
 "		annoying when typing in a program with the default frame-skip,\n"
 "		so it's disabled by default.)\n"
+#ifdef SZ81	/* Added by Thunor */
+"	-d	show input device control IDs on-screen (for configuring).\n"
+#endif
 "\n"
 "	filename.p\n"
 "		load the specified program instantly on startup;\n"
@@ -965,7 +968,11 @@ if(argc == 0)
 opterr=0;
 
 do
+#ifdef SZ81	/* Added by Thunor */
+  switch(getopt(argc,argv,"a:hilLop:r:sSTuVd"))
+#else
   switch(getopt(argc,argv,"a:hilLop:r:sSTuV"))
+#endif
     {
     #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
     case 'a':
@@ -1028,6 +1035,11 @@ do
     case 'V':	/* emulate VSYNC visuals */
       vsync_visuals=1;
       break;
+#ifdef SZ81	/* Added by Thunor */
+    case 'd':	/* Show input device control IDs on-screen */
+      sdl_cl_show_input_id=1;
+      break;
+#endif
     case '?':
       switch(optopt)
         {

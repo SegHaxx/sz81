@@ -97,6 +97,9 @@ int sdl_init(void) {
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 
 	rcfile.rewrite = FALSE;
+	
+	sdl_cl_show_input_id = FALSE;
+	current_input_id = UNDEFINED;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {

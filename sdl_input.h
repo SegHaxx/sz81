@@ -40,6 +40,7 @@
 char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
 int joystick_dead_zone;
+int current_input_id;
 
 struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ ids */

@@ -24,7 +24,7 @@ all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
-#	gp2x/_buildtgz
+	gp2x/_buildtgz
 
 %.o: %.c 
 	$(CC) $(CFLAGS) -c $< -o $@

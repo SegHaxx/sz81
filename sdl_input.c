@@ -862,6 +862,17 @@ int keyboard_update(void) {
 					break;
 			}
 
+			/* If the user has passed the -d option then record the
+			 * currently pressed id for later displaying on-screen */
+			if (sdl_cl_show_input_id && device != UNDEFINED) {
+				if (state == SDL_PRESSED) {
+					current_input_id = id;
+				} else {
+					current_input_id = UNDEFINED;
+					video.redraw = TRUE;
+				}
+			}
+
 			#ifdef SDL_DEBUG_EVENTS
 				if (device != UNDEFINED) {
 					printf("%s: device=%i: id=%i state=%i mod_id=%i\n",

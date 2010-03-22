@@ -129,7 +129,9 @@ void sdl_video_update(void) {
 	int srcx, srcy, desx, desy, srcw;
 	Uint32 *screen_pixels_32;
 	Uint16 *screen_pixels_16;
+	SDL_Surface *text;
 	SDL_Rect dstrect;
+	char id[5];
 	#ifdef SDL_DEBUG_FONTS
 		struct bmpfont *ptrfont;
 		int count, fontcount;
@@ -256,7 +258,7 @@ void sdl_video_update(void) {
 		}
 		/* Show the control bar too */
 		dstrect.x = control_bar.xoffset; dstrect.y = control_bar.yoffset;
-		dstrect.w = control_bar.scaled->w; dstrect.h =  control_bar.scaled->h;
+		dstrect.w = control_bar.scaled->w; dstrect.h = control_bar.scaled->h;
 		if (SDL_BlitSurface (control_bar.scaled, NULL, video.screen, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
 			exit(1);
@@ -265,6 +267,32 @@ void sdl_video_update(void) {
 
 	/* Render visible hotspots now */
 	hotspots_render();
+
+	/* If the user has passed the -d option then show
+	 * the currently pressed control id on-screen */
+	if (sdl_cl_show_input_id && current_input_id != UNDEFINED) {
+		if (!invert_screen) {
+			fg_colour = colours.emu_bg;
+			bg_colour = colours.emu_fg;
+		} else {
+			fg_colour = colours.emu_fg;
+			bg_colour = colours.emu_bg;
+		}
+		sprintf(id, "%i", current_input_id);
+		if (zx80) {
+			text = BMF_RenderText(BMF_FONT_ZX80, id, fg_colour, bg_colour);
+		} else {
+			text = BMF_RenderText(BMF_FONT_ZX81, id, fg_colour, bg_colour);
+		}
+		dstrect.x = video.screen->w / 2 - text->w / 2;
+		dstrect.y = video.screen->h / 2 - text->h / 2;
+		dstrect.w = text->w; dstrect.h = text->h;
+		if (SDL_BlitSurface (text, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(text);
+	}
 
 	#ifdef SDL_DEBUG_FONTS
 		/* Define SDL_DEBUG_VIDEO too and press alt+r a few

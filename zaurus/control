@@ -1,0 +1,10 @@
+Package: sz81
+Priority: optional
+Section: Games
+Version: 2.1-5
+Architecture: arm
+Maintainer: Thunor <thunorsif@hotmail.com>
+Depends: libSDL
+License: GPL
+Description: sz81 for the Sharp Zaurus
+Source: http://sz81.sourceforge.net/

@@ -15,6 +15,7 @@ colour.hs_ctb_selected=00ff00
 colour.hs_ctb_pressed=ffc000
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_UP
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -22,6 +23,7 @@ ctrl_remap.remap_id=SDLK_7
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_DOWN
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -29,6 +31,7 @@ ctrl_remap.remap_id=SDLK_6
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_LEFT
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -36,6 +39,7 @@ ctrl_remap.remap_id=SDLK_5
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_RIGHT
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -43,6 +47,7 @@ ctrl_remap.remap_id=SDLK_8
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_BACKSPACE
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -50,6 +55,7 @@ ctrl_remap.remap_id=SDLK_0
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_COMMA
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -57,6 +63,7 @@ ctrl_remap.remap_id=SDLK_PERIOD
 ctrl_remap.remap_mod_id=SDLK_LSHIFT
 
 ctrl_remap.components=COMP_ALL
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_KEYBOARD
 ctrl_remap.id=SDLK_RSHIFT
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -68,6 +75,7 @@ ctrl_remap.remap_mod_id=
 
 
 ctrl_remap.components=COMP_EMU
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=0
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -75,6 +83,7 @@ ctrl_remap.remap_id=SDLK_0
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_EMU
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=6
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -82,6 +91,7 @@ ctrl_remap.remap_id=SDLK_5
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_EMU
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=7
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -89,6 +99,7 @@ ctrl_remap.remap_id=SDLK_8
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_EMU
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=8
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -96,6 +107,7 @@ ctrl_remap.remap_id=SDLK_7
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_EMU
+ctrl_remap.protected=FALSE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=9
 ctrl_remap.remap_device=DEVICE_KEYBOARD
@@ -107,6 +119,7 @@ ctrl_remap.remap_mod_id=
 
 
 ctrl_remap.components=COMP_VKEYB
+ctrl_remap.protected=TRUE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=0
 ctrl_remap.remap_device=DEVICE_CURSOR
@@ -114,6 +127,7 @@ ctrl_remap.remap_id=CURSOR_HIT
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_VKEYB
+ctrl_remap.protected=TRUE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=6
 ctrl_remap.remap_device=DEVICE_CURSOR
@@ -121,6 +135,7 @@ ctrl_remap.remap_id=CURSOR_W
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_VKEYB
+ctrl_remap.protected=TRUE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=7
 ctrl_remap.remap_device=DEVICE_CURSOR
@@ -128,6 +143,7 @@ ctrl_remap.remap_id=CURSOR_E
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_VKEYB
+ctrl_remap.protected=TRUE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=8
 ctrl_remap.remap_device=DEVICE_CURSOR
@@ -135,6 +151,7 @@ ctrl_remap.remap_id=CURSOR_N
 ctrl_remap.remap_mod_id=
 
 ctrl_remap.components=COMP_VKEYB
+ctrl_remap.protected=TRUE
 ctrl_remap.device=DEVICE_JOYSTICK
 ctrl_remap.id=9
 ctrl_remap.remap_device=DEVICE_CURSOR

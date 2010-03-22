@@ -1,0 +1,56 @@
+#!/bin/sh
+
+#This builds an ipk for the Zaurus.
+#NOTE: This is run when executing 'make -f Makefile.zaurus'.
+
+if test -a VERSION ; then
+	VERSION="$(cat VERSION)"
+	if test -a TARGET ; then
+		TARGET="$(cat TARGET)"
+		if [ -n "$PREFIX" ] ; then
+#-------------------------------------------------------------
+			echo "Building ipk..."
+			
+			mkdir -p ipk/CONTROL
+			mkdir -p ipk/${PREFIX}/apps/Games
+			mkdir -p ipk/${PREFIX}/bin
+			mkdir -p ipk/${PREFIX}/pics
+			mkdir -p ipk/${PREFIX}/share/${TARGET}
+
+			cp data/* ipk/${PREFIX}/share/${TARGET}
+			
+			echo "Package: ${TARGET}" > zaurus/control
+			echo "Priority: optional" >> zaurus/control
+			echo "Section: Games" >> zaurus/control
+			echo "Version: ${VERSION}" >> zaurus/control
+			echo "Architecture: arm" >> zaurus/control
+			echo "Maintainer: Thunor <thunorsif@hotmail.com>" >> zaurus/control
+			echo "Depends: libSDL" >> zaurus/control
+			echo "License: GPL" >> zaurus/control
+			echo "Description: ${TARGET} for the Sharp Zaurus" >> zaurus/control
+			echo "Source: http://${TARGET}.sourceforge.net/" >> zaurus/control
+
+			cp zaurus/control ipk/CONTROL/
+			cp zaurus/${TARGET}.desktop ipk/${PREFIX}/apps/Games/
+			cp icon32.png ipk/${PREFIX}/pics/${TARGET}.png
+			cp ${TARGET} zaurus/run${TARGET} ipk/${PREFIX}/bin/
+			cp README ipk/${PREFIX}/share/${TARGET}/README
+			cp ChangeLog NEWS COPYING ipk/${PREFIX}/share/${TARGET}/
+
+			zaurus/_ipkg-build ipk
+			
+			rm -rf ipk
+			
+			mv ${TARGET}_${VERSION}_arm.ipk ${TARGET}_${VERSION}_zaurus.ipk
+			
+			echo "All done."
+#-------------------------------------------------------------
+		else
+			echo "ERROR: Variable \"PREFIX\" has not been set/exported."
+		fi
+	else
+		echo "ERROR: File \"TARGET\" not found. This is a text file with the project name inside it."
+	fi
+else
+	echo "ERROR: File \"VERSION\" not found. This is a text file with the version number inside it."
+fi

@@ -69,6 +69,46 @@ For the PC:
 
     To access the file selector type "J", SHIFT + "P" twice and ENTER
     from within the emulator.
+    
+    Joystick Support
+    ----------------
+    Digital and analogue joysticks are supported but sz81 currently
+    lacks a graphical joystick configurator. If you have a joystick
+    plugged in and you'd like to use it then open sz81's configuration
+    file sz81rc (the location of this file is platform dependent) and
+    within it you'll find a complete set of commented-out joystick
+    remappings which you can uncomment and edit for your particular
+    joystick. The only values that you'll need to alter are the ".id"
+    properties and to gain access to those execute sz81 with the "-d"
+    option to display input device control IDs on-screen.
+     _______                                     _______
+    (  _____)___________________________________(_____  )
+    | SHIFT                                           | |
+    | |      Q/Up                                     | |
+    (_|       __                          Rubout      |_)
+      |      |  |                           __        |
+      |    __|  |__                        (__)       |
+      |O/ |   ..   | P/          Enter/  __    __     |
+     Left |__ '' __| Right       Select (__)  (__) Enter
+      |      |  |                           __        |
+      |      |__|                          (__)       |
+      |               ______     ______               |
+      |     A/Down   (______)   (______)   Space      |
+      |                                               |
+      (______________Control_____Toggle_______________)
+                     Remapper   Keyboard
+
+    Control Remapping
+    -----------------
+    When the virtual keyboard is visible, press the Control Remapper
+    over the function that you would like to assign to a joystick
+    control (the selector will blink). Then press a joystick control to
+    remap the function to the control. Existing controls that have been
+    remapped are active within the emulator (you cannot remap GUI
+    controls) and new controls are universally active. It is possible
+    to include the SHIFT modifier within the control as long as it is
+    active before you initiate remapping. To cancel remapping press the
+    Control Remapper again.
 
 For the Sharp Zaurus:
 
@@ -76,14 +116,14 @@ For the Sharp Zaurus:
     Backspace    - Rubout i.e. equivalent to CTRL or SHIFT + 0
     Comma        - Equivalent to using CTRL or SHIFT + .
     Cursors      - Equivalent to using CTRL or SHIFT + 5, 6, 7 and 8
-    
+
     See PC controls for an explanation of the control bar and how to
     access the file selector.
 
 For the GPH GP2X:
 
     Start        - Toggle virtual keyboard and control bar
-    Select       - Initiate control remapping (see instructions below)
+    Select       - Initiate control remapping
     LTrigger     - SHIFT
     Button Y     - Rubout i.e. equivalent to CTRL or SHIFT + 0
     Button B     - Enter
@@ -97,27 +137,15 @@ For the GPH GP2X:
     Joy Right    - P     | Selector right
     Button A     - Enter | Select
 
-    See PC controls for an explanation of the control bar and how to
-    access the file selector.
-
-    Joystick Control Remapping
-    --------------------------
-    When the virtual keyboard and control bar are visible, press Select
-    over the function that you would like to assign to a joystick 
-    control; the selector will blink. Then press a joystick control to
-    remap the function to the control. Existing controls that have been
-    remapped are active within the emulator (you cannot remap GUI
-    controls) and new controls are active throughout. It is possible to
-    include the SHIFT modifier within the control as long as it is
-    active before you initiate remapping. To cancel remapping simply
-    press Select again.
+    See PC controls for an explanation of the control bar, how to
+    access the file selector and control remapping.
 
 
 Installation
 ============
 
 To function correctly sz81 expects to find the zx80.rom and zx81.rom
-ROMs which are not included within this source package. You might find
+ROMs which are not included within the source package. You might find
 them at ftp://ftp.nvg.ntnu.no/pub/sinclair/roms, or perhaps through
 searching the internet for "zx80.rom" and "zx81.rom".
 
@@ -143,28 +171,15 @@ For the Sharp Zaurus (requires SDK):
     make clean
     make -f Makefile.zaurus
 
-    Copy the following files to a folder on your Zaurus, for example
-    /home/zaurus/sz81 :-
-
-    sz81
-    data
-
-    and some or all of the p files from games-etc and execute sz81
-    from the terminal.
+    Install sz81_2.1-x_zaurus.ipk using Add/Remove Software.
 
 For the GPH GP2X (requires SDK):
 
     make clean
     make -f Makefile.gp2x
 
-    Copy the following files to a folder on your SD card :-
-
-    sz81 and gp2x/sz81.gpe
-    data
-
-    and mine81.p and aydemo.p from games-etc and execute sz81.gpe
-    from the GP2X GUI. If you require an icon for gmenu2x then you
-    can use the supplied icon32.png.
+    Extract sz81_2.1-x_gp2x.tar.gz and copy the contents onto your SD
+    card.
 
 
 Contacting me
@@ -173,7 +188,7 @@ Contacting me
 You can email me at thunorsif_at_hotmail.com.
 
 
-Cheers,
+Regards,
 Thunor
 
 2010-02-17
