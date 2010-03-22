@@ -6,8 +6,11 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
+
 #include "amiga.h"
 #include "common.h"
+#include "sdl.h"
+
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/icon.h>
@@ -134,6 +137,11 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 			if((s = IIcon->FindToolType(toolarray,"VSYNC")))
 			{
 			 	vsync_visuals=1;
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"SHOWDEVIDS")))
+			{
+				sdl_cl_show_input_id=1;
 			}
 
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
