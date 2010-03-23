@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This script executes the GP2X binary emulating the ZX80 and with the
+# screen inverted by default.
+
+./sz81 -oi > sz81log.txt
+sync
+cd /usr/gp2x
+exec ./gp2xmenu

@@ -50,9 +50,9 @@ Controls
 For the PC:
 
     Click screen - Toggle virtual keyboard and control bar
-    Backspace    - Rubout i.e. equivalent to CTRL or SHIFT + 0
-    Comma        - Equivalent to using CTRL or SHIFT + .
-    Cursors      - Equivalent to using CTRL or SHIFT + 5, 6, 7 and 8
+    Backspace    - Rubout i.e. equivalent to using SHIFT + 0
+    Comma        - Equivalent to using SHIFT + .
+    Cursors      - Equivalent to using SHIFT + 5, 6, 7 and 8
     ALT + R      - Cycle between 960x720, 640x480 and 320x240
     F11          - Toggle between fullscreen and a window
 
@@ -67,8 +67,8 @@ For the PC:
     Invert Screen - Toggle between not inverse and inverse video (F8)
     Opacity DN/UP - Reduce (HOME) or increase (END) vkeyb opacity
 
-    To access the file selector type "J", SHIFT + "P" twice and ENTER
-    from within the emulator.
+    To access the ZX81's file selector type "J", SHIFT + "P" twice and
+    ENTER from within the emulator.
     
     Joystick Support
     ----------------
@@ -78,7 +78,7 @@ For the PC:
     file sz81rc (the location of this file is platform dependent) and
     within it you'll find a complete set of commented-out joystick
     remappings which you can uncomment and edit for your particular
-    joystick. The only values that you'll need to alter are the ".id"
+    joystick. The only values that you'll need to modify are the ".id"
     properties and to gain access to those execute sz81 with the "-d"
     option to display input device control IDs on-screen.
      _______                                     _______
@@ -100,22 +100,22 @@ For the PC:
 
     Control Remapping
     -----------------
-    When the virtual keyboard is visible, press the Control Remapper
-    over the function that you would like to assign to a joystick
-    control (the selector will blink). Then press a joystick control to
-    remap the function to the control. Existing controls that have been
-    remapped are active within the emulator (you cannot remap GUI
-    controls) and new controls are universally active. It is possible
-    to include the SHIFT modifier within the control as long as it is
-    active before you initiate remapping. To cancel remapping press the
-    Control Remapper again.
+    When the virtual keyboard is visible, position the selector over
+    the function that you would like to assign to a joystick control
+    and press the Control Remapper (the selector will blink). Then
+    press a joystick control to remap the function to the control.
+    Existing controls that have been remapped are active within the
+    emulator (you cannot remap GUI controls) and new controls are
+    universally active. It is possible to include the SHIFT modifier
+    within the control as long as it is active before you initiate
+    remapping. To cancel remapping press the Control Remapper again.
 
 For the Sharp Zaurus:
 
     Click screen - Toggle virtual keyboard and control bar
-    Backspace    - Rubout i.e. equivalent to CTRL or SHIFT + 0
-    Comma        - Equivalent to using CTRL or SHIFT + .
-    Cursors      - Equivalent to using CTRL or SHIFT + 5, 6, 7 and 8
+    Backspace    - Rubout i.e. equivalent to using SHIFT + 0
+    Comma        - Equivalent to using SHIFT + .
+    Cursors      - Equivalent to using SHIFT + 5, 6, 7 and 8
 
     See PC controls for an explanation of the control bar and how to
     access the file selector.
@@ -125,7 +125,7 @@ For the GPH GP2X:
     Start        - Toggle virtual keyboard and control bar
     Select       - Initiate control remapping
     LTrigger     - SHIFT
-    Button Y     - Rubout i.e. equivalent to CTRL or SHIFT + 0
+    Button Y     - Rubout i.e. equivalent to using SHIFT + 0
     Button B     - Enter
     Button X     - Space
 

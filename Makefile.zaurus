@@ -5,6 +5,7 @@ SOURCES=smain.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
 export PREFIX=/opt/QtPalmtop
+PACKAGE_DATA_DIR=$(PREFIX)/share/$(TARGET)
 
 # This uses the default cross compiler directory of /opt/Embedix and
 # the default QPE directory of /opt/Qtopia
@@ -14,7 +15,7 @@ CC=/opt/Embedix/tools/bin/arm-linux-gcc
 CFLAGS=-O3 -Wall -I$(DEVPREFIX)/include \
 	`$(DEVPREFIX)/bin/sdl-config --prefix=$(DEVPREFIX) --cflags` \
 	-DNO_DEBUG -DQWS -DPLATFORM_ZAURUS -DVERSION=\"$(VERSION)\" \
-	-DPACKAGE_DATA_DIR=\"$(PREFIX)\" -DOSS_SOUND_SUPPORT -DSZ81 
+	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" -DOSS_SOUND_SUPPORT -DSZ81 
 LINK=$(CC)
 LDFLAGS=-L$(DEVPREFIX)/lib
 LIBS=`$(DEVPREFIX)/bin/sdl-config --prefix=$(DEVPREFIX) --libs`

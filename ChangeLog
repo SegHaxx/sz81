@@ -2,6 +2,7 @@
 * Fixed an issue with the load selector changing the working directory
   and the GP2X's relatively referenced rcfile being written elsewhere.
 * Added -d command line option to show any input device IDs on-screen.
+* A sample joystick control set is written to newly created PC rcfiles.
 
 2010-03-21 Thunor <thunorsif_at_hotmail.com>
 * Added a protected property to ctrl_remaps to prevent modifying some

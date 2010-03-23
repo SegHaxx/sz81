@@ -19,9 +19,9 @@ if test -a VERSION ; then
 			cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_gp2x/games
 
 			cp icon32.png ${TARGET}_${VERSION}_gp2x/${TARGET}.png
-			cp ${TARGET} gp2x/${TARGET}.gpe ${TARGET}_${VERSION}_gp2x/
+			cp ${TARGET} gp2x/*.gpe ${TARGET}_${VERSION}_gp2x
 			cp README ${TARGET}_${VERSION}_gp2x/readme.txt
-			cp ChangeLog NEWS COPYING ${TARGET}_${VERSION}_gp2x/
+			cp ChangeLog NEWS COPYING ${TARGET}_${VERSION}_gp2x
 			
 			tar czvf ${TARGET}_${VERSION}_gp2x.tar.gz ${TARGET}_${VERSION}_gp2x
 			

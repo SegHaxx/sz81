@@ -1236,24 +1236,26 @@ int keyboard_update(void) {
 						hs_vkeyb_ctb_selected = count;
 						found = FALSE;
 						for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-							if (ctrl_remaps[count].device != UNDEFINED &&
+							if (ctrl_remaps[count].device == device && 
+								ctrl_remaps[count].id == id &&
 								ctrl_remaps[count].remap_device == DEVICE_CURSOR &&
 								ctrl_remaps[count].remap_id == CURSOR_REMAP) {
 								/* The user cancelled with CURSOR_REMAP */
 								break;
 							} else if (ctrl_remaps[count].components & COMP_EMU &&
-								ctrl_remaps[count].protected == FALSE &&
 								ctrl_remaps[count].device == device && 
 								ctrl_remaps[count].id == id) {
-								/* Overwrite existing */
-								found = TRUE; break;
+								/* Overwrite existing if not protected */
+								if (ctrl_remaps[count].protected == FALSE) found = TRUE;
+								break;
 							} else if (ctrl_remaps[count].device == UNDEFINED) {
 								/* Insert new */
 								ctrl_remaps[count].components = COMP_ALL;
 								ctrl_remaps[count].protected = FALSE;
 								ctrl_remaps[count].device = device;
 								ctrl_remaps[count].id = id;
-								found = TRUE; break;
+								found = TRUE;
+								break;
 							}
 						}
 						if (found) {
