@@ -18,7 +18,8 @@ if test -a VERSION ; then
 			cp data/* ${TARGET}_${VERSION}_gp2x/${PACKAGE_DATA_DIR}
 			cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_gp2x/games
 
-			cp icon32.png ${TARGET}_${VERSION}_gp2x/${TARGET}.png
+			cp icon-zx80-32.png ${TARGET}_${VERSION}_gp2x/sz80.png
+			cp icon-zx81-32.png ${TARGET}_${VERSION}_gp2x/${TARGET}.png
 			cp ${TARGET} gp2x/*.gpe ${TARGET}_${VERSION}_gp2x
 			cp README ${TARGET}_${VERSION}_gp2x/readme.txt
 			cp ChangeLog NEWS COPYING ${TARGET}_${VERSION}_gp2x

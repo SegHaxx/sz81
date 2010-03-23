@@ -68,8 +68,10 @@ For the PC:
     Opacity DN/UP - Reduce (HOME) or increase (END) vkeyb opacity
 
     To access the ZX81's file selector type "J", SHIFT + "P" twice and
-    ENTER from within the emulator.
-    
+    ENTER from within the emulator. For the ZX80 simply type LOAD or
+    SAVE to access the file zx80prog.p located within the current
+    working directory.
+
     Joystick Support
     ----------------
     Digital and analogue joysticks are supported but sz81 currently
@@ -77,7 +79,7 @@ For the PC:
     plugged in and you'd like to use it then open sz81's configuration
     file sz81rc (the location of this file is platform dependent) and
     within it you'll find a complete set of commented-out joystick
-    remappings which you can uncomment and edit for your particular
+    controls which you can uncomment and edit for your particular
     joystick. The only values that you'll need to modify are the ".id"
     properties and to gain access to those execute sz81 with the "-d"
     option to display input device control IDs on-screen.

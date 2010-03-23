@@ -1,0 +1,8 @@
+[Desktop Entry]
+Comment=sz81 for Zaurus
+Exec=runsz80
+Icon=sz80
+Type=Application
+Name=sz80
+Display=640x480/144dpi,480x640/144dpi
+GenericName=
