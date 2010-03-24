@@ -494,7 +494,6 @@ void rcfile_write(void) {
 
 	#if defined(PLATFORM_GP2X)
 	#elif defined(PLATFORM_ZAURUS)
-	#elif defined(__amigaos4__)
 	#else
 		if (rcfile.rewrite == 2) {
 			fprintf(fp, "## Sample Joystick Control Set\n");

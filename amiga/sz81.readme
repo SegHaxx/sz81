@@ -1,0 +1,102 @@
+Short:        Sinclair ZX80/ZX81/TS1000 emulator
+Author:       Russell Marks, Ian Collier, Thunor, Chris Young
+Uploader:     chris@unsatisfactorysoftware.co.uk (Chris Young)
+Type:         misc/emu
+Version:      2.1-5
+Architecture: ppc-amigaos >= 4.0.0
+Requires:     libSDL-1.2.so (http://code.google.com/p/os4sdl/)
+
+AmigaOS4 version features ASL file requesters and can be configured
+using tooltypes.  -Chris
+
+Description
+===========
+
+sz81 is a Sinclair ZX80/ZX81 emulator very much based upon the work of
+Ian Collier's xz80 and Russell Marks's z81 but employing the highly
+portable SDL and including additional functionality and features for
+desktop computers and portable devices.
+
+Features:
+ * Virtual keyboard with adjustable opacity, autohide on newline,
+   sticky shift or toggle shift
+ * Control bar with access to several regularly used options
+ * Full mouse/stylus and joystick support throughout
+ * Runtime joystick control remapping
+ * The ability to run centred within any resolution
+ * Runtime switchable scaling up to 3x on supported platforms
+ * Toggling between a window and fullscreen on supported platforms
+ * Support for portrait orientated screens such as 240x320 and 480x640
+ * Maximum porting potential since it only requires SDL
+
+To-Do:
+ * OSS to SDL API sound conversion
+
+
+Controls
+========
+
+For the PC:
+
+    Click screen - Toggle virtual keyboard and control bar
+    Backspace    - Rubout i.e. equivalent to using SHIFT + 0
+    Comma        - Equivalent to using SHIFT + .
+    Cursors      - Equivalent to using SHIFT + 5, 6, 7 and 8
+    ALT + R      - Cycle between 960x720, 640x480 and 320x240
+    F11          - Toggle between fullscreen and a window
+
+    Clicking the screen (or F1) brings up the virtual keyboard and the
+    control bar giving access to several very useful options. These
+    are listed below alongside their keyboard equivalents :-
+
+    Exit          - Exit emulator (F10)
+    Reset         - Reset emulator (F12)
+    Autohide      - Toggle vkeyb between autohide and don't hide (F6)
+    Shift Type    - Toggle between sticky shift and toggle shift (F7)
+    Invert Screen - Toggle between not inverse and inverse video (F8)
+    Opacity DN/UP - Reduce (HOME) or increase (END) vkeyb opacity
+
+    To access the ZX81's file selector type "J", SHIFT + "P" twice and
+    ENTER from within the emulator. For the ZX80 simply type LOAD or
+    SAVE to access the file zx80prog.p located within the current
+    working directory.
+
+    Joystick Support
+    ----------------
+    Digital and analogue joysticks are supported but sz81 currently
+    lacks a graphical joystick configurator. If you have a joystick
+    plugged in and you'd like to use it then open sz81's configuration
+    file sz81rc (the location of this file is platform dependent) and
+    within it you'll find a complete set of commented-out joystick
+    controls which you can uncomment and edit for your particular
+    joystick. The only values that you'll need to modify are the ".id"
+    properties and to gain access to those execute sz81 with the "-d"
+    option to display input device control IDs on-screen.
+     _______                                     _______
+    (  _____)___________________________________(_____  )
+    | SHIFT                                           | |
+    | |      Q/Up                                     | |
+    (_|       __                          Rubout      |_)
+      |      |  |                           __        |
+      |    __|  |__                        (__)       |
+      |O/ |   ..   | P/          Enter/  __    __     |
+     Left |__ '' __| Right       Select (__)  (__) Enter
+      |      |  |                           __        |
+      |      |__|                          (__)       |
+      |               ______     ______               |
+      |     A/Down   (______)   (______)   Space      |
+      |                                               |
+      (______________Control_____Toggle_______________)
+                     Remapper   Keyboard
+
+    Control Remapping
+    -----------------
+    When the virtual keyboard is visible, position the selector over
+    the function that you would like to assign to a joystick control
+    and press the Control Remapper (the selector will blink). Then
+    press a joystick control to remap the function to the control.
+    Existing controls that have been remapped are active within the
+    emulator (you cannot remap GUI controls) and new controls are
+    universally active. It is possible to include the SHIFT modifier
+    within the control as long as it is active before you initiate
+    remapping. To cancel remapping press the Control Remapper again.
