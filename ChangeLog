@@ -1,3 +1,6 @@
+2010-03-24
+* 2.1-5 released
+
 2010-03-22 Thunor <thunorsif_at_hotmail.com>
 * Fixed an issue with the load selector changing the working directory
   and the GP2X's relatively referenced rcfile being written elsewhere.
