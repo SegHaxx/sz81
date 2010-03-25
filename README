@@ -112,6 +112,39 @@ For the PC:
     within the control as long as it is active before you initiate
     remapping. To cancel remapping press the Control Remapper again.
 
+For the Amiga:
+
+    As above section "For the PC" plus:
+
+    Tooltypes
+    ---------
+
+    sz81 can be configured using tooltypes, which correspond directly
+    to command-line options.  Full details of options can be obtained
+    with "sz81 -h".  A list of tooltype equivalents follows:
+
+    -d SHOWDEVIDS
+    -i INVERT
+    -l AUTOLIST
+    -L NOLOADHOOK
+    -o ZX80
+    -p ZXPRINTER=<pbm ouput file>
+    -r REFRESH=<1-50>
+    -S NOSAVEHOOK
+    -T TAGULA
+    -u UNEXPANDED
+    -V VSYNC
+
+    Additional tooltypes:
+       RESOURCEFILE=<sz81rc file>
+
+    File Selector
+    -------------
+
+    The Amiga build uses standard ASL requesters instead of sz81's
+    built-in file selector.  It will also allow choosing a ZX80
+    file instead of being hard-coded to zx80prog.o
+
 For the Sharp Zaurus:
 
     Click screen - Toggle virtual keyboard and control bar
@@ -167,6 +200,15 @@ For the PC:
     you're installing this locally or system-wide then continue)
     (Installing system-wide requires that you login as root now)
     make install
+
+For the Amiga (requires SDK):
+
+    gmake -f Makefile.amigaos4
+
+    To get all the required files together in RAM:sz81:
+    gmake -f Makefile.amigaos4 install
+
+    The directory can then be dragged to final location.
 
 For the Sharp Zaurus (requires SDK):
 

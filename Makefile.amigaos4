@@ -70,9 +70,13 @@ install:
 	cp amiga/*.sz81rc $(EXTRASDIR)
 	cp amiga/def_icons/* $(EXTRASDIR)/def_icons
 	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
+	cp amiga/sz81.readme T:
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
 	if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
 	if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
+	echo >>t:sz81.readme "$(VERSION)\n"
+	cat t:sz81.readme $(DOCDIR)/README >$(DOCDIR)/sz81.readme
+	rm t:sz81.readme
 	
 uninstall:
 	@echo "Uninstalling is not currently implemented."
