@@ -88,8 +88,13 @@ int sound_hz = 50;
 /* assume all three tone channels together match the beeper volume.
  * Must be <=127 for all channels; 4 x 31 = 124.
  */
+#if defined(SZ81) && defined(PLATFORM_GP2X)	/* Added by Thunor */
+#define AMPL_BEEPER		15
+#define AMPL_AY_TONE		15	/* three of these */
+#else
 #define AMPL_BEEPER		31
 #define AMPL_AY_TONE		31	/* three of these */
+#endif
 
 /* full range of beeper volume */
 #define VOL_BEEPER		(AMPL_BEEPER*2)

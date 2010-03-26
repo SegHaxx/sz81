@@ -1,0 +1,37 @@
+# You won't need to alter these
+TARGET=$(shell cat TARGET)
+SOURCES=smain.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
+	sdl_input.c sdl_resources.c sdl_video.c
+OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
+VERSION=$(shell cat VERSION)
+export PACKAGE_DATA_DIR=./data
+export TOOLCHAIN=open2x
+
+# This uses the Open2x toolchain-new installed into the default folder
+# /opt/open2x
+# 
+DEVPREFIX=/opt/open2x/gcc-4.1.1-glibc-2.3.6
+SDL_CONFIG=$(DEVPREFIX)/bin/sdl-config
+CC=$(DEVPREFIX)/arm-open2x-linux/bin/arm-open2x-linux-gcc
+CFLAGS=-O3 -Wall -I$(DEVPREFIX)/include `$(SDL_CONFIG) --cflags` \
+	-DPLATFORM_GP2X -DVERSION=\"$(VERSION)\" -DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" \
+	-DOSS_SOUND_SUPPORT -DSZ81 
+LINK=$(CC)
+LDFLAGS=-L$(DEVPREFIX)/lib 
+LIBS=-lstdc++ `$(SDL_CONFIG) --static-libs` 
+
+# You won't need to alter anything below
+all: $(SOURCES) $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(LINK) -static $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+	gp2x/_buildtgz
+
+%.o: %.c 
+	$(CC) $(CFLAGS) -c $< -o $@
+	
+.PHONY: all clean
+
+clean:
+	rm -f *.o
+

@@ -223,18 +223,16 @@ For the GPH GP2X (requires SDK):
     make -f Makefile.gp2x
 
     Extract sz81_2.1-x_gp2x.tar.gz and copy the contents onto your SD
-    card.
+    card. Note that for Open2x there's Makefile.open2x if you prefer a
+    statically linked makefile for this more up-to-date toolchain.
 
 
-Contacting me
+Contacting Us
 =============
 
-You can email me at thunorsif_at_hotmail.com.
+Please visit the project's support page at
+http://sourceforge.net/projects/sz81/support
 
-
-Regards,
-Thunor
-
-2010-02-17
+2010-03-26
 
 
