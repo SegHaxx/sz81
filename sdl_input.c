@@ -631,11 +631,7 @@ int keyboard_init(void) {
 
 	/* Initialise the control remapper */
 	ctrl_remapper.state = FALSE;
-	#ifdef OSS_SOUND_SUPPORT
-		ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (sound_hz / scrn_freq));
-	#else
-		ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (nosound_hz / scrn_freq));
-	#endif
+	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (sdl_emulator_hz / scrn_freq));
 	ctrl_remapper.interval = 0;
 
 	return 0;
@@ -1322,20 +1318,12 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay */
-		#ifdef OSS_SOUND_SUPPORT
-			interval = KEY_REPEAT_DELAY / (1000 / sound_hz);
-		#else
-			interval = KEY_REPEAT_DELAY / (1000 / nosound_hz);
-		#endif
+		interval = KEY_REPEAT_DELAY / (1000 / sdl_emulator_hz);
 	} else if (funcid == KRM_FUNC_TICK) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset to the initial delay */
-				#ifdef OSS_SOUND_SUPPORT
-					interval = KEY_REPEAT_INTERVAL / (1000 / sound_hz);
-				#else
-					interval = KEY_REPEAT_INTERVAL / (1000 / nosound_hz);
-				#endif
+				interval = KEY_REPEAT_INTERVAL / (1000 / sdl_emulator_hz);
 				SDL_PushEvent(&repeatevent);
 			}
 		}

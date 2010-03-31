@@ -100,9 +100,13 @@ int sdl_init(void) {
 	
 	sdl_cl_show_input_id = FALSE;
 	current_input_id = UNDEFINED;
+	
+	sdl_sound.enabled = FALSE;
+	
+	sdl_emulator_hz = 50;	/* 50 is the default */
 
 	/* Initialise SDL */
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
 		fprintf(stderr, "%s: Cannot initialise SDL: %s", __func__,
 			SDL_GetError());
 		return TRUE;
@@ -191,18 +195,10 @@ void component_executive(void) {
 /***************************************************************************
  * Timer Initialise                                                        *
  ***************************************************************************/
-/* I've still yet to convert sound to use the SDL API. Currently if OSS sound
- * is enabled then it's used for timing, otherwise an SDL timer is used */
 
 void sdl_timer_init(void) {
-
-	if (!sound) {
-		/* Create a 10ms timer if sound isn't enabled and managing timing */
-		emulator.timer_id = SDL_AddTimer (10, emulator_timer, NULL);
-		/*printf("Timing is being managed by an SDL timer\n");	temp temp */
-	} else {
-		/*printf("Timing is being managed using OSS sound\n");	temp temp */
-	}
+	/* Create a 10ms timer */
+	emulator.timer_id = SDL_AddTimer (10, emulator_timer, NULL);
 }
 
 /***************************************************************************
@@ -213,7 +209,7 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
-	if (intervals >= 100 / nosound_hz) {
+	if (intervals >= 100 / sdl_emulator_hz) {
 		signal_int_flag = TRUE;
 		intervals = 0;
 	}
@@ -228,9 +224,11 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 void clean_up_before_exit(void) {
 	int count;
 
-	if (rcfile.rewrite) rcfile_write();
+	sdl_sound_end();
 
 	if (emulator.timer_id) SDL_RemoveTimer (emulator.timer_id);
+
+	if (rcfile.rewrite) rcfile_write();
 
 	if (control_bar.scaled) SDL_FreeSurface(control_bar.scaled);
 	if (vkeyb.original) SDL_FreeSurface(vkeyb.original);

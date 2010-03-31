@@ -34,7 +34,6 @@
 #include "amiga.h"
 #endif
 
-
 int hsize=ZX_VID_VGA_WIDTH,vsize=ZX_VID_VGA_HEIGHT;
 unsigned char *vptr;
 
@@ -224,7 +223,7 @@ sdl_rcfile_read();	/* Added by Thunor */
 if(sound)
   sound_init();
 #endif
-/*startsigsandtimer();	Thunor: redundant since I use an SDL timer for non OSS sound */
+/*startsigsandtimer();	Thunor: redundant since I now use an SDL timer */
 sdl_timer_init();	/* Added by Thunor */
 mainloop();
 

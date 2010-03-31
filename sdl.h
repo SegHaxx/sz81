@@ -90,6 +90,7 @@
 
 /* Variables */
 int sdl_cl_show_input_id;
+int sdl_emulator_hz;
 
 /* Function prototypes */
 int sdl_init(void);
@@ -101,4 +102,11 @@ void sdl_timer_init(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);
 void sdl_video_update(void);
+int sdl_sound_init(int freq, int *stereo, int *sixteenbit);
+void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
+void sdl_sound_frame(unsigned char *data, int len);
+void sdl_sound_end(void);
+
+
+
 

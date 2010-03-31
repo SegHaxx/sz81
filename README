@@ -40,9 +40,6 @@ Features:
  * Support for portrait orientated screens such as 240x320 and 480x640
  * Maximum porting potential since it only requires SDL
 
-To-Do:
- * OSS to SDL API sound conversion
-
 
 Controls
 ========

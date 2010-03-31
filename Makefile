@@ -17,14 +17,14 @@ BINDIR=$(PREFIX)
 DOCDIR=$(PREFIX)
 PACKAGE_DATA_DIR=$(PREFIX)/data
 
-# Comment this out if you're not compiling on Linux, or some other
-# platform with the OSS (Open Sound System) API available.
+# For sz81 OSS_SOUND_SUPPORT is now synonymous with SDL_SOUND_SUPPORT.
+# Comment this out if you don't want sound support.
 SOUNDDEF=-DOSS_SOUND_SUPPORT
 
 # You won't need to alter these
 TARGET=$(shell cat TARGET)
 SOURCES=smain.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
-	sdl_input.c sdl_resources.c sdl_video.c
+	sdl_input.c sdl_resources.c sdl_sound.c sdl_video.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
 

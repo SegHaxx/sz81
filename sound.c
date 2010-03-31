@@ -48,16 +48,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
+
+#ifndef SZ81	/* Added by Thunor */
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
+#endif
 
 #include "common.h"
 #include "sound.h"
 #include "z80.h"
+
+#ifdef SZ81	/* Added by Thunor */
+#include "sdl.h"
+#endif
 
 
 /* configuration */
@@ -65,10 +72,6 @@ int sound_enabled=0;
 int sound_freq=32000;
 int sound_stereo=0;
 int sound_stereo_acb=0;		/* 1 for ACB stereo, else 0 */
-
-#ifdef SZ81	/* Added by Thunor */
-int sound_hz = 50;
-#endif
 
 /* sound_vsync and sound_ay are in common.c */
 
@@ -88,13 +91,8 @@ int sound_hz = 50;
 /* assume all three tone channels together match the beeper volume.
  * Must be <=127 for all channels; 4 x 31 = 124.
  */
-#if defined(SZ81) && defined(PLATFORM_GP2X)	/* Added by Thunor */
-#define AMPL_BEEPER		15
-#define AMPL_AY_TONE		15	/* three of these */
-#else
 #define AMPL_BEEPER		31
 #define AMPL_AY_TONE		31	/* three of these */
-#endif
 
 /* full range of beeper volume */
 #define VOL_BEEPER		(AMPL_BEEPER*2)
@@ -145,15 +143,19 @@ static struct ay_change_tag ay_change[AY_CHANGE_MAX];
 static int ay_change_count;
 
 
+#ifndef SZ81	/* Added by Thunor */
 static int soundfd=-1;
+#endif
+
 static int sixteenbit=0;
 
-
+#ifndef SZ81	/* Added by Thunor */
 /* using (8) 64 byte frags for 8kHz, scale up for higher */
 #define BASE_SOUND_FRAG_PWR	6
+#endif
 
 
-
+#ifndef SZ81	/* Added by Thunor */
 /* returns non-zero on success, and adjusts freq/stereo args to reflect
  * what we've actually got.
  */
@@ -164,12 +166,7 @@ int frag,tmp;
 if((soundfd=open("/dev/dsp",O_WRONLY))<0)
   return(0);
 
-#if defined(SZ81) && defined(PLATFORM_GP2X)	/* Added by Thunor */
-tmp=AFMT_S16_LE;
-sixteenbit=1;
-#else
 tmp=AFMT_U8;
-#endif
 
 if(ioctl(soundfd,SNDCTL_DSP_SETFMT,&tmp)==-1)
   {
@@ -219,19 +216,24 @@ if(ioctl(soundfd,SNDCTL_DSP_SETFRAGMENT,&frag)<0)
 
 return(1);	/* success */
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void osssound_end(void)
 {
 if(soundfd!=-1)
   close(soundfd);
 }
+#endif
 
 
 void osssound_frame(unsigned char *data,int len)
 {
 static unsigned char buf16[8192];
+#ifndef SZ81	/* Added by Thunor */
 int ret=0,ofs=0;
+#endif
 
 if(sixteenbit)
   {
@@ -249,12 +251,16 @@ if(sixteenbit)
   len<<=1;
   }
 
+#ifdef SZ81	/* Added by Thunor */
+sdl_sound_frame(data, len);
+#else
 while(len)
   {
   ret=write(soundfd,data+ofs,len);
   if(ret>0)
     ofs+=ret,len-=ret;
   }
+#endif
 }
 
 
@@ -300,6 +306,9 @@ ay_change_count=0;
 
 void sound_init(void)
 {
+#ifdef SZ81	/* Added by Thunor */
+if (sdl_sound_init(sound_freq, &sound_stereo, &sixteenbit)) return;
+#else
 if(!osssound_init(&sound_freq,&sound_stereo))
   {
   /* XXX a bit vague, maybe I should put this check in osssound_init() */
@@ -307,6 +316,7 @@ if(!osssound_init(&sound_freq,&sound_stereo))
           "couldn't initialise sound device, sound disabled.\n");
   return;
   }
+#endif
 
 /* important to override this if not using stereo */
 if(!sound_stereo)
@@ -315,7 +325,7 @@ if(!sound_stereo)
 sound_enabled=1;
 
 #ifdef SZ81	/* Added by Thunor */
-sound_framesiz=sound_freq/sound_hz;
+sound_framesiz=sound_freq/sdl_emulator_hz;
 #else
 sound_framesiz=sound_freq/50;
 #endif
@@ -345,7 +355,11 @@ if(sound_enabled)
   {
   if(sound_buf)
     free(sound_buf);
+#ifdef SZ81	/* Added by Thunor */
+  sdl_sound_end();
+#else
   osssound_end();
+#endif
   sound_enabled=0;
   }
 }

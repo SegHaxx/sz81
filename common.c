@@ -24,21 +24,26 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #ifndef SZ81	/* Added by Thunor */
 #include <signal.h>
 #endif
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <dirent.h>
+
 #ifdef SZ81	/* Added by Thunor */
 #include "sdl.h"
 #endif
+
 #include "common.h"
 #include "sound.h"
 #include "z80.h"
 #include "allmain.h"
+
 #ifdef __amigaos4__
 #include "amiga.h"
 #endif
@@ -74,7 +79,6 @@ char *zxpfilename=NULL;
 static unsigned char zxpline[256];
 
 #ifdef SZ81	/* Added by Thunor */
-int nosound_hz = 50;
 int load_selector_state = 0;
 #endif
 
@@ -130,7 +134,7 @@ else
 }
 
 
-#ifndef SZ81	/* Added by Thunor: made redundant as a result of culling startsigsandtimer */
+#ifndef SZ81	/* Added by Thunor */
 static void exit_program_flag_set(int foo)
 {
 exit_program_flag=1;
@@ -138,11 +142,10 @@ exit_program_flag=1;
 #endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void startsigsandtimer()
 {
-#ifndef SZ81	/* Added by Thunor */
 int f,tmp=1000/50;	/* 50 ints/sec */ 
-/*#ifndef __amigaos4__	Thunor: redundant now as we don't even call this function anymore */
 struct sigaction sa;
 struct itimerval itv;
 
@@ -188,9 +191,8 @@ itv.it_interval.tv_usec=(tmp%1000)*1000;
 itv.it_value.tv_sec=itv.it_interval.tv_sec;
 itv.it_value.tv_usec=itv.it_interval.tv_usec;
 setitimer(ITIMER_REAL,&itv,NULL);
-/*#endif	Thunor: redundant now as we don't even call this function anymore */
-#endif
 }
+#endif
 
 
 void loadrom(void)
@@ -1100,9 +1102,11 @@ if(sound_enabled)
    */
   sound_frame();
   
+#ifndef SZ81	/* Added by Thunor: we don't block on sound but continue */
   if(interrupted<2)
     interrupted=1;
   return;
+#endif
   }
 #endif
 
@@ -1113,7 +1117,6 @@ if(sound_enabled)
 while(!signal_int_flag)
   SDL_Delay(10);
 #else
-/*#ifndef __amigaos4__	Thunor: redundant since sz81 won't get here */
 if(first)
   {
   first=0;
@@ -1126,7 +1129,6 @@ if(first)
 /* the procmask stuff is to avoid a race condition */
 while(!signal_int_flag)
   sigsuspend(&oldmask);
-/*#endif	Thunor: redundant since sz81 won't get here */
 #endif
 signal_int_flag=0;
 

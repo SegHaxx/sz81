@@ -23,6 +23,7 @@
 #include "sdl_hotspots.h"
 #include "sdl_input.h"
 #include "sdl_resources.h"
+#include "sdl_sound.h"
 #include "sdl_video.h"
 
 /* Defines */
@@ -31,10 +32,11 @@
 #define SDL_DEBUG_VIDEO
 #define SDL_DEBUG_TIMING
 #define SDL_DEBUG_EVENTS
-#define SDL_DEBUG
 #define SDL_DEBUG_HOTSPOTS
 #define SDL_DEBUG_RCFILE
-#define SDL_DEBUG_FONTS */
+#define SDL_DEBUG_FONTS
+#define SDL_DEBUG_SOUND
+*/
 
 #define TRUE 1
 #define FALSE 0
@@ -48,12 +50,9 @@
 #define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB | COMP_CTB)
 
 /* Emulator variables I require access to */
-#ifdef OSS_SOUND_SUPPORT
-extern int sound_hz;
-#endif
-extern int nosound_hz, scrn_freq, invert_screen, zx80;
+extern int scrn_freq, invert_screen, zx80;
 extern int load_selector_state, refresh_screen, ignore_esc;
-extern int sound;
+extern int sound, sixteenbit;
 extern volatile int signal_int_flag;
 
 /* Variables */
