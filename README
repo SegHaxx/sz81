@@ -120,6 +120,7 @@ For the Amiga:
     to command-line options.  Full details of options can be obtained
     with "sz81 -h".  A list of tooltype equivalents follows:
 
+    -a AYSOUND=QUICKSILVA|ZONX
     -d SHOWDEVIDS
     -i INVERT
     -l AUTOLIST
@@ -127,6 +128,7 @@ For the Amiga:
     -o ZX80
     -p ZXPRINTER=<pbm ouput file>
     -r REFRESH=<1-50>
+    -s SOUND
     -S NOSAVEHOOK
     -T TAGULA
     -u UNEXPANDED

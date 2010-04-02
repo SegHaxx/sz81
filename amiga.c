@@ -144,6 +144,30 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 				sdl_cl_show_input_id=1;
 			}
 
+			if((s = IIcon->FindToolType(toolarray,"SOUND")))
+			{
+				sound=1;
+				sound_vsync=1;
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"AYSOUND")))
+			{
+				sound=1;
+				sound_ay=1;
+
+				/* If the value is unknown, choose Quicksilva,
+ 				 * if somebody has specified QUCKSILVA|ZONX
+ 				 * then Zonx takes precendence. */
+
+				sound_ay_type=AY_TYPE_QUICKSILVA;
+
+				if(IIcon->MatchToolValue(s, "QUICKSILVA"))
+					sound_ay_type=AY_TYPE_QUICKSILVA;
+
+				if(IIcon->MatchToolValue(s, "ZONX"))
+					sound_ay_type=AY_TYPE_ZONX;
+			}
+
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
 			{
 			 	strcpy(amiga_resource_file, s);
