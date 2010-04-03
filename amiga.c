@@ -20,6 +20,9 @@ struct Library *IconBase;
 struct Library *AslBase;
 struct AslIFace *IAsl;
 
+struct IconIFace *IIcon;
+struct AslIFace *IAsl;
+
 extern int unexpanded, autolist, load_hook, save_hook;
 extern char *zxpfilename;
 static char USED ver[] = "\0$VER:sz81 " VERSION " (" DATE ")\0";
