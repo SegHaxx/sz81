@@ -1110,13 +1110,13 @@ if(sound_enabled)
   }
 #endif
 
-/* we leave it blocked most of the time, only unblocking
- * temporarily with sigsuspend().
- */
 #ifdef SZ81	/* Added by Thunor */
 while(!signal_int_flag)
   SDL_Delay(10);
 #else
+/* we leave it blocked most of the time, only unblocking
+ * temporarily with sigsuspend().
+ */
 if(first)
   {
   first=0;
@@ -1130,6 +1130,7 @@ if(first)
 while(!signal_int_flag)
   sigsuspend(&oldmask);
 #endif
+
 signal_int_flag=0;
 
 if(interrupted<2)
@@ -1299,7 +1300,12 @@ int top,cursel;
 int quit,got_one,isdir;
 char *filearr;
 char *ptr;
+#ifdef SZ81	/* Added by Thunor */
+int krwait = KEY_REPEAT_DELAY / (1000 / emulator.speed);
+int krwrep = KEY_REPEAT_INTERVAL / 2 / (1000 / emulator.speed);
+#else
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
+#endif
 int krheld=0,krsubh=0;
 int oldkey,key,virtkey;
 #endif

@@ -24,10 +24,7 @@
 #define DEVICE_JOYSTICK 2
 #define DEVICE_CURSOR 3
 
-#define JOYSTICK_DEAD_ZONE 50
-
-#define KEY_REPEAT_DELAY 400		/* Default granularity of 20ms */
-#define KEY_REPEAT_INTERVAL 80		/* Default granularity of 20ms */
+#define JOYSTICK_DEAD_ZONE 75
 
 #define CTRL_REMAPPER_INTERVAL 520	/* Default granularity of 40ms */
 
@@ -39,7 +36,7 @@
 /* Variables */
 char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
-int joystick_dead_zone;
+int joystick_dead_zone, temp_joystick_dead_zone;
 int current_input_id;
 
 struct ctrlremap {

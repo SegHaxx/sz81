@@ -207,6 +207,10 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_VKEYB;
 				if (strstr(value, "COMP_CTB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_CTB;
+				if (strstr(value, "COMP_RUNOPT0") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPT0;
+				if (strstr(value, "COMP_RUNOPT1") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPT1;
 			}
 			strcpy(key, "ctrl_remap.protected=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -413,20 +417,27 @@ void rcfile_write(void) {
 				strcat(value, "COMP_ALL");
 			} else {
 				if (ctrl_remaps[count].components & COMP_EMU) {
-					strcat(value, "COMP_EMU");
-					found = TRUE;
+					strcat(value, "COMP_EMU"); found = TRUE;
 				}				
 				if (ctrl_remaps[count].components & COMP_LOAD) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_LOAD");
+					strcat(value, "COMP_LOAD"); found = TRUE;
 				}				
 				if (ctrl_remaps[count].components & COMP_VKEYB) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_VKEYB");
+					strcat(value, "COMP_VKEYB"); found = TRUE;
 				}				
 				if (ctrl_remaps[count].components & COMP_CTB) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_CTB");
+					strcat(value, "COMP_CTB"); found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_RUNOPT0) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_RUNOPT0"); found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_RUNOPT1) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_RUNOPT1"); found = TRUE;
 				}				
 			}				
 			fprintf(fp, "%s=%s\n", key, value);

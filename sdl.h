@@ -27,6 +27,8 @@
 #include <SDL/SDL.h>
 
 /* Defines */
+#define KEY_REPEAT_DELAY 300		/* Default granularity of 20ms */
+#define KEY_REPEAT_INTERVAL 100		/* Default granularity of 20ms */
 
 /* SVGAlib keyboard scancodes (smain.c currently uses these) */
 #define SCANCODE_ESCAPE 1
@@ -43,7 +45,11 @@
 #define SCANCODE_F11 87
 #define SCANCODE_F12 88
 #define SCANCODE_HOME 102
+#define SCANCODE_PAGEUP 104
 #define SCANCODE_END 107
+#define SCANCODE_PAGEDOWN 109
+#define SCANCODE_INSERT 110
+#define SCANCODE_REMOVE 111
 #define SCANCODE_LEFTSHIFT 42
 #define SCANCODE_RIGHTSHIFT 54
 #define SCANCODE_LEFTCONTROL 29
@@ -89,8 +95,15 @@
 #define SCANCODE_B 48
 
 /* Variables */
+struct {
+	int state;
+	int xoffset;
+	int yoffset;
+	SDL_TimerID timer_id;
+	int speed;
+} emulator;
+
 int sdl_cl_show_input_id;
-int sdl_emulator_hz;
 
 /* Function prototypes */
 int sdl_init(void);

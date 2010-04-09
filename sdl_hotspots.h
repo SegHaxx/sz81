@@ -16,13 +16,15 @@
  */
 
 /* Defines */
-#define MAX_HOTSPOTS 64
+#define MAX_HOTSPOTS 96
 
 /* Hotspot group IDs */
 #define HS_GRP_ROOT 0
 #define HS_GRP_LOAD 1
 #define HS_GRP_VKEYB 2
 #define HS_GRP_CTB 3
+#define HS_GRP_RUNOPT0 4
+#define HS_GRP_RUNOPT1 5
 
 /* Hotspot IDs (hotspots[] indexes which are also zorders) */
 #define HS_ROOT_CANVAS 0
@@ -44,6 +46,13 @@
 #define HS_CTB_INVERSE 51
 #define HS_CTB_ALPHA_DN 52
 #define HS_CTB_ALPHA_UP 53
+#define HS_RUNOPT0_RUNOPT0 54
+#define HS_RUNOPT0_JDEADZ_DN 55
+#define HS_RUNOPT0_JDEADZ_UP 56
+#define HS_RUNOPT0_SAVE 57
+#define HS_RUNOPT0_EXIT 58
+#define HS_RUNOPT0_NEXT 59
+#define HS_RUNOPT1_RUNOPT1 60
 
 /* Hotspot properties */
 #define HS_PROP_ONOFF 1

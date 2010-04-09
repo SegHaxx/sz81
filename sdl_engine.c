@@ -76,7 +76,6 @@ int sdl_init(void) {
 	/* Initialise everything to a default here that could possibly be
 	 * overridden by a command line option or from an rcfile */
 	joystick_dead_zone = JOYSTICK_DEAD_ZONE;
-	
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
 	colours.emu_fg = 0x0;
@@ -91,19 +90,18 @@ int sdl_init(void) {
 	colours.hs_vkeyb_zx81_toggle_pressed = 0xff4000;
 	colours.hs_ctb_selected = 0x00ff00;
 	colours.hs_ctb_pressed = 0xffc000;
-
-	/* Initialise other things that need to be done before sdl_video_setmode */
-	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
-	vkeyb.alpha = SDL_ALPHA_OPAQUE;
-
 	rcfile.rewrite = FALSE;
-	
 	sdl_cl_show_input_id = FALSE;
 	current_input_id = UNDEFINED;
-	
 	sdl_sound.enabled = FALSE;
-	
-	sdl_emulator_hz = 50;	/* 50 is the default */
+
+	/* Initialise other things that need to be done before sdl_video_setmode */
+	emulator.state = TRUE;
+	emulator.speed = 50;	/* 50Hz is the default */
+	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
+	vkeyb.alpha = SDL_ALPHA_OPAQUE;
+	runtime_options0.state = FALSE;
+	runtime_options1.state = FALSE;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -151,35 +149,59 @@ void component_executive(void) {
 	static int ctrl_remapper_state = FALSE;
 	int found = FALSE;
 	
+	/* Monitor emulator's state */
+	if ((active_components & COMP_EMU) != (emulator.state * COMP_EMU)) {
+		if (!emulator.state && load_selector_state) load_selector_state = FALSE;
+		found = TRUE;
+	}
+
 	/* Monitor load selector's state */
 	if ((active_components & COMP_LOAD) != (load_selector_state * COMP_LOAD)) {
-		/* Hide the vkeyb if the file selector is active */
 		if (load_selector_state && vkeyb.state) vkeyb.state = FALSE;
+		found = TRUE;
+	}
+
+	/* Monitor runtime options' state */
+	if ((active_components & COMP_RUNOPT0) != (runtime_options0.state * COMP_RUNOPT0)) {
+		if (runtime_options0.state && vkeyb.state) vkeyb.state = FALSE;
+		found = TRUE;
+	}
+
+	/* Monitor runtime options' state */
+	if ((active_components & COMP_RUNOPT1) != (runtime_options1.state * COMP_RUNOPT1)) {
+		if (runtime_options1.state && vkeyb.state) vkeyb.state = FALSE;
 		found = TRUE;
 	}
 
 	/* Monitor virtual keyboard's state */
 	if ((active_components & COMP_VKEYB) != (vkeyb.state * COMP_VKEYB)) {
-		keyboard_buffer_reset();
-		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 		if (!vkeyb.state) video.redraw = TRUE;
 		found = TRUE;
 	}
 
-	/* Update hotspot states if a state has changed */
-	if (found) hotspots_update();
+	if (found) {
+		keyboard_buffer_reset();
+		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+		/* Update hotspot states */
+		hotspots_update();
+	}
 
 	/* Monitor control remapper's state */ 
 	if (ctrl_remapper_state != ctrl_remapper.state) {
 		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
 	}
-	/* Manage interval decrementing and resetting from here */
+	/* Manage control remapper's interval decrementing and resetting from here */
 	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
 		ctrl_remapper.interval = ctrl_remapper.master_interval;
 
 	/* Maintain a copy of current program component states  */
 	ctrl_remapper_state = ctrl_remapper.state;
-	active_components = COMP_EMU;
+	active_components = 0;
+	if (emulator.state) {
+		active_components |= COMP_EMU;
+	} else {
+		active_components &= ~COMP_EMU;
+	}
 	if (load_selector_state) {
 		active_components |= COMP_LOAD;
 	} else {
@@ -190,6 +212,39 @@ void component_executive(void) {
 	} else {
 		active_components &= ~COMP_VKEYB;
 	}
+	if (runtime_options0.state) {
+		active_components |= COMP_RUNOPT0;
+	} else {
+		active_components &= ~COMP_RUNOPT0;
+	}
+	if (runtime_options1.state) {
+		active_components |= COMP_RUNOPT1;
+	} else {
+		active_components &= ~COMP_RUNOPT1;
+	}
+}
+
+/***************************************************************************
+ * Get Active Component                                                    *
+ ***************************************************************************/
+/* This returns the main currently active component */
+
+int get_active_component(void) {
+	int retval;
+	
+	if (runtime_options0.state) {
+		retval = COMP_RUNOPT0;
+	} else if (runtime_options1.state) {
+		retval = COMP_RUNOPT1;
+	} else if (vkeyb.state) {
+		retval = COMP_VKEYB;
+	} else if (load_selector_state) {
+		retval = COMP_LOAD;
+	} else {
+		retval = COMP_EMU;
+	}
+	
+	return retval;
 }
 
 /***************************************************************************
@@ -209,7 +264,7 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
-	if (intervals >= 100 / sdl_emulator_hz) {
+	if (intervals >= 100 / emulator.speed) {
 		signal_int_flag = TRUE;
 		intervals = 0;
 	}

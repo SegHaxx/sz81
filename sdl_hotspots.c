@@ -132,6 +132,23 @@ void hotspots_init(void) {
 	hotspots[HS_CTB_ALPHA_DN].remap_id = SDLK_HOME;
 	hotspots[HS_CTB_ALPHA_UP].remap_id = SDLK_END;
 
+	/* Initialise runtime options hotspots */
+	hotspots[HS_RUNOPT0_RUNOPT0].flags &= ~HS_PROP_NAVIGABLE;
+	for (count = 0; count < 6; count++) {
+		hotspots[HS_RUNOPT0_RUNOPT0 + count].gid = HS_GRP_RUNOPT0;
+	}
+	hotspots[HS_RUNOPT0_JDEADZ_DN].remap_id = SDLK_INSERT;
+	hotspots[HS_RUNOPT0_JDEADZ_UP].remap_id = SDLK_DELETE;
+	hotspots[HS_RUNOPT0_SAVE].remap_id = SDLK_F2;
+	hotspots[HS_RUNOPT0_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPT0_NEXT].remap_id = SDLK_PAGEDOWN;
+
+	/* Initialise runtime options hotspots */
+	hotspots[HS_RUNOPT1_RUNOPT1].flags &= ~HS_PROP_NAVIGABLE;
+	for (count = 0; count < 1; count++) {
+		hotspots[HS_RUNOPT1_RUNOPT1 + count].gid = HS_GRP_RUNOPT1;
+	}
+
 	/* Resize all hotspots for the current screen dimensions */
 	hotspots_resize();
 
@@ -233,6 +250,38 @@ void hotspots_resize(void) {
 		hotspots[count].hl_h = hotspots[count].hit_h - 2 * video.scale;
 	}
 
+	/* Resize the runtime options hotspots */
+	hotspots[HS_RUNOPT0_RUNOPT0].hit_x = runtime_options0.xoffset;
+	hotspots[HS_RUNOPT0_RUNOPT0].hit_y = runtime_options0.yoffset;
+	hotspots[HS_RUNOPT0_RUNOPT0].hit_w = 256 * video.scale;
+	hotspots[HS_RUNOPT0_RUNOPT0].hit_h = 192 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_DN].hit_x = runtime_options0.xoffset + 18.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_DN].hit_y = runtime_options0.yoffset + 18.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_DN].hit_w = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_DN].hit_h = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_UP].hit_x = runtime_options0.xoffset + 24.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_UP].hit_y = runtime_options0.yoffset + 18.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_UP].hit_w = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_JDEADZ_UP].hit_h = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_SAVE].hit_x = runtime_options0.xoffset + 10 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_SAVE].hit_y = runtime_options0.yoffset + 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_SAVE].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_SAVE].hit_h = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_EXIT].hit_x = runtime_options0.xoffset + 18 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_EXIT].hit_y = runtime_options0.yoffset + 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_EXIT].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_EXIT].hit_h = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_NEXT].hit_x = runtime_options0.xoffset + 25 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_NEXT].hit_y = runtime_options0.yoffset + 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_NEXT].hit_w = 7 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_NEXT].hit_h = 2 * 8 * video.scale;
+
+	/* Resize the runtime options hotspots */
+	hotspots[HS_RUNOPT1_RUNOPT1].hit_x = runtime_options1.xoffset;
+	hotspots[HS_RUNOPT1_RUNOPT1].hit_y = runtime_options1.yoffset;
+	hotspots[HS_RUNOPT1_RUNOPT1].hit_w = 256 * video.scale;
+	hotspots[HS_RUNOPT1_RUNOPT1].hit_h = 192 * video.scale;
+
 }
 
 /***************************************************************************
@@ -269,6 +318,24 @@ void hotspots_update(void) {
 	} else {
 		for (count = 0; count < MAX_HOTSPOTS; count++)
 			if (hotspots[count].gid == HS_GRP_CTB) hotspots[count].flags &= ~HS_PROP_VISIBLE;
+	}
+
+	/* Update the runtime options hotspots */
+	if (runtime_options0.state) {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_RUNOPT0) hotspots[count].flags |= HS_PROP_VISIBLE;
+	} else {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_RUNOPT0) hotspots[count].flags &= ~HS_PROP_VISIBLE;
+	}
+
+	/* Update the runtime options hotspots */
+	if (runtime_options1.state) {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_RUNOPT1) hotspots[count].flags |= HS_PROP_VISIBLE;
+	} else {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_RUNOPT1) hotspots[count].flags &= ~HS_PROP_VISIBLE;
 	}
 
 }

@@ -47,7 +47,9 @@
 #define COMP_LOAD 2
 #define COMP_VKEYB 4
 #define COMP_CTB 8
-#define COMP_ALL (COMP_EMU | COMP_LOAD | COMP_VKEYB | COMP_CTB)
+#define COMP_RUNOPT0 16
+#define COMP_RUNOPT1 32
+#define COMP_ALL ((COMP_RUNOPT1 - 1) | COMP_RUNOPT1)
 
 /* Emulator variables I require access to */
 extern int scrn_freq, invert_screen, zx80;
@@ -57,10 +59,16 @@ extern volatile int signal_int_flag;
 
 /* Variables */
 struct {
+	int state;
 	int xoffset;
 	int yoffset;
-	SDL_TimerID timer_id;
-} emulator;
+} runtime_options0;
+
+struct {
+	int state;
+	int xoffset;
+	int yoffset;
+} runtime_options1;
 
 /* Emulator functions I require access to */
 extern void exit_program(void);
@@ -68,6 +76,7 @@ extern void reset81(void);
 
 /* Function prototypes */
 void component_executive(void);
+int get_active_component(void);
 Uint32 emulator_timer (Uint32 interval, void *param);
 
 

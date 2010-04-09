@@ -163,62 +163,98 @@ int keyboard_init(void) {
 	/* Keyboard to keyboard */
 	/* Universally active */
 	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_RSHIFT;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+
+	/* Active within the emulator and vkeyb/ctb only */
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_7;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_DOWN;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_6;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_5;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_8;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_BACKSPACE;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_0;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	ctrl_remaps[++index].components = COMP_EMU | COMP_VKEYB;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_COMMA;
 	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].remap_id = SDLK_PERIOD;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	/* Index 6 */
-	ctrl_remaps[++index].components = COMP_ALL;
-	ctrl_remaps[index].protected = FALSE;
+	/* Active within the runopt only */
+	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
-	ctrl_remaps[index].id = SDLK_RSHIFT;
-	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-	ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+	ctrl_remaps[index].id = SDLK_UP;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_N;
 
-	/* Joystick to keyboard and joystick to virtual device.
+	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_DOWN;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_S;
+
+	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_LEFT;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_W;
+
+	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_RIGHT;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_E;
+
+	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_RETURN;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_HIT;
+
+	/* Joystick to some other device.
 	 * Platform specific joysticks can be hardcoded with some defaults
 	 * here but otherwise their configurations should be entirely read
 	 * in from the rcfile since their button/axis layouts are unknown */
@@ -631,7 +667,7 @@ int keyboard_init(void) {
 
 	/* Initialise the control remapper */
 	ctrl_remapper.state = FALSE;
-	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (sdl_emulator_hz / scrn_freq));
+	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
 	ctrl_remapper.interval = 0;
 
 	return 0;
@@ -660,9 +696,10 @@ char *keyboard_getstate(void) {
 int keyboard_update(void) {
 	static int skip_update = TRUE, last_hs_pressed[2];
 	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
+	static int last_runopt_comp = COMP_RUNOPT0;
 	int hs_load_selected, hs_vkeyb_ctb_selected;
 	int eventfound = FALSE, count, found;
-	int axis_end = 0, active_component;
+	int axis_end = 0;
 	int device, id, mod_id, state;
 	SDL_Event event, virtualevent;
 	SDLMod modstate;
@@ -876,15 +913,6 @@ int keyboard_update(void) {
 				}
 			#endif
 
-			/* Compute the main active program component */
-			if (vkeyb.state) {
-				active_component = COMP_VKEYB;
-			} else if (load_selector_state) {
-				active_component = COMP_LOAD;
-			} else {
-				active_component = COMP_EMU;
-			}
-
 			if (!ctrl_remapper.state) {
 				/* Remap controls from any input device to any input device including a
 				 * virtual cursor device. So whatever was found above we can now convert
@@ -895,7 +923,7 @@ int keyboard_update(void) {
 				if (device != UNDEFINED) {
 					for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 						if (ctrl_remaps[count].device != UNDEFINED &&
-							active_component & ctrl_remaps[count].components &&
+							get_active_component() & ctrl_remaps[count].components &&
 							device == ctrl_remaps[count].device && id == ctrl_remaps[count].id) {
 							device = ctrl_remaps[count].remap_device;
 							id = ctrl_remaps[count].remap_id;
@@ -914,8 +942,8 @@ int keyboard_update(void) {
 				 * with now as either they are moving a selection box around a GUI component
 				 * or the user has hit a hotspot which will result in the hit being remapped
 				 * again to a mouse button. This system maintains a physical hardware input 
-				 * layer at the top, a dynamic virtual input layer in the middle with the
-				 * target actions at the bottom */
+				 * layer at the bottom, a dynamic virtual input layer in the middle with the
+				 * target actions at the top */
 				if (device == DEVICE_CURSOR) {
 					/* Locate currently selected hotspot for group LOAD visible or not */
 					for (count = 0; count < MAX_HOTSPOTS; count++)
@@ -949,7 +977,7 @@ int keyboard_update(void) {
 						} else if (id == CURSOR_REMAP) {
 							/* Initiate joystick control remapping if the virtual keyboard is
 							 * active (this could be extended to include other components later) */
-							if (active_component == COMP_VKEYB) {
+							if (get_active_component() == COMP_VKEYB) {
 								ctrl_remapper.state = TRUE;
 							}
 						} else if (id == CURSOR_N) {
@@ -1087,7 +1115,8 @@ int keyboard_update(void) {
 					if (id == SDLK_F1) {
 						/* Toggle the virtual keyboard */
 						if (state == SDL_PRESSED) {
-							if (!load_selector_state) {
+							if (!load_selector_state &&
+								!runtime_options0.state && !runtime_options1.state) {
 								vkeyb.state = !vkeyb.state;
 							}
 						}
@@ -1099,9 +1128,13 @@ int keyboard_update(void) {
 						if (state == SDL_PRESSED) {
 							/* Reserved for future Load State */
 						}
+					} else if (id == SDLK_F4) {
+						if (state == SDL_PRESSED) {
+							/* Reserved for future Emulation Speed reduce */
+						}
 					} else if (id == SDLK_F5) {
 						if (state == SDL_PRESSED) {
-							/* Reserved for future Options */
+							/* Reserved for future Emulation Speed increase */
 						}
 					} else if (id == SDLK_F6) {
 						if (vkeyb.state) {
@@ -1136,6 +1169,27 @@ int keyboard_update(void) {
 							control_bar_init();
 							video.redraw = TRUE;
 						}
+					} else if (id == SDLK_F10) {
+						/* Exit the emulator */
+						if (state == SDL_RELEASED) {
+							exit_program();
+						}
+					} else if (id == SDLK_F11) {
+						#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
+							/* Toggle fullscreen on supported platforms */
+							if (state == SDL_PRESSED) {
+								video.fullscreen ^= SDL_FULLSCREEN;
+								sdl_video_setmode();
+							}
+						#endif
+					} else if (id == SDLK_F12) {
+						/* Reset the emulator */
+						if (state == SDL_PRESSED) {
+							if (!load_selector_state &&
+								!runtime_options0.state && !runtime_options1.state) {
+								if (!ignore_esc) reset81();
+							}
+						}
 					} else if (id == SDLK_HOME || id == SDLK_END) {
 						if (vkeyb.state) {
 							/* Adjust the vkeyb alpha */
@@ -1161,23 +1215,53 @@ int keyboard_update(void) {
 								key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 							}
 						}
-					} else if (id == SDLK_F10) {
-						/* Exit the emulator */
-						if (state == SDL_RELEASED) {
-							exit_program();
-						}
-					} else if (id == SDLK_F11) {
-						#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
-							/* Toggle fullscreen on supported platforms */
-							if (state == SDL_PRESSED) {
-								video.fullscreen ^= SDL_FULLSCREEN;
-								sdl_video_setmode();
-							}
-						#endif
-					} else if (id == SDLK_F12) {
-						/* Reset the emulator */
+					} else if (id == SDLK_ESCAPE) {
+						/* Toggle runtime options */
 						if (state == SDL_PRESSED) {
-							if (!ignore_esc) reset81();
+							if (!load_selector_state) {
+								if (!runtime_options0.state && !runtime_options1.state) {
+									if (last_runopt_comp == COMP_RUNOPT0) {
+										runtime_options0.state = TRUE;
+									} else {
+										runtime_options1.state = TRUE;
+									}
+									emulator.state = FALSE;
+								} else {
+									runtime_options0.state = runtime_options1.state = FALSE;
+									emulator.state = TRUE;
+								}
+							}
+						}
+					} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
+						/* Change the current options page */
+						if (state == SDL_PRESSED) {
+							if (runtime_options0.state) {
+								if (id == SDLK_PAGEDOWN) {
+									runtime_options0.state = FALSE;
+									runtime_options1.state = TRUE;
+									last_runopt_comp = COMP_RUNOPT1;
+								}
+							} else if (runtime_options1.state) {
+								if (id == SDLK_PAGEUP) {
+									runtime_options1.state = FALSE;
+									runtime_options0.state = TRUE;
+									last_runopt_comp = COMP_RUNOPT0;
+								}
+							}
+						}
+					} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
+						if (runtime_options0.state) {
+							if (state == SDL_PRESSED) {
+								/* Adjust the joystick axis dead zone */
+								key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
+								if (id == SDLK_INSERT && joystick_dead_zone > 1) {
+									joystick_dead_zone--;
+								} else if (id == SDLK_DELETE && joystick_dead_zone < 99) {
+									joystick_dead_zone++;
+								}
+							} else {
+								key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+							}
 						}
 					}
 				}
@@ -1318,12 +1402,12 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay */
-		interval = KEY_REPEAT_DELAY / (1000 / sdl_emulator_hz);
+		interval = KEY_REPEAT_DELAY / (1000 / emulator.speed);
 	} else if (funcid == KRM_FUNC_TICK) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset to the initial delay */
-				interval = KEY_REPEAT_INTERVAL / (1000 / sdl_emulator_hz);
+				interval = KEY_REPEAT_INTERVAL / (1000 / emulator.speed);
 				SDL_PushEvent(&repeatevent);
 			}
 		}
@@ -1373,7 +1457,11 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_F11: return SCANCODE_F11;
 			case SDLK_F12: return SCANCODE_F12;
 			case SDLK_HOME: return SCANCODE_HOME;
+			case SDLK_PAGEUP: return SCANCODE_PAGEUP;
 			case SDLK_END: return SCANCODE_END;
+			case SDLK_PAGEDOWN: return SCANCODE_PAGEDOWN;
+			case SDLK_INSERT: return SCANCODE_INSERT;
+			case SDLK_DELETE: return SCANCODE_REMOVE;
 			case SDLK_LSHIFT: return SCANCODE_LEFTSHIFT;
 			case SDLK_RSHIFT: return SCANCODE_RIGHTSHIFT;
 			case SDLK_LCTRL: return SCANCODE_LEFTCONTROL;
@@ -1435,7 +1523,11 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_F11: return SDLK_F11;
 			case SCANCODE_F12: return SDLK_F12;
 			case SCANCODE_HOME: return SDLK_HOME;
+			case SCANCODE_PAGEUP: return SDLK_PAGEUP;
 			case SCANCODE_END: return SDLK_END;
+			case SCANCODE_PAGEDOWN: return SDLK_PAGEDOWN;
+			case SCANCODE_INSERT: return SDLK_INSERT;
+			case SCANCODE_REMOVE: return SDLK_DELETE;
 			case SCANCODE_LEFTSHIFT: return SDLK_LSHIFT;
 			case SCANCODE_RIGHTSHIFT: return SDLK_RSHIFT;
 			case SCANCODE_LEFTCONTROL: return SDLK_LCTRL;

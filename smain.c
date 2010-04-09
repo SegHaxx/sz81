@@ -118,6 +118,9 @@ if(keyboard_keypressed(SCANCODE_F1))
 
 /* XXX ideally want to support DEL etc. */
 
+if (emulator.state)	/* Added by Thunor: this can prevent the emulator from receiving user input */
+  {
+
 for(y=0;y<8;y++)		/* 8 half-rows */
   {
   b=0;	/* we set bits in b as appropriate */
@@ -190,6 +193,8 @@ for(y=0;y<8;y++)		/* 8 half-rows */
   
   keyports[y]=((b^31)|0xe0);	/* some things need top bits to be 1 */
   }
+
+  }	/* Added by Thunor */
 }
 
 

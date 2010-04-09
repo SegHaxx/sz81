@@ -1,8 +1,8 @@
-2010-03-31
+2010-03-31 Thunor <thunorsif_at_hotmail.com>
 * Replaced the OSS (Open Sound System) API with the portable SDL API.
 
-2010-03-24
-* 2.1-5 released
+2010-03-24 Thunor <thunorsif_at_hotmail.com>
+* Version 2.1-5 released
 
 2010-03-22 Thunor <thunorsif_at_hotmail.com>
 * Fixed an issue with the load selector changing the working directory
