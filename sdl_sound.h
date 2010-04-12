@@ -16,15 +16,8 @@
  */
 
 /* Defines */
-#define SOUND_BUFFER_SIZE (1024 * 16)
 
 /* Variables */
-struct {
-	int enabled;
-	Uint8 buffer[SOUND_BUFFER_SIZE];
-	int buffer_start;
-	int buffer_end;
-} sdl_sound;
 
 /* Function prototypes */
 

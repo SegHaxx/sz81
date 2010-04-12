@@ -76,6 +76,11 @@ int sdl_init(void) {
 	/* Initialise everything to a default here that could possibly be
 	 * overridden by a command line option or from an rcfile */
 	joystick_dead_zone = JOYSTICK_DEAD_ZONE;
+	#if defined(PLATFORM_GP2X)
+		sdl_sound.volume = 30;
+	#else
+		sdl_sound.volume = 128;
+	#endif
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
 	colours.emu_fg = 0x0;
@@ -92,18 +97,18 @@ int sdl_init(void) {
 	colours.hs_ctb_pressed = 0xffc000;
 	colours.hs_options_selected = 0x00ff00;
 	colours.hs_options_pressed = 0xffc000;
-	rcfile.rewrite = FALSE;
 	sdl_cl_show_input_id = FALSE;
 	current_input_id = UNDEFINED;
-	sdl_sound.enabled = FALSE;
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
+	sdl_sound.state = FALSE;
 	emulator.state = TRUE;
 	emulator.speed = 50;	/* 50Hz is the default */
 	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	runtime_options0.state = FALSE;
 	runtime_options1.state = FALSE;
+	rcfile.rewrite = FALSE;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {

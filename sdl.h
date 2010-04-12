@@ -30,8 +30,12 @@
 #define KEY_REPEAT_DELAY 300		/* Default granularity of 20ms */
 #define KEY_REPEAT_INTERVAL 100		/* Default granularity of 20ms */
 
+#define SOUND_BUFFER_SIZE (1024 * 16)
+
 /* SVGAlib keyboard scancodes (smain.c currently uses these) */
 #define SCANCODE_ESCAPE 1
+#define SCANCODE_MINUS 12
+#define SCANCODE_EQUAL 13
 #define SCANCODE_F1 59
 #define SCANCODE_F2 60
 #define SCANCODE_F3 61
@@ -95,6 +99,8 @@
 #define SCANCODE_B 48
 
 /* Variables */
+int sdl_cl_show_input_id;
+
 struct {
 	int state;
 	int xoffset;
@@ -103,7 +109,13 @@ struct {
 	int speed;
 } emulator;
 
-int sdl_cl_show_input_id;
+struct {
+	int state;
+	int volume;
+	Uint8 buffer[SOUND_BUFFER_SIZE];
+	int buffer_start;
+	int buffer_end;
+} sdl_sound;
 
 /* Function prototypes */
 int sdl_init(void);

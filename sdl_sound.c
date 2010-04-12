@@ -35,7 +35,7 @@ int sdl_sound_init(int freq, int *stereo, int *sixteenbit) {
 	SDL_AudioSpec desired, obtained;
 	
 	sdl_sound.buffer_start = sdl_sound.buffer_end = 0;
-
+	
 	desired.freq = freq;
 	#if defined(PLATFORM_GP2X)
 		desired.format = AUDIO_U16;
@@ -58,7 +58,7 @@ int sdl_sound_init(int freq, int *stereo, int *sixteenbit) {
 		return TRUE;
 	}
 
-	sdl_sound.enabled = TRUE;
+	sdl_sound.state = TRUE;
 
 	*stereo = obtained.channels - 1;
 	*sixteenbit = (obtained.format & 0xff) / 16;
@@ -156,8 +156,8 @@ void sdl_sound_frame(unsigned char *data, int len) {
  ***************************************************************************/
 
 void sdl_sound_end(void) {
-	if (sdl_sound.enabled) {
-		sdl_sound.enabled = FALSE;
+	if (sdl_sound.state) {
+		sdl_sound.state = FALSE;
 		SDL_CloseAudio();
 	}
 }

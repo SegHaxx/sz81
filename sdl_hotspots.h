@@ -66,9 +66,11 @@
 #define HS_RUNOPT0_EXIT 71
 #define HS_RUNOPT0_NEXT 72
 #define HS_RUNOPT1_RUNOPT1 73
-#define HS_RUNOPT1_BACK 74
-#define HS_RUNOPT1_SAVE 75
-#define HS_RUNOPT1_EXIT 76
+#define HS_RUNOPT1_VOLUME_DN 74
+#define HS_RUNOPT1_VOLUME_UP 75
+#define HS_RUNOPT1_BACK 76
+#define HS_RUNOPT1_SAVE 77
+#define HS_RUNOPT1_EXIT 78
 
 /* Hotspot properties */
 #define HS_PROP_ONOFF 1

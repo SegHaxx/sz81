@@ -69,7 +69,7 @@ int runtime_options0_textinvcoords[8 * 2] = {
 };
 
 char *runtime_options1_text[22] = {
-	"",
+	"Volume\x90 \x85   \x90 \x85",
 	"",
 	"",
 	"",
@@ -92,10 +92,14 @@ char *runtime_options1_text[22] = {
 	"",
 	"\x90 \x85" "Back   Save    Exit          "
 };
-char *runtime_options1_textinv[1] = {
+char *runtime_options1_textinv[3] = {
+	"<",
+	">",
 	"<"
 };
-int runtime_options1_textinvcoords[1 * 2] = {
+int runtime_options1_textinvcoords[3 * 2] = {
+	7, 2,
+	13, 2,
 	1, 23	
 };
 
@@ -418,9 +422,15 @@ void sdl_video_update(void) {
 			}
 			SDL_FreeSurface(renderedtext);
 		} else {
-
-
-
+			sprintf(text, "%3i", sdl_sound.volume);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+			dstrect.x = srcx + 9 * 8 * video.scale; dstrect.y = srcy + 2 * 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
 		}
 		/* Now write the few inverse chars */
 		colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
@@ -438,7 +448,7 @@ void sdl_video_update(void) {
 				SDL_FreeSurface(renderedtext);
 			}
 		} else {
-			for (desy = 0; desy < 1; desy++) {
+			for (desy = 0; desy < 3; desy++) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, runtime_options1_textinv[desy],
 					fg_colour, bg_colour);
 				dstrect.x = srcx + runtime_options1_textinvcoords[desy * 2] * 8 * video.scale;

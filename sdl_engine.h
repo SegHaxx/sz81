@@ -73,6 +73,9 @@ struct {
 /* Emulator functions I require access to */
 extern void exit_program(void);
 extern void reset81(void);
+#ifdef OSS_SOUND_SUPPORT
+extern void sound_ay_setvol(void);
+#endif
 
 /* Function prototypes */
 void component_executive(void);

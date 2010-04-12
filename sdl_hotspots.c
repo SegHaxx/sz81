@@ -159,13 +159,15 @@ void hotspots_init(void) {
 
 	/* Initialise runtime options hotspots */
 	hotspots[HS_RUNOPT1_RUNOPT1].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = 0; count < 4; count++) {
+	for (count = 0; count < 6; count++) {
 		hotspots[HS_RUNOPT1_RUNOPT1 + count].gid = HS_GRP_RUNOPT1;
 	}
+	hotspots[HS_RUNOPT1_VOLUME_DN].remap_id = SDLK_MINUS;
+	hotspots[HS_RUNOPT1_VOLUME_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_RUNOPT1_VOLUME_UP].remap_id = SDLK_EQUALS;
 	hotspots[HS_RUNOPT1_BACK].remap_id = SDLK_PAGEUP;
 	hotspots[HS_RUNOPT1_SAVE].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPT1_EXIT].remap_id = SDLK_ESCAPE;
-	hotspots[HS_RUNOPT1_EXIT].flags |= HS_PROP_SELECTED;	/* Default selected */
 
 	/* Resize all hotspots for the current screen dimensions */
 	hotspots_resize();
@@ -348,6 +350,12 @@ void hotspots_resize(void) {
 	}
 	hotspots[HS_RUNOPT1_RUNOPT1].hit_w = 256 * video.scale;
 	hotspots[HS_RUNOPT1_RUNOPT1].hit_h = 192 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_DN].hit_x += 6.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_DN].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_DN].hit_w = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_UP].hit_x += 12.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_UP].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT1_VOLUME_UP].hit_w = 2 * 8 * video.scale;
 	hotspots[HS_RUNOPT1_BACK].hit_x += 0 * 8 * video.scale;
 	hotspots[HS_RUNOPT1_BACK].hit_y += 22.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT1_BACK].hit_w = 7 * 8 * video.scale;
@@ -358,17 +366,17 @@ void hotspots_resize(void) {
 	hotspots[HS_RUNOPT1_EXIT].hit_y += 22.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT1_EXIT].hit_w = 4 * 8 * video.scale;
 	/* Set-up hit_w/h */
-	for (count = HS_RUNOPT1_BACK; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPT1_VOLUME_DN; count <= HS_RUNOPT1_EXIT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
 	}
 	/* Set-up hl_x/y/w/h */
-	for (count = HS_RUNOPT1_BACK; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPT1_VOLUME_DN; count <= HS_RUNOPT1_EXIT; count++) {
 		hotspots[count].hl_x = hotspots[count].hit_x;
 		hotspots[count].hl_y = hotspots[count].hit_y;
 		hotspots[count].hl_w = hotspots[count].hit_w;
 		hotspots[count].hl_h = hotspots[count].hit_h;
 	}
-	for (count = HS_RUNOPT1_BACK; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPT1_VOLUME_DN; count <= HS_RUNOPT1_EXIT; count++) {
 		hotspots[count].hl_y += 0.5 * 8 * video.scale;
 		hotspots[count].hl_h -= 1 * 8 * video.scale;
 	}

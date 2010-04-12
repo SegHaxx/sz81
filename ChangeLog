@@ -1,3 +1,7 @@
+2010-04-12 Thunor <thunorsif_at_hotmail.com>
+* Added joystick dead zone adjustment to the runtime options.
+* Added volume control adjustment to the runtime options.
+
 2010-03-31 Thunor <thunorsif_at_hotmail.com>
 * Replaced the OSS (Open Sound System) API with the portable SDL API.
 

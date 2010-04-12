@@ -91,11 +91,20 @@ int sound_stereo_acb=0;		/* 1 for ACB stereo, else 0 */
 /* assume all three tone channels together match the beeper volume.
  * Must be <=127 for all channels; 4 x 31 = 124.
  */
+#ifdef SZ81	/* Added by Thunor */
+#define AMPL_BEEPER (sdl_sound.volume / 4)
+#define AMPL_AY_TONE (sdl_sound.volume / 4)
+#else
 #define AMPL_BEEPER		31
 #define AMPL_AY_TONE		31	/* three of these */
+#endif
 
 /* full range of beeper volume */
+#ifdef SZ81	/* Added by Thunor */
+#define VOL_BEEPER (sdl_sound.volume / 2)
+#else
 #define VOL_BEEPER		(AMPL_BEEPER*2)
+#endif
 
 /* max. number of sub-frame AY port writes allowed;
  * given the number of port writes theoretically possible in a
@@ -263,6 +272,24 @@ while(len)
 #endif
 }
 
+
+#ifdef SZ81	/* Added by Thunor */
+void sound_ay_setvol(void)
+{
+int f;
+double v;
+
+/* logarithmic volume levels, 3dB per step */
+v=AMPL_AY_TONE;
+for(f=15;f>0;f--)
+  {
+  ay_tone_levels[f]=(int)(v+0.5);
+  /* 10^3/20 = 3dB */
+  v/=1.4125375446;
+  }
+ay_tone_levels[0]=0;
+}
+#endif
 
 void sound_ay_init(void)
 {

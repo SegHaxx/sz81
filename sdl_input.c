@@ -1292,6 +1292,24 @@ void manage_all_input(void) {
 					}
 				}
 			}
+		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
+			/* Adjust the volume */
+			if (state == SDL_PRESSED) {
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+				if (id == SDLK_MINUS && sdl_sound.volume > 1) {
+					sdl_sound.volume -= 2;
+					#ifdef OSS_SOUND_SUPPORT
+						sound_ay_setvol();
+					#endif
+				} else if (id == SDLK_EQUALS && sdl_sound.volume < 127) {
+					sdl_sound.volume += 2;
+					#ifdef OSS_SOUND_SUPPORT
+						sound_ay_setvol();
+					#endif
+				}
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
 		}
 	}
 }
@@ -1485,6 +1503,8 @@ int keysym_to_scancode(int reverse, int value) {
 	if (!reverse) {
 		switch (value) {
 			case SDLK_ESCAPE: return SCANCODE_ESCAPE;
+			case SDLK_MINUS: return SCANCODE_MINUS;
+			case SDLK_EQUALS: return SCANCODE_EQUAL;
 			case SDLK_F1: return SCANCODE_F1;
 			case SDLK_F2: return SCANCODE_F2;
 			case SDLK_F3: return SCANCODE_F3;
@@ -1551,6 +1571,8 @@ int keysym_to_scancode(int reverse, int value) {
 	} else {
 		switch (value) {
 			case SCANCODE_ESCAPE: return SDLK_ESCAPE;
+			case SCANCODE_MINUS: return SDLK_MINUS;
+			case SCANCODE_EQUAL: return SDLK_EQUALS;
 			case SCANCODE_F1: return SDLK_F1;
 			case SCANCODE_F2: return SDLK_F2;
 			case SCANCODE_F3: return SDLK_F3;
