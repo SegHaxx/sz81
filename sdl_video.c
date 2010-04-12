@@ -41,66 +41,74 @@ char *runtime_options0_text[22] = {
 	"",
 	"",
 	"",
-	"Joy Axis Dead Zone\x90 \x85  \%\x90 \x85",
+	"",
 	"",
 	"",
 	"",
 	"          Save    Exit   Next\x90 \x85"
 };
-char *runtime_options0_textinv[8] = {
+char *runtime_options0_textinv[6] = {
 	"---",
 	"---",
 	"O",
 	".",
 	">",
-	">",
-	">",
-	"<"
+	">"
 };
-int runtime_options0_textinvcoords[8 * 2] = {
+int runtime_options0_textinvcoords[6 * 2] = {
 	4, 6,
 	15, 6,
 	5, 10,
 	9, 11,
 	12, 11,
-	25, 19,
-	30, 23,
-	19, 19	
+	30, 23
 };
 
 char *runtime_options1_text[22] = {
 	"Volume\x90 \x85   \x90 \x85",
 	"",
+	"Key Repeat:",
 	"",
+	"  Delay\x90 \x85   ms\x90 \x85",
 	"",
+	"  Interval\x90 \x85   ms\x90 \x85",
 	"",
+	"Joy Axis Dead Zone\x90 \x85  \%\x90 \x85",
 	"",
+	"Foreground Colour:",
+	"  R\x90 \x85   \x90 \x85" "G\x90 \x85   \x90 \x85" "B\x90 \x85   \x90 \x85",
 	"",
+	"Background Colour:",
+	"  R\x90 \x85   \x90 \x85" "G\x90 \x85   \x90 \x85" "B\x90 \x85   \x90 \x85",
 	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
+	"Emulation Speed\x90 \x85   \%\x90 \x85",
 	"",
 	"",
 	"",
 	"",
 	"\x90 \x85" "Back   Save    Exit          "
 };
-char *runtime_options1_textinv[3] = {
+char *runtime_options1_textinv[9] = {
+	"<",
+	">",
+	"<",
+	">",
+	"<",
+	">",
 	"<",
 	">",
 	"<"
 };
-int runtime_options1_textinvcoords[3 * 2] = {
+int runtime_options1_textinvcoords[9 * 2] = {
 	7, 2,
 	13, 2,
-	1, 23	
+	8, 6,
+	16, 6,
+	11, 8,
+	19, 8,
+	19, 10,
+	25, 10,
+	1, 23
 };
 
 /* Function prototypes */
@@ -412,15 +420,7 @@ void sdl_video_update(void) {
 		}
 		/* Write the values */
 		if (runtime_options0.state) {
-			sprintf(text, "%2i", joystick_dead_zone);
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-			dstrect.x = srcx + 21 * 8 * video.scale; dstrect.y = srcy + 19 * 8 * video.scale;
-			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-				exit(1);
-			}
-			SDL_FreeSurface(renderedtext);
+
 		} else {
 			sprintf(text, "%3i", sdl_sound.volume);
 			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
@@ -431,11 +431,38 @@ void sdl_video_update(void) {
 				exit(1);
 			}
 			SDL_FreeSurface(renderedtext);
+			sprintf(text, "%3i", KEY_REPEAT_DELAY);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+			dstrect.x = srcx + 10 * 8 * video.scale; dstrect.y = srcy + 6 * 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+			sprintf(text, "%3i", KEY_REPEAT_INTERVAL);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+			dstrect.x = srcx + 13 * 8 * video.scale; dstrect.y = srcy + 8 * 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+			sprintf(text, "%2i", joystick_dead_zone);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+			dstrect.x = srcx + 21 * 8 * video.scale; dstrect.y = srcy + 10 * 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
 		}
 		/* Now write the few inverse chars */
 		colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
 		if (runtime_options0.state) {
-			for (desy = 0; desy < 8; desy++) {
+			for (desy = 0; desy < 6; desy++) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, runtime_options0_textinv[desy],
 					fg_colour, bg_colour);
 				dstrect.x = srcx + runtime_options0_textinvcoords[desy * 2] * 8 * video.scale;
@@ -448,7 +475,7 @@ void sdl_video_update(void) {
 				SDL_FreeSurface(renderedtext);
 			}
 		} else {
-			for (desy = 0; desy < 3; desy++) {
+			for (desy = 0; desy < 9; desy++) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, runtime_options1_textinv[desy],
 					fg_colour, bg_colour);
 				dstrect.x = srcx + runtime_options1_textinvcoords[desy * 2] * 8 * video.scale;
