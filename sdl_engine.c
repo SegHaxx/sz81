@@ -90,6 +90,8 @@ int sdl_init(void) {
 	colours.hs_vkeyb_zx81_toggle_pressed = 0xff4000;
 	colours.hs_ctb_selected = 0x00ff00;
 	colours.hs_ctb_pressed = 0xffc000;
+	colours.hs_options_selected = 0x00ff00;
+	colours.hs_options_pressed = 0xffc000;
 	rcfile.rewrite = FALSE;
 	sdl_cl_show_input_id = FALSE;
 	current_input_id = UNDEFINED;

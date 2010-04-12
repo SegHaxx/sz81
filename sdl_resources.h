@@ -56,6 +56,8 @@ struct colourtable {
 	Uint32 hs_vkeyb_zx81_toggle_pressed;
 	Uint32 hs_ctb_selected;
 	Uint32 hs_ctb_pressed;
+	Uint32 hs_options_selected;
+	Uint32 hs_options_pressed;
 };
 struct colourtable colours;
 

@@ -112,6 +112,8 @@ void sdl_rcfile_read(void) {
 	read_colours.hs_vkeyb_zx81_toggle_pressed = UNDEFINED;
 	read_colours.hs_ctb_selected = UNDEFINED;
 	read_colours.hs_ctb_pressed = UNDEFINED;
+	read_colours.hs_options_selected = UNDEFINED;
+	read_colours.hs_options_pressed = UNDEFINED;
 
 	/* Undefine everything within read_ctrl_remaps */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
@@ -186,6 +188,14 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "colour.hs_ctb_pressed=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%x", &read_colours.hs_ctb_pressed);
+			}
+			strcpy(key, "colour.hs_options_selected=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_options_selected);
+			}
+			strcpy(key, "colour.hs_options_pressed=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%x", &read_colours.hs_options_pressed);
 			}
 			/* Control remappings */
 			strcpy(key, "ctrl_remap.components=");
@@ -282,6 +292,8 @@ void sdl_rcfile_read(void) {
 		printf("read_colours.hs_vkeyb_zx81_toggle_pressed=%06x\n", read_colours.hs_vkeyb_zx81_toggle_pressed);
 		printf("read_colours.hs_ctb_selected=%06x\n", read_colours.hs_ctb_selected);
 		printf("read_colours.hs_ctb_pressed=%06x\n", read_colours.hs_ctb_pressed);
+		printf("read_colours.hs_options_selected=%06x\n", read_colours.hs_options_selected);
+		printf("read_colours.hs_options_pressed=%06x\n", read_colours.hs_options_pressed);
 		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 			if (read_ctrl_remaps[count].device != UNDEFINED) {
 				printf("read_ctrl_remaps[%i].components=%i\n", count, read_ctrl_remaps[count].components);
@@ -307,22 +319,30 @@ void sdl_rcfile_read(void) {
 	/* Colours */
 	if (read_colours.emu_fg != UNDEFINED) colours.emu_fg = read_colours.emu_fg;
 	if (read_colours.emu_bg != UNDEFINED) colours.emu_bg = read_colours.emu_bg;
-	if (read_colours.hs_load_selected != UNDEFINED) colours.hs_load_selected = read_colours.hs_load_selected;
-	if (read_colours.hs_load_pressed != UNDEFINED) colours.hs_load_pressed = read_colours.hs_load_pressed;
+	if (read_colours.hs_load_selected != UNDEFINED) 
+		colours.hs_load_selected = read_colours.hs_load_selected;
+	if (read_colours.hs_load_pressed != UNDEFINED) 
+		colours.hs_load_pressed = read_colours.hs_load_pressed;
 	if (read_colours.hs_vkeyb_zx80_selected != UNDEFINED) 
-	colours.hs_vkeyb_zx80_selected = read_colours.hs_vkeyb_zx80_selected;
+		colours.hs_vkeyb_zx80_selected = read_colours.hs_vkeyb_zx80_selected;
 	if (read_colours.hs_vkeyb_zx80_pressed != UNDEFINED) 
-	colours.hs_vkeyb_zx80_pressed = read_colours.hs_vkeyb_zx80_pressed;
+		colours.hs_vkeyb_zx80_pressed = read_colours.hs_vkeyb_zx80_pressed;
 	if (read_colours.hs_vkeyb_zx80_toggle_pressed != UNDEFINED) 
 		colours.hs_vkeyb_zx80_toggle_pressed = read_colours.hs_vkeyb_zx80_toggle_pressed;
 	if (read_colours.hs_vkeyb_zx81_selected != UNDEFINED) 
-	colours.hs_vkeyb_zx81_selected = read_colours.hs_vkeyb_zx81_selected;
+		colours.hs_vkeyb_zx81_selected = read_colours.hs_vkeyb_zx81_selected;
 	if (read_colours.hs_vkeyb_zx81_pressed != UNDEFINED) 
 		colours.hs_vkeyb_zx81_pressed = read_colours.hs_vkeyb_zx81_pressed;
 	if (read_colours.hs_vkeyb_zx81_toggle_pressed != UNDEFINED) 
 		colours.hs_vkeyb_zx81_toggle_pressed = read_colours.hs_vkeyb_zx81_toggle_pressed;
-	if (read_colours.hs_ctb_selected != UNDEFINED) colours.hs_ctb_selected = read_colours.hs_ctb_selected;
-	if (read_colours.hs_ctb_pressed != UNDEFINED) colours.hs_ctb_pressed = read_colours.hs_ctb_pressed;
+	if (read_colours.hs_ctb_selected != UNDEFINED) 
+		colours.hs_ctb_selected = read_colours.hs_ctb_selected;
+	if (read_colours.hs_ctb_pressed != UNDEFINED) 
+		colours.hs_ctb_pressed = read_colours.hs_ctb_pressed;
+	if (read_colours.hs_options_selected != UNDEFINED) 
+		colours.hs_options_selected = read_colours.hs_options_selected;
+	if (read_colours.hs_options_pressed != UNDEFINED) 
+		colours.hs_options_pressed = read_colours.hs_options_pressed;
 	/* read_ctrl_remaps have pretty much validated themselves since if
 	 * something was found to be invalid then they'll still be UNDEFINED
 	 * and they won't overwrite/insert into ctrl_remaps.
@@ -405,6 +425,8 @@ void rcfile_write(void) {
 	fprintf(fp, "colour.hs_vkeyb_zx81_toggle_pressed=%06x\n", colours.hs_vkeyb_zx81_toggle_pressed);
 	fprintf(fp, "colour.hs_ctb_selected=%06x\n", colours.hs_ctb_selected);
 	fprintf(fp, "colour.hs_ctb_pressed=%06x\n", colours.hs_ctb_pressed);
+	fprintf(fp, "colour.hs_options_selected=%06x\n", colours.hs_options_selected);
+	fprintf(fp, "colour.hs_options_pressed=%06x\n", colours.hs_options_pressed);
 	fprintf(fp, "\n");
 	
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {

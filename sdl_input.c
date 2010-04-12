@@ -57,6 +57,10 @@
 #define GP2X_BTN_JOY 0x12
 
 /* Variables */
+int device, id, mod_id, state;
+int last_runopt_comp = COMP_RUNOPT0;
+SDL_Event event;
+
 char *keysyms[] = {
 	"SDLK_UNKNOWN", "SDLK_FIRST", "SDLK_BACKSPACE", "SDLK_TAB", "SDLK_CLEAR", 
 	"SDLK_RETURN", "SDLK_PAUSE", "SDLK_ESCAPE", "SDLK_SPACE", "SDLK_EXCLAIM", 
@@ -119,6 +123,9 @@ int keycodes[] = {
 	CURSOR_S, CURSOR_W, CURSOR_E, CURSOR_HIT};
 
 /* Function prototypes */
+void manage_all_input(void);
+void manage_vkeyb_input(void);
+void manage_runopt_input(void);
 
 
 /***************************************************************************
@@ -696,12 +703,10 @@ char *keyboard_getstate(void) {
 int keyboard_update(void) {
 	static int skip_update = TRUE, last_hs_pressed[2];
 	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
-	static int last_runopt_comp = COMP_RUNOPT0;
 	int hs_load_selected, hs_vkeyb_ctb_selected;
 	int eventfound = FALSE, count, found;
 	int axis_end = 0;
-	int device, id, mod_id, state;
-	SDL_Event event, virtualevent;
+	SDL_Event virtualevent;
 	SDLMod modstate;
 	#ifdef SDL_DEBUG_TIMING
 		static Uint32 lasttime = 0;
@@ -1094,7 +1099,7 @@ int keyboard_update(void) {
 					device = UNDEFINED;	/* Erase it - it'll be ignored below anyway */
 				}
 
-				/* Grab input for my own use but don't report it */
+				/* Manage sz81 input */
 				if (device == DEVICE_KEYBOARD) {
 					found = FALSE;
 					modstate = SDL_GetModState();
@@ -1109,163 +1114,17 @@ int keyboard_update(void) {
 					if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 				}
 
-				/* Intercept input for my own use but continue to report it.
-				 * Note that I'm currently ignoring modifier states */
-				if (device == DEVICE_KEYBOARD) {
-					if (id == SDLK_F1) {
-						/* Toggle the virtual keyboard */
-						if (state == SDL_PRESSED) {
-							if (!load_selector_state &&
-								!runtime_options0.state && !runtime_options1.state) {
-								vkeyb.state = !vkeyb.state;
-							}
-						}
-					} else if (id == SDLK_F2) {
-						if (state == SDL_PRESSED) {
-							/* Reserved for future Save State */
-						}
-					} else if (id == SDLK_F3) {
-						if (state == SDL_PRESSED) {
-							/* Reserved for future Load State */
-						}
-					} else if (id == SDLK_F4) {
-						if (state == SDL_PRESSED) {
-							/* Reserved for future Emulation Speed reduce */
-						}
-					} else if (id == SDLK_F5) {
-						if (state == SDL_PRESSED) {
-							/* Reserved for future Emulation Speed increase */
-						}
-					} else if (id == SDLK_F6) {
-						if (vkeyb.state) {
-							/* Toggle the vkeyb autohide state */
-							if (state == SDL_PRESSED) {
-								vkeyb.autohide = !vkeyb.autohide;
-								control_bar_init();
-								video.redraw = TRUE;
-							}
-						}
-					} else if (id == SDLK_F7) {
-						if (vkeyb.state) {
-							/* Toggle the vkeyb shift type */
-							if (state == SDL_PRESSED) {
-								if (vkeyb.toggle_shift) {
-									hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_TOGGLE;
-									hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
-								} else {
-									hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_STICKY;
-									hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
-								}
-								vkeyb.toggle_shift = !vkeyb.toggle_shift;
-								control_bar_init();
-								video.redraw = TRUE;
-							}
-						}
-					} else if (id == SDLK_F8) {
-						/* Toggle invert screen */
-						if (state == SDL_PRESSED) {
-							invert_screen = !invert_screen;
-							refresh_screen = 1;
-							control_bar_init();
-							video.redraw = TRUE;
-						}
-					} else if (id == SDLK_F10) {
-						/* Exit the emulator */
-						if (state == SDL_RELEASED) {
-							exit_program();
-						}
-					} else if (id == SDLK_F11) {
-						#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
-							/* Toggle fullscreen on supported platforms */
-							if (state == SDL_PRESSED) {
-								video.fullscreen ^= SDL_FULLSCREEN;
-								sdl_video_setmode();
-							}
-						#endif
-					} else if (id == SDLK_F12) {
-						/* Reset the emulator */
-						if (state == SDL_PRESSED) {
-							if (!load_selector_state &&
-								!runtime_options0.state && !runtime_options1.state) {
-								if (!ignore_esc) reset81();
-							}
-						}
-					} else if (id == SDLK_HOME || id == SDLK_END) {
-						if (vkeyb.state) {
-							/* Adjust the vkeyb alpha */
-							if (state == SDL_PRESSED) {
-								key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
-								if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
-									vkeyb.alpha -= 15;
-								} else if (id == SDLK_HOME && vkeyb.alpha >= 16) {
-									vkeyb.alpha -= 16;
-								} else if (id == SDLK_END && vkeyb.alpha == 240) {
-									vkeyb.alpha += 15;
-								} else if (id == SDLK_END && vkeyb.alpha < 240) {
-									vkeyb.alpha += 16;
-								}
-								if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
-									fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
-										SDL_GetError());
-									exit(1);
-								}
-								control_bar_init();
-								video.redraw = TRUE;
-							} else {
-								key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-							}
-						}
-					} else if (id == SDLK_ESCAPE) {
-						/* Toggle runtime options */
-						if (state == SDL_PRESSED) {
-							if (!load_selector_state) {
-								if (!runtime_options0.state && !runtime_options1.state) {
-									if (last_runopt_comp == COMP_RUNOPT0) {
-										runtime_options0.state = TRUE;
-									} else {
-										runtime_options1.state = TRUE;
-									}
-									emulator.state = FALSE;
-								} else {
-									runtime_options0.state = runtime_options1.state = FALSE;
-									emulator.state = TRUE;
-								}
-							}
-						}
-					} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
-						/* Change the current options page */
-						if (state == SDL_PRESSED) {
-							if (runtime_options0.state) {
-								if (id == SDLK_PAGEDOWN) {
-									runtime_options0.state = FALSE;
-									runtime_options1.state = TRUE;
-									last_runopt_comp = COMP_RUNOPT1;
-								}
-							} else if (runtime_options1.state) {
-								if (id == SDLK_PAGEUP) {
-									runtime_options1.state = FALSE;
-									runtime_options0.state = TRUE;
-									last_runopt_comp = COMP_RUNOPT0;
-								}
-							}
-						}
-					} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
-						if (runtime_options0.state) {
-							if (state == SDL_PRESSED) {
-								/* Adjust the joystick axis dead zone */
-								key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
-								if (id == SDLK_INSERT && joystick_dead_zone > 1) {
-									joystick_dead_zone--;
-								} else if (id == SDLK_DELETE && joystick_dead_zone < 99) {
-									joystick_dead_zone++;
-								}
-							} else {
-								key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-							}
-						}
-					}
-				}
+				/* Manage COMP_RUNOPT0 and COMP_RUNOPT1 input */
+				if (get_active_component() == COMP_RUNOPT0 ||
+					get_active_component() == COMP_RUNOPT1) manage_runopt_input();
 				
+				/* Manage COMP_VKEYB and COMP_CTB input */
+				if (get_active_component() == COMP_VKEYB ||
+					get_active_component() == COMP_CTB) manage_vkeyb_input();
+
+				/* Manage COMP_ALL input */
+				manage_all_input();
+
 				/* Make sure that stuck sticky and toggle hotspots are not released
 				 * by real hardware which would leave their stuck states intact but
 				 * erase their pressed states within the keyboard buffer */
@@ -1354,6 +1213,188 @@ int keyboard_update(void) {
 	}
 
 	return eventfound;
+}
+
+/***************************************************************************
+ * Manage All Input                                                        *
+ ***************************************************************************/
+
+void manage_all_input(void) {
+	/* Note that I'm currently ignoring modifier states */
+	if (device == DEVICE_KEYBOARD) {
+		if (id == SDLK_F1) {
+			/* Toggle the virtual keyboard */
+			if (state == SDL_PRESSED) {
+				if (!load_selector_state && 
+					!runtime_options0.state && !runtime_options1.state) {
+					vkeyb.state = !vkeyb.state;
+				}
+			}
+		} else if (id == SDLK_F2) {
+			/* Reserved for future Save State */
+			if (state == SDL_PRESSED) {
+			}
+		} else if (id == SDLK_F3) {
+			/* Reserved for future Load State */
+			if (state == SDL_PRESSED) {
+			}
+		} else if (id == SDLK_F4) {
+			/* Reserved for future Emulation Speed reduce */
+			if (state == SDL_PRESSED) {
+			}
+		} else if (id == SDLK_F5) {
+			/* Reserved for future Emulation Speed increase */
+			if (state == SDL_PRESSED) {
+			}
+		} else if (id == SDLK_F8) {
+			/* Toggle invert screen */
+			if (state == SDL_PRESSED) {
+				invert_screen = !invert_screen;
+				refresh_screen = 1;
+				control_bar_init();
+				video.redraw = TRUE;
+			}
+		} else if (id == SDLK_F10) {
+			/* Exit the emulator */
+			if (state == SDL_RELEASED) {
+				exit_program();
+			}
+		} else if (id == SDLK_F11) {
+			#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
+				/* Toggle fullscreen on supported platforms */
+				if (state == SDL_PRESSED) {
+					video.fullscreen ^= SDL_FULLSCREEN;
+					sdl_video_setmode();
+				}
+			#endif
+		} else if (id == SDLK_F12) {
+			/* Reset the emulator */
+			if (state == SDL_PRESSED) {
+				if (!load_selector_state &&
+					!runtime_options0.state && !runtime_options1.state) {
+					if (!ignore_esc) reset81();
+				}
+			}
+		} else if (id == SDLK_ESCAPE) {
+			/* Toggle runtime options */
+			if (state == SDL_PRESSED) {
+				if (!load_selector_state) {
+					if (!runtime_options0.state && !runtime_options1.state) {
+						if (last_runopt_comp == COMP_RUNOPT0) {
+							runtime_options0.state = TRUE;
+						} else {
+							runtime_options1.state = TRUE;
+						}
+						emulator.state = FALSE;
+					} else {
+						runtime_options0.state = runtime_options1.state = FALSE;
+						emulator.state = TRUE;
+					}
+				}
+			}
+		}
+	}
+}
+
+/***************************************************************************
+ * Manage Virtual Keyboard (and Control Bar) Input                         *
+ ***************************************************************************/
+
+void manage_vkeyb_input(void) {
+	/* Note that I'm currently ignoring modifier states */
+	if (device == DEVICE_KEYBOARD) {
+		if (id == SDLK_F6) {
+			/* Toggle the vkeyb autohide state */
+			if (state == SDL_PRESSED) {
+				vkeyb.autohide = !vkeyb.autohide;
+				control_bar_init();
+				video.redraw = TRUE;
+			}
+		} else if (id == SDLK_F7) {
+			/* Toggle the vkeyb shift type */
+			if (state == SDL_PRESSED) {
+				if (vkeyb.toggle_shift) {
+					hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_TOGGLE;
+					hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
+				} else {
+					hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_STICKY;
+					hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
+				}
+				vkeyb.toggle_shift = !vkeyb.toggle_shift;
+				control_bar_init();
+				video.redraw = TRUE;
+			}
+		} else if (id == SDLK_HOME || id == SDLK_END) {
+			/* Adjust the vkeyb alpha */
+			if (state == SDL_PRESSED) {
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
+				if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
+					vkeyb.alpha -= 15;
+				} else if (id == SDLK_HOME && vkeyb.alpha >= 16) {
+					vkeyb.alpha -= 16;
+				} else if (id == SDLK_END && vkeyb.alpha == 240) {
+					vkeyb.alpha += 15;
+				} else if (id == SDLK_END && vkeyb.alpha < 240) {
+					vkeyb.alpha += 16;
+				}
+				if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
+					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
+						SDL_GetError());
+					exit(1);
+				}
+				//control_bar_init();	Redundant: not needed.
+				video.redraw = TRUE;
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
+		}
+	}
+}
+
+/***************************************************************************
+ * Manage Runtime Options Input                                            *
+ ***************************************************************************/
+
+void manage_runopt_input(void) {
+	/* Note that I'm currently ignoring modifier states */
+	if (device == DEVICE_KEYBOARD) {
+		if (id == SDLK_F2) {
+			/* Save */
+			if (state == SDL_PRESSED) {
+			}
+		} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
+			/* < Back and Next > */
+			if (state == SDL_PRESSED) {
+				if (runtime_options0.state) {
+					if (id == SDLK_PAGEDOWN) {
+						runtime_options0.state = FALSE;
+						runtime_options1.state = TRUE;
+						last_runopt_comp = COMP_RUNOPT1;
+					}
+				} else if (runtime_options1.state) {
+					if (id == SDLK_PAGEUP) {
+						runtime_options1.state = FALSE;
+						runtime_options0.state = TRUE;
+						last_runopt_comp = COMP_RUNOPT0;
+					}
+				}
+			}
+		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
+			/* Joy Dead Zone < and > */
+			if (runtime_options0.state) {
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
+					if (id == SDLK_INSERT && joystick_dead_zone > 1) {
+						joystick_dead_zone--;
+					} else if (id == SDLK_DELETE && joystick_dead_zone < 99) {
+						joystick_dead_zone++;
+					}
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		}
+	}
 }
 
 /***************************************************************************
