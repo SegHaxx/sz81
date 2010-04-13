@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define MAX_FONTS 8
+#define MAX_FONTS 4
 
 /* Bitmap font IDs */
 #define BMF_FONT_ZX80 0
@@ -65,6 +65,7 @@ struct bmpfont {
 	SDL_Surface *original;
 	SDL_Surface *scaled[MAX_FONTS];
 	Uint32 fg_colour[MAX_FONTS];
+	Uint32 requested[MAX_FONTS];
 };
 struct bmpfont zx80font, zx81font, zx82font;	
 

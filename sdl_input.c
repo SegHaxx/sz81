@@ -126,6 +126,7 @@ int keycodes[] = {
 void manage_all_input(void);
 void manage_vkeyb_input(void);
 void manage_runopt_input(void);
+Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
 
 
 /***************************************************************************
@@ -1296,16 +1297,20 @@ void manage_all_input(void) {
 			/* Adjust the volume */
 			if (state == SDL_PRESSED) {
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
-				if (id == SDLK_MINUS && sdl_sound.volume > 1) {
-					sdl_sound.volume -= 2;
-					#ifdef OSS_SOUND_SUPPORT
-						sound_ay_setvol();
-					#endif
-				} else if (id == SDLK_EQUALS && sdl_sound.volume < 127) {
-					sdl_sound.volume += 2;
-					#ifdef OSS_SOUND_SUPPORT
-						sound_ay_setvol();
-					#endif
+				if (id == SDLK_MINUS) {
+					if (sdl_sound.volume > 0) {
+						sdl_sound.volume -= 2;
+						#ifdef OSS_SOUND_SUPPORT
+							sound_ay_setvol();
+						#endif
+					}
+				} else {
+					if (sdl_sound.volume < 128) {
+						sdl_sound.volume += 2;
+						#ifdef OSS_SOUND_SUPPORT
+							sound_ay_setvol();
+						#endif
+					}
 				}
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -1360,7 +1365,6 @@ void manage_vkeyb_input(void) {
 						SDL_GetError());
 					exit(1);
 				}
-				//control_bar_init();	Redundant: not needed.
 				video.redraw = TRUE;
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -1374,6 +1378,8 @@ void manage_vkeyb_input(void) {
  ***************************************************************************/
 
 void manage_runopt_input(void) {
+	int amount;
+	
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_F2) {
@@ -1397,16 +1403,114 @@ void manage_runopt_input(void) {
 					}
 				}
 			}
-		} else if (id == SDLK_LEFTBRACKET || id == SDLK_RIGHTBRACKET) {
-			/* Joy Dead Zone < and > */
+		} else if (id == SDLK_HOME || id == SDLK_END) {
 			if (runtime_options1.state) {
+				/* Key repeat delay < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					if (id == SDLK_HOME) {
+						if (sdl_key_repeat.delay > 80) sdl_key_repeat.delay -= 20;
+					} else {
+						if (sdl_key_repeat.delay < 520) sdl_key_repeat.delay += 20;
+					}
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
+			if (runtime_options1.state) {
+				/* Key repeat interval < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					if (id == SDLK_INSERT) {
+						if (sdl_key_repeat.interval > 80) sdl_key_repeat.interval -= 20;
+					} else {
+						if (sdl_key_repeat.interval < 520) sdl_key_repeat.interval += 20;
+					}
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_d || id == SDLK_u) {
+			if (runtime_options0.state) {
+				/* Joy Dead Zone < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
-					if (id == SDLK_LEFTBRACKET && joystick_dead_zone > 2) {
-						joystick_dead_zone -= 2;
-					} else if (id == SDLK_RIGHTBRACKET && joystick_dead_zone < 98) {
-						joystick_dead_zone += 2;
+					if (id == SDLK_d) {
+						if (joystick_dead_zone > 2) joystick_dead_zone -= 2;
+					} else {
+						if (joystick_dead_zone < 98) joystick_dead_zone += 2;
 					}
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			} else if (runtime_options1.state) {
+				/* Foreground colour red < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_d) amount = -8;
+					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0xff0000, amount, TRUE);
+					video.redraw = TRUE;
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_0 || id == SDLK_1) {
+			if (runtime_options1.state) {
+				/* Foreground colour green < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_0) amount = -8;
+					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x00ff00, amount, TRUE);
+					video.redraw = TRUE;
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_2 || id == SDLK_3) {
+			if (runtime_options1.state) {
+				/* Foreground colour blue < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_2) amount = -8;
+					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x0000ff, amount, TRUE);
+					video.redraw = TRUE;
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_4 || id == SDLK_5) {
+			if (runtime_options1.state) {
+				/* Background colour red < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_4) amount = -8;
+					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0xff0000, amount, TRUE);
+					video.redraw = TRUE;
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_6 || id == SDLK_7) {
+			if (runtime_options1.state) {
+				/* Background colour green < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_6) amount = -8;
+					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x00ff00, amount, TRUE);
+					video.redraw = TRUE;
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_8 || id == SDLK_9) {
+			if (runtime_options1.state) {
+				/* Background colour blue < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					amount = 8; if (id == SDLK_8) amount = -8;
+					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x0000ff, amount, TRUE);
+					video.redraw = TRUE;
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
@@ -1461,12 +1565,12 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay */
-		interval = KEY_REPEAT_DELAY / (1000 / emulator.speed);
+		interval = sdl_key_repeat.delay / (1000 / emulator.speed);
 	} else if (funcid == KRM_FUNC_TICK) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
-				/* Reset to the initial delay */
-				interval = KEY_REPEAT_INTERVAL / (1000 / emulator.speed);
+				/* Reset the interval */
+				interval = sdl_key_repeat.interval / (1000 / emulator.speed);
 				SDL_PushEvent(&repeatevent);
 			}
 		}
@@ -1695,6 +1799,49 @@ char *keycode_to_keysym(int keycode) {
 	if (found) return keysyms[count];
 
 	return nullstring;
+}
+
+/***************************************************************************
+ * Adjust Colour Component                                                 *
+ ***************************************************************************/
+/* This will add or subtract an amount within the bounds of any one of the
+ * red, green and blue colour components of an RGB value. If required it will
+ * also granulate the result by rounding in a suitable direction */
+
+Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate) {
+	Uint32 red = rgb >> 16 & 0xff, green = rgb >> 8 & 0xff, blue = rgb & 0xff;
+	Uint32 *comp, count;
+	
+	comp = &red;
+	if (mask == 0x00ff00) comp = &green;
+	if (mask == 0x0000ff) comp = &blue;
+
+	for (count = 0; count < 2; count++) {
+		if (amount >= 0) {
+			if (*comp <= 0xff - amount) {
+				*comp += amount;
+			} else {
+				*comp = 0xff;
+			}
+		} else if (amount < 0) {
+			if (*comp >= abs(amount)) {
+				*comp -= abs(amount);
+			} else {
+				*comp = 0;
+			}
+		}
+		if (*comp % abs(amount) && count < 1 && granulate) {
+			if (*comp % abs(amount) > abs(amount) / 2) {
+				amount = abs(amount) - *comp % abs(amount);
+			} else {
+				amount = (*comp % abs(amount)) * -1;
+			}
+		} else {
+			break;
+		}
+	}
+
+	return red << 16 | green << 8 | blue;	
 }
 
 

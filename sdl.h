@@ -27,9 +27,6 @@
 #include <SDL/SDL.h>
 
 /* Defines */
-#define KEY_REPEAT_DELAY 300		/* Default granularity of 20ms */
-#define KEY_REPEAT_INTERVAL 100		/* Default granularity of 20ms */
-
 #define SOUND_BUFFER_SIZE (1024 * 16)
 
 /* SVGAlib keyboard scancodes (smain.c currently uses these) */
@@ -118,6 +115,11 @@ struct {
 	int buffer_start;
 	int buffer_end;
 } sdl_sound;
+
+struct {
+	int delay;
+	int interval;
+} sdl_key_repeat;
 
 /* Function prototypes */
 int sdl_init(void);

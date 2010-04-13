@@ -1301,8 +1301,8 @@ int quit,got_one,isdir;
 char *filearr;
 char *ptr;
 #ifdef SZ81	/* Added by Thunor */
-int krwait = KEY_REPEAT_DELAY / (1000 / emulator.speed);
-int krwrep = KEY_REPEAT_INTERVAL / 2 / (1000 / emulator.speed);
+int krwait = sdl_key_repeat.delay / (1000 / emulator.speed);
+int krwrep = sdl_key_repeat.interval / 1.5 / (1000 / emulator.speed);
 #else
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
 #endif

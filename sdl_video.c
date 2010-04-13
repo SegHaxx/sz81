@@ -24,6 +24,8 @@
 unsigned char vga_graphmemory[64 * 1024];
 
 char *runtime_options0_text[22] = {
+	"Joy Axis Dead Zone\x90 \x85  \%\x90 \x85",
+	"",
 	"Joystick Configurator:",
 	"",
 	"  Start Configurator",
@@ -43,24 +45,18 @@ char *runtime_options0_text[22] = {
 	"",
 	"",
 	"",
-	"",
-	"",
 	"          Save    Exit   Next\x90 \x85"
 };
-char *runtime_options0_textinv[6] = {
-	"---",
-	"---",
-	"O",
-	".",
-	">",
+char *runtime_options0_textinv[8] = {
+	"<", ">",
+	"---", "---",
+	"O", ".", ">",
 	">"
 };
-int runtime_options0_textinvcoords[6 * 2] = {
-	4, 6,
-	15, 6,
-	5, 10,
-	9, 11,
-	12, 11,
+int runtime_options0_textinvcoords[8 * 2] = {
+	19, 2, 25, 2,
+	4, 8, 15, 8,
+	5, 12, 9, 13, 12, 13,
 	30, 23
 };
 
@@ -73,41 +69,35 @@ char *runtime_options1_text[22] = {
 	"",
 	"  Interval\x90 \x85   ms\x90 \x85",
 	"",
-	"Joy Axis Dead Zone\x90 \x85  \%\x90 \x85",
-	"",
 	"Foreground Colour:",
-	"  R\x90 \x85   \x90 \x85" "G\x90 \x85   \x90 \x85" "B\x90 \x85   \x90 \x85",
+	"",
+	"  R\x90 \x85  \x90 \x85" "G\x90 \x85  \x90 \x85" "B\x90 \x85  \x90 \x85",
 	"",
 	"Background Colour:",
-	"  R\x90 \x85   \x90 \x85" "G\x90 \x85   \x90 \x85" "B\x90 \x85   \x90 \x85",
 	"",
-	"Emulation Speed\x90 \x85   \%\x90 \x85",
+	"  R\x90 \x85  \x90 \x85" "G\x90 \x85  \x90 \x85" "B\x90 \x85  \x90 \x85",
+	"",
+	"",
 	"",
 	"",
 	"",
 	"",
 	"\x90 \x85" "Back   Save    Exit          "
 };
-char *runtime_options1_textinv[9] = {
-	"<",
-	">",
-	"<",
-	">",
-	"<",
-	">",
-	"<",
-	">",
+char *runtime_options1_textinv[19] = {
+	"<", ">",
+	"<", ">",
+	"<", ">",
+	"<", ">", "<", ">", "<", ">",
+	"<", ">", "<", ">", "<", ">",
 	"<"
 };
-int runtime_options1_textinvcoords[9 * 2] = {
-	7, 2,
-	13, 2,
-	8, 6,
-	16, 6,
-	11, 8,
-	19, 8,
-	19, 10,
-	25, 10,
+int runtime_options1_textinvcoords[19 * 2] = {
+	7, 2, 13, 2,
+	8, 6, 16, 6,
+	11, 8, 19, 8,
+	4, 12, 9, 12, 13, 12, 18, 12, 22, 12, 27, 12,
+	4, 16, 9, 16, 13, 16, 18, 16, 22, 16, 27, 16,
 	1, 23
 };
 
@@ -221,16 +211,16 @@ unsigned char *vga_getgraphmem(void) {
  * hotspots will require overlaying */
 
 void sdl_video_update(void) {
+	int srcx, srcy, desx, desy, srcw, count;
 	Uint32 colour, fg_colour, bg_colour;
-	int srcx, srcy, desx, desy, srcw;
 	Uint32 *screen_pixels_32;
 	Uint16 *screen_pixels_16;
 	SDL_Surface *renderedtext;
 	SDL_Rect dstrect;
-	char text[5];
+	char text[8];
 	#ifdef SDL_DEBUG_FONTS
 		struct bmpfont *ptrfont;
-		int count, fontcount;
+		int fontcount;
 	#endif
 	#ifdef SDL_DEBUG_TIMING
 		static Uint32 lasttime = 0;
@@ -420,49 +410,58 @@ void sdl_video_update(void) {
 		}
 		/* Write the values */
 		if (runtime_options0.state) {
-
-		} else {
-			sprintf(text, "%3i", sdl_sound.volume);
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-			dstrect.x = srcx + 9 * 8 * video.scale; dstrect.y = srcy + 2 * 8 * video.scale;
-			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-				exit(1);
-			}
-			SDL_FreeSurface(renderedtext);
-			sprintf(text, "%3i", KEY_REPEAT_DELAY);
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-			dstrect.x = srcx + 10 * 8 * video.scale; dstrect.y = srcy + 6 * 8 * video.scale;
-			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-				exit(1);
-			}
-			SDL_FreeSurface(renderedtext);
-			sprintf(text, "%3i", KEY_REPEAT_INTERVAL);
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-			dstrect.x = srcx + 13 * 8 * video.scale; dstrect.y = srcy + 8 * 8 * video.scale;
-			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-				exit(1);
-			}
-			SDL_FreeSurface(renderedtext);
 			sprintf(text, "%2i", joystick_dead_zone);
 			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-			dstrect.x = srcx + 21 * 8 * video.scale; dstrect.y = srcy + 10 * 8 * video.scale;
+			dstrect.x = srcx + 21 * 8 * video.scale; dstrect.y = srcy + 2 * 8 * video.scale;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
 			SDL_FreeSurface(renderedtext);
+		} else if (runtime_options1.state) {
+			for (count = 0; count < 9; count++) {
+				if (count == 0) {
+					sprintf(text, "%3i", sdl_sound.volume);
+					dstrect.x = srcx + 9 * 8 * video.scale; dstrect.y = srcy + 2 * 8 * video.scale;
+				} else if (count == 1) {		
+					sprintf(text, "%3i", sdl_key_repeat.delay);
+					dstrect.x = srcx + 10 * 8 * video.scale; dstrect.y = srcy + 6 * 8 * video.scale;
+				} else if (count == 2) {		
+					sprintf(text, "%3i", sdl_key_repeat.interval);
+					dstrect.x = srcx + 13 * 8 * video.scale; dstrect.y = srcy + 8 * 8 * video.scale;
+				} else if (count == 3) {		
+					sprintf(text, "%02x", colours.emu_fg >> 16 & 0xff);
+					dstrect.x = srcx + 6 * 8 * video.scale; dstrect.y = srcy + 12 * 8 * video.scale;
+				} else if (count == 4) {		
+					sprintf(text, "%02x", colours.emu_fg >> 8 & 0xff);
+					dstrect.x = srcx + 15 * 8 * video.scale; dstrect.y = srcy + 12 * 8 * video.scale;
+				} else if (count == 5) {		
+					sprintf(text, "%02x", colours.emu_fg & 0xff);
+					dstrect.x = srcx + 24 * 8 * video.scale; dstrect.y = srcy + 12 * 8 * video.scale;
+				} else if (count == 6) {		
+					sprintf(text, "%02x", colours.emu_bg >> 16 & 0xff);
+					dstrect.x = srcx + 6 * 8 * video.scale; dstrect.y = srcy + 16 * 8 * video.scale;
+				} else if (count == 7) {		
+					sprintf(text, "%02x", colours.emu_bg >> 8 & 0xff);
+					dstrect.x = srcx + 15 * 8 * video.scale; dstrect.y = srcy + 16 * 8 * video.scale;
+				} else if (count == 8) {		
+					sprintf(text, "%02x", colours.emu_bg & 0xff);
+					dstrect.x = srcx + 24 * 8 * video.scale; dstrect.y = srcy + 16 * 8 * video.scale;
+				}
+				renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+				dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+				if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+					fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+					exit(1);
+				}
+				SDL_FreeSurface(renderedtext);
+			}
 		}
 		/* Now write the few inverse chars */
 		colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
 		if (runtime_options0.state) {
-			for (desy = 0; desy < 6; desy++) {
+			for (desy = 0; desy < 8; desy++) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, runtime_options0_textinv[desy],
 					fg_colour, bg_colour);
 				dstrect.x = srcx + runtime_options0_textinvcoords[desy * 2] * 8 * video.scale;
@@ -475,7 +474,7 @@ void sdl_video_update(void) {
 				SDL_FreeSurface(renderedtext);
 			}
 		} else {
-			for (desy = 0; desy < 9; desy++) {
+			for (desy = 0; desy < 19; desy++) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, runtime_options1_textinv[desy],
 					fg_colour, bg_colour);
 				dstrect.x = srcx + runtime_options1_textinvcoords[desy * 2] * 8 * video.scale;
@@ -570,6 +569,7 @@ SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_co
 	struct bmpfont *ptrfont;
 	int count, index, found, x, y;
 	SDL_Rect srcrect, dstrect;
+	int reuseindex;
 
 	/* Set the font we are going to use */
 	if (font == BMF_FONT_ZX80) {
@@ -591,10 +591,15 @@ SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_co
 		}
 	}	
 	if (index == MAX_FONTS) {
-		/* Not found and no free slot remaining */
-		fprintf(stderr, "%s: Cannot create font: all slots utilised\n", __func__);
-		return NULL;	
-	} else if (!found) {
+		/* Not found and no free slot remaining so reuse the least requested */
+		index = 1;
+		for (reuseindex = 1; reuseindex < MAX_FONTS; reuseindex++) {
+			if (ptrfont->scaled[reuseindex] && ptrfont->requested[reuseindex] >= 
+				ptrfont->requested[index]) index = reuseindex;
+		}
+		SDL_FreeSurface(ptrfont->scaled[index]);
+	}	
+	if (!found) {
 		/* Didn't find one so we'll have to create it */
 		/* Make a duplicate of font.scaled[0] the easy way */
 		ptrfont->scaled[index] = SDL_DisplayFormat(ptrfont->scaled[0]);
@@ -602,6 +607,10 @@ SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_co
 			fprintf(stderr, "%s: Cannot create surface: %s\n", __func__, SDL_GetError ());
 			return NULL;
 		}
+		/* Store fg_colour */
+		ptrfont->fg_colour[index] = fg_colour;
+		/* Initialise requested count */
+		ptrfont->requested[index] = 0;
 		/* Fill the font with the requested fg_colour */
 		if (SDL_MUSTLOCK(ptrfont->scaled[index])) SDL_LockSurface(ptrfont->scaled[index]);
 		for (y = 0; y < ptrfont->scaled[index]->h; y++) {
@@ -616,6 +625,9 @@ SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_co
 		}
 		if (SDL_MUSTLOCK(ptrfont->scaled[index])) SDL_UnlockSurface(ptrfont->scaled[index]);
 	}
+
+	/* Increment requested count */
+	ptrfont->requested[index] += 1;
 
 	/* Create an RGB surface to accommodate the rendered text */
 	rendered_text = SDL_CreateRGBSurface(SDL_SWSURFACE,

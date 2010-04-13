@@ -76,6 +76,8 @@ int sdl_init(void) {
 	/* Initialise everything to a default here that could possibly be
 	 * overridden by a command line option or from an rcfile */
 	joystick_dead_zone = JOYSTICK_DEAD_ZONE;
+	sdl_key_repeat.delay = KEY_REPEAT_DELAY;
+	sdl_key_repeat.interval = KEY_REPEAT_INTERVAL;
 	#if defined(PLATFORM_GP2X)
 		sdl_sound.volume = 30;
 	#else
@@ -83,8 +85,8 @@ int sdl_init(void) {
 	#endif
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
-	colours.emu_fg = 0x0;
-	colours.emu_bg = 0xffffff;
+	colours.emu_fg = 0x000010;
+	colours.emu_bg = 0xf0f0f0;
 	colours.hs_load_selected = 0x00ff00;
 	colours.hs_load_pressed = 0xffc000;
 	colours.hs_vkeyb_zx80_selected = 0x00ff00;

@@ -1,3 +1,8 @@
+2010-04-13 Thunor <thunorsif_at_hotmail.com>
+* Added fg/bg colour adjustment to the runtime options.
+* Fixed a bug in BMF_RenderText: the new fg_colour wasn't being stored.
+* BMF_RenderText will now reuse the least requested slot if necessary.
+
 2010-04-12 Thunor <thunorsif_at_hotmail.com>
 * Added joystick dead zone adjustment to the runtime options.
 * Added volume control adjustment to the runtime options.
