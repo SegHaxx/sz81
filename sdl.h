@@ -116,10 +116,11 @@ struct {
 	int buffer_end;
 } sdl_sound;
 
-struct {
+struct keyrepeat {
 	int delay;
 	int interval;
-} sdl_key_repeat;
+};
+struct keyrepeat sdl_key_repeat;
 
 /* Function prototypes */
 int sdl_init(void);

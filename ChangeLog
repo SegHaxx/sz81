@@ -1,3 +1,12 @@
+2010-04-14 Thunor <thunorsif_at_hotmail.com>
+* Re-engineered the way the runtime options are set-up so that it's
+  easier to modify. The hotspots though remain manually configured.
+* The vkeyb state is now restored after accessing runtime options.
+* Added key repeat delay and interval to the rcfile.
+* Added sound volume to the rcfile.
+* Added a runtime options icon to the control bar.
+* Reorganised runtime option locations across pages.
+
 2010-04-13 Thunor <thunorsif_at_hotmail.com>
 * Added fg/bg colour adjustment to the runtime options.
 * Fixed a bug in BMF_RenderText: the new fg_colour wasn't being stored.

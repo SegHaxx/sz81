@@ -732,14 +732,15 @@ int keyboard_update(void) {
 		event.type = SDL_NOEVENT;	/* Important */
 	}
 
-	/* If there's something to repeat then maybe do it now. It's done
-	 * here and not inside the skip-update so that the granularity is
-	 * 20ms (from the default 50Hz), otherwise it would be 25Hz=40ms */
-	key_repeat_manager(KRM_FUNC_TICK, NULL, 0);
-
 	/* Process events every other call otherwise the emulator or the
 	 * emulated machine has trouble keeping up with event creation */
 	if (!(skip_update = !skip_update)) {
+
+		/* If there's something to repeat then maybe do it now. As this
+		 * is done inside the skip-update the default granularity is
+		 * 40ms: 1000ms / (50Hz / 2) but this can change if the emulation
+		 * speed is altered e.g. 1000ms / (80Hz / 2) = 25ms */
+		key_repeat_manager(KRM_FUNC_TICK, NULL, 0);
 
 		while (SDL_PollEvent(&event)) {
 			/* Get something we're interested in */
@@ -996,14 +997,18 @@ int keyboard_update(void) {
 									hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
 									hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
 										HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+								} else if (hs_vkeyb_ctb_selected == HS_CTB_RUNOPTS) {
+									hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 &&
 									hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 6) {
 									hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
 										HS_VKEYB_1].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 + 7 &&
-									hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 9) {
+									hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 8) {
 									hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
 										HS_VKEYB_1].flags |= HS_PROP_SELECTED;
+								} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9) {
+									hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_Q) {
 									hotspots[hs_vkeyb_ctb_selected - 10].flags |= HS_PROP_SELECTED;
 								}
@@ -1019,13 +1024,17 @@ int keyboard_update(void) {
 									hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
 										HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT + 7 &&
-									hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 9) {
+									hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 8) {
 									hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
 										HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
+								} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
+									hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
 									hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
 									hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
 										HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+								} else if (hs_vkeyb_ctb_selected == HS_CTB_RUNOPTS) {
+									hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
 								} else if (hs_vkeyb_ctb_selected <= HS_VKEYB_A + 9) {
 									hotspots[hs_vkeyb_ctb_selected + 10].flags |= HS_PROP_SELECTED;
 								}
@@ -1042,7 +1051,7 @@ int keyboard_update(void) {
 								hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 								if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
 									if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
-										hs_vkeyb_ctb_selected = HS_CTB_ALPHA_UP;
+										hs_vkeyb_ctb_selected = HS_CTB_RUNOPTS;
 									hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
 								} else {
 									if (hs_vkeyb_ctb_selected == HS_VKEYB_1 ||
@@ -1066,7 +1075,7 @@ int keyboard_update(void) {
 								key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
 								hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 								if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
-									if (++hs_vkeyb_ctb_selected > HS_CTB_ALPHA_UP)
+									if (++hs_vkeyb_ctb_selected > HS_CTB_RUNOPTS)
 										hs_vkeyb_ctb_selected = HS_CTB_EXIT;
 									hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
 								} else {
@@ -1221,6 +1230,8 @@ int keyboard_update(void) {
  ***************************************************************************/
 
 void manage_all_input(void) {
+	static int last_vkeyb_state = FALSE;
+
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_F1) {
@@ -1287,9 +1298,11 @@ void manage_all_input(void) {
 							runtime_options1.state = TRUE;
 						}
 						emulator.state = FALSE;
+						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
 					} else {
 						runtime_options0.state = runtime_options1.state = FALSE;
 						emulator.state = TRUE;
+						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 					}
 				}
 			}
@@ -1404,35 +1417,35 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Key repeat delay < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
 					if (id == SDLK_HOME) {
-						if (sdl_key_repeat.delay > 80) sdl_key_repeat.delay -= 20;
+						if (sdl_key_repeat.delay > 40) sdl_key_repeat.delay -= 10;
 					} else {
-						if (sdl_key_repeat.delay < 520) sdl_key_repeat.delay += 20;
+						if (sdl_key_repeat.delay < 520) sdl_key_repeat.delay += 10;
 					}
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Key repeat interval < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
 					if (id == SDLK_INSERT) {
-						if (sdl_key_repeat.interval > 80) sdl_key_repeat.interval -= 20;
+						if (sdl_key_repeat.interval > 40) sdl_key_repeat.interval -= 10;
 					} else {
-						if (sdl_key_repeat.interval < 520) sdl_key_repeat.interval += 20;
+						if (sdl_key_repeat.interval < 520) sdl_key_repeat.interval += 10;
 					}
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
 		} else if (id == SDLK_d || id == SDLK_u) {
-			if (runtime_options0.state) {
+			if (runtime_options1.state) {
 				/* Joy Dead Zone < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
@@ -1444,7 +1457,7 @@ void manage_runopt_input(void) {
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
-			} else if (runtime_options1.state) {
+			} else if (runtime_options0.state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1456,7 +1469,7 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_0 || id == SDLK_1) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Foreground colour green < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1468,7 +1481,7 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_2 || id == SDLK_3) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Foreground colour blue < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1480,7 +1493,7 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_4 || id == SDLK_5) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Background colour red < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1492,7 +1505,7 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_6 || id == SDLK_7) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Background colour green < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1504,7 +1517,7 @@ void manage_runopt_input(void) {
 				}
 			}
 		} else if (id == SDLK_8 || id == SDLK_9) {
-			if (runtime_options1.state) {
+			if (runtime_options0.state) {
 				/* Background colour blue < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
@@ -1564,13 +1577,20 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 	if (funcid == KRM_FUNC_RELEASE) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
-		/* Reset to the initial delay */
-		interval = sdl_key_repeat.delay / (1000 / emulator.speed);
+		/* Reset to the initial delay (* 2 as this is currently running at half the emulation Hz) */
+		interval = sdl_key_repeat.delay / (1000 / emulator.speed * 2);
+		/* When interval is 1 there can be some odd behaviour, presumably
+		 * because the event queue is being flooded with presses and so
+		 * I'm limiting it to 2 which stops this happening. At the default
+		 * emulation speed of 50Hz and with this running at half that, 2
+		 * equates to 80ms */
+		if (interval < 2) interval = 2;
 	} else if (funcid == KRM_FUNC_TICK) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
-				/* Reset the interval */
-				interval = sdl_key_repeat.interval / (1000 / emulator.speed);
+				/* Reset the interval (* 2 as this is currently running at half the emulator Hz) */
+				interval = sdl_key_repeat.interval / (1000 / emulator.speed * 2);
+				if (interval < 2) interval = 2;	/* See note above about this */
 				SDL_PushEvent(&repeatevent);
 			}
 		}

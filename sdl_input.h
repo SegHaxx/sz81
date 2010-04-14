@@ -24,8 +24,8 @@
 #define DEVICE_JOYSTICK 2
 #define DEVICE_CURSOR 3
 
-#define KEY_REPEAT_DELAY 300		/* Default granularity of 20ms */
-#define KEY_REPEAT_INTERVAL 100		/* Default granularity of 20ms */
+#define KEY_REPEAT_DELAY 320		/* Default granularity of 40ms */
+#define KEY_REPEAT_INTERVAL 120		/* Default granularity of 40ms */
 
 #define JOYSTICK_DEAD_ZONE 75
 

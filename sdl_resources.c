@@ -53,6 +53,8 @@
 #define ICON_ALPHA_DN_Y 0
 #define ICON_ALPHA_UP_X 144
 #define ICON_ALPHA_UP_Y 0
+#define ICON_RUNOPTS_X 160
+#define ICON_RUNOPTS_Y 0
 
 /* Variables */
 
@@ -66,8 +68,10 @@
 void sdl_rcfile_read(void) {
 	char filename[256], line[256], key[64], value[192];
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
-	int read_joystick_dead_zone = UNDEFINED;
+	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
+	int read_joystick_dead_zone;
+	int read_sound_volume;
 	int count, index, line_count;
 	FILE *fp;
 	
@@ -99,6 +103,11 @@ void sdl_rcfile_read(void) {
 		return;
 	}
 
+	read_joystick_dead_zone = UNDEFINED;
+	read_key_repeat.delay = UNDEFINED;
+	read_key_repeat.interval = UNDEFINED;
+	read_sound_volume = UNDEFINED;
+	
 	/* Undefine everything within read_colours */
 	read_colours.emu_fg = UNDEFINED;
 	read_colours.emu_bg = UNDEFINED;
@@ -139,6 +148,18 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "joystick_dead_zone=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_joystick_dead_zone);
+			}
+			strcpy(key, "key_repeat.delay=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_key_repeat.delay);
+			}
+			strcpy(key, "key_repeat.interval=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_key_repeat.interval);
+			}
+			strcpy(key, "sound.volume=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_sound_volume);
 			}
 			/* Colours */
 			strcpy(key, "colour.emu_fg=");
@@ -280,6 +301,9 @@ void sdl_rcfile_read(void) {
 
 	#ifdef SDL_DEBUG_RCFILE
 		printf("read_joystick_dead_zone=%i\n", read_joystick_dead_zone);
+		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
+		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
+		printf("read_sound_volume=%i\n", read_sound_volume);
 		printf("read_colours.emu_fg=%06x\n", read_colours.emu_fg);
 		printf("read_colours.emu_bg=%06x\n", read_colours.emu_bg);
 		printf("read_colours.hs_load_selected=%06x\n", read_colours.hs_load_selected);
@@ -308,11 +332,39 @@ void sdl_rcfile_read(void) {
 	#endif
 
 	/* Store settings after first checking their validity */
+	/* Joystick dead zone */
 	if (read_joystick_dead_zone != UNDEFINED) {
-		if (read_joystick_dead_zone >=0 && read_joystick_dead_zone <= 100) {
+		if (read_joystick_dead_zone >= 1 && read_joystick_dead_zone <= 99) {
 			joystick_dead_zone = read_joystick_dead_zone;
 		} else {
-			fprintf(stderr, "%s: joystick_dead_zone within rcfile is invalid: try 5 to 95\n",
+			fprintf(stderr, "%s: joystick_dead_zone within rcfile is invalid: try 1 to 99\n",
+				__func__);
+		}
+	}
+	/* Key repeat delay */
+	if (read_key_repeat.delay != UNDEFINED) {
+		if (read_key_repeat.delay >= 40 && read_key_repeat.delay <= 520) {
+			sdl_key_repeat.delay = read_key_repeat.delay;
+		} else {
+			fprintf(stderr, "%s: key_repeat.delay within rcfile is invalid: try 40 to 520\n",
+				__func__);
+		}
+	}
+	/* Key repeat interval */
+	if (read_key_repeat.interval != UNDEFINED) {
+		if (read_key_repeat.interval >= 40 && read_key_repeat.interval <= 520) {
+			sdl_key_repeat.interval = read_key_repeat.interval;
+		} else {
+			fprintf(stderr, "%s: key_repeat.interval within rcfile is invalid: try 40 to 520\n",
+				__func__);
+		}
+	}
+	/* Sound volume */
+	if (read_sound_volume != UNDEFINED) {
+		if (read_sound_volume >= 0 && read_sound_volume <= 128) {
+			sdl_sound.volume = read_sound_volume;
+		} else {
+			fprintf(stderr, "%s: sound.volume within rcfile is invalid: try 0 to 128\n",
 				__func__);
 		}
 	}
@@ -411,6 +463,11 @@ void rcfile_write(void) {
 
 	fprintf(fp, "\n");
 	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
+	fprintf(fp, "\n");
+	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
+	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
+	fprintf(fp, "\n");
+	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
 	fprintf(fp, "\n");
 
 	fprintf(fp, "colour.emu_fg=%06x\n", colours.emu_fg);
@@ -524,246 +581,6 @@ void rcfile_write(void) {
 			fprintf(fp, "\n");
 		}
 	}
-
-	#if defined(PLATFORM_GP2X)
-	#elif defined(PLATFORM_ZAURUS)
-	#else
-		if (rcfile.rewrite == 2) {
-			fprintf(fp, "## Sample Joystick Control Set\n");
-			fprintf(fp, "## ---------------------------\n");
-			fprintf(fp, "## Due to the fact that sz81 is awaiting the inclusion of a graphical\n");
-			fprintf(fp, "## joystick configurator, manual intervention is currently required to\n");
-			fprintf(fp, "## configure your joystick for use within sz81 if you wish to use one.\n");
-			fprintf(fp, "## Please read the Controls->Joystick Support section within the README\n");
-			fprintf(fp, "## as it explains how to implement this sample set.\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "## Universally active\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_ALL\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=2\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_F1\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_ALL\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=5\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_REMAP\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "## Active within the emulator only\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=12\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_q\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=13\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_a\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=10\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_o\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=11\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_p\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=4\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_0\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=SDLK_LSHIFT\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=0\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_SPACE\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=3\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_RETURN\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=1\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_RETURN\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_EMU\n");
-			fprintf(fp, "#ctrl_remap.protected=FALSE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=6\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_LSHIFT\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "## Active within the load selector only\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=12\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_q\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=13\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_a\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=10\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_W\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=11\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_E\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=0\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_SPACE\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=3\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_HIT\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_LOAD\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=1\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_RETURN\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "## Active within the virtual keyboard only\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=12\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_N\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=13\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_S\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=10\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_W\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=11\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_E\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=4\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_0\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=SDLK_LSHIFT\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=0\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_SPACE\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=3\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_CURSOR\n");
-			fprintf(fp, "#ctrl_remap.remap_id=CURSOR_HIT\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=1\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_RETURN\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "#ctrl_remap.components=COMP_VKEYB\n");
-			fprintf(fp, "#ctrl_remap.protected=TRUE\n");
-			fprintf(fp, "#ctrl_remap.device=DEVICE_JOYSTICK\n");
-			fprintf(fp, "#ctrl_remap.id=6\n");
-			fprintf(fp, "#ctrl_remap.remap_device=DEVICE_KEYBOARD\n");
-			fprintf(fp, "#ctrl_remap.remap_id=SDLK_LSHIFT\n");
-			fprintf(fp, "#ctrl_remap.remap_mod_id=\n");
-			fprintf(fp, "\n");
-		}
-	#endif
-
 	fclose(fp);
 	
 	rcfile.rewrite = FALSE;
@@ -1047,10 +864,17 @@ int control_bar_init(void) {
 	/* Create outlines for the icons */
 	colour = 0x000000;
 	dstrect.x = dstrect.y = 0; dstrect.w = dstrect.h = 18 * video.scale;
-	for (count = 0; count < 3; count++) {
+	for (count = 0; count < 4; count++) {
 		/* 17 and not 18 is used below because the outlines overlap */
-		if (count > 0) dstrect.x += 17 * 2 * video.scale;
-		if (count == 2) dstrect.w = 17 * 5 * video.scale + video.scale;
+		if (count == 1) {
+			dstrect.x += 17 * 2 * video.scale;
+		} else if (count == 2) {
+			dstrect.x += 17 * 2 * video.scale;
+			dstrect.w = 17 * 5 * video.scale + video.scale;
+		} else if (count == 3) {
+			dstrect.x += 17 * 10 * video.scale;
+			dstrect.w = 18 * video.scale;
+		}
 		if (SDL_FillRect(control_bar.scaled, &dstrect, SDL_MapRGB(video.screen->format,
 			colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
@@ -1060,66 +884,56 @@ int control_bar_init(void) {
 	/* Blit the icons */
 	srcrect.w = srcrect.h = dstrect.w = dstrect.h = 16 * video.scale;
 	dstrect.y = video.scale;
-	/* Exit */
-	srcrect.x = ICON_EXIT_X * video.scale; srcrect.y = ICON_EXIT_Y * video.scale;
-	dstrect.x = video.scale;
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Reset */
-	srcrect.x = ICON_RESET_X * video.scale; srcrect.y = ICON_RESET_Y * video.scale;
-	dstrect.x = video.scale + 17 * 2 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Autohide */
-	if (vkeyb.autohide) {
-		srcrect.x = ICON_AUTOHIDE_X * video.scale; srcrect.y = ICON_AUTOHIDE_Y * video.scale;
-	} else {
-		srcrect.x = ICON_DONTHIDE_X * video.scale; srcrect.y = ICON_DONTHIDE_Y * video.scale;
-	}
-	dstrect.x = video.scale + 17 * 4 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Shift type */
-	if (vkeyb.toggle_shift) {
-		srcrect.x = ICON_TOGGLESHIFT_X * video.scale; srcrect.y = ICON_TOGGLESHIFT_Y * video.scale;
-	} else {
-		srcrect.x = ICON_STICKYSHIFT_X * video.scale; srcrect.y = ICON_STICKYSHIFT_Y * video.scale;
-	}
-	dstrect.x = video.scale + 17 * 5 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Inverse screen */
-	if (invert_screen) {
-		srcrect.x = ICON_INVERSE_X * video.scale; srcrect.y = ICON_INVERSE_Y * video.scale;
-	} else {
-		srcrect.x = ICON_NOTINVERSE_X * video.scale; srcrect.y = ICON_NOTINVERSE_Y * video.scale;
-	}
-	dstrect.x = video.scale + 17 * 6 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Alpha down */
-	srcrect.x = ICON_ALPHA_DN_X * video.scale; srcrect.y = ICON_ALPHA_DN_Y * video.scale;
-	dstrect.x = video.scale + 17 * 7 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
-	}
-	/* Alpha up */
-	srcrect.x = ICON_ALPHA_UP_X * video.scale; srcrect.y = ICON_ALPHA_UP_Y * video.scale;
-	dstrect.x = video.scale + 17 * 8 * video.scale; 
-	if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
-		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-		return TRUE;
+	for (count = 0; count < 8; count++) {
+		if (count == 0) {
+			/* Exit */
+			srcrect.x = ICON_EXIT_X * video.scale; srcrect.y = ICON_EXIT_Y * video.scale;
+			dstrect.x = video.scale;
+		} else if (count == 1) {
+			/* Reset */
+			srcrect.x = ICON_RESET_X * video.scale; srcrect.y = ICON_RESET_Y * video.scale;
+			dstrect.x = video.scale + 17 * 2 * video.scale; 
+		} else if (count == 2) {
+			/* Autohide */
+			if (vkeyb.autohide) {
+				srcrect.x = ICON_AUTOHIDE_X * video.scale; srcrect.y = ICON_AUTOHIDE_Y * video.scale;
+			} else {
+				srcrect.x = ICON_DONTHIDE_X * video.scale; srcrect.y = ICON_DONTHIDE_Y * video.scale;
+			}
+			dstrect.x = video.scale + 17 * 4 * video.scale; 
+		} else if (count == 3) {
+			/* Shift type */
+			if (vkeyb.toggle_shift) {
+				srcrect.x = ICON_TOGGLESHIFT_X * video.scale; srcrect.y = ICON_TOGGLESHIFT_Y * video.scale;
+			} else {
+				srcrect.x = ICON_STICKYSHIFT_X * video.scale; srcrect.y = ICON_STICKYSHIFT_Y * video.scale;
+			}
+			dstrect.x = video.scale + 17 * 5 * video.scale; 
+		} else if (count == 4) {
+			/* Inverse screen */
+			if (invert_screen) {
+				srcrect.x = ICON_INVERSE_X * video.scale; srcrect.y = ICON_INVERSE_Y * video.scale;
+			} else {
+				srcrect.x = ICON_NOTINVERSE_X * video.scale; srcrect.y = ICON_NOTINVERSE_Y * video.scale;
+			}
+			dstrect.x = video.scale + 17 * 6 * video.scale; 
+		} else if (count == 5) {
+			/* Alpha down */
+			srcrect.x = ICON_ALPHA_DN_X * video.scale; srcrect.y = ICON_ALPHA_DN_Y * video.scale;
+			dstrect.x = video.scale + 17 * 7 * video.scale; 
+		} else if (count == 6) {
+			/* Alpha up */
+			srcrect.x = ICON_ALPHA_UP_X * video.scale; srcrect.y = ICON_ALPHA_UP_Y * video.scale;
+			dstrect.x = video.scale + 17 * 8 * video.scale; 
+		} else if (count == 7) {
+			/* Runtime options */
+			srcrect.x = ICON_RUNOPTS_X * video.scale; srcrect.y = ICON_RUNOPTS_Y * video.scale;
+			dstrect.x = video.scale + 17 * 14 * video.scale; 
+		}
+		if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			return TRUE;
+		}
 	}
 
 	/* Set-up the control bar's screen offset */
