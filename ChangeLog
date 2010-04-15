@@ -1,3 +1,6 @@
+2010-04-15 Thunor <thunorsif_at_hotmail.com>
+* Optimised vkeyb drawing: when alpha is 0 it's no longer rendered.
+
 2010-04-14 Thunor <thunorsif_at_hotmail.com>
 * Re-engineered the way the runtime options are set-up so that it's
   easier to modify. The hotspots though remain manually configured.

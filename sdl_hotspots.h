@@ -126,5 +126,6 @@ void hotspots_init(void);
 void hotspots_resize(void);
 void hotspots_update(void);
 void hotspots_render(void);
+int get_selected_hotspot(int gid);
 
 

@@ -30,5 +30,6 @@ struct {
 /* Function prototypes */
 void scale_surface(SDL_Surface *original, SDL_Surface *scaled);
 void cycle_resolutions(void);
+Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
 
 

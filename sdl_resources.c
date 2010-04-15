@@ -872,7 +872,7 @@ int control_bar_init(void) {
 			dstrect.x += 17 * 2 * video.scale;
 			dstrect.w = 17 * 5 * video.scale + video.scale;
 		} else if (count == 3) {
-			dstrect.x += 17 * 10 * video.scale;
+			dstrect.x += 17 * 9 * video.scale;
 			dstrect.w = 18 * video.scale;
 		}
 		if (SDL_FillRect(control_bar.scaled, &dstrect, SDL_MapRGB(video.screen->format,
@@ -928,7 +928,7 @@ int control_bar_init(void) {
 		} else if (count == 7) {
 			/* Runtime options */
 			srcrect.x = ICON_RUNOPTS_X * video.scale; srcrect.y = ICON_RUNOPTS_Y * video.scale;
-			dstrect.x = video.scale + 17 * 14 * video.scale; 
+			dstrect.x = video.scale + 17 * 13 * video.scale; 
 		}
 		if (SDL_BlitSurface (sz81icons.scaled, &srcrect, control_bar.scaled, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());

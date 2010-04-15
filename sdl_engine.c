@@ -171,14 +171,9 @@ void component_executive(void) {
 	}
 
 	/* Monitor runtime options' state */
-	if ((active_components & COMP_RUNOPT0) != (runtime_options0.state * COMP_RUNOPT0)) {
-		if (runtime_options0.state && vkeyb.state) vkeyb.state = FALSE;
-		found = TRUE;
-	}
-
-	/* Monitor runtime options' state */
-	if ((active_components & COMP_RUNOPT1) != (runtime_options1.state * COMP_RUNOPT1)) {
-		if (runtime_options1.state && vkeyb.state) vkeyb.state = FALSE;
+	if (((active_components & COMP_RUNOPT0) != (runtime_options0.state * COMP_RUNOPT0)) ||
+		((active_components & COMP_RUNOPT1) != (runtime_options1.state * COMP_RUNOPT1))) {
+		if ((runtime_options0.state || runtime_options1.state) && vkeyb.state) vkeyb.state = FALSE;
 		found = TRUE;
 	}
 

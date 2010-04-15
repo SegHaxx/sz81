@@ -37,17 +37,15 @@ char *runtime_options0_text[24] = {
 	"",
 	"  Interval\x90\x2<\x2\x85\x1   ms\x90\x2>\x2\x85",
 	"",
-	"Foreground Colour:",
+	"Colours:",
 	"",
-	"  R\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85" "G\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85" 
-		"B\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85",
+	"  Fore:R\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85 Back:R\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85",
 	"",
-	"Background Colour:",
+	"       G\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85      G\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85",
 	"",
-	"  R\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85" "G\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85" 
-		"B\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85",
+	"       B\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85      B\x90\x2<\x2\x85\x1  \x90\x2>\x2\x85",
 	"",
-	"",
+	"", 
 	"",
 	"",
 	"",
@@ -319,14 +317,16 @@ void sdl_video_update(void) {
 	
 	/* Are the virtual keyboard and control bar being rendered? */
 	if (vkeyb.state) {
-		dstrect.x = vkeyb.xoffset; dstrect.y = vkeyb.yoffset;
-		dstrect.w = vkeyb.scaled->w; dstrect.h =  vkeyb.scaled->h;
-		if (SDL_BlitSurface (vkeyb.scaled, NULL, video.screen, &dstrect) < 0) {
-			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
-				SDL_GetError ());
-			exit(1);
+		if (vkeyb.alpha) {
+			dstrect.x = vkeyb.xoffset; dstrect.y = vkeyb.yoffset;
+			dstrect.w = vkeyb.scaled->w; dstrect.h =  vkeyb.scaled->h;
+			if (SDL_BlitSurface (vkeyb.scaled, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+					SDL_GetError ());
+				exit(1);
+			}
 		}
-		/* Show the control bar too */
+		/* Show the control bar */
 		dstrect.x = control_bar.xoffset; dstrect.y = control_bar.yoffset;
 		dstrect.w = control_bar.scaled->w; dstrect.h = control_bar.scaled->h;
 		if (SDL_BlitSurface (control_bar.scaled, NULL, video.screen, &dstrect) < 0) {
@@ -418,13 +418,13 @@ void sdl_video_update(void) {
 						} else if (count == 3) {		
 							sprintf(text, "%02x", colours.emu_fg >> 16 & 0xff);
 						} else if (count == 4) {		
-							sprintf(text, "%02x", colours.emu_fg >> 8 & 0xff);
-						} else if (count == 5) {		
-							sprintf(text, "%02x", colours.emu_fg & 0xff);
-						} else if (count == 6) {		
 							sprintf(text, "%02x", colours.emu_bg >> 16 & 0xff);
-						} else if (count == 7) {		
+						} else if (count == 5) {		
+							sprintf(text, "%02x", colours.emu_fg >> 8 & 0xff);
+						} else if (count == 6) {		
 							sprintf(text, "%02x", colours.emu_bg >> 8 & 0xff);
+						} else if (count == 7) {		
+							sprintf(text, "%02x", colours.emu_fg & 0xff);
 						} else if (count == 8) {		
 							sprintf(text, "%02x", colours.emu_bg & 0xff);
 						} else {		
@@ -816,5 +816,48 @@ void cycle_resolutions(void) {
 			video.xres = 960; video.yres = 720; video.scale = 3;
 		}
 	#endif
+}
+
+/***************************************************************************
+ * Adjust Colour Component                                                 *
+ ***************************************************************************/
+/* This will add or subtract an amount within the bounds of any one of the
+ * red, green and blue colour components of an RGB value. If required it will
+ * also granulate the result by rounding in a suitable direction */
+
+Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate) {
+	Uint32 red = rgb >> 16 & 0xff, green = rgb >> 8 & 0xff, blue = rgb & 0xff;
+	Uint32 *comp, count;
+	
+	comp = &red;
+	if (mask == 0x00ff00) comp = &green;
+	if (mask == 0x0000ff) comp = &blue;
+
+	for (count = 0; count < 2; count++) {
+		if (amount >= 0) {
+			if (*comp <= 0xff - amount) {
+				*comp += amount;
+			} else {
+				*comp = 0xff;
+			}
+		} else if (amount < 0) {
+			if (*comp >= abs(amount)) {
+				*comp -= abs(amount);
+			} else {
+				*comp = 0;
+			}
+		}
+		if (*comp % abs(amount) && count < 1 && granulate) {
+			if (*comp % abs(amount) > abs(amount) / 2) {
+				amount = abs(amount) - *comp % abs(amount);
+			} else {
+				amount = (*comp % abs(amount)) * -1;
+			}
+		} else {
+			break;
+		}
+	}
+
+	return red << 16 | green << 8 | blue;	
 }
 

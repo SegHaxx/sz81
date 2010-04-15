@@ -146,18 +146,18 @@ void hotspots_init(void) {
 	hotspots[HS_RUNOPT0_KRDELAY_UP].remap_id = SDLK_END;
 	hotspots[HS_RUNOPT0_KRINTERVAL_DN].remap_id = SDLK_INSERT;
 	hotspots[HS_RUNOPT0_KRINTERVAL_UP].remap_id = SDLK_DELETE;
-	hotspots[HS_RUNOPT0_FGC_R_DN].remap_id = SDLK_d;
-	hotspots[HS_RUNOPT0_FGC_R_UP].remap_id = SDLK_u;
-	hotspots[HS_RUNOPT0_FGC_G_DN].remap_id = SDLK_0;
-	hotspots[HS_RUNOPT0_FGC_G_UP].remap_id = SDLK_1;
-	hotspots[HS_RUNOPT0_FGC_B_DN].remap_id = SDLK_2;
-	hotspots[HS_RUNOPT0_FGC_B_UP].remap_id = SDLK_3;
-	hotspots[HS_RUNOPT0_BGC_R_DN].remap_id = SDLK_4;
-	hotspots[HS_RUNOPT0_BGC_R_UP].remap_id = SDLK_5;
-	hotspots[HS_RUNOPT0_BGC_G_DN].remap_id = SDLK_6;
-	hotspots[HS_RUNOPT0_BGC_G_UP].remap_id = SDLK_7;
-	hotspots[HS_RUNOPT0_BGC_B_DN].remap_id = SDLK_8;
-	hotspots[HS_RUNOPT0_BGC_B_UP].remap_id = SDLK_9;
+	hotspots[HS_RUNOPT0_FGC_R_DN].remap_id = SDLK_1;
+	hotspots[HS_RUNOPT0_FGC_R_UP].remap_id = SDLK_2;
+	hotspots[HS_RUNOPT0_FGC_G_DN].remap_id = SDLK_3;
+	hotspots[HS_RUNOPT0_FGC_G_UP].remap_id = SDLK_4;
+	hotspots[HS_RUNOPT0_FGC_B_DN].remap_id = SDLK_5;
+	hotspots[HS_RUNOPT0_FGC_B_UP].remap_id = SDLK_6;
+	hotspots[HS_RUNOPT0_BGC_R_DN].remap_id = SDLK_7;
+	hotspots[HS_RUNOPT0_BGC_R_UP].remap_id = SDLK_8;
+	hotspots[HS_RUNOPT0_BGC_G_DN].remap_id = SDLK_9;
+	hotspots[HS_RUNOPT0_BGC_G_UP].remap_id = SDLK_0;
+	hotspots[HS_RUNOPT0_BGC_B_DN].remap_id = SDLK_LEFTBRACKET;
+	hotspots[HS_RUNOPT0_BGC_B_UP].remap_id = SDLK_RIGHTBRACKET;
 	hotspots[HS_RUNOPT0_SAVE].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPT0_EXIT].remap_id = SDLK_ESCAPE;
 	hotspots[HS_RUNOPT0_NEXT].remap_id = SDLK_PAGEDOWN;
@@ -167,8 +167,8 @@ void hotspots_init(void) {
 	for (count = HS_RUNOPT1_RUNOPT1; count <= HS_RUNOPT1_EXIT; count++) {
 		hotspots[count].gid = HS_GRP_RUNOPT1;
 	}
-	hotspots[HS_RUNOPT1_JDEADZ_DN].remap_id = SDLK_d;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].remap_id = SDLK_u;
+	hotspots[HS_RUNOPT1_JDEADZ_DN].remap_id = SDLK_HOME;
+	hotspots[HS_RUNOPT1_JDEADZ_UP].remap_id = SDLK_END;
 	hotspots[HS_RUNOPT1_START_CFG].remap_id = SDLK_s;
 	hotspots[HS_RUNOPT1_START_CFG].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPT1_CFG_LTRIG].remap_id = SDLK_l;
@@ -275,7 +275,7 @@ void hotspots_resize(void) {
 	hotspots[HS_CTB_INVERSE].hit_x = control_bar.xoffset + video.scale + 17 * 6 * video.scale;
 	hotspots[HS_CTB_ALPHA_DN].hit_x = control_bar.xoffset + video.scale + 17 * 7 * video.scale;
 	hotspots[HS_CTB_ALPHA_UP].hit_x = control_bar.xoffset + video.scale + 17 * 8 * video.scale;
-	hotspots[HS_CTB_RUNOPTS].hit_x = control_bar.xoffset + video.scale + 17 * 14 * video.scale;
+	hotspots[HS_CTB_RUNOPTS].hit_x = control_bar.xoffset + video.scale + 17 * 13 * video.scale;
 	/* Set-up hit_y/w/h */
 	for (count = HS_CTB_EXIT; count <= HS_CTB_RUNOPTS; count++) {
 		hotspots[count].hit_y = control_bar.yoffset + video.scale;
@@ -308,29 +308,29 @@ void hotspots_resize(void) {
 	hotspots[HS_RUNOPT0_KRINTERVAL_DN].hit_y += 7.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_KRINTERVAL_UP].hit_x += 18.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_KRINTERVAL_UP].hit_y += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_DN].hit_x += 3.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_R_DN].hit_x += 8.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_FGC_R_DN].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_UP].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_R_UP].hit_x += 13.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_FGC_R_UP].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_DN].hit_x += 12.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_DN].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_UP].hit_x += 17.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_UP].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_DN].hit_x += 21.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_DN].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_UP].hit_x += 26.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_UP].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_DN].hit_x += 3.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_DN].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_UP].hit_x += 8.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_UP].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_DN].hit_x += 12.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_DN].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_UP].hit_x += 17.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_UP].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_DN].hit_x += 21.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_G_DN].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_G_DN].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_G_UP].hit_x += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_G_UP].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_B_DN].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_B_DN].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_B_UP].hit_x += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_FGC_B_UP].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_R_DN].hit_x += 23.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_R_DN].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_R_UP].hit_x += 28.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_R_UP].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_G_DN].hit_x += 23.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_G_DN].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_G_UP].hit_x += 28.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_G_UP].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_B_DN].hit_x += 23.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_BGC_B_DN].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_UP].hit_x += 26.5 * 8 * video.scale;
+	hotspots[HS_RUNOPT0_BGC_B_UP].hit_x += 28.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_BGC_B_UP].hit_y += 15.5 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_SAVE].hit_x += 10 * 8 * video.scale;
 	hotspots[HS_RUNOPT0_SAVE].hit_y += 22.5 * 8 * video.scale;
@@ -689,6 +689,25 @@ void hotspots_render(void) {
 		#endif
 		}
 	}
+}
+
+/***************************************************************************
+ * Get Selected Hotspot                                                    *
+ ***************************************************************************/
+/* This returns the currently selected hotspot for group visible or not.
+ * 
+ * On entry: gid = group id
+ *  On exit: returns the currently selected hotspot for group on success or
+ *           returns MAX_HOTSPOTS if not found */
+
+int get_selected_hotspot(int gid) {
+	int count;
+
+	for (count = 0; count < MAX_HOTSPOTS; count++)
+		if (hotspots[count].gid == gid && 
+			hotspots[count].flags & HS_PROP_SELECTED) break;
+	
+	return count;
 }
 
 
