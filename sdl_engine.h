@@ -47,9 +47,9 @@
 #define COMP_LOAD 2
 #define COMP_VKEYB 4
 #define COMP_CTB 8
-#define COMP_RUNOPT0 16
-#define COMP_RUNOPT1 32
-#define COMP_ALL ((COMP_RUNOPT1 - 1) | COMP_RUNOPT1)
+#define COMP_RUNOPTS0 16
+#define COMP_RUNOPTS1 32
+#define COMP_ALL ((COMP_RUNOPTS1 - 1) | COMP_RUNOPTS1)
 
 /* Emulator variables I require access to */
 extern int scrn_freq, invert_screen, zx80;

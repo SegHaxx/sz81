@@ -135,57 +135,57 @@ void hotspots_init(void) {
 	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_ESCAPE;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPT0_RUNOPT0].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPT0_RUNOPT0; count <= HS_RUNOPT0_NEXT; count++) {
+	hotspots[HS_RUNOPTS0_RUNOPTS0].flags &= ~HS_PROP_NAVIGABLE;
+	for (count = HS_RUNOPTS0_RUNOPTS0; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].gid = HS_GRP_RUNOPT0;
 	}
-	hotspots[HS_RUNOPT0_VOLUME_DN].remap_id = SDLK_MINUS;
-	hotspots[HS_RUNOPT0_VOLUME_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
-	hotspots[HS_RUNOPT0_VOLUME_UP].remap_id = SDLK_EQUALS;
-	hotspots[HS_RUNOPT0_KRDELAY_DN].remap_id = SDLK_HOME;
-	hotspots[HS_RUNOPT0_KRDELAY_UP].remap_id = SDLK_END;
-	hotspots[HS_RUNOPT0_KRINTERVAL_DN].remap_id = SDLK_INSERT;
-	hotspots[HS_RUNOPT0_KRINTERVAL_UP].remap_id = SDLK_DELETE;
-	hotspots[HS_RUNOPT0_FGC_R_DN].remap_id = SDLK_1;
-	hotspots[HS_RUNOPT0_FGC_R_UP].remap_id = SDLK_2;
-	hotspots[HS_RUNOPT0_FGC_G_DN].remap_id = SDLK_3;
-	hotspots[HS_RUNOPT0_FGC_G_UP].remap_id = SDLK_4;
-	hotspots[HS_RUNOPT0_FGC_B_DN].remap_id = SDLK_5;
-	hotspots[HS_RUNOPT0_FGC_B_UP].remap_id = SDLK_6;
-	hotspots[HS_RUNOPT0_BGC_R_DN].remap_id = SDLK_7;
-	hotspots[HS_RUNOPT0_BGC_R_UP].remap_id = SDLK_8;
-	hotspots[HS_RUNOPT0_BGC_G_DN].remap_id = SDLK_9;
-	hotspots[HS_RUNOPT0_BGC_G_UP].remap_id = SDLK_0;
-	hotspots[HS_RUNOPT0_BGC_B_DN].remap_id = SDLK_LEFTBRACKET;
-	hotspots[HS_RUNOPT0_BGC_B_UP].remap_id = SDLK_RIGHTBRACKET;
-	hotspots[HS_RUNOPT0_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPT0_EXIT].remap_id = SDLK_ESCAPE;
-	hotspots[HS_RUNOPT0_NEXT].remap_id = SDLK_PAGEDOWN;
+	hotspots[HS_RUNOPTS0_VOLUME_DN].remap_id = SDLK_MINUS;
+	hotspots[HS_RUNOPTS0_VOLUME_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_RUNOPTS0_VOLUME_UP].remap_id = SDLK_EQUALS;
+	hotspots[HS_RUNOPTS0_KRDELAY_DN].remap_id = SDLK_HOME;
+	hotspots[HS_RUNOPTS0_KRDELAY_UP].remap_id = SDLK_END;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_DN].remap_id = SDLK_INSERT;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_UP].remap_id = SDLK_DELETE;
+	hotspots[HS_RUNOPTS0_FGC_R_DN].remap_id = SDLK_1;
+	hotspots[HS_RUNOPTS0_FGC_R_UP].remap_id = SDLK_2;
+	hotspots[HS_RUNOPTS0_FGC_G_DN].remap_id = SDLK_3;
+	hotspots[HS_RUNOPTS0_FGC_G_UP].remap_id = SDLK_4;
+	hotspots[HS_RUNOPTS0_FGC_B_DN].remap_id = SDLK_5;
+	hotspots[HS_RUNOPTS0_FGC_B_UP].remap_id = SDLK_6;
+	hotspots[HS_RUNOPTS0_BGC_R_DN].remap_id = SDLK_7;
+	hotspots[HS_RUNOPTS0_BGC_R_UP].remap_id = SDLK_8;
+	hotspots[HS_RUNOPTS0_BGC_G_DN].remap_id = SDLK_9;
+	hotspots[HS_RUNOPTS0_BGC_G_UP].remap_id = SDLK_0;
+	hotspots[HS_RUNOPTS0_BGC_B_DN].remap_id = SDLK_LEFTBRACKET;
+	hotspots[HS_RUNOPTS0_BGC_B_UP].remap_id = SDLK_RIGHTBRACKET;
+	hotspots[HS_RUNOPTS0_SAVE].remap_id = SDLK_F2;
+	hotspots[HS_RUNOPTS0_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS0_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPT1_RUNOPT1].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPT1_RUNOPT1; count <= HS_RUNOPT1_EXIT; count++) {
+	hotspots[HS_RUNOPTS1_RUNOPTS1].flags &= ~HS_PROP_NAVIGABLE;
+	for (count = HS_RUNOPTS1_RUNOPTS1; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].gid = HS_GRP_RUNOPT1;
 	}
-	hotspots[HS_RUNOPT1_JDEADZ_DN].remap_id = SDLK_HOME;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].remap_id = SDLK_END;
-	hotspots[HS_RUNOPT1_START_CFG].remap_id = SDLK_s;
-	hotspots[HS_RUNOPT1_START_CFG].flags |= HS_PROP_SELECTED;	/* Default selected */
-	hotspots[HS_RUNOPT1_CFG_LTRIG].remap_id = SDLK_l;
-	hotspots[HS_RUNOPT1_CFG_RTRIG].remap_id = SDLK_r;
-	hotspots[HS_RUNOPT1_CFG_LEFT].remap_id = SDLK_0;
-	hotspots[HS_RUNOPT1_CFG_RIGHT].remap_id = SDLK_1;
-	hotspots[HS_RUNOPT1_CFG_UP].remap_id = SDLK_2;
-	hotspots[HS_RUNOPT1_CFG_DOWN].remap_id = SDLK_3;
-	hotspots[HS_RUNOPT1_CFG_SELECT].remap_id = SDLK_4;
-	hotspots[HS_RUNOPT1_CFG_START].remap_id = SDLK_5;
-	hotspots[HS_RUNOPT1_CFG_A].remap_id = SDLK_6;
-	hotspots[HS_RUNOPT1_CFG_B].remap_id = SDLK_7;
-	hotspots[HS_RUNOPT1_CFG_Y].remap_id = SDLK_8;
-	hotspots[HS_RUNOPT1_CFG_X].remap_id = SDLK_9;
-	hotspots[HS_RUNOPT1_BACK].remap_id = SDLK_PAGEUP;
-	hotspots[HS_RUNOPT1_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPT1_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].remap_id = SDLK_HOME;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].remap_id = SDLK_END;
+	hotspots[HS_RUNOPTS1_START_CFG].remap_id = SDLK_s;
+	hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_RUNOPTS1_CFG_LTRIG].remap_id = SDLK_l;
+	hotspots[HS_RUNOPTS1_CFG_RTRIG].remap_id = SDLK_r;
+	hotspots[HS_RUNOPTS1_CFG_LEFT].remap_id = SDLK_0;
+	hotspots[HS_RUNOPTS1_CFG_RIGHT].remap_id = SDLK_1;
+	hotspots[HS_RUNOPTS1_CFG_UP].remap_id = SDLK_2;
+	hotspots[HS_RUNOPTS1_CFG_DOWN].remap_id = SDLK_3;
+	hotspots[HS_RUNOPTS1_CFG_SELECT].remap_id = SDLK_4;
+	hotspots[HS_RUNOPTS1_CFG_START].remap_id = SDLK_5;
+	hotspots[HS_RUNOPTS1_CFG_A].remap_id = SDLK_6;
+	hotspots[HS_RUNOPTS1_CFG_B].remap_id = SDLK_7;
+	hotspots[HS_RUNOPTS1_CFG_Y].remap_id = SDLK_8;
+	hotspots[HS_RUNOPTS1_CFG_X].remap_id = SDLK_9;
+	hotspots[HS_RUNOPTS1_BACK].remap_id = SDLK_PAGEUP;
+	hotspots[HS_RUNOPTS1_SAVE].remap_id = SDLK_F2;
+	hotspots[HS_RUNOPTS1_EXIT].remap_id = SDLK_ESCAPE;
 
 	/* Resize all hotspots for the current screen dimensions */
 	hotspots_resize();
@@ -290,146 +290,146 @@ void hotspots_resize(void) {
 	}
 
 	/* Resize the runtime options hotspots */
-	for (count = HS_RUNOPT0_RUNOPT0; count <= HS_RUNOPT0_NEXT; count++) {
+	for (count = HS_RUNOPTS0_RUNOPTS0; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].hit_x = runtime_options0.xoffset;
 		hotspots[count].hit_y = runtime_options0.yoffset;
 	}
-	hotspots[HS_RUNOPT0_RUNOPT0].hit_w = 256 * video.scale;
-	hotspots[HS_RUNOPT0_RUNOPT0].hit_h = 192 * video.scale;
-	hotspots[HS_RUNOPT0_VOLUME_DN].hit_x += 6.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_VOLUME_DN].hit_y += 1.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_VOLUME_UP].hit_x += 12.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_VOLUME_UP].hit_y += 1.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRDELAY_DN].hit_x += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRDELAY_DN].hit_y += 5.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRDELAY_UP].hit_x += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRDELAY_UP].hit_y += 5.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRINTERVAL_DN].hit_x += 10.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRINTERVAL_DN].hit_y += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRINTERVAL_UP].hit_x += 18.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_KRINTERVAL_UP].hit_y += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_DN].hit_x += 8.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_DN].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_UP].hit_x += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_R_UP].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_DN].hit_x += 8.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_DN].hit_y += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_UP].hit_x += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_G_UP].hit_y += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_DN].hit_x += 8.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_DN].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_UP].hit_x += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_FGC_B_UP].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_DN].hit_x += 23.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_DN].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_UP].hit_x += 28.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_R_UP].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_DN].hit_x += 23.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_DN].hit_y += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_UP].hit_x += 28.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_G_UP].hit_y += 13.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_DN].hit_x += 23.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_DN].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_UP].hit_x += 28.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_BGC_B_UP].hit_y += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_SAVE].hit_x += 10 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_SAVE].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_SAVE].hit_w = 4 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_EXIT].hit_x += 18 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_EXIT].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_EXIT].hit_w = 4 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_NEXT].hit_x += 25 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_NEXT].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT0_NEXT].hit_w = 7 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_RUNOPTS0].hit_w = 256 * video.scale;
+	hotspots[HS_RUNOPTS0_RUNOPTS0].hit_h = 192 * video.scale;
+	hotspots[HS_RUNOPTS0_VOLUME_DN].hit_x += 6.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_VOLUME_DN].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_VOLUME_UP].hit_x += 12.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_VOLUME_UP].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRDELAY_DN].hit_x += 7.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRDELAY_DN].hit_y += 5.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRDELAY_UP].hit_x += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRDELAY_UP].hit_y += 5.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_DN].hit_x += 10.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_DN].hit_y += 7.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_UP].hit_x += 18.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_KRINTERVAL_UP].hit_y += 7.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_R_DN].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_R_DN].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_R_UP].hit_x += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_R_UP].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_G_DN].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_G_DN].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_G_UP].hit_x += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_G_UP].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_B_DN].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_B_DN].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_B_UP].hit_x += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_FGC_B_UP].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_R_DN].hit_x += 23.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_R_DN].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_R_UP].hit_x += 28.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_R_UP].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_G_DN].hit_x += 23.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_G_DN].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_G_UP].hit_x += 28.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_G_UP].hit_y += 13.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_B_DN].hit_x += 23.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_B_DN].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_B_UP].hit_x += 28.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_BGC_B_UP].hit_y += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_SAVE].hit_x += 10 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_SAVE].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_SAVE].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_EXIT].hit_x += 18 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_EXIT].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_EXIT].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_NEXT].hit_x += 25 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_NEXT].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_NEXT].hit_w = 7 * 8 * video.scale;
 	/* Set-up hit_w/h */
-	for (count = HS_RUNOPT0_VOLUME_DN; count <= HS_RUNOPT0_NEXT; count++) {
+	for (count = HS_RUNOPTS0_VOLUME_DN; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
-		if (count >= HS_RUNOPT0_VOLUME_DN && count <= HS_RUNOPT0_BGC_B_UP) 
+		if (count >= HS_RUNOPTS0_VOLUME_DN && count <= HS_RUNOPTS0_BGC_B_UP) 
 			hotspots[count].hit_w = 2 * 8 * video.scale;
 	}
 	/* Set-up hl_x/y/w/h */
-	for (count = HS_RUNOPT0_VOLUME_DN; count <= HS_RUNOPT0_NEXT; count++) {
+	for (count = HS_RUNOPTS0_VOLUME_DN; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].hl_x = hotspots[count].hit_x;
 		hotspots[count].hl_y = hotspots[count].hit_y;
 		hotspots[count].hl_w = hotspots[count].hit_w;
 		hotspots[count].hl_h = hotspots[count].hit_h;
 	}
-	for (count = HS_RUNOPT0_VOLUME_DN; count <= HS_RUNOPT0_NEXT; count++) {
+	for (count = HS_RUNOPTS0_VOLUME_DN; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].hl_y += 0.5 * 8 * video.scale;
 		hotspots[count].hl_h -= 1 * 8 * video.scale;
 	}
 
 	/* Resize the runtime options hotspots */
-	for (count = HS_RUNOPT1_RUNOPT1; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPTS1_RUNOPTS1; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hit_x = runtime_options1.xoffset;
 		hotspots[count].hit_y = runtime_options1.yoffset;
 	}
-	hotspots[HS_RUNOPT1_RUNOPT1].hit_w = 256 * video.scale;
-	hotspots[HS_RUNOPT1_RUNOPT1].hit_h = 192 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_DN].hit_x += 18.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_DN].hit_y += 1.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_DN].hit_w = 2 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].hit_x += 24.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].hit_y += 1.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].hit_w = 2 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_START_CFG].hit_x += 2 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_START_CFG].hit_y += 5.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_START_CFG].hit_w = 18 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_LTRIG].hit_x += 4 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_LTRIG].hit_y += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_LTRIG].hit_w = 3 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_RTRIG].hit_x += 15 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_RTRIG].hit_y += 7.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_RTRIG].hit_w = 3 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_LEFT].hit_x += 3 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_LEFT].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_RIGHT].hit_x += 6 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_RIGHT].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_UP].hit_x += 4.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_UP].hit_y += 10 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_DOWN].hit_x += 4.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_DOWN].hit_y += 13 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_SELECT].hit_x += 8.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_SELECT].hit_y += 12.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_START].hit_x += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_START].hit_y += 12.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_A].hit_x += 14 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_A].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_B].hit_x += 17 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_B].hit_y += 11.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_Y].hit_x += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_Y].hit_y += 10 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_X].hit_x += 15.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_CFG_X].hit_y += 13 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_BACK].hit_x += 0 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_BACK].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_BACK].hit_w = 7 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_SAVE].hit_x += 10 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_SAVE].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_SAVE].hit_w = 4 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_EXIT].hit_x += 18 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_EXIT].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_EXIT].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_RUNOPTS1].hit_w = 256 * video.scale;
+	hotspots[HS_RUNOPTS1_RUNOPTS1].hit_h = 192 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].hit_x += 18.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].hit_w = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].hit_x += 24.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].hit_y += 1.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].hit_w = 2 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_START_CFG].hit_x += 2 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_START_CFG].hit_y += 5.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_START_CFG].hit_w = 18 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_LTRIG].hit_x += 4 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_LTRIG].hit_y += 7.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_LTRIG].hit_w = 3 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_RTRIG].hit_x += 15 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_RTRIG].hit_y += 7.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_RTRIG].hit_w = 3 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_LEFT].hit_x += 3 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_LEFT].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_RIGHT].hit_x += 6 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_RIGHT].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_UP].hit_x += 4.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_UP].hit_y += 10 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_DOWN].hit_x += 4.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_DOWN].hit_y += 13 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_SELECT].hit_x += 8.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_SELECT].hit_y += 12.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_START].hit_x += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_START].hit_y += 12.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_A].hit_x += 14 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_A].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_B].hit_x += 17 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_B].hit_y += 11.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_Y].hit_x += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_Y].hit_y += 10 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_X].hit_x += 15.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_CFG_X].hit_y += 13 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_BACK].hit_x += 0 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_BACK].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_BACK].hit_w = 7 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_SAVE].hit_x += 10 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_SAVE].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_SAVE].hit_w = 4 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_EXIT].hit_x += 18 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_EXIT].hit_y += 22.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_EXIT].hit_w = 4 * 8 * video.scale;
 	/* Set-up hit_w/h */
-	for (count = HS_RUNOPT1_JDEADZ_DN; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPTS1_JDEADZ_DN; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
-		if (count >= HS_RUNOPT1_CFG_LEFT && count <= HS_RUNOPT1_CFG_X) 
+		if (count >= HS_RUNOPTS1_CFG_LEFT && count <= HS_RUNOPTS1_CFG_X) 
 			hotspots[count].hit_w = 2 * 8 * video.scale;
 	}
 	/* Set-up hl_x/y/w/h */
-	for (count = HS_RUNOPT1_JDEADZ_DN; count <= HS_RUNOPT1_EXIT; count++) {
+	for (count = HS_RUNOPTS1_JDEADZ_DN; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hl_x = hotspots[count].hit_x;
 		hotspots[count].hl_y = hotspots[count].hit_y;
 		hotspots[count].hl_w = hotspots[count].hit_w;
 		hotspots[count].hl_h = hotspots[count].hit_h;
 	}
-	hotspots[HS_RUNOPT1_JDEADZ_DN].hl_y += 0.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_DN].hl_h -= 1 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].hl_y += 0.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_JDEADZ_UP].hl_h -= 1 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_START_CFG].hl_y += 0.5 * 8 * video.scale;
-	hotspots[HS_RUNOPT1_START_CFG].hl_h -= 1 * 8 * video.scale;
-	for (count = HS_RUNOPT1_SAVE; count <= HS_RUNOPT1_EXIT; count++) {
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].hl_y += 0.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].hl_h -= 1 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].hl_y += 0.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_JDEADZ_UP].hl_h -= 1 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_START_CFG].hl_y += 0.5 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_START_CFG].hl_h -= 1 * 8 * video.scale;
+	for (count = HS_RUNOPTS1_SAVE; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hl_y += 0.5 * 8 * video.scale;
 		hotspots[count].hl_h -= 1 * 8 * video.scale;
 	}

@@ -98,8 +98,8 @@ void sdl_rcfile_read(void) {
 	fprintf(stdout, "Reading from %s\n", filename);
 	if ((fp = fopen(filename, "r")) == NULL) {
 		fprintf(stderr, "Cannot read from %s\n", filename);
-		/* Schedule a new default rcfile */
-		rcfile.rewrite = 2;
+		/* Schedule a new rcfile */
+		rcfile.rewrite = TRUE;
 		return;
 	}
 
@@ -238,10 +238,10 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_VKEYB;
 				if (strstr(value, "COMP_CTB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_CTB;
-				if (strstr(value, "COMP_RUNOPT0") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPT0;
-				if (strstr(value, "COMP_RUNOPT1") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPT1;
+				if (strstr(value, "COMP_RUNOPTS0") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPTS0;
+				if (strstr(value, "COMP_RUNOPTS1") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPTS1;
 			}
 			strcpy(key, "ctrl_remap.protected=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -343,19 +343,19 @@ void sdl_rcfile_read(void) {
 	}
 	/* Key repeat delay */
 	if (read_key_repeat.delay != UNDEFINED) {
-		if (read_key_repeat.delay >= 40 && read_key_repeat.delay <= 520) {
+		if (read_key_repeat.delay >= 80 && read_key_repeat.delay <= 520) {
 			sdl_key_repeat.delay = read_key_repeat.delay;
 		} else {
-			fprintf(stderr, "%s: key_repeat.delay within rcfile is invalid: try 40 to 520\n",
+			fprintf(stderr, "%s: key_repeat.delay within rcfile is invalid: try 80 to 520\n",
 				__func__);
 		}
 	}
 	/* Key repeat interval */
 	if (read_key_repeat.interval != UNDEFINED) {
-		if (read_key_repeat.interval >= 40 && read_key_repeat.interval <= 520) {
+		if (read_key_repeat.interval >= 80 && read_key_repeat.interval <= 520) {
 			sdl_key_repeat.interval = read_key_repeat.interval;
 		} else {
-			fprintf(stderr, "%s: key_repeat.interval within rcfile is invalid: try 40 to 520\n",
+			fprintf(stderr, "%s: key_repeat.interval within rcfile is invalid: try 80 to 520\n",
 				__func__);
 		}
 	}
@@ -510,13 +510,13 @@ void rcfile_write(void) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_CTB"); found = TRUE;
 				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPT0) {
+				if (ctrl_remaps[count].components & COMP_RUNOPTS0) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPT0"); found = TRUE;
+					strcat(value, "COMP_RUNOPTS0"); found = TRUE;
 				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPT1) {
+				if (ctrl_remaps[count].components & COMP_RUNOPTS1) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPT1"); found = TRUE;
+					strcat(value, "COMP_RUNOPTS1"); found = TRUE;
 				}				
 			}				
 			fprintf(fp, "%s=%s\n", key, value);

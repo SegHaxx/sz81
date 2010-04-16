@@ -39,7 +39,7 @@
 /* Variables */
 char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
-int joystick_dead_zone, temp_joystick_dead_zone;
+int joystick_dead_zone;
 int current_input_id;
 
 struct ctrlremap {

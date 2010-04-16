@@ -56,12 +56,21 @@
 #define GP2X_VOL_DN 0x11
 #define GP2X_BTN_JOY 0x12
 
+/* Transit states */
+#define TRANSIT_OUT 0
+#define TRANSIT_IN 1
+#define TRANSIT_SAVE 2
+
 /* Variables */
 int device, id, mod_id, state;
-int last_runopt_comp = COMP_RUNOPT0;
+int last_runopts_comp = COMP_RUNOPTS0;
 int hs_load_selected, hs_vkeyb_ctb_selected;
-SDL_Event virtualevent;
-SDL_Event event;
+SDL_Event event, virtualevent;
+
+struct keyrepeat runopts_key_repeat;
+Uint32 runopts_colours_emu_fg;
+Uint32 runopts_colours_emu_bg;
+int runopts_joystick_dead_zone;
 
 char *keysyms[] = {
 	"SDLK_UNKNOWN", "SDLK_FIRST", "SDLK_BACKSPACE", "SDLK_TAB", "SDLK_CLEAR", 
@@ -128,9 +137,8 @@ int keycodes[] = {
 void manage_cursor_input(void);
 void manage_all_input(void);
 void manage_vkeyb_input(void);
-void manage_runopt_input(void);
-void runtime_options_in(void);
-void runtime_options_out(void);
+void manage_runopts_input(void);
+void runopts_transit(int state);
 
 
 /***************************************************************************
@@ -230,36 +238,36 @@ int keyboard_init(void) {
 	ctrl_remaps[index].remap_id = SDLK_PERIOD;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	/* Active within the runopt only */
-	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	/* Active within the runopts only */
+	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_N;
 
-	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_DOWN;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_S;
 
-	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_W;
 
-	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_E;
 
-	ctrl_remaps[++index].components = COMP_RUNOPT0 | COMP_RUNOPT1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RETURN;
@@ -898,7 +906,10 @@ int keyboard_update(void) {
 					}
 					break;
 				case SDL_QUIT:
-					exit_program();
+					/* Simulate an F10 release which will execute the exit code */
+					device = DEVICE_KEYBOARD;
+					id = SDLK_F10;
+					state = SDL_RELEASED;
 					break;
 				default:
 					break;
@@ -911,7 +922,6 @@ int keyboard_update(void) {
 					current_input_id = id;
 				} else {
 					current_input_id = UNDEFINED;
-					video.redraw = TRUE;
 				}
 			}
 
@@ -985,9 +995,9 @@ int keyboard_update(void) {
 					if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 				}
 
-				/* Manage COMP_RUNOPT0 and COMP_RUNOPT1 input */
-				if (get_active_component() == COMP_RUNOPT0 ||
-					get_active_component() == COMP_RUNOPT1) manage_runopt_input();
+				/* Manage COMP_RUNOPTS0 and COMP_RUNOPTS1 input */
+				if (get_active_component() == COMP_RUNOPTS0 ||
+					get_active_component() == COMP_RUNOPTS1) manage_runopts_input();
 				
 				/* Manage COMP_VKEYB and COMP_CTB input */
 				if (get_active_component() == COMP_VKEYB ||
@@ -1289,6 +1299,8 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
 			if (state == SDL_RELEASED) {
+				if (runtime_options0.state || runtime_options1.state) 
+					runopts_transit(TRANSIT_OUT);	/* Restore variables */
 				exit_program();
 			}
 		} else if (id == SDLK_F11) {
@@ -1312,26 +1324,26 @@ void manage_all_input(void) {
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state) {
 					if (!runtime_options0.state && !runtime_options1.state) {
-						if (last_runopt_comp == COMP_RUNOPT0) {
+						if (last_runopts_comp == COMP_RUNOPTS0) {
 							runtime_options0.state = TRUE;
 						} else {
 							runtime_options1.state = TRUE;
 						}
 						emulator.state = FALSE;
 						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
-						runtime_options_in();
+						runopts_transit(TRANSIT_IN);
 					} else {
 						runtime_options0.state = runtime_options1.state = FALSE;
 						emulator.state = TRUE;
 						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
-						runtime_options_out();
+						runopts_transit(TRANSIT_OUT);
 					}
 				}
 			}
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
 			/* Adjust the volume */
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 				if (id == SDLK_MINUS) {
 					if (sdl_sound.volume > 0) {
 						sdl_sound.volume -= 2;
@@ -1347,6 +1359,10 @@ void manage_all_input(void) {
 						#endif
 					}
 				}
+				rcfile.rewrite = TRUE;
+				/*** SHOW MSGBOX HERE ***/
+				/*** SHOW MSGBOX HERE ***/
+				/*** SHOW MSGBOX HERE ***/
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -1412,7 +1428,7 @@ void manage_vkeyb_input(void) {
  * Manage Runtime Options Input                                            *
  ***************************************************************************/
 
-void manage_runopt_input(void) {
+void manage_runopts_input(void) {
 	int amount;
 	
 	/* Note that I'm currently ignoring modifier states */
@@ -1420,6 +1436,7 @@ void manage_runopt_input(void) {
 		if (id == SDLK_F2) {
 			/* Save */
 			if (state == SDL_PRESSED) {
+				runopts_transit(TRANSIT_SAVE);
 			}
 		} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
 			/* < Back and Next > */
@@ -1428,13 +1445,13 @@ void manage_runopt_input(void) {
 					if (id == SDLK_PAGEDOWN) {
 						runtime_options0.state = FALSE;
 						runtime_options1.state = TRUE;
-						last_runopt_comp = COMP_RUNOPT1;
+						last_runopts_comp = COMP_RUNOPTS1;
 					}
 				} else if (runtime_options1.state) {
 					if (id == SDLK_PAGEUP) {
 						runtime_options1.state = FALSE;
 						runtime_options0.state = TRUE;
-						last_runopt_comp = COMP_RUNOPT0;
+						last_runopts_comp = COMP_RUNOPTS0;
 					}
 				}
 			}
@@ -1442,9 +1459,9 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Key repeat delay < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					if (id == SDLK_HOME) {
-						if (sdl_key_repeat.delay > 40) sdl_key_repeat.delay -= 10;
+						if (sdl_key_repeat.delay > 80) sdl_key_repeat.delay -= 10;
 					} else {
 						if (sdl_key_repeat.delay < 520) sdl_key_repeat.delay += 10;
 					}
@@ -1454,7 +1471,7 @@ void manage_runopt_input(void) {
 			} else if (runtime_options1.state) {
 				/* Joy Dead Zone < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT0 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 					if (id == SDLK_HOME) {
 						if (joystick_dead_zone > 2) joystick_dead_zone -= 2;
 					} else {
@@ -1468,9 +1485,9 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Key repeat interval < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					if (id == SDLK_INSERT) {
-						if (sdl_key_repeat.interval > 40) sdl_key_repeat.interval -= 10;
+						if (sdl_key_repeat.interval > 80) sdl_key_repeat.interval -= 10;
 					} else {
 						if (sdl_key_repeat.interval < 520) sdl_key_repeat.interval += 10;
 					}
@@ -1482,7 +1499,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_1) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
@@ -1494,7 +1511,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Foreground colour green < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_3) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
@@ -1506,7 +1523,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Foreground colour blue < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_5) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
@@ -1518,7 +1535,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Background colour red < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_7) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
@@ -1530,7 +1547,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Background colour green < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_9) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
@@ -1542,7 +1559,7 @@ void manage_runopt_input(void) {
 			if (runtime_options0.state) {
 				/* Background colour blue < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPT1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
 					amount = 8; if (id == SDLK_LEFTBRACKET) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
@@ -1555,21 +1572,44 @@ void manage_runopt_input(void) {
 }
 
 /***************************************************************************
- * Runtime Options In                                                      *
+ * Runtime Options Transit                                                 *
  ***************************************************************************/
+/* This system differs from previous options systems I've written in that the
+ * real variables (not copies) are modified but restored on exit if not saved.
+ * This enables the user to preview the changes without having to modify+save */
 
-void runtime_options_in(void) {
+void runopts_transit(int state) {
+	static int last_state = TRANSIT_OUT;
+	
+	if (state == TRANSIT_OUT) {
+		if (last_state != TRANSIT_SAVE) {
+			/* Restore the original contents of these variables */
+			sdl_key_repeat.delay = runopts_key_repeat.delay;
+			sdl_key_repeat.interval = runopts_key_repeat.interval;
+			colours.emu_fg = runopts_colours_emu_fg;
+			colours.emu_bg = runopts_colours_emu_bg;
+			joystick_dead_zone = runopts_joystick_dead_zone;
+		}
+		/*printf("%s: OUT\n", __func__);	 temp temp */
+	} else if (state == TRANSIT_IN) {
+		/* Initialise copies of the variables modifiable within runopts.
+		 * Sound volume isn't included because it's always available for 
+		 * adjustment throughout the program i.e. it's live */
+		runopts_key_repeat.delay = sdl_key_repeat.delay;
+		runopts_key_repeat.interval = sdl_key_repeat.interval;
+		runopts_colours_emu_fg = colours.emu_fg;
+		runopts_colours_emu_bg = colours.emu_bg;
+		runopts_joystick_dead_zone = joystick_dead_zone;
+		/*printf("%s: IN\n", __func__);	 temp temp */
+	} else if (state == TRANSIT_SAVE) {
+		/*** SHOW MSGBOX HERE ***/
+		/*** SHOW MSGBOX HERE ***/
+		/*** SHOW MSGBOX HERE ***/
+		rcfile.rewrite = TRUE;
+		/*printf("%s: SAVE\n", __func__);	 temp temp */
+	}
 
-
-}
-
-/***************************************************************************
- * Runtime Options Out                                                     *
- ***************************************************************************/
-
-void runtime_options_out(void) {
-
-
+	last_state = state;
 }
 
 /***************************************************************************

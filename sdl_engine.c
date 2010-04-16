@@ -85,8 +85,8 @@ int sdl_init(void) {
 	#endif
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
-	colours.emu_fg = 0x202020;
-	colours.emu_bg = 0xf0f0f0;
+	colours.emu_fg = 0x202828;
+	colours.emu_bg = 0xf0f0e8;
 	colours.hs_load_selected = 0x00ff00;
 	colours.hs_load_pressed = 0xffc000;
 	colours.hs_vkeyb_zx80_selected = 0x00ff00;
@@ -171,9 +171,10 @@ void component_executive(void) {
 	}
 
 	/* Monitor runtime options' state */
-	if (((active_components & COMP_RUNOPT0) != (runtime_options0.state * COMP_RUNOPT0)) ||
-		((active_components & COMP_RUNOPT1) != (runtime_options1.state * COMP_RUNOPT1))) {
+	if (((active_components & COMP_RUNOPTS0) != (runtime_options0.state * COMP_RUNOPTS0)) ||
+		((active_components & COMP_RUNOPTS1) != (runtime_options1.state * COMP_RUNOPTS1))) {
 		if ((runtime_options0.state || runtime_options1.state) && vkeyb.state) vkeyb.state = FALSE;
+		if (!runtime_options0.state && !runtime_options1.state) video.redraw = TRUE;
 		found = TRUE;
 	}
 
@@ -217,14 +218,14 @@ void component_executive(void) {
 		active_components &= ~COMP_VKEYB;
 	}
 	if (runtime_options0.state) {
-		active_components |= COMP_RUNOPT0;
+		active_components |= COMP_RUNOPTS0;
 	} else {
-		active_components &= ~COMP_RUNOPT0;
+		active_components &= ~COMP_RUNOPTS0;
 	}
 	if (runtime_options1.state) {
-		active_components |= COMP_RUNOPT1;
+		active_components |= COMP_RUNOPTS1;
 	} else {
-		active_components &= ~COMP_RUNOPT1;
+		active_components &= ~COMP_RUNOPTS1;
 	}
 }
 
@@ -237,9 +238,9 @@ int get_active_component(void) {
 	int retval;
 	
 	if (runtime_options0.state) {
-		retval = COMP_RUNOPT0;
+		retval = COMP_RUNOPTS0;
 	} else if (runtime_options1.state) {
-		retval = COMP_RUNOPT1;
+		retval = COMP_RUNOPTS1;
 	} else if (vkeyb.state) {
 		retval = COMP_VKEYB;
 	} else if (load_selector_state) {

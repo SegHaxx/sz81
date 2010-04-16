@@ -1,3 +1,8 @@
+2010-04-16 Thunor <thunorsif_at_hotmail.com>
+* Runtime options now works i.e. the changes are saved or discarded.
+  The joystick configurator and selector navigation will be implemented
+  later when I'm happy with the layout and scalability looks good.
+
 2010-04-15 Thunor <thunorsif_at_hotmail.com>
 * Optimised vkeyb drawing: when alpha is 0 it's no longer rendered.
 
