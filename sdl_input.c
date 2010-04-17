@@ -1261,6 +1261,7 @@ void manage_cursor_input(void) {
 
 void manage_all_input(void) {
 	static int last_vkeyb_state = FALSE;
+	struct MSG_Box msg_box;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -1359,10 +1360,11 @@ void manage_all_input(void) {
 						#endif
 					}
 				}
+				strcpy(msg_box.title, "Sound");
+				sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
+				msg_box.timeout = MSG_BOX_TIMEOUT_SOUND_VOLUME;
+				message_box_manager(MSG_BOX_SHOW, &msg_box);
 				rcfile.rewrite = TRUE;
-				/*** SHOW MSGBOX HERE ***/
-				/*** SHOW MSGBOX HERE ***/
-				/*** SHOW MSGBOX HERE ***/
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -1580,6 +1582,7 @@ void manage_runopts_input(void) {
 
 void runopts_transit(int state) {
 	static int last_state = TRANSIT_OUT;
+	struct MSG_Box msg_box;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -1602,9 +1605,10 @@ void runopts_transit(int state) {
 		runopts_joystick_dead_zone = joystick_dead_zone;
 		/*printf("%s: IN\n", __func__);	 temp temp */
 	} else if (state == TRANSIT_SAVE) {
-		/*** SHOW MSGBOX HERE ***/
-		/*** SHOW MSGBOX HERE ***/
-		/*** SHOW MSGBOX HERE ***/
+		strcpy(msg_box.title, "Options");
+		strcpy(msg_box.text, "Changes saved");
+		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
+		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
 		/*printf("%s: SAVE\n", __func__);	 temp temp */
 	}

@@ -85,8 +85,8 @@ int sdl_init(void) {
 	#endif
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
-	colours.emu_fg = 0x202828;
-	colours.emu_bg = 0xf0f0e8;
+	colours.emu_fg = 0x202020;
+	colours.emu_bg = 0xf0f0f0;
 	colours.hs_load_selected = 0x00ff00;
 	colours.hs_load_pressed = 0xffc000;
 	colours.hs_vkeyb_zx80_selected = 0x00ff00;

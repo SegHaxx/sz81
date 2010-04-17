@@ -1,3 +1,7 @@
+2010-04-17 Thunor <thunorsif_at_hotmail.com>
+* Added a message box manager which is currently used when saving from
+  runopts or changing the volume (default -/= or use mouse in runopts).
+
 2010-04-16 Thunor <thunorsif_at_hotmail.com>
 * Runtime options now works i.e. the changes are saved or discarded.
   The joystick configurator and selector navigation will be implemented

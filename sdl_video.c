@@ -457,6 +457,9 @@ void sdl_video_update(void) {
 	/* Render visible hotspots now */
 	hotspots_render();
 
+	/* Render any existing message box */
+	message_box_manager(MSG_BOX_SHOW, NULL);
+
 	/* If the user has passed the -d option then show
 	 * the currently pressed control id on-screen */
 	if (sdl_cl_show_input_id && current_input_id != UNDEFINED) {
@@ -860,4 +863,154 @@ Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulat
 
 	return red << 16 | green << 8 | blue;	
 }
+
+/***************************************************************************
+ * Message Box Manager                                                     *
+ ***************************************************************************/
+/* This recreates and draws an existing message box in the middle of the
+ * screen every frame. It is recreated because the fg/bg colours or the
+ * resolution could have changed in the meantime - not that it's a problem.
+ * 
+ * struct MSG_Box {
+ *     char title[33];    The title bar text
+ *     char text[33];     A single line message
+ *     int timeout;       In ms
+ * };
+ * 
+ * On entry: funcid = MSG_BOX_SHOW with
+ *                    msg_box pointing to the msg_box to show
+ *           funcid = MSG_BOX_SHOW with
+ *                    msg_box = NULL to show an existing msgbox
+ *           funcid = MSG_BOX_KILL to kill an existing msgbox */
+
+void message_box_manager(int funcid, struct MSG_Box *msg_box) {
+	static struct MSG_Box the_box;
+	static Uint32 last_time;
+	static int init = TRUE;
+	Uint32 colour, fg_colour, bg_colour;
+	SDL_Surface *renderedtext, *shadow;
+	SDL_Rect winrect, dstrect;
+	int count;
+
+	if (init) {
+		init = FALSE;
+		the_box.title[0] = 0; the_box.text[0] = 0; the_box.timeout = 0;
+	}
+
+	if (funcid == MSG_BOX_SHOW && msg_box != NULL) {
+		/* Initialise a new msgbox / overwrite an existing msgbox */
+		the_box = *msg_box;
+		last_time = SDL_GetTicks();
+	} else if (funcid == MSG_BOX_SHOW && msg_box == NULL) {
+		/* Show an existing msgbox */
+		if (the_box.timeout > 0) {
+			/* Prepare the colours we shall be using */
+			if (!invert_screen) {
+				fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
+			} else {
+				fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
+			}
+			/* winrect will be the reference coords of the window that
+			 * everything else will be relative to and it shouldn't be
+			 * passed to SDL since SDL will clip it if it's oversize */
+			if (strlen(the_box.title) > strlen(the_box.text)) {
+				winrect.w = (strlen(the_box.title) + 2) * 8 * video.scale;
+			} else {
+				winrect.w = (strlen(the_box.text) + 2) * 8 * video.scale;
+			}
+			winrect.h = 4.5 * 8 * video.scale;
+			winrect.x = video.screen->w / 2 - (winrect.w + 8 * video.scale) / 2;
+			winrect.y = video.screen->h / 2 - (winrect.h + 8 * video.scale) / 2;
+			/* Draw the window background */
+			dstrect.x = winrect.x; dstrect.y = winrect.y; 
+			dstrect.w = winrect.w; dstrect.h = winrect.h; 
+			if (SDL_FillRect(video.screen, &dstrect, fg_colour) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			/* Invert the colours */
+			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
+			/* Write the title */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.title, fg_colour, bg_colour);
+			dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+			/* Draw the window interior */
+			dstrect.x = winrect.x + 4 * video.scale; dstrect.y = winrect.y + 8 * video.scale;
+			dstrect.w = winrect.w - 8 * video.scale; dstrect.h = winrect.h - 1.5 * 8 * video.scale; 
+			if (SDL_FillRect(video.screen, &dstrect, fg_colour) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			/* Invert the colours */
+			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
+			/* Write the text */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.text, fg_colour, bg_colour);
+			dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y + 2 * 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+			/* Draw the right-hand and bottom shadows */
+			for (count = 0; count < 2; count++) {
+				if (count == 0) {
+					dstrect.w = 8 * video.scale; dstrect.h = winrect.h;
+				} else {
+					dstrect.w = winrect.w - 8 * video.scale; dstrect.h = 8 * video.scale;
+				}
+				shadow = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
+					video.screen->format->BitsPerPixel,
+					video.screen->format->Rmask, video.screen->format->Gmask,
+					video.screen->format->Bmask, video.screen->format->Amask);
+				if (shadow == NULL) {
+					fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
+						SDL_GetError ());
+					exit(1);
+				}
+				/* Fill the shadow with black */
+				colour = 0x000000;
+				if (SDL_FillRect(shadow, NULL, SDL_MapRGB(video.screen->format,
+					colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
+					fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+						SDL_GetError ());
+					exit(1);
+				}
+				/* Set the alpha for the entire surface */
+				if (SDL_SetAlpha(shadow, SDL_SRCALPHA, 51) < 0) {	/* 20% */
+					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
+						SDL_GetError());
+					exit(1);
+				}
+				/* Blit it to the screen */
+				if (count == 0) {
+					dstrect.x = winrect.x + winrect.w; dstrect.y = winrect.y + 8 * video.scale;
+				} else {
+					dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y + winrect.h;
+				}
+				dstrect.w = shadow->w; dstrect.h = shadow->h;
+				if (SDL_BlitSurface (shadow, NULL, video.screen, &dstrect) < 0) {
+					fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+						SDL_GetError ());
+					exit(1);
+				}
+				SDL_FreeSurface(shadow);
+			}
+			/* Decrement the timeout */			
+			the_box.timeout -= SDL_GetTicks() - last_time;
+			last_time = SDL_GetTicks();
+		}
+	} else if (funcid == MSG_BOX_KILL) {
+		/* Kill an existing msgbox */
+		the_box.timeout = 0;
+	}
+}
+
+
+
 

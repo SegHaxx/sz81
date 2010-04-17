@@ -600,6 +600,11 @@ void hotspots_render(void) {
 						video.screen->format->BitsPerPixel,
 						video.screen->format->Rmask, video.screen->format->Gmask,
 						video.screen->format->Bmask, video.screen->format->Amask);
+					if (highlight == NULL) {
+						fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
+							SDL_GetError ());
+						exit(1);
+					}
 				}
 				/* Fill the highlight if colour is not the last colour used */
 				if (colour != last_colour) {

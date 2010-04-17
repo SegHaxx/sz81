@@ -16,6 +16,13 @@
  */
 
 /* Defines */
+/* Message box manager function IDs */
+#define MSG_BOX_SHOW 1
+#define MSG_BOX_KILL 2
+
+/* Message box timeouts */
+#define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
+#define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
 
 /* Variables */
 struct {
@@ -27,9 +34,19 @@ struct {
 	int redraw;			/* TRUE to redraw entire screen */
 } video;
 
+struct MSG_Box {
+	char title[33];		/* The title bar text */
+	char text[33];		/* A single line message */
+	int timeout;		/* In ms */
+};
+
 /* Function prototypes */
 void scale_surface(SDL_Surface *original, SDL_Surface *scaled);
 void cycle_resolutions(void);
 Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
+void message_box_manager(int funcid, struct MSG_Box *msg_box);
+
+
+
 
 
