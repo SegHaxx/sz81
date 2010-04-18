@@ -70,7 +70,6 @@ int sdl_init(void) {
 		zx80font.scaled[count] = zx81font.scaled[count] = 
 			zx82font.scaled[count] = NULL;
 	joystick = NULL;
-	highlight = NULL;
 	wm_icon = NULL;
 
 	/* Initialise everything to a default here that could possibly be
@@ -311,7 +310,6 @@ void clean_up_before_exit(void) {
 		if (joystick) SDL_JoystickClose(joystick);
 	#endif
 
-	if (highlight) SDL_FreeSurface(highlight);
 	if (wm_icon) SDL_FreeSurface(wm_icon);
 
 	SDL_Quit();

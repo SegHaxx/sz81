@@ -168,9 +168,9 @@ void hotspots_init(void) {
 		hotspots[count].gid = HS_GRP_RUNOPT1;
 	}
 	hotspots[HS_RUNOPTS1_JDEADZ_DN].remap_id = SDLK_HOME;
+	hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS1_JDEADZ_UP].remap_id = SDLK_END;
 	hotspots[HS_RUNOPTS1_START_CFG].remap_id = SDLK_s;
-	hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS1_CFG_LTRIG].remap_id = SDLK_l;
 	hotspots[HS_RUNOPTS1_CFG_RTRIG].remap_id = SDLK_r;
 	hotspots[HS_RUNOPTS1_CFG_LEFT].remap_id = SDLK_0;
@@ -340,7 +340,7 @@ void hotspots_resize(void) {
 	hotspots[HS_RUNOPTS0_EXIT].hit_w = 4 * 8 * video.scale;
 	hotspots[HS_RUNOPTS0_NEXT].hit_x += 25 * 8 * video.scale;
 	hotspots[HS_RUNOPTS0_NEXT].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPTS0_NEXT].hit_w = 7 * 8 * video.scale;
+	hotspots[HS_RUNOPTS0_NEXT].hit_w = 6.5 * 8 * video.scale;
 	/* Set-up hit_w/h */
 	for (count = HS_RUNOPTS0_VOLUME_DN; count <= HS_RUNOPTS0_NEXT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
@@ -401,9 +401,9 @@ void hotspots_resize(void) {
 	hotspots[HS_RUNOPTS1_CFG_Y].hit_y += 10 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_CFG_X].hit_x += 15.5 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_CFG_X].hit_y += 13 * 8 * video.scale;
-	hotspots[HS_RUNOPTS1_BACK].hit_x += 0 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_BACK].hit_x += 0.5 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_BACK].hit_y += 22.5 * 8 * video.scale;
-	hotspots[HS_RUNOPTS1_BACK].hit_w = 7 * 8 * video.scale;
+	hotspots[HS_RUNOPTS1_BACK].hit_w = 6.5 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_SAVE].hit_x += 10 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_SAVE].hit_y += 22.5 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_SAVE].hit_w = 4 * 8 * video.scale;
@@ -413,7 +413,7 @@ void hotspots_resize(void) {
 	/* Set-up hit_w/h */
 	for (count = HS_RUNOPTS1_JDEADZ_DN; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
-		if (count >= HS_RUNOPTS1_CFG_LEFT && count <= HS_RUNOPTS1_CFG_X) 
+		if (count >= HS_RUNOPTS1_CFG_UP && count <= HS_RUNOPTS1_CFG_X) 
 			hotspots[count].hit_w = 2 * 8 * video.scale;
 	}
 	/* Set-up hl_x/y/w/h */
@@ -429,7 +429,7 @@ void hotspots_resize(void) {
 	hotspots[HS_RUNOPTS1_JDEADZ_UP].hl_h -= 1 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_START_CFG].hl_y += 0.5 * 8 * video.scale;
 	hotspots[HS_RUNOPTS1_START_CFG].hl_h -= 1 * 8 * video.scale;
-	for (count = HS_RUNOPTS1_SAVE; count <= HS_RUNOPTS1_EXIT; count++) {
+	for (count = HS_RUNOPTS1_BACK; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hl_y += 0.5 * 8 * video.scale;
 		hotspots[count].hl_h -= 1 * 8 * video.scale;
 	}
@@ -497,26 +497,21 @@ void hotspots_update(void) {
  ***************************************************************************/
 /* This renders visible hotspots over everything else and is called towards
  * the end of sdl-video-refresh. What the hotspot will look like is decided
- * here and depends especially on the gid and occasionally on the flags.
- * It's efficient since it will attempt to reuse a previously created and
- * filled highlight if possible */
+ * here and depends especially on the gid and occasionally on the flags */
 
 void hotspots_render(void) {
-	static Uint32 last_colour = UNDEFINED;
 	int hl_x, hl_y, hl_w, hl_h;
 	int count, surround, alpha;
-	Uint32 colour;
+	SDL_Surface *highlight;
 	int selected, pressed;
 	SDL_Rect dstrect;
+	Uint32 colour;
 
 	/* Highlight any hotspots that are currently visible that have ids
-	 * that are recorded as being pressed, and also selected hotspots
-	 * if a joystick is enabled */
+	 * that are recorded as being pressed, and selected hotspots if applicable */
 	for (count = 0; count < MAX_HOTSPOTS; count++) {
-		if (hotspots[count].gid != UNDEFINED &&
-			hotspots[count].flags & HS_PROP_VISIBLE &&
-			hotspots[count].gid != HS_GRP_ROOT &&
-			hotspots[count].remap_id != UNDEFINED) {
+		if (hotspots[count].gid != UNDEFINED && hotspots[count].flags & HS_PROP_VISIBLE &&
+			hotspots[count].gid != HS_GRP_ROOT && hotspots[count].remap_id != UNDEFINED) {
 
 			pressed = keyboard_buffer[keysym_to_scancode(FALSE, hotspots[count].remap_id)];
 			selected = hotspots[count].flags & HS_PROP_SELECTED;
@@ -526,7 +521,9 @@ void hotspots_render(void) {
 				ctrl_remapper.master_interval / 2) selected = FALSE;
 
 		#ifndef SDL_DEBUG_HOTSPOTS
-			if (pressed || (joystick && selected)) {
+			if (pressed || (joystick && selected) || 
+				(hotspots[count].gid == HS_GRP_RUNOPT0 && selected) ||
+				(hotspots[count].gid == HS_GRP_RUNOPT1 && selected)) {
 		#endif
 				/* Set the size of the hotspot's highlight.
 				 * If hl_x/y/w/h are all UNDEFINED then use hit_x/y/w/h instead */
@@ -588,60 +585,49 @@ void hotspots_render(void) {
 				#ifdef SDL_DEBUG_HOTSPOTS	/* Ooh, pretty Christmas Lights Edition(tm) ;) */
 					colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;
 				#endif
-				/* Create an RGB surface to accommodate the highlight.
-				 * The chances are that we can reuse the last highlight created */
-				if (!highlight ||
-					(highlight && (highlight->w != hl_w || highlight->h != hl_h))) {
-					/* Free the surface first if it exists */
-					if (highlight) SDL_FreeSurface(highlight);
-					/* Undefine the last fill colour */
-					last_colour = UNDEFINED;
-					highlight = SDL_CreateRGBSurface(SDL_SWSURFACE, hl_w, hl_h,
-						video.screen->format->BitsPerPixel,
-						video.screen->format->Rmask, video.screen->format->Gmask,
-						video.screen->format->Bmask, video.screen->format->Amask);
-					if (highlight == NULL) {
-						fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
-							SDL_GetError ());
-						exit(1);
-					}
+				/* Create an RGB surface to accommodate the highlight */
+				highlight = SDL_CreateRGBSurface(SDL_SWSURFACE, hl_w, hl_h,
+					video.screen->format->BitsPerPixel,
+					video.screen->format->Rmask, video.screen->format->Gmask,
+					video.screen->format->Bmask, video.screen->format->Amask);
+				if (highlight == NULL) {
+					fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
+						SDL_GetError ());
+					exit(1);
 				}
-				/* Fill the highlight if colour is not the last colour used */
-				if (colour != last_colour) {
-					last_colour = colour;
-					if (SDL_FillRect(highlight, NULL, SDL_MapRGB(video.screen->format,
-						colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
-						fprintf(stderr, "%s: FillRect error: %s\n", __func__,
-							SDL_GetError ());
-						exit(1);
-					}
-					/* For the vkeyb make the hotspot corners transparent */
-					if (hotspots[count].gid == HS_GRP_VKEYB) {
-						colour = SDL_MapRGB(video.screen->format, colours.colour_key >> 16 & 0xff,
-							colours.colour_key >> 8 & 0xff, colours.colour_key & 0xff);
-						dstrect.w = video.scale; dstrect.h = video.scale;
-						for (surround = 0; surround < 4; surround++) {
-							if (surround == 0) {
-								dstrect.x = 0; dstrect.y = 0;
-							} else if (surround == 1) {
-								dstrect.x = hl_w - video.scale; dstrect.y = 0;
-							} else if (surround == 2) {
-								dstrect.x = hl_w - video.scale; dstrect.y = hl_h - video.scale;
-							} else if (surround == 3) {
-								dstrect.x = 0; dstrect.y = hl_h - video.scale;
-							}
-							if (SDL_FillRect(highlight, &dstrect, colour) < 0) {
-								fprintf(stderr, "%s: FillRect error: %s\n", __func__,
-									SDL_GetError ());
-								exit(1);
-							}
+				/* Fill the highlight */
+				if (SDL_FillRect(highlight, NULL, SDL_MapRGB(video.screen->format,
+					colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
+					fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+						SDL_GetError ());
+					exit(1);
+				}
+				/* For the vkeyb make the hotspot corners transparent */
+				if (hotspots[count].gid == HS_GRP_VKEYB) {
+					colour = SDL_MapRGB(video.screen->format, colours.colour_key >> 16 & 0xff,
+						colours.colour_key >> 8 & 0xff, colours.colour_key & 0xff);
+					dstrect.w = video.scale; dstrect.h = video.scale;
+					for (surround = 0; surround < 4; surround++) {
+						if (surround == 0) {
+							dstrect.x = 0; dstrect.y = 0;
+						} else if (surround == 1) {
+							dstrect.x = hl_w - video.scale; dstrect.y = 0;
+						} else if (surround == 2) {
+							dstrect.x = hl_w - video.scale; dstrect.y = hl_h - video.scale;
+						} else if (surround == 3) {
+							dstrect.x = 0; dstrect.y = hl_h - video.scale;
 						}
-						/* Set the transparent colour */
-						if (SDL_SetColorKey (highlight, SDL_SRCCOLORKEY, colour) < 0) {
-							fprintf(stderr, "%s: Cannot set surface colour key: %s\n", __func__,
+						if (SDL_FillRect(highlight, &dstrect, colour) < 0) {
+							fprintf(stderr, "%s: FillRect error: %s\n", __func__,
 								SDL_GetError ());
 							exit(1);
 						}
+					}
+					/* Set the transparent colour */
+					if (SDL_SetColorKey (highlight, SDL_SRCCOLORKEY, colour) < 0) {
+						fprintf(stderr, "%s: Cannot set surface colour key: %s\n", __func__,
+							SDL_GetError ());
+						exit(1);
 					}
 				}
 				/* Choose a suitable alpha */
@@ -663,6 +649,7 @@ void hotspots_render(void) {
 						SDL_GetError ());
 					exit(1);
 				}
+				SDL_FreeSurface(highlight);
 				/* For the load selector, add interior left and right
 				 * solid bars using the current background colour */
 				if (hotspots[count].gid == HS_GRP_LOAD) {

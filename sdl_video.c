@@ -139,11 +139,15 @@ int sdl_video_setmode(void) {
 
 	/* Set-up runtime options' screen offset */
 	runtime_options0.xoffset = (video.xres - 256 * video.scale) / 2;
+	if (runtime_options0.xoffset < 0) runtime_options0.xoffset = 0;
 	runtime_options0.yoffset = (video.yres - 192 * video.scale) / 2;
+	if (runtime_options0.yoffset < 0) runtime_options0.yoffset = 0;
 
 	/* Set-up runtime options' screen offset */
 	runtime_options1.xoffset = (video.xres - 256 * video.scale) / 2;
+	if (runtime_options1.xoffset < 0) runtime_options1.xoffset = 0;
 	runtime_options1.yoffset = (video.yres - 192 * video.scale) / 2;
+	if (runtime_options1.yoffset < 0) runtime_options1.yoffset = 0;
 	
 	/* Set-up the fonts */
 	if (fonts_init()) exit(1);
@@ -924,7 +928,8 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			/* Draw the window background */
 			dstrect.x = winrect.x; dstrect.y = winrect.y; 
 			dstrect.w = winrect.w; dstrect.h = winrect.h; 
-			if (SDL_FillRect(video.screen, &dstrect, fg_colour) < 0) {
+			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
+				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
@@ -942,7 +947,8 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			/* Draw the window interior */
 			dstrect.x = winrect.x + 4 * video.scale; dstrect.y = winrect.y + 8 * video.scale;
 			dstrect.w = winrect.w - 8 * video.scale; dstrect.h = winrect.h - 1.5 * 8 * video.scale; 
-			if (SDL_FillRect(video.screen, &dstrect, fg_colour) < 0) {
+			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
+				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
@@ -974,9 +980,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 					exit(1);
 				}
 				/* Fill the shadow with black */
-				colour = 0x000000;
-				if (SDL_FillRect(shadow, NULL, SDL_MapRGB(video.screen->format,
-					colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
+				if (SDL_FillRect(shadow, NULL, 0) < 0) {
 					fprintf(stderr, "%s: FillRect error: %s\n", __func__,
 						SDL_GetError ());
 					exit(1);

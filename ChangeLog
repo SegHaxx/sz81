@@ -1,3 +1,10 @@
+2010-04-18 Thunor <thunorsif_at_hotmail.com>
+* Excluding the configurator, both runtime options pages are now fully
+  functional and navigable using the keyboard (cursors and enter),
+  mouse or joystick. The control remappings have been significantly
+  updated and so any existing rcfile will have to be deleted; later
+  I'll check for an old rcfile in code and ignore it.
+
 2010-04-17 Thunor <thunorsif_at_hotmail.com>
 * Added a message box manager which is currently used when saving from
   runopts or changing the volume (default -/= or use mouse in runopts).
