@@ -304,8 +304,9 @@ void clean_up_before_exit(void) {
 	}
 
 	#ifdef PLATFORM_GP2X
-		/* if (joystick) SDL_JoystickClose(joystick); This will segfault
-		 * using the GPH SDK */
+		#ifdef TOOLCHAIN_OPEN2X
+			if (joystick) SDL_JoystickClose(joystick);
+		#endif
 	#else
 		if (joystick) SDL_JoystickClose(joystick);
 	#endif

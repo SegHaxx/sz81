@@ -1308,6 +1308,13 @@ int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
 #endif
 int krheld=0,krsubh=0;
 int oldkey,key,virtkey;
+/* vvvvvvvvvvvv Added by Thunor */
+/* ".." is not always found so I force it unless the current working dir
+ * is root. This I experienced on my Sharp Zaurus and I have a suspicion
+ * that I've experienced this before somewhere */
+int parent_found;
+char workdir[256];
+/* ^^^^^^^^^^^^ Added by Thunor */
 #endif
 
 #ifdef SZ81	/* Added by Thunor */
@@ -1359,11 +1366,17 @@ do
   maxlen=-1;
   top=cursel=0;
   quit=got_one=0;
+  /* vvvvvvvvvvvv Added by Thunor */
+  parent_found=0;
+  getcwd(workdir, 256);
+  /* ^^^^^^^^^^^^ Added by Thunor */
 
   /* read list of .p files */
   while((entry=readdir(dirfile))!=NULL)
     {
     isdir=0;
+
+    if(strcmp(entry->d_name,"..")==0) parent_found=1;	/* Added by Thunor */
 
     /* must be non-hidden dir (and not `.') or .p file */
     len=strlen(entry->d_name);
@@ -1403,6 +1416,34 @@ do
 
   closedir(dirfile);
 
+  /* vvvvvvvvvvvv Added by Thunor */
+  if((numfiles==0 || parent_found==0) && strcmp(workdir, "/")!=0)
+    {
+    len=strlen("..");
+    /* make array of filenames bigger if needed */
+    if(files_ofs+len+(3)>=files_size)
+      {
+      files_size+=files_incr;
+      if((files=realloc(files,files_size))==NULL)
+        {
+        fprintf(stderr,"not enough memory for file selector!\n");
+        ignore_esc=0;
+        closedir(dirfile);
+        return(NULL);
+        }
+      }
+    /* copy filename */
+    files[files_ofs]='(';
+    strcpy(files+files_ofs+1,"..");
+    strcat(files+files_ofs+1,")");
+    len+=2;
+
+    files_ofs+=len+1;
+    if(len+1>maxlen) maxlen=len+1;
+    numfiles++;
+    }
+  /* ^^^^^^^^^^^^ Added by Thunor */
+
   /* have to put them into something more like a normal array to
    * use qsort...
    * (I later realised I could just have sorted an array of pointers,
@@ -1413,6 +1454,10 @@ do
     free(files);
     if(numfiles!=0)
       fprintf(stderr,"not enough memory for file selector!\n");
+    /* vvvvvvvvvvvv Added by Thunor */
+    else
+      fprintf(stderr,"no files found!\n");
+    /* ^^^^^^^^^^^^ Added by Thunor */
     ignore_esc=0;
     return(NULL);
     }

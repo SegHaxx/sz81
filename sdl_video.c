@@ -986,7 +986,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 					exit(1);
 				}
 				/* Set the alpha for the entire surface */
-				if (SDL_SetAlpha(shadow, SDL_SRCALPHA, 51) < 0) {	/* 20% */
+				if (SDL_SetAlpha(shadow, SDL_SRCALPHA, 64) < 0) {	/* 25% */
 					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
 						SDL_GetError());
 					exit(1);

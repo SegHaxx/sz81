@@ -1,3 +1,13 @@
+2010-04-19 Thunor <thunorsif_at_hotmail.com>
+* Fixed a z81 bug in common.c:load_selector() whereby the parent dir
+  wasn't always returned by readdir() which would result in the load
+  selector not finding any suitable files in a folder and closing
+  prematurely, and also becoming stuck in a folder with no way out.
+  I experienced this on my Sharp Zaurus.
+* Tweaked the selector navigation within runopts and added joystick
+  LTrig/RTrig pageup and pagedown control remappings to the load
+  selector (I've already added them to runopts).
+
 2010-04-18 Thunor <thunorsif_at_hotmail.com>
 * Excluding the configurator, both runtime options pages are now fully
   functional and navigable using the keyboard (cursors and enter),

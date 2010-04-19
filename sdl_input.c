@@ -376,6 +376,22 @@ int keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_a;
 
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_q;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_RTRIG;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_a;
+			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
 			/* Active within load/vkeyb/ctb/runopts */
 			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].protected = TRUE;
@@ -441,7 +457,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
+			ctrl_remaps[++index].components = COMP_VKEYB;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_LTRIG;
@@ -459,7 +475,7 @@ int keyboard_init(void) {
 			ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_LTRIG;
+			ctrl_remaps[index].id = GP2X_RTRIG;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_PAGEDOWN;
 		#else
@@ -562,6 +578,22 @@ int keyboard_init(void) {
 				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 				ctrl_remaps[index].remap_id = SDLK_a;
 
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].protected = TRUE;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 6;	/* LTrig */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_q;
+				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+				ctrl_remaps[++index].components = COMP_LOAD;
+				ctrl_remaps[index].protected = TRUE;
+				ctrl_remaps[index].device = DEVICE_JOYSTICK;
+				ctrl_remaps[index].id = 7;	/* RTrig */
+				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+				ctrl_remaps[index].remap_id = SDLK_a;
+				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
 				/* Active within load/vkeyb/ctb/runopts */
 				ctrl_remaps[++index].components = COMP_VKEYB;
 				ctrl_remaps[index].protected = TRUE;
@@ -627,7 +659,7 @@ int keyboard_init(void) {
 				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 				ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
+				ctrl_remaps[++index].components = COMP_VKEYB;
 				ctrl_remaps[index].protected = TRUE;
 				ctrl_remaps[index].device = DEVICE_JOYSTICK;
 				ctrl_remaps[index].id = 6;	/* LTrig */
@@ -683,7 +715,21 @@ char *keyboard_getstate(void) {
  * quickly enough and key presses were getting released before the pressed
  * state was recorded. I fixed this by adding a flag to skip every other
  * update which solves this problem beautifully.
- *
+ * 
+ * +-------------------------+
+ * | Physical hardware input |
+ * +-------------------------+
+ *              |
+ *              v
+ * +-------------------------+
+ * |  Dynamic virtual input  |
+ * +-------------------------+
+ *              |
+ *              v
+ * +-------------------------+
+ * |     Target actions      |
+ * +-------------------------+
+ * 
  * On exit: returns non-zero if there are keyboard events else 0 */
 
 int keyboard_update(void) {
@@ -934,21 +980,7 @@ int keyboard_update(void) {
 				 * Cursor events though need to be dealt with now as either they are
 				 * moving a selection box around a GUI component or the user has hit
 				 * a hotspot which will result in the hit being remapped again to a
-				 * mouse button.
-				 * 
-				 * +-------------------------+
-				 * | Physical hardware input |
-				 * +-------------------------+
-				 *              |
-				 *              v
-				 * +-------------------------+
-				 * |  Dynamic virtual input  |
-				 * +-------------------------+
-				 *              |
-				 *              v
-				 * +-------------------------+
-				 * |     Target actions      |
-				 * +-------------------------+ */
+				 * mouse button */
 
 				/* Manage DEVICE_CURSOR input */
 				manage_cursor_input();
@@ -1070,9 +1102,12 @@ int keyboard_update(void) {
 /***************************************************************************
  * Manage DEVICE_CURSOR Input                                              *
  ***************************************************************************/
-/* I've thought about writing a function that manages locating the next
- * suitable hotspot but I'd still have to add conditions to get the selector
- * to go where I want it to so for the moment I won't be implementing one */
+/* When there's a situation whereby the path splits or converges then I use
+ * this intuitive system: down the left, up the right.
+ * 
+ * There's a possibility some of this could be automated but it's currently
+ * not worth the effort of coding it to find out since I'm being quite
+ * choosy regarding the route the selector will take */
 
 void manage_cursor_input(void) {
 	if (device == DEVICE_CURSOR) {
@@ -1124,8 +1159,7 @@ void manage_cursor_input(void) {
 				}
 			} else if (id == CURSOR_N) {
 				/* Move the selector up */
-				if (load_selector_state) {
-				} else if (vkeyb.state) {
+				if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
 					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
@@ -1150,27 +1184,30 @@ void manage_cursor_input(void) {
 				} else if (runtime_options0.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_N);
 					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_DN ||
-						hs_runopts0_selected == HS_RUNOPTS0_VOLUME_UP) {
+					if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_DN) {
 						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_UP) {
+						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_KRDELAY_DN &&
-						hs_runopts0_selected <= HS_RUNOPTS0_FGC_R_DN) {
+						hs_runopts0_selected <= HS_RUNOPTS0_FGC_R_UP) {
 						hotspots[hs_runopts0_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_UP &&
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_R_DN) {
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_BGC_R_DN) {
 						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_BGC_R_UP &&
-						hs_runopts0_selected <= HS_RUNOPTS0_NEXT) {
+						hs_runopts0_selected <= HS_RUNOPTS0_EXIT) {
 						hotspots[hs_runopts0_selected - 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_N);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
-						hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
+					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
-						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected >= HS_RUNOPTS1_BACK &&
 						hs_runopts1_selected <= HS_RUNOPTS1_EXIT) {
 						hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;
@@ -1178,8 +1215,7 @@ void manage_cursor_input(void) {
 				}
 			} else if (id == CURSOR_S) {
 				/* Move the selector down */
-				if (load_selector_state) {
-				} else if (vkeyb.state) {
+				if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_S);
 					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT &&
@@ -1204,11 +1240,15 @@ void manage_cursor_input(void) {
 				} else if (runtime_options0.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_S);
 					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected >= HS_RUNOPTS0_SAVE &&
-						hs_runopts0_selected <= HS_RUNOPTS0_NEXT) {
+					if (hs_runopts0_selected == HS_RUNOPTS0_SAVE ||
+						hs_runopts0_selected == HS_RUNOPTS0_EXIT) {
 						hotspots[HS_RUNOPTS0_VOLUME_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[HS_RUNOPTS0_VOLUME_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_BGC_B_UP) {
+						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_B_DN && 
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_B_UP) {
+						hs_runopts0_selected <= HS_RUNOPTS0_BGC_B_DN) {
 						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_DN && 
 						hs_runopts0_selected <= HS_RUNOPTS0_BGC_G_UP) {
@@ -1222,11 +1262,13 @@ void manage_cursor_input(void) {
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_S);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected >= HS_RUNOPTS1_BACK &&
-						hs_runopts1_selected <= HS_RUNOPTS1_EXIT) {
+					if (hs_runopts1_selected == HS_RUNOPTS1_BACK ||
+						hs_runopts1_selected == HS_RUNOPTS1_SAVE) {
 						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
+						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
-						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
 						hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;

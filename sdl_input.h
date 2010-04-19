@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define MAX_CTRL_REMAPS 96
+#define MAX_CTRL_REMAPS 48
 #define MAX_JOY_AXES 20
 #define MAX_SCANCODES 128
 
