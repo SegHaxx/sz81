@@ -109,6 +109,11 @@ int sdl_init(void) {
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	runtime_options0.state = FALSE;
 	runtime_options1.state = FALSE;
+	ctrl_remapper.state = FALSE;
+	joy_cfg.state = FALSE;
+	strcpy(joy_cfg.text[0], "Start the configurator to set-");
+	strcpy(joy_cfg.text[1], "up your joystick (any existing");
+	strcpy(joy_cfg.text[2], "controls will be overwritten)");
 	rcfile.rewrite = FALSE;
 
 	/* Initialise SDL */

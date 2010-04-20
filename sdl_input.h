@@ -31,6 +31,9 @@
 
 #define CTRL_REMAPPER_INTERVAL 520	/* Default granularity of 40ms */
 
+#define JOY_CFG_INTERVAL 520		/* Default granularity of 40ms */
+#define JOY_CFG_TIMEOUT 4000		/* In ms */
+
 /* Key repeat manager function IDs */
 #define KRM_FUNC_RELEASE 0
 #define KRM_FUNC_REPEAT 1
@@ -43,7 +46,7 @@ int joystick_dead_zone;
 int current_input_id;
 
 struct ctrlremap {
-	int components;		/* An OR'd combination of COMP_ ids */
+	int components;		/* An OR'd combination of COMP_ IDs */
 	int protected;		/* TRUE to prevent this from being runtime modified */
 	int device;			/* The source device e.g. DEVICE_JOYSTICK */
 	int id;				/* The source control id */
@@ -58,6 +61,14 @@ struct {
 	int master_interval;
 	int interval;
 } ctrl_remapper;
+
+struct {
+	int state;
+	int master_interval;
+	int interval;
+	int timeout;
+	char text[3][33];
+} joy_cfg;
 
 /* Function prototypes */
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);

@@ -691,9 +691,10 @@ int keyboard_init(void) {
 	hotspots_init();
 
 	/* Initialise the control remapper */
-	ctrl_remapper.state = FALSE;
 	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
-	ctrl_remapper.interval = 0;
+
+	/* Initialise the joystick configurator */
+	joy_cfg.master_interval = JOY_CFG_INTERVAL / (1000 / (emulator.speed / scrn_freq));
 
 	return 0;
 }
@@ -1206,11 +1207,11 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
 						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected >= HS_RUNOPTS1_BACK &&
 						hs_runopts1_selected <= HS_RUNOPTS1_EXIT) {
-						hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_START_JOY_CFG].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_S) {
@@ -1267,11 +1268,11 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
 						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
 						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
 						hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
-						hotspots[HS_RUNOPTS1_START_CFG].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_START_JOY_CFG].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_W) {
@@ -1321,7 +1322,7 @@ void manage_cursor_input(void) {
 						hotspots[hs_runopts1_selected + 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
 						hotspots[hs_runopts1_selected + 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
 						hotspots[hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[--hs_runopts1_selected].flags |= HS_PROP_SELECTED;
@@ -1374,7 +1375,7 @@ void manage_cursor_input(void) {
 						hotspots[hs_runopts1_selected - 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
 						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_CFG) {
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
 						hotspots[hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[++hs_runopts1_selected].flags |= HS_PROP_SELECTED;
@@ -1627,6 +1628,25 @@ void manage_runopts_input(void) {
 					}
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			}
+		} else if (id == SDLK_s) {
+			if (runtime_options1.state) {
+				/* Initiate joystick configurator */
+				if (state == SDL_PRESSED) {
+
+
+
+					joy_cfg.state = TRUE;
+					strcpy(joy_cfg.text[0], "Press a comparable control for");
+					strcpy(joy_cfg.text[1], "       Shift/Page Down");
+					sprintf(joy_cfg.text[2], "%s %i %s", "if available or wait", 
+						JOY_CFG_TIMEOUT / 1000, "seconds");
+					hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_SELECTED;
+					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					
+
+
 				}
 			}
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {

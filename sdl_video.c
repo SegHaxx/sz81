@@ -72,9 +72,9 @@ char *runtime_options1_text[24] = {
 	"  \x82\x84   \x92\x8e\x8e\x8e\x8e\x8e\x8e\x84   \x92\x81",
 	"   \x82\x83\x83\x83\x81      \x82\x83\x83\x83\x81",
 	"",
-	"",
-	"",
-	"",
+	"\x1 ",
+	"\x1 ",
+	"\x1 ",
 	"",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
@@ -200,7 +200,7 @@ void sdl_video_update(void) {
 	Uint16 *screen_pixels_16;
 	SDL_Surface *renderedtext;
 	SDL_Rect dstrect;
-	char text[8];
+	char text[33];
 	#ifdef SDL_DEBUG_FONTS
 		struct bmpfont *ptrfont;
 		int fontcount;
@@ -437,6 +437,8 @@ void sdl_video_update(void) {
 					} else if (runtime_options1.state) {
 						if (count == 0) {
 							sprintf(text, "%2i", joystick_dead_zone);
+						} else if (count >= 1 && count <= 3) {		
+							sprintf(text, "%s", joy_cfg.text[count - 1]);
 						} else {		
 							sprintf(text, "%s", "???");
 						}
@@ -1014,7 +1016,6 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 		the_box.timeout = 0;
 	}
 }
-
 
 
 
