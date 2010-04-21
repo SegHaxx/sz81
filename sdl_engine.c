@@ -84,8 +84,8 @@ int sdl_init(void) {
 	#endif
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
-	colours.emu_fg = 0x202020;
-	colours.emu_bg = 0xf0f0f0;
+	colours.emu_fg = 0x202018;
+	colours.emu_bg = 0xf0f0e8;
 	colours.hs_load_selected = 0x00ff00;
 	colours.hs_load_pressed = 0xffc000;
 	colours.hs_vkeyb_zx80_selected = 0x00ff00;
@@ -111,9 +111,6 @@ int sdl_init(void) {
 	runtime_options1.state = FALSE;
 	ctrl_remapper.state = FALSE;
 	joy_cfg.state = FALSE;
-	strcpy(joy_cfg.text[0], "Start the configurator to set-");
-	strcpy(joy_cfg.text[1], "up your joystick (any existing");
-	strcpy(joy_cfg.text[2], "controls will be overwritten)");
 	rcfile.rewrite = FALSE;
 
 	/* Initialise SDL */
@@ -178,7 +175,7 @@ void component_executive(void) {
 	if (((active_components & COMP_RUNOPTS0) != (runtime_options0.state * COMP_RUNOPTS0)) ||
 		((active_components & COMP_RUNOPTS1) != (runtime_options1.state * COMP_RUNOPTS1))) {
 		if ((runtime_options0.state || runtime_options1.state) && vkeyb.state) vkeyb.state = FALSE;
-		if (!runtime_options0.state && !runtime_options1.state) video.redraw = TRUE;
+		video.redraw = TRUE;
 		found = TRUE;
 	}
 

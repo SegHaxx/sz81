@@ -694,7 +694,13 @@ int keyboard_init(void) {
 	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
 
 	/* Initialise the joystick configurator */
-	joy_cfg.master_interval = JOY_CFG_INTERVAL / (1000 / (emulator.speed / scrn_freq));
+	if (joystick) {
+		strcpy(joy_cfg.text[0], "");
+	} else {
+		strcpy(joy_cfg.text[0], "No joystick found.");
+	}
+	strcpy(joy_cfg.text[1], "");
+	strcpy(joy_cfg.text[2], "");
 
 	return 0;
 }
@@ -926,10 +932,10 @@ int keyboard_update(void) {
 					}
 					break;
 				case SDL_QUIT:
-					/* Simulate an F10 release which will execute the exit code */
+					/* Simulate an F10 press which will execute the exit code */
 					device = DEVICE_KEYBOARD;
 					id = SDLK_F10;
-					state = SDL_RELEASED;
+					state = SDL_PRESSED;
 					break;
 				default:
 					break;
@@ -1026,7 +1032,7 @@ int keyboard_update(void) {
 					}
 				}
 			
-				/* Record the real/virtual/remapped event within the keyboard buffer */
+				/* Record the event within the keyboard buffer */
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
 					if (state == SDL_PRESSED) {
@@ -1050,7 +1056,7 @@ int keyboard_update(void) {
 				/* If we've recorded something then quit now */
 				if (eventfound) break;
 				
-			} else {
+			} else if (ctrl_remapper.state) {
 				/* A new control remapping is currently being recorded */
 				if (device != UNDEFINED) {
 					if (state == SDL_PRESSED) {
@@ -1106,9 +1112,10 @@ int keyboard_update(void) {
 /* When there's a situation whereby the path splits or converges then I use
  * this intuitive system: down the left, up the right.
  * 
- * There's a possibility some of this could be automated but it's currently
- * not worth the effort of coding it to find out since I'm being quite
- * choosy regarding the route the selector will take */
+ * This function annoys me since it looks as though it could do with
+ * automating, but it is in fact dealing with every possible route that
+ * can be taken from every hotspot and the patterns have been identified
+ * and the code compressed anyway */
 
 void manage_cursor_input(void) {
 	if (device == DEVICE_CURSOR) {
@@ -1190,9 +1197,12 @@ void manage_cursor_input(void) {
 					} else if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_UP) {
 						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_KRDELAY_DN &&
-						hs_runopts0_selected <= HS_RUNOPTS0_FGC_R_UP) {
+						hs_runopts0_selected <= HS_RUNOPTS0_FGC_R_DN) {
 						hotspots[hs_runopts0_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_BGC_R_DN) {
+					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_UP &&
+						hs_runopts0_selected <= HS_RUNOPTS0_BGC_R_DN) {
+						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts0_selected == HS_RUNOPTS0_SAVE) {
 						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_BGC_R_UP &&
 						hs_runopts0_selected <= HS_RUNOPTS0_EXIT) {
@@ -1207,11 +1217,26 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
-						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected >= HS_RUNOPTS1_BACK &&
-						hs_runopts1_selected <= HS_RUNOPTS1_EXIT) {
-						hotspots[HS_RUNOPTS1_START_JOY_CFG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_SAVE ||
+						hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
+						hotspots[hs_runopts1_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						hotspots[hs_runopts1_selected - 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
+						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_Y) {
+						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_S) {
@@ -1246,10 +1271,11 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS0_VOLUME_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[HS_RUNOPTS0_VOLUME_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_BGC_B_UP) {
+					} else if (hs_runopts0_selected >= HS_RUNOPTS0_BGC_B_DN &&
+						hs_runopts0_selected <= HS_RUNOPTS0_BGC_B_UP) {
 						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_B_DN && 
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_B_DN) {
+						hs_runopts0_selected <= HS_RUNOPTS0_FGC_B_UP) {
 						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_DN && 
 						hs_runopts0_selected <= HS_RUNOPTS0_BGC_G_UP) {
@@ -1268,11 +1294,25 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
 						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
+					} else if (hs_runopts1_selected >= HS_RUNOPTS1_JDEADZ_DN &&
+						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_RTRIG) {
+						hotspots[hs_runopts1_selected + 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
-						hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
-						hotspots[HS_RUNOPTS1_START_JOY_CFG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_W) {
@@ -1318,12 +1358,17 @@ void manage_cursor_input(void) {
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
+					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
 						hotspots[hs_runopts1_selected + 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
+						hotspots[hs_runopts1_selected + 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
 						hotspots[hs_runopts1_selected + 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
-						hotspots[hs_runopts1_selected].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[--hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					}
@@ -1371,17 +1416,54 @@ void manage_cursor_input(void) {
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
+					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
 						hotspots[hs_runopts1_selected - 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						hotspots[hs_runopts1_selected - 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
 						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_START_JOY_CFG) {
-						hotspots[hs_runopts1_selected].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[++hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					}
 				}
 			}
+			/* Write joyconf help text underneath the joypad	Redundant: nice idea but the user can press what 
+			if (runtime_options1.state) {						they want which doesn't match the defaults. temp temp
+				/$ Locate currently selected hotspot for group RUNOPTS1 $/
+				hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+				if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+					strcpy(joy_cfg.text[1], "Shift/Page Up");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+					strcpy(joy_cfg.text[1], "Page Down");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
+					strcpy(joy_cfg.text[1], "O/Selector Left");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+					strcpy(joy_cfg.text[1], "P/Selector Right");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
+					strcpy(joy_cfg.text[1], "Q/Selector Up");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
+					strcpy(joy_cfg.text[1], "A/Selector Down");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+					strcpy(joy_cfg.text[1], "Options/Control Remapper");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+					strcpy(joy_cfg.text[1], "Toggle Virtual Keyboard");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
+					strcpy(joy_cfg.text[1], "Newline/Selector Hit");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+					strcpy(joy_cfg.text[1], "Newline");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
+					strcpy(joy_cfg.text[1], "Rubout");
+				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+					strcpy(joy_cfg.text[1], "Space");
+				} else {
+					strcpy(joy_cfg.text[1], "");
+				}
+			} */
 		} else {	/* SDL_RELEASED */
 			if (id == CURSOR_HIT) {
 				/* Release a previous press (it's not important where) */
@@ -1446,7 +1528,7 @@ void manage_all_input(void) {
 			}
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
-			if (state == SDL_RELEASED) {
+			if (state == SDL_PRESSED) {
 				if (runtime_options0.state || runtime_options1.state) 
 					runopts_transit(TRANSIT_OUT);	/* Restore variables */
 				exit_program();
@@ -1630,25 +1712,37 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
-		} else if (id == SDLK_s) {
+		/*} else if (id == SDLK_s) {	Redundant: configuration is done manually now. temp temp
 			if (runtime_options1.state) {
-				/* Initiate joystick configurator */
-				if (state == SDL_PRESSED) {
-
-
-
+				strcpy(joy_cfg.text[0], "Start the configurator to set-");
+				strcpy(joy_cfg.text[1], "up your joystick (any existing");
+				strcpy(joy_cfg.text[2], "controls will be overwritten)");
+				/$ Initiate joystick configurator $/
+				if (state == SDL_RELEASED) {
 					joy_cfg.state = TRUE;
+					hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_SELECTED;
+					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_VISIBLE | HS_PROP_SELECTED;
 					strcpy(joy_cfg.text[0], "Press a comparable control for");
-					strcpy(joy_cfg.text[1], "       Shift/Page Down");
+					strcpy(joy_cfg.text[1], "  Shift/Page Up");
 					sprintf(joy_cfg.text[2], "%s %i %s", "if available or wait", 
 						JOY_CFG_TIMEOUT / 1000, "seconds");
-					hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_SELECTED;
-					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					
-
-
 				}
-			}
+				/$ The joyconf is currently recording a control $/
+				if (device != UNDEFINED) {
+					if (state == SDL_PRESSED) {
+
+						hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_VISIBLE & ~HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_VISIBLE | HS_PROP_SELECTED;
+						strcpy(joy_cfg.text[1], "  Shift/Page Down");
+						sprintf(joy_cfg.text[2], "%s %i %s", "if available or wait", 
+							JOY_CFG_TIMEOUT / 1000, "seconds");
+
+						joy_cfg.state = FALSE;
+
+
+					}
+				}
+			}*/
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
 			if (runtime_options0.state) {
 				/* Key repeat interval < and > */

@@ -31,9 +31,6 @@
 
 #define CTRL_REMAPPER_INTERVAL 520	/* Default granularity of 40ms */
 
-#define JOY_CFG_INTERVAL 520		/* Default granularity of 40ms */
-#define JOY_CFG_TIMEOUT 4000		/* In ms */
-
 /* Key repeat manager function IDs */
 #define KRM_FUNC_RELEASE 0
 #define KRM_FUNC_REPEAT 1
@@ -64,9 +61,6 @@ struct {
 
 struct {
 	int state;
-	int master_interval;
-	int interval;
-	int timeout;
 	char text[3][33];
 } joy_cfg;
 

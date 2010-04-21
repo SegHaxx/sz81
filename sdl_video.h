@@ -20,7 +20,7 @@
 #define MSG_BOX_SHOW 1
 #define MSG_BOX_KILL 2
 
-/* Message box timeouts */
+/* Message box timeouts in ms */
 #define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
 #define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
 

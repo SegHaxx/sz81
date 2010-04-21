@@ -60,7 +60,8 @@ char *runtime_options1_text[24] = {
 	"",
 	"Joystick Configurator:",
 	"",
-	"  Start Configurator",
+	"  Selector u/d/l/r and hit are",
+	"  the minimum requirements.",
 	"",
 	"   \x92\x2---\x2\x84      \x92\x2---\x2\x84",
 	"  \x92\x81   \x82\x83\x83\x83\x83\x83\x83\x81   \x82\x84",
@@ -72,10 +73,9 @@ char *runtime_options1_text[24] = {
 	"  \x82\x84   \x92\x8e\x8e\x8e\x8e\x8e\x8e\x84   \x92\x81",
 	"   \x82\x83\x83\x83\x81      \x82\x83\x83\x83\x81",
 	"",
-	"\x1 ",
-	"\x1 ",
-	"\x1 ",
-	"",
+	"  \x1 ",
+	"  \x1 ",
+	"  \x1 ",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
 };
