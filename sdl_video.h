@@ -24,6 +24,11 @@
 #define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
 #define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
 
+/* Joystick configurator text IDs */
+#define JOY_CFG_TEXT_DEFAULT_SETTINGS 0
+#define JOY_CFG_TEXT_PRESS_SOMETHING 1
+#define JOY_CFG_TEXT_ACCEPTED 2
+
 /* Variables */
 struct {
 	SDL_Surface *screen;
@@ -45,6 +50,7 @@ void scale_surface(SDL_Surface *original, SDL_Surface *scaled);
 void cycle_resolutions(void);
 Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
 void message_box_manager(int funcid, struct MSG_Box *msg_box);
+void set_joy_cfg_text(int textid);
 
 
 

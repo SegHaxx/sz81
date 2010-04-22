@@ -72,10 +72,10 @@ char *runtime_options1_text[24] = {
 	"  \x91  \x83          \x83  \x86",
 	"  \x82\x84   \x92\x8e\x8e\x8e\x8e\x8e\x8e\x84   \x92\x81",
 	"   \x82\x83\x83\x83\x81      \x82\x83\x83\x83\x81",
+	"  \x1 ",
+	"  \x1 ",
+	"  \x1 ",
 	"",
-	"  \x1 ",
-	"  \x1 ",
-	"  \x1 ",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
 };
@@ -443,14 +443,16 @@ void sdl_video_update(void) {
 							sprintf(text, "%s", "???");
 						}
 					}
-					dstrect.y = srcy + desy * 8 * video.scale;
-					renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
-					dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-					if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-						fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
-						exit(1);
+					if (text[0]) {	/* Let's not go to that place - again ;) */
+						dstrect.y = srcy + desy * 8 * video.scale;
+						renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+						dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+						if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+							fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+							exit(1);
+						}
+						SDL_FreeSurface(renderedtext);
 					}
-					SDL_FreeSurface(renderedtext);
 					count++; desx++;
 				} else if (text[0] == 0) {
 					break;	/* Process next row */
@@ -1014,6 +1016,76 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 	} else if (funcid == MSG_BOX_KILL) {
 		/* Kill an existing msgbox */
 		the_box.timeout = 0;
+	}
+}
+
+/***************************************************************************
+ * Set Joystick Configurator Text                                          *
+ ***************************************************************************/
+/* This sets the text shown underneath the joypad in runopts1. It does all
+ * the checking for joystick present, runopts1 visible etc. so just call it.
+ * 
+ * On entry: textid = JOY_CFG_TEXT_DEFAULT_SETTINGS
+ *           textid = JOY_CFG_TEXT_PRESS_SOMETHING
+ *           textid = JOY_CFG_TEXT_ACCEPTED
+ */
+
+void set_joy_cfg_text(int textid) {
+	int hs_runopts1_selected;
+	
+	if (runtime_options1.state) {	/* No point if you can't see it */
+		if (joystick) {
+			/* Locate currently selected hotspot for group RUNOPTS1 */
+			hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+			/* Is one of the joycfg hotspots selected? */
+			if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
+				hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+				if (textid == JOY_CFG_TEXT_DEFAULT_SETTINGS) {
+					strcpy(joy_cfg.text[0], "This control defaults to");
+					strcpy(joy_cfg.text[2], "");
+					if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+						strcpy(joy_cfg.text[1], "Shift/Page Up");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+						strcpy(joy_cfg.text[1], "Page Down");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
+						strcpy(joy_cfg.text[1], "O/Selector Left");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+						strcpy(joy_cfg.text[1], "P/Selector Right");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
+						strcpy(joy_cfg.text[1], "Q/Selector Up");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
+						strcpy(joy_cfg.text[1], "A/Selector Down");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+						strcpy(joy_cfg.text[1], "Options/Control Remapper");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+						strcpy(joy_cfg.text[1], "Toggle Virtual Keyboard");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
+						strcpy(joy_cfg.text[1], "Newline/Selector Hit");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+						strcpy(joy_cfg.text[1], "Newline");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
+						strcpy(joy_cfg.text[1], "Rubout");
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						strcpy(joy_cfg.text[1], "Space");
+					}
+				} else if (textid == JOY_CFG_TEXT_PRESS_SOMETHING) {
+					set_joy_cfg_text(JOY_CFG_TEXT_DEFAULT_SETTINGS);
+					strcpy(joy_cfg.text[0], "Press a similar control for");
+				} else if (textid == JOY_CFG_TEXT_ACCEPTED) {
+					strcpy(joy_cfg.text[0], "");
+					strcpy(joy_cfg.text[1], "Accepted.");
+					strcpy(joy_cfg.text[2], "");
+				}
+			} else {
+				strcpy(joy_cfg.text[0], "");
+				strcpy(joy_cfg.text[1], "");
+				strcpy(joy_cfg.text[2], "");
+			}
+		} else {
+			strcpy(joy_cfg.text[0], "");
+			strcpy(joy_cfg.text[1], "*** No joystick found ***");
+			strcpy(joy_cfg.text[2], "");
+		}
 	}
 }
 

@@ -175,6 +175,8 @@ void component_executive(void) {
 	if (((active_components & COMP_RUNOPTS0) != (runtime_options0.state * COMP_RUNOPTS0)) ||
 		((active_components & COMP_RUNOPTS1) != (runtime_options1.state * COMP_RUNOPTS1))) {
 		if ((runtime_options0.state || runtime_options1.state) && vkeyb.state) vkeyb.state = FALSE;
+		/* Update the joycfg text */
+		set_joy_cfg_text(0);
 		video.redraw = TRUE;
 		found = TRUE;
 	}

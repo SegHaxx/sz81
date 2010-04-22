@@ -693,15 +693,6 @@ int keyboard_init(void) {
 	/* Initialise the control remapper */
 	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
 
-	/* Initialise the joystick configurator */
-	if (joystick) {
-		strcpy(joy_cfg.text[0], "");
-	} else {
-		strcpy(joy_cfg.text[0], "No joystick found.");
-	}
-	strcpy(joy_cfg.text[1], "");
-	strcpy(joy_cfg.text[2], "");
-
 	return 0;
 }
 
@@ -1061,41 +1052,52 @@ int keyboard_update(void) {
 				if (device != UNDEFINED) {
 					if (state == SDL_PRESSED) {
 						ctrl_remapper.state = FALSE;
-						/* Locate currently selected hotspot for group VKEYB + CTB */
-						if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
-							hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
-						found = FALSE;
-						for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-							if (ctrl_remaps[count].device == device && 
-								ctrl_remaps[count].id == id &&
-								ctrl_remaps[count].remap_device == DEVICE_CURSOR &&
-								ctrl_remaps[count].remap_id == CURSOR_REMAP) {
-								/* The user cancelled with CURSOR_REMAP */
-								break;
-							} else if (ctrl_remaps[count].components & COMP_EMU &&
-								ctrl_remaps[count].device == device && 
-								ctrl_remaps[count].id == id) {
-								/* Overwrite existing if not protected */
-								if (ctrl_remaps[count].protected == FALSE) found = TRUE;
-								break;
-							} else if (ctrl_remaps[count].device == UNDEFINED) {
-								/* Insert new */
-								ctrl_remaps[count].components = COMP_ALL;
-								ctrl_remaps[count].protected = FALSE;
-								ctrl_remaps[count].device = device;
-								ctrl_remaps[count].id = id;
-								found = TRUE;
-								break;
+						if (vkeyb.state) {
+							/* Locate currently selected hotspot for group VKEYB + CTB */
+							if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
+								hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
+							found = FALSE;
+							for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+								if (ctrl_remaps[count].components & COMP_VKEYB &&
+									ctrl_remaps[count].device == device && 
+									ctrl_remaps[count].id == id &&
+									ctrl_remaps[count].remap_device == DEVICE_CURSOR &&
+									ctrl_remaps[count].remap_id == CURSOR_REMAP) {
+									/* The user cancelled with CURSOR_REMAP */
+									break;
+								} else if (ctrl_remaps[count].components & COMP_EMU &&
+									ctrl_remaps[count].device == device && 
+									ctrl_remaps[count].id == id) {
+									/* Overwrite existing if not protected */
+									if (ctrl_remaps[count].protected == FALSE) found = TRUE;
+									break;
+								} else if (ctrl_remaps[count].device == UNDEFINED) {
+									/* Insert new */
+									ctrl_remaps[count].components = COMP_ALL;
+									ctrl_remaps[count].protected = FALSE;
+									ctrl_remaps[count].device = device;
+									ctrl_remaps[count].id = id;
+									found = TRUE;
+									break;
+								}
 							}
-						}
-						if (found) {
-							/* Record it */
-							ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
-							ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
-							ctrl_remaps[count].remap_mod_id = UNDEFINED;
-							if (keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] ==
-								KEY_PRESSED) ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
-							rcfile.rewrite = TRUE;
+							if (found) {
+								/* Record it */
+								ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
+								ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
+								ctrl_remaps[count].remap_mod_id = UNDEFINED;
+								if (keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] ==
+									KEY_PRESSED) ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
+								rcfile.rewrite = TRUE;
+							}
+						} else if (runtime_options1.state) {
+
+							/* Store id somewhere for later use within runopts_transit */
+							/* Store id somewhere for later use within runopts_transit */
+							/* Store id somewhere for later use within runopts_transit */
+
+							set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
+
 						}
 					}
 				}
@@ -1432,38 +1434,8 @@ void manage_cursor_input(void) {
 					}
 				}
 			}
-			/* Write joyconf help text underneath the joypad	Redundant: nice idea but the user can press what 
-			if (runtime_options1.state) {						they want which doesn't match the defaults. temp temp
-				/$ Locate currently selected hotspot for group RUNOPTS1 $/
-				hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
-				if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
-					strcpy(joy_cfg.text[1], "Shift/Page Up");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
-					strcpy(joy_cfg.text[1], "Page Down");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
-					strcpy(joy_cfg.text[1], "O/Selector Left");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
-					strcpy(joy_cfg.text[1], "P/Selector Right");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
-					strcpy(joy_cfg.text[1], "Q/Selector Up");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
-					strcpy(joy_cfg.text[1], "A/Selector Down");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
-					strcpy(joy_cfg.text[1], "Options/Control Remapper");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
-					strcpy(joy_cfg.text[1], "Toggle Virtual Keyboard");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
-					strcpy(joy_cfg.text[1], "Newline/Selector Hit");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
-					strcpy(joy_cfg.text[1], "Newline");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
-					strcpy(joy_cfg.text[1], "Rubout");
-				} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-					strcpy(joy_cfg.text[1], "Space");
-				} else {
-					strcpy(joy_cfg.text[1], "");
-				}
-			} */
+			/* Update the joycfg text */
+			set_joy_cfg_text(JOY_CFG_TEXT_DEFAULT_SETTINGS);
 		} else {	/* SDL_RELEASED */
 			if (id == CURSOR_HIT) {
 				/* Release a previous press (it's not important where) */
@@ -1712,37 +1684,6 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
-		/*} else if (id == SDLK_s) {	Redundant: configuration is done manually now. temp temp
-			if (runtime_options1.state) {
-				strcpy(joy_cfg.text[0], "Start the configurator to set-");
-				strcpy(joy_cfg.text[1], "up your joystick (any existing");
-				strcpy(joy_cfg.text[2], "controls will be overwritten)");
-				/$ Initiate joystick configurator $/
-				if (state == SDL_RELEASED) {
-					joy_cfg.state = TRUE;
-					hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_SELECTED;
-					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_VISIBLE | HS_PROP_SELECTED;
-					strcpy(joy_cfg.text[0], "Press a comparable control for");
-					strcpy(joy_cfg.text[1], "  Shift/Page Up");
-					sprintf(joy_cfg.text[2], "%s %i %s", "if available or wait", 
-						JOY_CFG_TIMEOUT / 1000, "seconds");
-				}
-				/$ The joyconf is currently recording a control $/
-				if (device != UNDEFINED) {
-					if (state == SDL_PRESSED) {
-
-						hotspots[get_selected_hotspot(HS_GRP_RUNOPT1)].flags &= ~HS_PROP_VISIBLE & ~HS_PROP_SELECTED;
-						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_VISIBLE | HS_PROP_SELECTED;
-						strcpy(joy_cfg.text[1], "  Shift/Page Down");
-						sprintf(joy_cfg.text[2], "%s %i %s", "if available or wait", 
-							JOY_CFG_TIMEOUT / 1000, "seconds");
-
-						joy_cfg.state = FALSE;
-
-
-					}
-				}
-			}*/
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
 			if (runtime_options0.state) {
 				/* Key repeat interval < and > */
@@ -1829,6 +1770,21 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
+		} else if (id == SDLK_j) {
+			if (runtime_options1.state && joystick) {
+				if (state == SDL_PRESSED) {
+					/* Locate currently selected hotspot for group RUNOPTS1 */
+					hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+					/* Is one of the joycfg hotspots selected? */
+					if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
+						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+						ctrl_remapper.state = joy_cfg.state = TRUE;
+						/* Update the joycfg text */
+						set_joy_cfg_text(JOY_CFG_TEXT_PRESS_SOMETHING);
+						device = UNDEFINED;	/* Erase it */
+					}
+				}
+			}
 		}
 	}
 }
@@ -1870,6 +1826,16 @@ void runopts_transit(int state) {
 		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
+
+		if (joy_cfg.state) {
+			joy_cfg.state = FALSE;
+			
+			/* Update ctrl_remaps with new controls here temp temp */			
+			/* Update ctrl_remaps with new controls here */			
+			/* Update ctrl_remaps with new controls here */			
+			
+		}
+
 		/*printf("%s: SAVE\n", __func__);	 temp temp */
 	}
 
