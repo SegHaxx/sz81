@@ -170,18 +170,18 @@ void hotspots_init(void) {
 	hotspots[HS_RUNOPTS1_JDEADZ_DN].remap_id = SDLK_HOME;
 	hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS1_JDEADZ_UP].remap_id = SDLK_END;
-	hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_UP].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_START].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_A].remap_id = SDLK_j;
+	hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].remap_id = SDLK_a;
+	hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].remap_id = SDLK_b;
+	hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].remap_id = SDLK_c;
+	hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].remap_id = SDLK_d;
+	hotspots[HS_RUNOPTS1_JOY_CFG_UP].remap_id = SDLK_e;
+	hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].remap_id = SDLK_f;
+	hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].remap_id = SDLK_g;
+	hotspots[HS_RUNOPTS1_JOY_CFG_START].remap_id = SDLK_h;
+	hotspots[HS_RUNOPTS1_JOY_CFG_A].remap_id = SDLK_i;
 	hotspots[HS_RUNOPTS1_JOY_CFG_B].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_Y].remap_id = SDLK_j;
-	hotspots[HS_RUNOPTS1_JOY_CFG_X].remap_id = SDLK_j;
+	hotspots[HS_RUNOPTS1_JOY_CFG_Y].remap_id = SDLK_k;
+	hotspots[HS_RUNOPTS1_JOY_CFG_X].remap_id = SDLK_l;
 	hotspots[HS_RUNOPTS1_BACK].remap_id = SDLK_PAGEUP;
 	hotspots[HS_RUNOPTS1_SAVE].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPTS1_EXIT].remap_id = SDLK_ESCAPE;
@@ -409,7 +409,7 @@ void hotspots_resize(void) {
 	/* Set-up hit_w/h */
 	for (count = HS_RUNOPTS1_JDEADZ_DN; count <= HS_RUNOPTS1_EXIT; count++) {
 		hotspots[count].hit_h = 2 * 8 * video.scale;
-		if (count >= HS_RUNOPTS1_JOY_CFG_UP && count <= HS_RUNOPTS1_JOY_CFG_X) 
+		if (count >= HS_RUNOPTS1_JOY_CFG_LEFT && count <= HS_RUNOPTS1_JOY_CFG_X) 
 			hotspots[count].hit_w = 2 * 8 * video.scale;
 	}
 	/* Set-up hl_x/y/w/h */

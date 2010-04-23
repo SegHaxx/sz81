@@ -72,6 +72,7 @@ struct keyrepeat runopts_key_repeat;
 Uint32 runopts_colours_emu_fg;
 Uint32 runopts_colours_emu_bg;
 int runopts_joystick_dead_zone;
+int runopts_joy_cfg_id[12];
 
 char *keysyms[] = {
 	"SDLK_UNKNOWN", "SDLK_FIRST", "SDLK_BACKSPACE", "SDLK_TAB", "SDLK_CLEAR", 
@@ -290,7 +291,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].remap_id = SDLK_F1;
 
 			/* Active within emulator/runopts */
-			ctrl_remaps[++index].components = COMP_EMU | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_SELECT;
@@ -393,7 +394,7 @@ int keyboard_init(void) {
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 			/* Active within load/vkeyb/ctb/runopts */
-			ctrl_remaps[++index].components = COMP_VKEYB;
+			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_SELECT;
@@ -481,8 +482,7 @@ int keyboard_init(void) {
 		#else
 			if (strcmp(SDL_JoystickName(0),
 				"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
-				/* This is my own PC joystick which I've been using for testing
-				 * and is destined to go once the configurator is functional */
+				/* This is my own PC joystick which I've been using for testing */
 				/* Universally active */
 				ctrl_remaps[++index].components = COMP_ALL;
 				ctrl_remaps[index].protected = TRUE;
@@ -491,8 +491,8 @@ int keyboard_init(void) {
 				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 				ctrl_remaps[index].remap_id = SDLK_F1;
 
-				/* Active within emulator/runopts */
-				ctrl_remaps[++index].components = COMP_EMU | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+				/* Active within emulator */
+				ctrl_remaps[++index].components = COMP_EMU;
 				ctrl_remaps[index].protected = TRUE;
 				ctrl_remaps[index].device = DEVICE_JOYSTICK;
 				ctrl_remaps[index].id = 2;	/* C */
@@ -595,7 +595,7 @@ int keyboard_init(void) {
 				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 				/* Active within load/vkeyb/ctb/runopts */
-				ctrl_remaps[++index].components = COMP_VKEYB;
+				ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
 				ctrl_remaps[index].protected = TRUE;
 				ctrl_remaps[index].device = DEVICE_JOYSTICK;
 				ctrl_remaps[index].id = 2;	/* C */
@@ -1091,13 +1091,20 @@ int keyboard_update(void) {
 								rcfile.rewrite = TRUE;
 							}
 						} else if (runtime_options1.state) {
-
-							/* Store id somewhere for later use within runopts_transit */
-							/* Store id somewhere for later use within runopts_transit */
-							/* Store id somewhere for later use within runopts_transit */
-
-							set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
-
+							/* Locate currently selected hotspot for group RUNOPTS1 */
+							hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+							/* Store id for later use within runopts_transit when saving */
+							if (device != DEVICE_JOYSTICK) {
+								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = UNDEFINED;
+							} else {
+								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = id;
+							}
+							/* Update the joycfg text */
+							if (device != DEVICE_JOYSTICK) {
+								set_joy_cfg_text(JOY_CFG_TEXT_INVALID);
+							} else {
+								set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
+							}
 						}
 					}
 				}
@@ -1117,7 +1124,8 @@ int keyboard_update(void) {
  * This function annoys me since it looks as though it could do with
  * automating, but it is in fact dealing with every possible route that
  * can be taken from every hotspot and the patterns have been identified
- * and the code compressed anyway */
+ * and the code compressed anyway. Also the arrangement of the joycfg
+ * joypad buttons doesn't relate to the array indices */
 
 void manage_cursor_input(void) {
 	if (device == DEVICE_CURSOR) {
@@ -1145,27 +1153,42 @@ void manage_cursor_input(void) {
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
 				if (load_selector_state) {
-					virtualevent.button.x = hotspots[hs_load_selected].hit_x;
-					virtualevent.button.y = hotspots[hs_load_selected].hit_y;
+					virtualevent.button.x = hotspots[hs_load_selected].hit_x +
+						hotspots[hs_load_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_load_selected].hit_y +
+						hotspots[hs_load_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
 				} else if (vkeyb.state) {
-					virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x;
-					virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y;
+					virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x +
+						hotspots[hs_vkeyb_ctb_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y +
+						hotspots[hs_vkeyb_ctb_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
 				} else if (runtime_options0.state) {
-					virtualevent.button.x = hotspots[hs_runopts0_selected].hit_x;
-					virtualevent.button.y = hotspots[hs_runopts0_selected].hit_y;
+					virtualevent.button.x = hotspots[hs_runopts0_selected].hit_x +
+						hotspots[hs_runopts0_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_runopts0_selected].hit_y +
+						hotspots[hs_runopts0_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
 				} else if (runtime_options1.state) {
-					virtualevent.button.x = hotspots[hs_runopts1_selected].hit_x;
-					virtualevent.button.y = hotspots[hs_runopts1_selected].hit_y;
+					virtualevent.button.x = hotspots[hs_runopts1_selected].hit_x +
+						hotspots[hs_runopts1_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_runopts1_selected].hit_y +
+						hotspots[hs_runopts1_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
 				}
 			} else if (id == CURSOR_REMAP) {
-				/* Initiate joystick control remapping if the virtual keyboard is
-				 * active (this could be extended to include other components later) */
-				if (get_active_component() == COMP_VKEYB) {
+				/* Initiate joystick control remapping */
+				if (vkeyb.state) {
 					ctrl_remapper.state = TRUE;
+				} else if (runtime_options1.state) {
+					if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
+						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+						/* Activate the control remapper and joycfg */
+						ctrl_remapper.state = joy_cfg.state = TRUE;
+						/* Update the joycfg text */
+						set_joy_cfg_text(JOY_CFG_TEXT_PRESS_SOMETHING);
+					}
 				}
 			} else if (id == CURSOR_N) {
 				/* Move the selector up */
@@ -1221,24 +1244,31 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_SAVE ||
-						hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
-						hotspots[hs_runopts1_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_SAVE) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN ||
 						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[hs_runopts1_selected - 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
 						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A ||
 						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
-						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_Y) {
-						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_S) {
@@ -1296,9 +1326,14 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
 						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected >= HS_RUNOPTS1_JDEADZ_DN &&
-						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_RTRIG) {
-						hotspots[hs_runopts1_selected + 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
@@ -1360,17 +1395,30 @@ void manage_cursor_input(void) {
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
-						hotspots[hs_runopts1_selected + 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
+					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP ||
 						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
-						hotspots[hs_runopts1_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
-						hotspots[hs_runopts1_selected + 2].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
+						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[--hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					}
@@ -1418,17 +1466,30 @@ void manage_cursor_input(void) {
 				} else if (runtime_options1.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
 					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
-						hotspots[hs_runopts1_selected - 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B ||
+					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
+						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP ||
+						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y ||
 						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[hs_runopts1_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
-						hotspots[hs_runopts1_selected - 2].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
 					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
+						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[++hs_runopts1_selected].flags |= HS_PROP_SELECTED;
 					}
@@ -1770,19 +1831,20 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
-		} else if (id == SDLK_j) {
+		} else if (id >= SDLK_a && id <= SDLK_l) {
 			if (runtime_options1.state && joystick) {
 				if (state == SDL_PRESSED) {
+					/* Because the control remapper is being activated with hit,
+					 * the user could be hitting a hotspot with the mouse or
+					 * (unlikely) pressing a to l, so the selector is moved to
+					 * the hit hotspot */
 					/* Locate currently selected hotspot for group RUNOPTS1 */
 					hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
-					/* Is one of the joycfg hotspots selected? */
-					if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
-						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
-						ctrl_remapper.state = joy_cfg.state = TRUE;
-						/* Update the joycfg text */
-						set_joy_cfg_text(JOY_CFG_TEXT_PRESS_SOMETHING);
-						device = UNDEFINED;	/* Erase it */
-					}
+					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
+					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG + id - SDLK_a].flags |= HS_PROP_SELECTED;
+					/* Simulate a control remapper press */
+					device = DEVICE_CURSOR; id = CURSOR_REMAP;
+					manage_cursor_input();
 				}
 			}
 		}
@@ -1799,6 +1861,7 @@ void manage_runopts_input(void) {
 void runopts_transit(int state) {
 	static int last_state = TRANSIT_OUT;
 	struct MSG_Box msg_box;
+	int count;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -1809,6 +1872,8 @@ void runopts_transit(int state) {
 			colours.emu_bg = runopts_colours_emu_bg;
 			joystick_dead_zone = runopts_joystick_dead_zone;
 		}
+		joy_cfg.state = FALSE;	/* Discard what was remapped and not saved */
+
 		/*printf("%s: OUT\n", __func__);	 temp temp */
 	} else if (state == TRANSIT_IN) {
 		/* Initialise copies of the variables modifiable within runopts.
@@ -1819,6 +1884,8 @@ void runopts_transit(int state) {
 		runopts_colours_emu_fg = colours.emu_fg;
 		runopts_colours_emu_bg = colours.emu_bg;
 		runopts_joystick_dead_zone = joystick_dead_zone;
+		for (count = 0; count < 12; count++) runopts_joy_cfg_id[count] = UNDEFINED;
+
 		/*printf("%s: IN\n", __func__);	 temp temp */
 	} else if (state == TRANSIT_SAVE) {
 		strcpy(msg_box.title, "Options");
@@ -1833,6 +1900,10 @@ void runopts_transit(int state) {
 			/* Update ctrl_remaps with new controls here temp temp */			
 			/* Update ctrl_remaps with new controls here */			
 			/* Update ctrl_remaps with new controls here */			
+			printf("runopts_joy_cfg:\n");
+			for (count = 0; count < 12; count++) {
+				printf("  %02i: id=%i\n", count, runopts_joy_cfg_id[count]);
+			}
 			
 		}
 

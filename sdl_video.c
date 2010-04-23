@@ -1028,6 +1028,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
  * On entry: textid = JOY_CFG_TEXT_DEFAULT_SETTINGS
  *           textid = JOY_CFG_TEXT_PRESS_SOMETHING
  *           textid = JOY_CFG_TEXT_ACCEPTED
+ *           textid = JOY_CFG_TEXT_INVALID
  */
 
 void set_joy_cfg_text(int textid) {
@@ -1074,6 +1075,10 @@ void set_joy_cfg_text(int textid) {
 				} else if (textid == JOY_CFG_TEXT_ACCEPTED) {
 					strcpy(joy_cfg.text[0], "");
 					strcpy(joy_cfg.text[1], "Accepted.");
+					strcpy(joy_cfg.text[2], "");
+				} else if (textid == JOY_CFG_TEXT_INVALID) {
+					strcpy(joy_cfg.text[0], "");
+					strcpy(joy_cfg.text[1], "Invalid device.");
 					strcpy(joy_cfg.text[2], "");
 				}
 			} else {

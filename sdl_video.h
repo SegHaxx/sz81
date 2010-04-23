@@ -28,6 +28,7 @@
 #define JOY_CFG_TEXT_DEFAULT_SETTINGS 0
 #define JOY_CFG_TEXT_PRESS_SOMETHING 1
 #define JOY_CFG_TEXT_ACCEPTED 2
+#define JOY_CFG_TEXT_INVALID 3
 
 /* Variables */
 struct {

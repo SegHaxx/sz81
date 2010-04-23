@@ -72,6 +72,7 @@ void sdl_rcfile_read(void) {
 	struct colourtable read_colours;
 	int read_joystick_dead_zone;
 	int read_sound_volume;
+	char read_version[16];
 	int count, index, line_count;
 	FILE *fp;
 	
@@ -103,6 +104,7 @@ void sdl_rcfile_read(void) {
 		return;
 	}
 
+	strcpy(read_version, "");
 	read_joystick_dead_zone = UNDEFINED;
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
@@ -145,6 +147,10 @@ void sdl_rcfile_read(void) {
 			if (line[count] == 13 || line[count] == 10) line[count] = 0;
 		/* Process the line ignoring comments */
 		if (strlen(line) && line[0] != '#') {
+			strcpy(key, "version=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%s", read_version);
+			}
 			strcpy(key, "joystick_dead_zone=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_joystick_dead_zone);
@@ -300,6 +306,7 @@ void sdl_rcfile_read(void) {
 	fclose(fp);
 
 	#ifdef SDL_DEBUG_RCFILE
+		printf("read_version=%s\n", read_version);
 		printf("read_joystick_dead_zone=%i\n", read_joystick_dead_zone);
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
@@ -331,97 +338,105 @@ void sdl_rcfile_read(void) {
 		}
 	#endif
 
-	/* Store settings after first checking their validity */
-	/* Joystick dead zone */
-	if (read_joystick_dead_zone != UNDEFINED) {
-		if (read_joystick_dead_zone >= 1 && read_joystick_dead_zone <= 99) {
-			joystick_dead_zone = read_joystick_dead_zone;
-		} else {
-			fprintf(stderr, "%s: joystick_dead_zone within rcfile is invalid: try 1 to 99\n",
-				__func__);
+	if (strcmp(read_version, VERSION) != 0) {
+		/* For the moment as features are being added and modified
+		 * discard rcfiles from previous versions temp temp */
+		fprintf(stderr, "Discarding rcfile from previous version\n");
+		/* Schedule a new rcfile */
+		rcfile.rewrite = TRUE;
+	} else {
+		/* Store settings after first checking their validity */
+		/* Joystick dead zone */
+		if (read_joystick_dead_zone != UNDEFINED) {
+			if (read_joystick_dead_zone >= 1 && read_joystick_dead_zone <= 99) {
+				joystick_dead_zone = read_joystick_dead_zone;
+			} else {
+				fprintf(stderr, "%s: joystick_dead_zone within rcfile is invalid: try 1 to 99\n",
+					__func__);
+			}
 		}
-	}
-	/* Key repeat delay */
-	if (read_key_repeat.delay != UNDEFINED) {
-		if (read_key_repeat.delay >= 80 && read_key_repeat.delay <= 520) {
-			sdl_key_repeat.delay = read_key_repeat.delay;
-		} else {
-			fprintf(stderr, "%s: key_repeat.delay within rcfile is invalid: try 80 to 520\n",
-				__func__);
+		/* Key repeat delay */
+		if (read_key_repeat.delay != UNDEFINED) {
+			if (read_key_repeat.delay >= 80 && read_key_repeat.delay <= 520) {
+				sdl_key_repeat.delay = read_key_repeat.delay;
+			} else {
+				fprintf(stderr, "%s: key_repeat.delay within rcfile is invalid: try 80 to 520\n",
+					__func__);
+			}
 		}
-	}
-	/* Key repeat interval */
-	if (read_key_repeat.interval != UNDEFINED) {
-		if (read_key_repeat.interval >= 80 && read_key_repeat.interval <= 520) {
-			sdl_key_repeat.interval = read_key_repeat.interval;
-		} else {
-			fprintf(stderr, "%s: key_repeat.interval within rcfile is invalid: try 80 to 520\n",
-				__func__);
+		/* Key repeat interval */
+		if (read_key_repeat.interval != UNDEFINED) {
+			if (read_key_repeat.interval >= 80 && read_key_repeat.interval <= 520) {
+				sdl_key_repeat.interval = read_key_repeat.interval;
+			} else {
+				fprintf(stderr, "%s: key_repeat.interval within rcfile is invalid: try 80 to 520\n",
+					__func__);
+			}
 		}
-	}
-	/* Sound volume */
-	if (read_sound_volume != UNDEFINED) {
-		if (read_sound_volume >= 0 && read_sound_volume <= 128) {
-			sdl_sound.volume = read_sound_volume;
-		} else {
-			fprintf(stderr, "%s: sound.volume within rcfile is invalid: try 0 to 128\n",
-				__func__);
+		/* Sound volume */
+		if (read_sound_volume != UNDEFINED) {
+			if (read_sound_volume >= 0 && read_sound_volume <= 128) {
+				sdl_sound.volume = read_sound_volume;
+			} else {
+				fprintf(stderr, "%s: sound.volume within rcfile is invalid: try 0 to 128\n",
+					__func__);
+			}
 		}
-	}
-	/* Colours */
-	if (read_colours.emu_fg != UNDEFINED) colours.emu_fg = read_colours.emu_fg;
-	if (read_colours.emu_bg != UNDEFINED) colours.emu_bg = read_colours.emu_bg;
-	if (read_colours.hs_load_selected != UNDEFINED) 
-		colours.hs_load_selected = read_colours.hs_load_selected;
-	if (read_colours.hs_load_pressed != UNDEFINED) 
-		colours.hs_load_pressed = read_colours.hs_load_pressed;
-	if (read_colours.hs_vkeyb_zx80_selected != UNDEFINED) 
-		colours.hs_vkeyb_zx80_selected = read_colours.hs_vkeyb_zx80_selected;
-	if (read_colours.hs_vkeyb_zx80_pressed != UNDEFINED) 
-		colours.hs_vkeyb_zx80_pressed = read_colours.hs_vkeyb_zx80_pressed;
-	if (read_colours.hs_vkeyb_zx80_toggle_pressed != UNDEFINED) 
-		colours.hs_vkeyb_zx80_toggle_pressed = read_colours.hs_vkeyb_zx80_toggle_pressed;
-	if (read_colours.hs_vkeyb_zx81_selected != UNDEFINED) 
-		colours.hs_vkeyb_zx81_selected = read_colours.hs_vkeyb_zx81_selected;
-	if (read_colours.hs_vkeyb_zx81_pressed != UNDEFINED) 
-		colours.hs_vkeyb_zx81_pressed = read_colours.hs_vkeyb_zx81_pressed;
-	if (read_colours.hs_vkeyb_zx81_toggle_pressed != UNDEFINED) 
-		colours.hs_vkeyb_zx81_toggle_pressed = read_colours.hs_vkeyb_zx81_toggle_pressed;
-	if (read_colours.hs_ctb_selected != UNDEFINED) 
-		colours.hs_ctb_selected = read_colours.hs_ctb_selected;
-	if (read_colours.hs_ctb_pressed != UNDEFINED) 
-		colours.hs_ctb_pressed = read_colours.hs_ctb_pressed;
-	if (read_colours.hs_options_selected != UNDEFINED) 
-		colours.hs_options_selected = read_colours.hs_options_selected;
-	if (read_colours.hs_options_pressed != UNDEFINED) 
-		colours.hs_options_pressed = read_colours.hs_options_pressed;
-	/* read_ctrl_remaps have pretty much validated themselves since if
-	 * something was found to be invalid then they'll still be UNDEFINED
-	 * and they won't overwrite/insert into ctrl_remaps.
-	 * Attempt to find a match on device and id and overwrite the existing
-	 * default ctrl_remaps; insert new ones following the defaults */
-	for (index = 0; index < MAX_CTRL_REMAPS; index++) {
-		for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-			if (read_ctrl_remaps[index].components > 0 &&
-				read_ctrl_remaps[index].device != UNDEFINED &&
-				read_ctrl_remaps[index].id != UNDEFINED) {
-				if (ctrl_remaps[count].device != UNDEFINED &&
-					read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
-					read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
-					read_ctrl_remaps[index].id == ctrl_remaps[count].id) {
-					/* Overwrite existing */
-					#ifdef SDL_DEBUG_RCFILE
-						printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
-					#endif
-					ctrl_remaps[count] = read_ctrl_remaps[index];
-					break;
-				} else if (ctrl_remaps[count].device == UNDEFINED) {
-					/* Insert new */
-					#ifdef SDL_DEBUG_RCFILE
-						printf("Inserting read_ctrl_remaps[%i] into ctrl_remaps[%i]\n", index, count);
-					#endif
-					ctrl_remaps[count] = read_ctrl_remaps[index];
-					break;
+		/* Colours */
+		if (read_colours.emu_fg != UNDEFINED) colours.emu_fg = read_colours.emu_fg;
+		if (read_colours.emu_bg != UNDEFINED) colours.emu_bg = read_colours.emu_bg;
+		if (read_colours.hs_load_selected != UNDEFINED) 
+			colours.hs_load_selected = read_colours.hs_load_selected;
+		if (read_colours.hs_load_pressed != UNDEFINED) 
+			colours.hs_load_pressed = read_colours.hs_load_pressed;
+		if (read_colours.hs_vkeyb_zx80_selected != UNDEFINED) 
+			colours.hs_vkeyb_zx80_selected = read_colours.hs_vkeyb_zx80_selected;
+		if (read_colours.hs_vkeyb_zx80_pressed != UNDEFINED) 
+			colours.hs_vkeyb_zx80_pressed = read_colours.hs_vkeyb_zx80_pressed;
+		if (read_colours.hs_vkeyb_zx80_toggle_pressed != UNDEFINED) 
+			colours.hs_vkeyb_zx80_toggle_pressed = read_colours.hs_vkeyb_zx80_toggle_pressed;
+		if (read_colours.hs_vkeyb_zx81_selected != UNDEFINED) 
+			colours.hs_vkeyb_zx81_selected = read_colours.hs_vkeyb_zx81_selected;
+		if (read_colours.hs_vkeyb_zx81_pressed != UNDEFINED) 
+			colours.hs_vkeyb_zx81_pressed = read_colours.hs_vkeyb_zx81_pressed;
+		if (read_colours.hs_vkeyb_zx81_toggle_pressed != UNDEFINED) 
+			colours.hs_vkeyb_zx81_toggle_pressed = read_colours.hs_vkeyb_zx81_toggle_pressed;
+		if (read_colours.hs_ctb_selected != UNDEFINED) 
+			colours.hs_ctb_selected = read_colours.hs_ctb_selected;
+		if (read_colours.hs_ctb_pressed != UNDEFINED) 
+			colours.hs_ctb_pressed = read_colours.hs_ctb_pressed;
+		if (read_colours.hs_options_selected != UNDEFINED) 
+			colours.hs_options_selected = read_colours.hs_options_selected;
+		if (read_colours.hs_options_pressed != UNDEFINED) 
+			colours.hs_options_pressed = read_colours.hs_options_pressed;
+		/* read_ctrl_remaps have pretty much validated themselves since if
+		 * something was found to be invalid then they'll still be UNDEFINED
+		 * and they won't overwrite/insert into ctrl_remaps.
+		 * Attempt to find a match on device and id and overwrite the existing
+		 * default ctrl_remaps; insert new ones following the defaults */
+		for (index = 0; index < MAX_CTRL_REMAPS; index++) {
+			for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+				if (read_ctrl_remaps[index].components > 0 &&
+					read_ctrl_remaps[index].device != UNDEFINED &&
+					read_ctrl_remaps[index].id != UNDEFINED) {
+					if (ctrl_remaps[count].device != UNDEFINED &&
+						read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
+						read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
+						read_ctrl_remaps[index].id == ctrl_remaps[count].id) {
+						/* Overwrite existing */
+						#ifdef SDL_DEBUG_RCFILE
+							printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
+						#endif
+						ctrl_remaps[count] = read_ctrl_remaps[index];
+						break;
+					} else if (ctrl_remaps[count].device == UNDEFINED) {
+						/* Insert new */
+						#ifdef SDL_DEBUG_RCFILE
+							printf("Inserting read_ctrl_remaps[%i] into ctrl_remaps[%i]\n", index, count);
+						#endif
+						ctrl_remaps[count] = read_ctrl_remaps[index];
+						break;
+					}
 				}
 			}
 		}
@@ -461,6 +476,8 @@ void rcfile_write(void) {
 		return;
 	}
 
+	fprintf(fp, "\n");
+	fprintf(fp, "version=%s\n", VERSION);
 	fprintf(fp, "\n");
 	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
 	fprintf(fp, "\n");
