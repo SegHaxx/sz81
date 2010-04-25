@@ -412,8 +412,9 @@ void sdl_rcfile_read(void) {
 		/* read_ctrl_remaps have pretty much validated themselves since if
 		 * something was found to be invalid then they'll still be UNDEFINED
 		 * and they won't overwrite/insert into ctrl_remaps.
-		 * Attempt to find a match on device and id and overwrite the existing
-		 * default ctrl_remaps; insert new ones following the defaults */
+		 * 
+		 * Attempt to find a match and overwrite the existing default
+		 * controls; insert new ones following the defaults */
 		for (index = 0; index < MAX_CTRL_REMAPS; index++) {
 			for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 				if (read_ctrl_remaps[index].components > 0 &&
@@ -421,9 +422,10 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].id != UNDEFINED) {
 					if (ctrl_remaps[count].device != UNDEFINED &&
 						read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
-						read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
-						read_ctrl_remaps[index].id == ctrl_remaps[count].id) {
-						/* Overwrite existing */
+						read_ctrl_remaps[index].remap_device == ctrl_remaps[count].remap_device &&
+						read_ctrl_remaps[index].remap_id == ctrl_remaps[count].remap_id &&
+						read_ctrl_remaps[index].remap_mod_id == ctrl_remaps[count].remap_mod_id) {
+						/* Update existing */
 						#ifdef SDL_DEBUG_RCFILE
 							printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
 						#endif
@@ -478,12 +480,9 @@ void rcfile_write(void) {
 
 	fprintf(fp, "\n");
 	fprintf(fp, "version=%s\n", VERSION);
-	fprintf(fp, "\n");
 	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
-	fprintf(fp, "\n");
 	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
-	fprintf(fp, "\n");
 	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
 	fprintf(fp, "\n");
 

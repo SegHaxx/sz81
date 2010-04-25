@@ -32,12 +32,13 @@ Features:
  * Virtual keyboard with adjustable opacity, autohide on newline,
    sticky shift or toggle shift
  * Control bar with access to several regularly used options
- * Full mouse/stylus and joystick support throughout
- * Runtime joystick control remapping
- * The ability to run centred within any resolution
+ * Runtime options including a joystick configurator
+ * Joystick control remapping within the emulator
+ * Full keyboard, mouse and joystick support throughout
  * Runtime switchable scaling up to 3x on supported platforms
  * Toggling between a window and fullscreen on supported platforms
  * Support for portrait orientated screens such as 240x320 and 480x640
+ * The ability to run centred within any resolution
  * Maximum porting potential since it only requires SDL
 
 
@@ -63,51 +64,36 @@ For the PC:
     Shift Type    - Toggle between sticky shift and toggle shift (F7)
     Invert Screen - Toggle between not inverse and inverse video (F8)
     Opacity DN/UP - Reduce (HOME) or increase (END) vkeyb opacity
+    Options       - Toggle the runtime options (ESCAPE) (navigate
+                    with the cursor keys + enter, mouse or joystick)
 
     To access the ZX81's file selector type "J", SHIFT + "P" twice and
-    ENTER from within the emulator. For the ZX80 simply type LOAD or
+    newline from within the emulator. For the ZX80 simply type LOAD or
     SAVE to access the file zx80prog.p located within the current
     working directory.
 
-    Joystick Support
-    ----------------
-    Digital and analogue joysticks are supported but sz81 currently
-    lacks a graphical joystick configurator. If you have a joystick
-    plugged in and you'd like to use it then open sz81's configuration
-    file sz81rc (the location of this file is platform dependent) and
-    within it you'll find a complete set of commented-out joystick
-    controls which you can uncomment and edit for your particular
-    joystick. The only values that you'll need to modify are the ".id"
-    properties and to gain access to those execute sz81 with the "-d"
-    option to display input device control IDs on-screen.
-     _______                                     _______
-    (  _____)___________________________________(_____  )
-    | SHIFT                                           | |
-    | |      Q/Up                                     | |
-    (_|       __                          Rubout      |_)
-      |      |  |                           __        |
-      |    __|  |__                        (__)       |
-      |O/ |   ..   | P/          Enter/  __    __     |
-     Left |__ '' __| Right       Select (__)  (__) Enter
-      |      |  |                           __        |
-      |      |__|                          (__)       |
-      |               ______     ______               |
-      |     A/Down   (______)   (______)   Space      |
-      |                                               |
-      (______________Control_____Toggle_______________)
-                     Remapper   Keyboard
+    Configuring a Joystick
+    ----------------------
+    If you have a digital or analogue joystick plugged in and you'd
+    like to use it then open the runtime options (ESCAPE from within
+    the emulator or select the rightmost icon on the control bar) and
+    utilise the joystick configurator using either the cursor keys and
+    enter, directly with the mouse or the joystick once configured.
+    Select a control on the graphical joystick representation (the
+    selector will blink) and follow the instructions configuring as
+    many of the controls as you possibly can for optimum usability.
 
-    Control Remapping
-    -----------------
+    Joystick Control Remapping
+    --------------------------
     When the virtual keyboard is visible, position the selector over
     the function that you would like to assign to a joystick control
-    and press the Control Remapper (the selector will blink). Then
+    and press the control remapper (the selector will blink). Then
     press a joystick control to remap the function to the control.
     Existing controls that have been remapped are active within the
     emulator (you cannot remap GUI controls) and new controls are
     universally active. It is possible to include the SHIFT modifier
     within the control as long as it is active before you initiate
-    remapping. To cancel remapping press the Control Remapper again.
+    remapping. To cancel remapping press the control remapper again.
 
 For the Amiga:
 
@@ -156,23 +142,23 @@ For the Sharp Zaurus:
 
 For the GPH GP2X:
 
-    Start        - Toggle virtual keyboard and control bar
-    Select       - Initiate control remapping
-    LTrigger     - SHIFT
-    Button Y     - Rubout i.e. equivalent to using SHIFT + 0
-    Button B     - Enter
-    Button X     - Space
-
-    Within the emulator  | Within the GUI
-    -------------------------------------
-    Joy Up       - Q     | Selector up
-    Joy Down     - A     | Selector down
-    Joy Left     - O     | Selector left
-    Joy Right    - P     | Selector right
-    Button A     - Enter | Select
+    Within the emulator (remappable)  | Within the GUI
+    ----------------------------------+----------------------
+    LTrigger     - SHIFT              | SHIFT/Page up
+    RTrigger     -                    | Page down
+    Joy Left     - O                  | Selector left
+    Joy Right    - P                  | Selector right
+    Joy Up       - Q                  | Selector up
+    Joy Down     - A                  | Selector down
+    Select       - Runtime options    | Control remapper
+    Start        - Virtual keyboard   |
+    Button A     - Newline            | Select (selector hit)
+    Button B     - Newline            | Newline
+    Button Y     - Rubout (SHIFT + 0) | Rubout (SHIFT + 0)
+    Button X     - Space              | Space
 
     See PC controls for an explanation of the control bar, how to
-    access the file selector and control remapping.
+    access the file selector and joystick control remapping.
 
 
 Installation
@@ -214,14 +200,14 @@ For the Sharp Zaurus (requires SDK):
     make clean
     make -f Makefile.zaurus
 
-    Install sz81_2.1-x_zaurus.ipk using Add/Remove Software.
+    Install sz81_2.1.x_zaurus.ipk using Add/Remove Software.
 
 For the GPH GP2X (requires SDK):
 
     make clean
     make -f Makefile.gp2x
 
-    Extract sz81_2.1-x_gp2x.tar.gz and copy the contents onto your SD
+    Extract sz81_2.1.x_gp2x.tar.gz and copy the contents onto your SD
     card. Note that for Open2x there's Makefile.open2x if you prefer a
     statically linked makefile for this more up-to-date toolchain.
 
@@ -232,6 +218,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-03-26
+2010-04-25
 
 

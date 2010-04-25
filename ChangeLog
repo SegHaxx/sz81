@@ -1,3 +1,6 @@
+2010-04-25 Thunor <thunorsif_at_hotmail.com>
+* The joystick configurator and runtime options are now complete.
+
 2010-04-19 Thunor <thunorsif_at_hotmail.com>
 * Fixed a z81 bug in common.c:load_selector() whereby the parent dir
   wasn't always returned by readdir() which would result in the load

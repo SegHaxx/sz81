@@ -36,6 +36,7 @@
 #define SDL_DEBUG_RCFILE
 #define SDL_DEBUG_FONTS
 #define SDL_DEBUG_SOUND
+#define SDL_DEBUG_JOYSTICK
 */
 
 #define TRUE 1

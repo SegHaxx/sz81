@@ -1,3 +1,13 @@
+2010-03-xx
+* 2.1.6 released
+* Added a joystick configurator
+* Added fg/bg colour adjustment
+* Added joystick dead zone adjustment
+* Added volume control adjustment
+* Added key repeat delay/interval adjustment
+* Added a runtime options system
+* Replaced the OSS (Open Sound System) API with the portable SDL API
+
 2010-03-24
 * 2.1-5 released
 * Added joystick support throughout with runtime control remapping

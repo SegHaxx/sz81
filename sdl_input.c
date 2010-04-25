@@ -281,7 +281,7 @@ int keyboard_init(void) {
 	 * here but otherwise their configurations should be entirely read
 	 * in from the rcfile since their button/axis layouts are unknown */
 	if (joystick) {
-		#ifdef PLATFORM_GP2X
+		#if defined(PLATFORM_GP2X)
 			/* Universally active */
 			ctrl_remaps[++index].components = COMP_ALL;
 			ctrl_remaps[index].protected = TRUE;
@@ -479,208 +479,212 @@ int keyboard_init(void) {
 			ctrl_remaps[index].id = GP2X_RTRIG;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_PAGEDOWN;
+		#elif defined(PLATFORM_ZAURUS)
+		#elif defined(__amigaos4__)
 		#else
-			if (strcmp(SDL_JoystickName(0),
-				"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
-				/* This is my own PC joystick which I've been using for testing */
-				/* Universally active */
-				ctrl_remaps[++index].components = COMP_ALL;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 5;	/* Z */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_F1;
+			#ifdef SDL_DEBUG_JOYSTICK
+				if (strcmp(SDL_JoystickName(0),
+					"Microsoft SideWinder Game Pad Pro USB version 1.0") == 0) {
+					/* This is my own PC joystick which I've been using for testing */
+					/* Universally active */
+					ctrl_remaps[++index].components = COMP_ALL;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 5;	/* Z */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_F1;
 
-				/* Active within emulator */
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 2;	/* C */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_ESCAPE;
+					/* Active within emulator */
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 2;	/* C */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_ESCAPE;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 12;	/* Up */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_q;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 12;	/* Up */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_q;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 13;	/* Down */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_a;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 13;	/* Down */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_a;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 10;	/* Left */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_o;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 10;	/* Left */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_o;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 11;	/* Right */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_p;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 11;	/* Right */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_p;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 4;	/* Y */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_0;
-				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 4;	/* Y */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_0;
+					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 0;	/* A */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_SPACE;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 0;	/* A */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 3;	/* X */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_RETURN;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 3;	/* X */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 1;	/* B */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_RETURN;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 1;	/* B */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-				ctrl_remaps[++index].components = COMP_EMU;
-				ctrl_remaps[index].protected = FALSE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 6;	/* LTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[index].protected = FALSE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 6;	/* LTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-				/* Active within the load selector only */
-				ctrl_remaps[++index].components = COMP_LOAD;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 12;	/* Up */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_q;
+					/* Active within the load selector only */
+					ctrl_remaps[++index].components = COMP_LOAD;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 12;	/* Up */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_q;
 
-				ctrl_remaps[++index].components = COMP_LOAD;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 13;	/* Down */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_a;
+					ctrl_remaps[++index].components = COMP_LOAD;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 13;	/* Down */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_a;
 
-				ctrl_remaps[++index].components = COMP_LOAD;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 6;	/* LTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_q;
-				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_LOAD;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 6;	/* LTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_q;
+					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-				ctrl_remaps[++index].components = COMP_LOAD;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 7;	/* RTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_a;
-				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_LOAD;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 7;	/* RTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_a;
+					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-				/* Active within load/vkeyb/ctb/runopts */
-				ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 2;	/* C */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_REMAP;
+					/* Active within load/vkeyb/ctb/runopts */
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 2;	/* C */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
-				ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 12;	/* Up */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_N;
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 12;	/* Up */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_N;
 
-				ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 13;	/* Down */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_S;
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 13;	/* Down */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_S;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 10;	/* Left */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_W;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 10;	/* Left */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_W;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 11;	/* Right */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_E;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 11;	/* Right */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_E;
 
-				ctrl_remaps[++index].components = COMP_VKEYB;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 4;	/* Y */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_0;
-				ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_VKEYB;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 4;	/* Y */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_0;
+					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 0;	/* A */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_SPACE;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 0;	/* A */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 3;	/* X */
-				ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-				ctrl_remaps[index].remap_id = CURSOR_HIT;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 3;	/* X */
+					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+					ctrl_remaps[index].remap_id = CURSOR_HIT;
 
-				ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 1;	/* B */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_RETURN;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 1;	/* B */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_RETURN;
 
-				ctrl_remaps[++index].components = COMP_VKEYB;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 6;	/* LTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_LSHIFT;
+					ctrl_remaps[++index].components = COMP_VKEYB;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 6;	/* LTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-				/* Active within runopts only */
-				ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 6;	/* LTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_PAGEUP;
+					/* Active within runopts only */
+					ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 6;	/* LTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_PAGEUP;
 
-				ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
-				ctrl_remaps[index].protected = TRUE;
-				ctrl_remaps[index].device = DEVICE_JOYSTICK;
-				ctrl_remaps[index].id = 7;	/* RTrig */
-				ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-				ctrl_remaps[index].remap_id = SDLK_PAGEDOWN;
-			}
+					ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 7;	/* RTrig */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_PAGEDOWN;
+				}
+			#endif
 		#endif
 	}
 	#ifdef SDL_DEBUG_EVENTS
@@ -1495,8 +1499,9 @@ void manage_cursor_input(void) {
 					}
 				}
 			}
-			/* Update the joycfg text */
-			set_joy_cfg_text(JOY_CFG_TEXT_DEFAULT_SETTINGS);
+			/* Update the joycfg text if the cursor was moved there */
+			if (id == CURSOR_N || id == CURSOR_S || id == CURSOR_W || id == CURSOR_E)
+				set_joy_cfg_text(JOY_CFG_TEXT_DEFAULT_SETTINGS);
 		} else {	/* SDL_RELEASED */
 			if (id == CURSOR_HIT) {
 				/* Release a previous press (it's not important where) */
@@ -1856,12 +1861,14 @@ void manage_runopts_input(void) {
  ***************************************************************************/
 /* This system differs from previous options systems I've written in that the
  * real variables (not copies) are modified but restored on exit if not saved.
- * This enables the user to preview the changes without having to modify+save */
+ * This enables the user to preview the changes and is especially useful for
+ * colour adjustment */
 
 void runopts_transit(int state) {
 	static int last_state = TRANSIT_OUT;
+	int count, index, ctrl, found, components;
+	int protected, remap_device, remap_id, remap_mod_id;
 	struct MSG_Box msg_box;
-	int count;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -1873,8 +1880,6 @@ void runopts_transit(int state) {
 			joystick_dead_zone = runopts_joystick_dead_zone;
 		}
 		joy_cfg.state = FALSE;	/* Discard what was remapped and not saved */
-
-		/*printf("%s: OUT\n", __func__);	 temp temp */
 	} else if (state == TRANSIT_IN) {
 		/* Initialise copies of the variables modifiable within runopts.
 		 * Sound volume isn't included because it's always available for 
@@ -1885,29 +1890,216 @@ void runopts_transit(int state) {
 		runopts_colours_emu_bg = colours.emu_bg;
 		runopts_joystick_dead_zone = joystick_dead_zone;
 		for (count = 0; count < 12; count++) runopts_joy_cfg_id[count] = UNDEFINED;
-
-		/*printf("%s: IN\n", __func__);	 temp temp */
 	} else if (state == TRANSIT_SAVE) {
 		strcpy(msg_box.title, "Options");
 		strcpy(msg_box.text, "Changes saved");
 		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
-
+		/* If the joycfg was used then update/insert the controls
+		 * that were remapped. Note that this needs to be kept in
+		 * sync with any joystick controls hard-coded within keyboard_update */
 		if (joy_cfg.state) {
 			joy_cfg.state = FALSE;
-			
-			/* Update ctrl_remaps with new controls here temp temp */			
-			/* Update ctrl_remaps with new controls here */			
-			/* Update ctrl_remaps with new controls here */			
-			printf("runopts_joy_cfg:\n");
-			for (count = 0; count < 12; count++) {
-				printf("  %02i: id=%i\n", count, runopts_joy_cfg_id[count]);
+			for (ctrl = 0; ctrl < 12; ctrl++) {
+				if (runopts_joy_cfg_id[ctrl] != UNDEFINED) {
+					for (count = 0; ; count++) {
+						/* Set some common defaults */
+						components = 0;
+						protected = TRUE;
+						remap_device = DEVICE_KEYBOARD;
+						remap_id = remap_mod_id = UNDEFINED;
+						if (ctrl == 0) {
+							/* Set-up LTRIG joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_LSHIFT;
+							} else if (count == 1) {
+								components = COMP_LOAD;
+								remap_id = SDLK_q;
+								remap_mod_id = SDLK_LSHIFT;
+							} else if (count == 2) {
+								components = COMP_VKEYB;
+								remap_id = SDLK_LSHIFT;
+							} else if (count == 3) {
+								components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_id = SDLK_PAGEUP;
+							} else {
+								break;
+							}
+						} else if (ctrl == 1) {
+							/* Set-up RTRIG joystick controls */
+							if (count == 0) {
+								components = COMP_LOAD;
+								remap_id = SDLK_a;
+								remap_mod_id = SDLK_LSHIFT;
+							} else if (count == 1) {
+								components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_id = SDLK_PAGEDOWN;
+							} else {
+								break;
+							}
+						} else if (ctrl == 2) {
+							/* Set-up LEFT joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_o;
+							} else if (count == 1) {
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_W;
+							} else {
+								break;
+							}
+						} else if (ctrl == 3) {
+							/* Set-up RIGHT joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_p;
+							} else if (count == 1) {
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_E;
+							} else {
+								break;
+							}
+						} else if (ctrl == 4) {
+							/* Set-up UP joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_q;
+							} else if (count == 1) {
+								components = COMP_LOAD;
+								remap_id = SDLK_q;
+							} else if (count == 2) {
+								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_N;
+							} else {
+								break;
+							}
+						} else if (ctrl == 5) {
+							/* Set-up DOWN joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_a;
+							} else if (count == 1) {
+								components = COMP_LOAD;
+								remap_id = SDLK_a;
+							} else if (count == 2) {
+								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_S;
+							} else {
+								break;
+							}
+						} else if (ctrl == 6) {
+							/* Set-up SELECT joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								remap_id = SDLK_ESCAPE;
+							} else if (count == 1) {
+								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_REMAP;
+							} else {
+								break;
+							}
+						} else if (ctrl == 7) {
+							/* Set-up START joystick controls */
+							if (count == 0) {
+								components = COMP_ALL;
+								remap_id = SDLK_F1;
+							} else {
+								break;
+							}
+						} else if (ctrl == 8) {
+							/* Set-up A joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_RETURN;
+							} else if (count == 1) {
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								remap_device = DEVICE_CURSOR;
+								remap_id = CURSOR_HIT;
+							} else {
+								break;
+							}
+						} else if (ctrl == 9) {
+							/* Set-up B joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_RETURN;
+							} else if (count == 1) {
+								components = COMP_LOAD | COMP_VKEYB;
+								remap_id = SDLK_RETURN;
+							} else {
+								break;
+							}
+						} else if (ctrl == 10) {
+							/* Set-up Y joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_0;
+								remap_mod_id = SDLK_LSHIFT;
+							} else if (count == 1) {
+								components = COMP_VKEYB;
+								remap_id = SDLK_0;
+								remap_mod_id = SDLK_LSHIFT;
+							} else {
+								break;
+							}
+						} else if (ctrl == 11) {
+							/* Set-up X joystick controls */
+							if (count == 0) {
+								components = COMP_EMU;
+								protected = FALSE;
+								remap_id = SDLK_SPACE;
+							} else if (count == 1) {
+								components = COMP_LOAD | COMP_VKEYB;
+								remap_id = SDLK_SPACE;
+							} else {
+								break;
+							}
+						}
+						/* Search for an already existing joystick control */
+						found = FALSE;
+						for (index = 0; index < MAX_CTRL_REMAPS; index++) {
+							if (ctrl_remaps[index].components == components &&
+								ctrl_remaps[index].device == DEVICE_JOYSTICK && 
+								ctrl_remaps[index].remap_device == remap_device &&
+								ctrl_remaps[index].remap_id == remap_id &&
+								ctrl_remaps[index].remap_mod_id == remap_mod_id) {
+								found = TRUE; break;
+							} else if (ctrl_remaps[index].device == UNDEFINED) {
+								break;
+							}
+						}
+						if (found) {
+							/* Update existing */
+							ctrl_remaps[index].id = runopts_joy_cfg_id[ctrl];
+						} else {
+							/* Insert new */
+							ctrl_remaps[index].components = components;
+							ctrl_remaps[index].protected = protected;
+							ctrl_remaps[index].device = DEVICE_JOYSTICK;
+							ctrl_remaps[index].id = runopts_joy_cfg_id[ctrl];
+							ctrl_remaps[index].remap_device = remap_device;
+							ctrl_remaps[index].remap_id = remap_id;
+							ctrl_remaps[index].remap_mod_id = remap_mod_id;
+						}
+					}
+				}
 			}
-			
 		}
-
-		/*printf("%s: SAVE\n", __func__);	 temp temp */
 	}
 
 	last_state = state;
