@@ -1105,7 +1105,7 @@ int keyboard_update(void) {
 							}
 							/* Update the joycfg text */
 							if (device != DEVICE_JOYSTICK) {
-								set_joy_cfg_text(JOY_CFG_TEXT_INVALID);
+								set_joy_cfg_text(JOY_CFG_TEXT_CANCELLED);
 							} else {
 								set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
 							}

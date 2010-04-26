@@ -51,6 +51,7 @@ For the PC:
     Backspace    - Rubout i.e. equivalent to using SHIFT + 0
     Comma        - Equivalent to using SHIFT + .
     Cursors      - Equivalent to using SHIFT + 5, 6, 7 and 8
+    -/=          - Decrease/increase the volume (if supported)
     ALT + R      - Cycle between 960x720, 640x480 and 320x240
     F11          - Toggle between fullscreen and a window
 
@@ -136,6 +137,7 @@ For the Sharp Zaurus:
     Backspace    - Rubout i.e. equivalent to using SHIFT + 0
     Comma        - Equivalent to using SHIFT + .
     Cursors      - Equivalent to using SHIFT + 5, 6, 7 and 8
+    -/=          - Decrease/increase the volume (if supported)
 
     See PC controls for an explanation of the control bar and how to
     access the file selector.
@@ -218,6 +220,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-04-25
+2010-04-26
 
 
