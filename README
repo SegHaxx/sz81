@@ -54,6 +54,8 @@ For the PC:
     -/=          - Decrease/increase the volume (if supported)
     ALT + R      - Cycle between 960x720, 640x480 and 320x240
     F11          - Toggle between fullscreen and a window
+    F9           - Alternative control remapper for users with
+                   single buttoned joysticks
 
     Clicking the screen (or F1) brings up the virtual keyboard and the
     control bar giving access to several very useful options. These

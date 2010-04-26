@@ -276,6 +276,13 @@ int keyboard_init(void) {
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_HIT;
 
+	ctrl_remaps[++index].components=COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device=DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_F9;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_REMAP;
+
 	/* Joystick to some other device.
 	 * Platform specific joysticks can be hardcoded with some defaults
 	 * here but otherwise their configurations should be entirely read

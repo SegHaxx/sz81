@@ -1,5 +1,7 @@
 2010-04-26 Thunor <thunorsif_at_hotmail.com>
 * Version 2.1.6 released
+* Added an alternative keyboard based control remapper (F9) for users
+  with single buttoned joysticks.
 
 2010-04-25 Thunor <thunorsif_at_hotmail.com>
 * The joystick configurator and runtime options are now complete.
