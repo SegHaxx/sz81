@@ -109,7 +109,7 @@ For the Amiga:
     to command-line options.  Full details of options can be obtained
     with "sz81 -h".  A list of tooltype equivalents follows:
 
-    -a AYSOUND=QUICKSILVA|ZONX
+    -a AYSOUND=QUICKSILVA|ZONX|STEREO
     -d SHOWDEVIDS
     -i INVERT
     -l AUTOLIST

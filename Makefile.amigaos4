@@ -67,7 +67,7 @@ install:
 	mkdir -p $(EXTRASDIR)/def_icons
 	cp -p $(TARGET) $(BINDIR)
 	cp amiga/sz81.info $(BINDIR)
-	cp amiga/*.sz81rc $(EXTRASDIR)
+	if [ -f amiga/*.sz81rc ]; then cp amiga/*.sz81rc $(EXTRASDIR); fi
 	cp amiga/def_icons/* $(EXTRASDIR)/def_icons
 	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
 	cp amiga/sz81.readme T:

@@ -23,7 +23,7 @@ struct AslIFace *IAsl;
 struct IconIFace *IIcon;
 struct AslIFace *IAsl;
 
-extern int unexpanded, autolist, load_hook, save_hook;
+extern int unexpanded, autolist, load_hook, save_hook, sound_stereo, sound_stereo_acb;
 extern char *zxpfilename;
 static char USED ver[] = "\0$VER:sz81 " VERSION " (" DATE ")\0";
 
@@ -169,6 +169,12 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 
 				if(IIcon->MatchToolValue(s, "ZONX"))
 					sound_ay_type=AY_TYPE_ZONX;
+
+				if(IIcon->MatchToolValue(s, "STEREO"))
+				{
+					sound_stereo=1;
+					sound_stereo_acb=1;
+				}
 			}
 
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
