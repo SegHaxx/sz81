@@ -54,8 +54,8 @@ For the PC:
     -/=          - Decrease/increase the volume (if supported)
     ALT + R      - Cycle between 960x720, 640x480 and 320x240
     F11          - Toggle between fullscreen and a window
-    F9           - Alternative control remapper for users with
-                   single buttoned joysticks
+    F9           - Activate the control remapper for remapping
+                   joystick controls to keyboard controls
 
     Clicking the screen (or F1) brings up the virtual keyboard and the
     control bar giving access to several very useful options. These
@@ -67,8 +67,9 @@ For the PC:
     Shift Type    - Toggle between sticky shift and toggle shift (F7)
     Invert Screen - Toggle between not inverse and inverse video (F8)
     Opacity DN/UP - Reduce (HOME) or increase (END) vkeyb opacity
-    Options       - Toggle the runtime options (ESCAPE) (navigate
-                    with the cursor keys + enter, mouse or joystick)
+    Options       - Toggle the runtime options (ESCAPE) (navigate with
+                    page up and page down, the cursor keys and enter,
+                    the mouse or the joystick)
 
     To access the ZX81's file selector type "J", SHIFT + "P" twice and
     newline from within the emulator. For the ZX80 simply type LOAD or

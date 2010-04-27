@@ -67,7 +67,7 @@ int last_runopts_comp = COMP_RUNOPTS0;
 int hs_load_selected, hs_vkeyb_ctb_selected;
 int hs_runopts0_selected, hs_runopts1_selected;
 SDL_Event event, virtualevent;
-
+struct MSG_Box msg_box;
 struct keyrepeat runopts_key_repeat;
 Uint32 runopts_colours_emu_fg;
 Uint32 runopts_colours_emu_bg;
@@ -275,13 +275,6 @@ int keyboard_init(void) {
 	ctrl_remaps[index].id = SDLK_RETURN;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_HIT;
-
-	ctrl_remaps[++index].components=COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
-	ctrl_remaps[index].protected = TRUE;
-	ctrl_remaps[index].device=DEVICE_KEYBOARD;
-	ctrl_remaps[index].id = SDLK_F9;
-	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-	ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
 	/* Joystick to some other device.
 	 * Platform specific joysticks can be hardcoded with some defaults
@@ -970,8 +963,9 @@ int keyboard_update(void) {
 				if (device != UNDEFINED) {
 					for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 						if (ctrl_remaps[count].device != UNDEFINED &&
-							get_active_component() & ctrl_remaps[count].components &&
-							device == ctrl_remaps[count].device && id == ctrl_remaps[count].id) {
+							ctrl_remaps[count].components & get_active_component() &&
+							ctrl_remaps[count].device == device && 
+							ctrl_remaps[count].id == id) {
 							device = ctrl_remaps[count].remap_device;
 							id = ctrl_remaps[count].remap_id;
 							mod_id = ctrl_remaps[count].remap_mod_id;
@@ -1059,62 +1053,72 @@ int keyboard_update(void) {
 				if (eventfound) break;
 				
 			} else if (ctrl_remapper.state) {
-				/* A new control remapping is currently being recorded */
+				/* A new joystick control is currently being remapped */
 				if (device != UNDEFINED) {
 					if (state == SDL_PRESSED) {
 						ctrl_remapper.state = FALSE;
 						if (vkeyb.state) {
-							/* Locate currently selected hotspot for group VKEYB + CTB */
-							if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
-								hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
 							found = FALSE;
-							for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-								if (ctrl_remaps[count].components & COMP_VKEYB &&
-									ctrl_remaps[count].device == device && 
-									ctrl_remaps[count].id == id &&
-									ctrl_remaps[count].remap_device == DEVICE_CURSOR &&
-									ctrl_remaps[count].remap_id == CURSOR_REMAP) {
-									/* The user cancelled with CURSOR_REMAP */
-									break;
-								} else if (ctrl_remaps[count].components & COMP_EMU &&
-									ctrl_remaps[count].device == device && 
-									ctrl_remaps[count].id == id) {
-									/* Overwrite existing if not protected */
-									if (ctrl_remaps[count].protected == FALSE) found = TRUE;
-									break;
-								} else if (ctrl_remaps[count].device == UNDEFINED) {
-									/* Insert new */
-									ctrl_remaps[count].components = COMP_ALL;
-									ctrl_remaps[count].protected = FALSE;
-									ctrl_remaps[count].device = device;
-									ctrl_remaps[count].id = id;
-									found = TRUE;
-									break;
+							if (device == DEVICE_JOYSTICK) {
+								/* Locate currently selected hotspot for group VKEYB + CTB */
+								if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
+									hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
+								for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+									if (ctrl_remaps[count].components & COMP_VKEYB &&
+										ctrl_remaps[count].device == device && 
+										ctrl_remaps[count].id == id &&
+										ctrl_remaps[count].remap_device == DEVICE_CURSOR &&
+										ctrl_remaps[count].remap_id == CURSOR_REMAP) {
+										/* The user cancelled with CURSOR_REMAP */
+										break;
+									} else if (ctrl_remaps[count].components & COMP_EMU &&
+										ctrl_remaps[count].device == device && 
+										ctrl_remaps[count].id == id) {
+										/* Update existing if not protected */
+										if (ctrl_remaps[count].protected == FALSE) found = TRUE;
+										break;
+									} else if (ctrl_remaps[count].device == UNDEFINED) {
+										/* Insert new */
+										ctrl_remaps[count].components = COMP_ALL;
+										ctrl_remaps[count].protected = FALSE;
+										ctrl_remaps[count].device = device;
+										ctrl_remaps[count].id = id;
+										found = TRUE;
+										break;
+									}
+								}
+								if (found) {
+									/* Record it */
+									ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
+									ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
+									ctrl_remaps[count].remap_mod_id = UNDEFINED;
+									if (keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] ==
+										KEY_PRESSED) ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
+									rcfile.rewrite = TRUE;
 								}
 							}
+							/* Notify the user of the outcome */
+							strcpy(msg_box.title, "Remapping");
 							if (found) {
-								/* Record it */
-								ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
-								ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
-								ctrl_remaps[count].remap_mod_id = UNDEFINED;
-								if (keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] ==
-									KEY_PRESSED) ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
-								rcfile.rewrite = TRUE;
+								strcpy(msg_box.text, "Accepted");
+							} else {
+								strcpy(msg_box.text, "Cancelled");
 							}
+							msg_box.timeout = MSG_BOX_TIMEOUT_CONTROL_REMAPPER;
+							message_box_manager(MSG_BOX_SHOW, &msg_box);
 						} else if (runtime_options1.state) {
 							/* Locate currently selected hotspot for group RUNOPTS1 */
 							hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
-							/* Store id for later use within runopts_transit when saving */
-							if (device != DEVICE_JOYSTICK) {
-								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = UNDEFINED;
-							} else {
+							if (device == DEVICE_JOYSTICK) {
+								/* Store id for later use within runopts-transit when saving */
 								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = id;
-							}
-							/* Update the joycfg text */
-							if (device != DEVICE_JOYSTICK) {
-								set_joy_cfg_text(JOY_CFG_TEXT_CANCELLED);
-							} else {
+								/* Update the joycfg text */
 								set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
+							} else {
+								/* Set id to UNDEFINED */
+								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = UNDEFINED;
+								/* Update the joycfg text */
+								set_joy_cfg_text(JOY_CFG_TEXT_CANCELLED);
 							}
 						}
 					}
@@ -1189,16 +1193,18 @@ void manage_cursor_input(void) {
 					SDL_PushEvent(&virtualevent);
 				}
 			} else if (id == CURSOR_REMAP) {
-				/* Initiate joystick control remapping */
-				if (vkeyb.state) {
-					ctrl_remapper.state = TRUE;
-				} else if (runtime_options1.state) {
-					if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
-						hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
-						/* Activate the control remapper and joycfg */
-						ctrl_remapper.state = joy_cfg.state = TRUE;
-						/* Update the joycfg text */
-						set_joy_cfg_text(JOY_CFG_TEXT_PRESS_SOMETHING);
+				/* Initiate joystick control remapping if a joystick is present */
+				if (joystick) {
+					if (vkeyb.state) {
+						ctrl_remapper.state = TRUE;
+					} else if (runtime_options1.state) {
+						if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
+							hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+							/* Activate the control remapper and joycfg */
+							ctrl_remapper.state = joy_cfg.state = TRUE;
+							/* Update the joycfg text */
+							set_joy_cfg_text(JOY_CFG_TEXT_PRESS_SOMETHING);
+						}
 					}
 				}
 			} else if (id == CURSOR_N) {
@@ -1535,7 +1541,6 @@ void manage_cursor_input(void) {
 
 void manage_all_input(void) {
 	static int last_vkeyb_state = FALSE;
-	struct MSG_Box msg_box;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -1570,6 +1575,12 @@ void manage_all_input(void) {
 				refresh_screen = 1;
 				control_bar_init();
 				video.redraw = TRUE;
+			}
+		} else if (id == SDLK_F9) {
+			/* Simulate a control remapper press */
+			if (state == SDL_PRESSED) {
+				device = DEVICE_CURSOR; id = CURSOR_REMAP;
+				manage_cursor_input();
 			}
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
@@ -1875,7 +1886,6 @@ void runopts_transit(int state) {
 	static int last_state = TRANSIT_OUT;
 	int count, index, ctrl, found, components;
 	int protected, remap_device, remap_id, remap_mod_id;
-	struct MSG_Box msg_box;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -1903,13 +1913,37 @@ void runopts_transit(int state) {
 		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
-		/* If the joycfg was used then update/insert the controls
-		 * that were remapped. Note that this needs to be kept in
-		 * sync with any joystick controls hard-coded within keyboard_update */
+		/* If the joycfg was used then update/insert the controls that
+		 * were remapped. Note that this needs to be kept in sync with
+		 * any joystick controls hard-coded within keyboard_update */
 		if (joy_cfg.state) {
 			joy_cfg.state = FALSE;
 			for (ctrl = 0; ctrl < 12; ctrl++) {
 				if (runopts_joy_cfg_id[ctrl] != UNDEFINED) {
+					/* Firstly and importantly expunge ctrl_remaps of
+					 * all entries that use the same device and id 
+					 * since duplicate controls are not supported */
+					for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+						if (ctrl_remaps[count].device == DEVICE_JOYSTICK &&
+							ctrl_remaps[count].id == runopts_joy_cfg_id[ctrl]) {
+							ctrl_remaps[count].device = UNDEFINED;
+						}
+					}
+					/* Now defragment ctrl_remaps since many other functions will
+					 * assume the first device=UNDEFINED found as being the end */
+					do {
+						index = UNDEFINED; found = FALSE;
+						for (count = 0; count < MAX_CTRL_REMAPS; count++) {
+							if (ctrl_remaps[count].device == UNDEFINED && index == UNDEFINED) {
+								index = count;
+							} else if (ctrl_remaps[count].device != UNDEFINED && index != UNDEFINED) {
+								ctrl_remaps[index] = ctrl_remaps[count];
+								ctrl_remaps[count].device = index = UNDEFINED;
+								found = TRUE;
+							}
+						}
+					} while (found);
+					/* Continue with updating/inserting */
 					for (count = 0; ; count++) {
 						/* Set some common defaults */
 						components = 0;
@@ -2077,7 +2111,7 @@ void runopts_transit(int state) {
 								break;
 							}
 						}
-						/* Search for an already existing joystick control */
+						/* Search for an already existing control remap */
 						found = FALSE;
 						for (index = 0; index < MAX_CTRL_REMAPS; index++) {
 							if (ctrl_remaps[index].components == components &&
