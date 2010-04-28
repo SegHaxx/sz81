@@ -17,10 +17,9 @@
 #include <proto/asl.h>
 
 struct Library *IconBase;
-struct Library *AslBase;
-struct AslIFace *IAsl;
-
 struct IconIFace *IIcon;
+
+struct Library *AslBase;
 struct AslIFace *IAsl;
 
 extern int unexpanded, autolist, load_hook, save_hook, sound_stereo, sound_stereo_acb;
@@ -145,6 +144,21 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 			if((s = IIcon->FindToolType(toolarray,"SHOWDEVIDS")))
 			{
 				sdl_com_line.show_input_id=1;
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"FULLSCREEN")))
+			{
+				sdl_com_line.fullscreen=1;
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"XRES")))
+			{
+				sdl_com_line.xres=atoi(s);
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"YRES")))
+			{
+				sdl_com_line.yres=atoi(s);
 			}
 
 			if((s = IIcon->FindToolType(toolarray,"SOUND")))
