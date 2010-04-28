@@ -112,6 +112,7 @@ For the Amiga:
 
     -a AYSOUND=QUICKSILVA|ZONX|STEREO
     -d SHOWDEVIDS
+    -f FULLSCREEN
     -i INVERT
     -l AUTOLIST
     -L NOLOADHOOK
@@ -123,6 +124,8 @@ For the Amiga:
     -T TAGULA
     -u UNEXPANDED
     -V VSYNC
+    -x XRES=<240+>
+    -y YRES=<240+>
 
     Additional tooltypes:
        RESOURCEFILE=<sz81rc file>
