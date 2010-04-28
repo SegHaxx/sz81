@@ -240,6 +240,23 @@ int keyboard_init(void) {
 	ctrl_remaps[index].remap_id = SDLK_PERIOD;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
+	/* Active within the load selector only */
+	ctrl_remaps[++index].components = COMP_LOAD;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_PAGEUP;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].remap_id = SDLK_q;
+	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+	ctrl_remaps[++index].components = COMP_LOAD;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_PAGEDOWN;
+	ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].remap_id = SDLK_a;
+	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
 	/* Active within runopts only */
 	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
 	ctrl_remaps[index].protected = TRUE;
@@ -938,7 +955,7 @@ int keyboard_update(void) {
 
 			/* If the user has passed the -d option then record the
 			 * currently pressed id for later displaying on-screen */
-			if (sdl_cl_show_input_id && device != UNDEFINED) {
+			if (sdl_com_line.show_input_id && device != UNDEFINED) {
 				if (state == SDL_PRESSED) {
 					current_input_id = id;
 				} else {

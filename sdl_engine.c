@@ -45,8 +45,7 @@ int sdl_init(void) {
 		char filename[256];
 	#endif
 	
-	/* Set-up a default video resolution depending on platform.
-	 * Eventually this will be configurable via the command line */
+	/* Set-up a default video resolution depending on platform */
 	#if defined(PLATFORM_GP2X)
 		video.xres = 320; video.yres = 240; video.scale = 1;
 		video.fullscreen = SDL_FULLSCREEN;
@@ -98,8 +97,12 @@ int sdl_init(void) {
 	colours.hs_ctb_pressed = 0xffc000;
 	colours.hs_options_selected = 0x00ff00;
 	colours.hs_options_pressed = 0xffc000;
-	sdl_cl_show_input_id = FALSE;
 	current_input_id = UNDEFINED;
+	sdl_com_line.show_input_id = FALSE;
+	sdl_com_line.fullscreen = UNDEFINED;
+	sdl_com_line.scale = UNDEFINED;
+	sdl_com_line.xres = UNDEFINED;
+	sdl_com_line.yres = UNDEFINED;
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_sound.state = FALSE;
@@ -145,6 +148,64 @@ int sdl_init(void) {
 	#endif
 
 	return FALSE;
+}
+
+/***************************************************************************
+ * Process the Command Line Options                                        *
+ ***************************************************************************/
+/* Eventually I'd like to call this instead of z81's parseoptions and move
+ * all the runtime modifiable options to runtime options since I want to
+ * present what's left graphically at start-up. For the moment, this is good */
+
+void sdl_com_line_process(int argc, char *argv[]) {
+	#ifdef SDL_DEBUG_COM_LINE
+		int count;
+	#endif
+
+	/* Validate sz81's command line options */
+	if (sdl_com_line.xres != UNDEFINED && sdl_com_line.xres < 240) {
+		fprintf(stderr, "sz81: horizontal resolution must be >= 240.\n");
+		exit(1);
+	} else if (sdl_com_line.xres != UNDEFINED && sdl_com_line.yres == UNDEFINED) {
+		fprintf(stderr, "sz81: missing vertical resolution.\n");
+		exit(1);
+	} else if (sdl_com_line.yres != UNDEFINED && sdl_com_line.yres < 240) {
+		fprintf(stderr, "sz81: vertical resolution must be >= 240.\n");
+		exit(1);
+	} else if (sdl_com_line.yres != UNDEFINED && sdl_com_line.xres == UNDEFINED) {
+		fprintf(stderr, "sz81: missing horizontal resolution.\n");
+		exit(1);
+	}
+
+	/* Process sz81's command line options */
+	#if defined(PLATFORM_GP2X)
+	#elif defined(PLATFORM_ZAURUS)
+	#else
+		if (sdl_com_line.fullscreen != UNDEFINED) video.fullscreen = SDL_FULLSCREEN;
+		if (sdl_com_line.xres != UNDEFINED) {
+			/* Calculate the scale for the requested resolution */
+			if (sdl_com_line.xres / 240 > sdl_com_line.yres / 240) {
+				sdl_com_line.scale = sdl_com_line.yres / 240;
+			} else {
+				sdl_com_line.scale = sdl_com_line.xres / 240;
+			}
+			video.scale = sdl_com_line.scale;
+			video.xres = sdl_com_line.xres;
+			video.yres = sdl_com_line.yres;
+		}
+	#endif
+
+	#ifdef SDL_DEBUG_COM_LINE
+		printf("%s:\n", __func__);
+		for (count = 0; count < argc; count++) {
+			printf("  %i: %s\n", count, argv[count]);
+		}
+		printf("  sdl_com_line.show_input_id=%i\n", sdl_com_line.show_input_id);
+		printf("  sdl_com_line.fullscreen=%i\n", sdl_com_line.fullscreen);
+		printf("  sdl_com_line.scale=%i\n", sdl_com_line.scale);
+		printf("  sdl_com_line.xres=%i\n", sdl_com_line.xres);
+		printf("  sdl_com_line.yres=%i\n", sdl_com_line.yres);
+	#endif
 }
 
 /***************************************************************************

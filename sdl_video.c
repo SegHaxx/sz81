@@ -470,7 +470,7 @@ void sdl_video_update(void) {
 
 	/* If the user has passed the -d option then show
 	 * the currently pressed control id on-screen */
-	if (sdl_cl_show_input_id && current_input_id != UNDEFINED) {
+	if (sdl_com_line.show_input_id && current_input_id != UNDEFINED) {
 		if (invert_screen) {
 			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 		} else {

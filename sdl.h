@@ -98,7 +98,13 @@
 #define SCANCODE_B 48
 
 /* Variables */
-int sdl_cl_show_input_id;
+struct {
+	int show_input_id;
+	int fullscreen;
+	int scale;
+	int xres;
+	int yres;
+} sdl_com_line;
 
 struct {
 	int state;
@@ -124,6 +130,7 @@ struct keyrepeat sdl_key_repeat;
 
 /* Function prototypes */
 int sdl_init(void);
+void sdl_com_line_process(int argc, char *argv[]);
 int sdl_video_setmode(void);
 unsigned char *vga_getgraphmem(void);
 int keyboard_init(void);

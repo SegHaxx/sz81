@@ -1,3 +1,7 @@
+2010-04-28 Thunor <thunorsif_at_hotmail.com>
+* Added fullscreen, xres and yres command line options.
+* Added keyboard page up and page down to the load selector.
+
 2010-04-27 Thunor <thunorsif_at_hotmail.com>
 * Version 2.1.6.1 released
 * Fixed a few issues with the joystick configurator.

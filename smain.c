@@ -213,6 +213,8 @@ sdl_init();	/* Added by Thunor */
 
 parseoptions(argc,argv);
 
+sdl_com_line_process(argc, argv);	/* Added by Thunor */
+
 initmem();
 loadhelp();
 zxpopen();

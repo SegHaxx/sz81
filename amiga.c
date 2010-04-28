@@ -144,7 +144,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 
 			if((s = IIcon->FindToolType(toolarray,"SHOWDEVIDS")))
 			{
-				sdl_cl_show_input_id=1;
+				sdl_com_line.show_input_id=1;
 			}
 
 			if((s = IIcon->FindToolType(toolarray,"SOUND")))
