@@ -895,9 +895,10 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 	static struct MSG_Box the_box;
 	static Uint32 last_time;
 	static int init = TRUE;
+	int window_x, window_y, window_w, window_h;
 	Uint32 colour, fg_colour, bg_colour;
 	SDL_Surface *renderedtext, *shadow;
-	SDL_Rect winrect, dstrect;
+	SDL_Rect dstrect;
 	int count;
 
 	if (init) {
@@ -918,20 +919,19 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			} else {
 				fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 			}
-			/* winrect will be the reference coords of the window that
-			 * everything else will be relative to and it shouldn't be
-			 * passed to SDL since SDL will clip it if it's oversize */
+			/* window_x/y/w/h will be the reference coords of the window
+			 * that everything else will be relative to */
 			if (strlen(the_box.title) > strlen(the_box.text)) {
-				winrect.w = (strlen(the_box.title) + 2) * 8 * video.scale;
+				window_w = (strlen(the_box.title) + 2) * 8 * video.scale;
 			} else {
-				winrect.w = (strlen(the_box.text) + 2) * 8 * video.scale;
+				window_w = (strlen(the_box.text) + 2) * 8 * video.scale;
 			}
-			winrect.h = 4.5 * 8 * video.scale;
-			winrect.x = video.screen->w / 2 - (winrect.w + 8 * video.scale) / 2;
-			winrect.y = video.screen->h / 2 - (winrect.h + 8 * video.scale) / 2;
+			window_h = 4.5 * 8 * video.scale;
+			window_x = video.screen->w / 2 - (window_w + 8 * video.scale) / 2;
+			window_y = video.screen->h / 2 - (window_h + 8 * video.scale) / 2;
 			/* Draw the window background */
-			dstrect.x = winrect.x; dstrect.y = winrect.y; 
-			dstrect.w = winrect.w; dstrect.h = winrect.h; 
+			dstrect.x = window_x; dstrect.y = window_y; 
+			dstrect.w = window_w; dstrect.h = window_h; 
 			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
 				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
@@ -941,7 +941,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
 			/* Write the title */
 			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.title, fg_colour, bg_colour);
-			dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y;
+			dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
@@ -949,8 +949,8 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			}
 			SDL_FreeSurface(renderedtext);
 			/* Draw the window interior */
-			dstrect.x = winrect.x + 4 * video.scale; dstrect.y = winrect.y + 8 * video.scale;
-			dstrect.w = winrect.w - 8 * video.scale; dstrect.h = winrect.h - 1.5 * 8 * video.scale; 
+			dstrect.x = window_x + 4 * video.scale; dstrect.y = window_y + 8 * video.scale;
+			dstrect.w = window_w - 8 * video.scale; dstrect.h = window_h - 1.5 * 8 * video.scale; 
 			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
 				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
@@ -960,7 +960,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
 			/* Write the text */
 			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.text, fg_colour, bg_colour);
-			dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y + 2 * 8 * video.scale;
+			dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y + 2 * 8 * video.scale;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
@@ -969,10 +969,23 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			SDL_FreeSurface(renderedtext);
 			/* Draw the right-hand and bottom shadows */
 			for (count = 0; count < 2; count++) {
+
+				/* I want to document some odd behaviour that I experienced here
+				 * on my GP2X using the GPH SDK, but not anything else:
+				 * Originally window_x/y/w/h was an SDL_Rect winrect and I found 
+				 * that at this point winrect.y was 98 and after this 'if' 
+				 * statement it would become 0! It doesn't make any sense at all 
+				 * as only dstrect is being written to and I found a way to fix 
+				 * this issue by moving SDL_Rect winrect out of this function to 
+				 * the top of this file. I decided to simply not use an SDL_Rect
+				 * to store data and replaced it with four integers instead.
+				 * Since I've only experienced this with the GPH SDK I'm expecting
+				 * that there's an issue with that and not anything else */
+
 				if (count == 0) {
-					dstrect.w = 8 * video.scale; dstrect.h = winrect.h;
+					dstrect.w = 8 * video.scale; dstrect.h = window_h;
 				} else {
-					dstrect.w = winrect.w - 8 * video.scale; dstrect.h = 8 * video.scale;
+					dstrect.w = window_w - 8 * video.scale; dstrect.h = 8 * video.scale;
 				}
 				shadow = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
 					video.screen->format->BitsPerPixel,
@@ -997,9 +1010,9 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 				}
 				/* Blit it to the screen */
 				if (count == 0) {
-					dstrect.x = winrect.x + winrect.w; dstrect.y = winrect.y + 8 * video.scale;
+					dstrect.x = window_x + window_w; dstrect.y = window_y + 8 * video.scale;
 				} else {
-					dstrect.x = winrect.x + 8 * video.scale; dstrect.y = winrect.y + winrect.h;
+					dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y + window_h;
 				}
 				dstrect.w = shadow->w; dstrect.h = shadow->h;
 				if (SDL_BlitSurface (shadow, NULL, video.screen, &dstrect) < 0) {
