@@ -1,3 +1,9 @@
+2010-04-30 Thunor <thunorsif_at_hotmail.com>
+* Changed the way sdl_rcfile_read() manages reading ctrl_remaps: If one
+  or more ctrl_remaps were read then they will completely replace the
+  existing default ctrl_remaps, and if none were read then the defaults
+  will remain.
+
 2010-04-28 Thunor <thunorsif_at_hotmail.com>
 * Added fullscreen, xres and yres command line options.
 * Added keyboard page up and page down to the load selector.

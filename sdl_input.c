@@ -1115,7 +1115,7 @@ int keyboard_update(void) {
 								}
 							}
 							/* Notify the user of the outcome */
-							strcpy(msg_box.title, "Remapping");
+							strcpy(msg_box.title, "Remap");
 							if (found) {
 								strcpy(msg_box.text, "Accepted");
 							} else {

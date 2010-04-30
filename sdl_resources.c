@@ -74,6 +74,7 @@ void sdl_rcfile_read(void) {
 	int read_sound_volume;
 	char read_version[16];
 	int count, index, line_count;
+	int found;
 	FILE *fp;
 	
 	#if defined(PLATFORM_GP2X)
@@ -140,6 +141,7 @@ void sdl_rcfile_read(void) {
 	/* Read the rcfile one line at a time (trailing [CR]LFs are read too) */
 	index = -1;
 	line_count = 0;
+	found = FALSE;
 	while ((fgets(line, 256, fp)) != NULL) {
 		line_count++;
 		/* Remove the trailing [CR]LFs */
@@ -300,6 +302,7 @@ void sdl_rcfile_read(void) {
 				strcpy(value, &line[strlen(key)]);
 				if (index == -1) index++;
 				read_ctrl_remaps[index].remap_mod_id = keysym_to_keycode(value);
+				found = TRUE;	/* A complete ctrl_remap has been read */
 			}
 		}
 	}
@@ -409,12 +412,13 @@ void sdl_rcfile_read(void) {
 			colours.hs_options_selected = read_colours.hs_options_selected;
 		if (read_colours.hs_options_pressed != UNDEFINED) 
 			colours.hs_options_pressed = read_colours.hs_options_pressed;
+
 		/* read_ctrl_remaps have pretty much validated themselves since if
-		 * something was found to be invalid then they'll still be UNDEFINED
-		 * and they won't overwrite/insert into ctrl_remaps.
+		 * something was found to be invalid then they'll still be UNDEFINED	Redundant: I'm changing updating to completely
+		 * and they won't overwrite/insert into ctrl_remaps.					replacing if at least one has been read.
 		 * 
 		 * Attempt to find a match and overwrite the existing default
-		 * controls; insert new ones following the defaults */
+		 * controls; insert new ones following the defaults
 		for (index = 0; index < MAX_CTRL_REMAPS; index++) {
 			for (count = 0; count < MAX_CTRL_REMAPS; count++) {
 				if (read_ctrl_remaps[index].components > 0 &&
@@ -422,17 +426,18 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].id != UNDEFINED) {
 					if (ctrl_remaps[count].device != UNDEFINED &&
 						read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
+						read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
 						read_ctrl_remaps[index].remap_device == ctrl_remaps[count].remap_device &&
 						read_ctrl_remaps[index].remap_id == ctrl_remaps[count].remap_id &&
 						read_ctrl_remaps[index].remap_mod_id == ctrl_remaps[count].remap_mod_id) {
-						/* Update existing */
+						/$ Update existing $/
 						#ifdef SDL_DEBUG_RCFILE
 							printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
 						#endif
 						ctrl_remaps[count] = read_ctrl_remaps[index];
 						break;
 					} else if (ctrl_remaps[count].device == UNDEFINED) {
-						/* Insert new */
+						/$ Insert new $/
 						#ifdef SDL_DEBUG_RCFILE
 							printf("Inserting read_ctrl_remaps[%i] into ctrl_remaps[%i]\n", index, count);
 						#endif
@@ -441,7 +446,17 @@ void sdl_rcfile_read(void) {
 					}
 				}
 			}
-		}
+		} */
+
+		/* New improved system: If one or more ctrl_remaps were read then they will
+		 * completely replace the existing default ctrl_remaps. If none were read
+		 * then the defaults will remain. So after the first rcfile write the defaults
+		 * will always be replaced until either the rcfile is deleted or the user deletes
+		 * the ctrl_remaps manually */
+		if (found)
+			for (count = 0; count < MAX_CTRL_REMAPS; count++)
+				ctrl_remaps[count] = read_ctrl_remaps[count];
+
 	}
 }
 
