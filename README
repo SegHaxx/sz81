@@ -148,7 +148,7 @@ For the Sharp Zaurus:
     See PC controls for an explanation of the control bar and how to
     access the file selector.
 
-For the GPH GP2X:
+For the GPH GP2X/Wiz:
 
     Within the emulator (remappable)  | Within the GUI
     ----------------------------------+----------------------
@@ -210,14 +210,18 @@ For the Sharp Zaurus (requires SDK):
 
     Install sz81_2.1.x_zaurus.ipk using Add/Remove Software.
 
-For the GPH GP2X (requires SDK):
+For the GPH GP2X/Wiz (requires SDK):
 
     make clean
+    (For the GPH toolchain execute the following line only)
     make -f Makefile.gp2x
+    (For the Open2x toolchain execute the following line only)
+    make -f Makefile.open2x
+    (For the OpenWiz toolchain execute the following line only)
+    make -f Makefile.openwiz
 
-    Extract sz81_2.1.x_gp2x.tar.gz and copy the contents onto your SD
-    card. Note that for Open2x there's Makefile.open2x if you prefer a
-    statically linked makefile for this more up-to-date toolchain.
+    Extract sz81_2.1.x_{gp2x|open2x|openwiz}.tar.gz and copy the
+    contents onto your SD card.
 
 
 Contacting Us
@@ -226,6 +230,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-04-26
+2010-05-04
 
 

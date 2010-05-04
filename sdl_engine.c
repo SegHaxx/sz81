@@ -365,7 +365,7 @@ void clean_up_before_exit(void) {
 	}
 
 	#ifdef PLATFORM_GP2X
-		#ifdef TOOLCHAIN_OPEN2X
+		#if defined(TOOLCHAIN_OPEN2X) || defined(TOOLCHAIN_OPENWIZ)
 			if (joystick) SDL_JoystickClose(joystick);
 		#endif
 	#else

@@ -1,3 +1,6 @@
+2010-05-04 Thunor <thunorsif_at_hotmail.com>
+* Added support for the GPH GP2X Wiz.
+
 2010-04-30 Thunor <thunorsif_at_hotmail.com>
 * Changed the way sdl_rcfile_read() manages reading ctrl_remaps: If one
   or more ctrl_remaps were read then they will completely replace the

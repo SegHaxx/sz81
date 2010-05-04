@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# This creates a binary tarball for the GP2X.
-# NOTE: This is run when executing 'make -f Makefile.gp2x' or
-# 'make -f Makefile.open2x'. It also expects PACKAGE_DATA_DIR and
-# TOOLCHAIN to have been exported.
+# This creates a binary tarball for the GP2X/Wiz.
+# NOTE: This is run when executing 
+# make -f Makefile.{gp2x|open2x|openwiz}
+# It also expects PACKAGE_DATA_DIR and TOOLCHAIN to have been exported.
 
 if test -a VERSION ; then
 	VERSION="$(cat VERSION)"
@@ -12,7 +12,7 @@ if test -a VERSION ; then
 		if [ -n "$PACKAGE_DATA_DIR" ] ; then
 			if [ -n "$TOOLCHAIN" ] ; then
 #-------------------------------------------------------------
-				echo "Building GP2X binary tarball..."
+				echo "Building GP2X/Wiz binary tarball..."
 				
 				mkdir -p ${TARGET}_${VERSION}_${TOOLCHAIN}/${PACKAGE_DATA_DIR}
 				mkdir -p ${TARGET}_${VERSION}_${TOOLCHAIN}/games

@@ -39,7 +39,7 @@ int sdl_sound_init(int freq, int *stereo, int *sixteenbit) {
 	desired.freq = freq;
 	#if defined(PLATFORM_GP2X)
 		desired.format = AUDIO_U16;
-		#if defined(TOOLCHAIN_OPEN2X)
+		#if defined(TOOLCHAIN_OPEN2X) || defined(TOOLCHAIN_OPENWIZ)
 			desired.samples = 256;
 		#else
 			desired.samples = 1024;	/* This might be better at 512 */
