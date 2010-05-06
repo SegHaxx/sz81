@@ -23,6 +23,13 @@ if test -a VERSION ; then
 				cp icon-zx80-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/sz80.png
 				cp icon-zx81-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/${TARGET}.png
 				cp ${TARGET} gp2x/*.gpe ${TARGET}_${VERSION}_${TOOLCHAIN}
+
+				# The openwiz build requires libiconv.
+				if [[ "${TOOLCHAIN}" == "openwiz" ]] ; then
+					cp gp2x/libiconv.so.2 ${TARGET}_${VERSION}_${TOOLCHAIN}
+					cp gp2x/COPYING-glibc-iconv ${TARGET}_${VERSION}_${TOOLCHAIN}
+				fi
+
 				cp README ${TARGET}_${VERSION}_${TOOLCHAIN}/readme.txt
 				cp ChangeLog NEWS COPYING ${TARGET}_${VERSION}_${TOOLCHAIN}
 				

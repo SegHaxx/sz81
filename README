@@ -212,6 +212,9 @@ For the Sharp Zaurus (requires SDK):
 
 For the GPH GP2X/Wiz (requires SDK):
 
+	Thanks go to Mr 2X and Neil L from the gp32x.com forums for
+	assisting with testing the Wiz build.
+
     make clean
     (For the GPH toolchain execute the following line only)
     make -f Makefile.gp2x
@@ -230,6 +233,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-05-04
+2010-05-06
 
 

@@ -7,10 +7,10 @@ VERSION=$(shell cat VERSION)
 export PACKAGE_DATA_DIR=./data
 export TOOLCHAIN=openwiz
 
-# This uses the OpenWiz toolchain installed into the default folder
-# /opt/openwiz
+# This uses the OpenWiz toolchain + libs package put together by
+# torpor installed into the default folder /opt/openwiz/toolchain
 # 
-DEVPREFIX=/opt/openwiz
+DEVPREFIX=/opt/openwiz/toolchain
 SDL_CONFIG=$(DEVPREFIX)/bin/sdl-config
 CC=$(DEVPREFIX)/bin/arm-openwiz-linux-gnu-gcc
 CFLAGS=-O3 -Wall -I$(DEVPREFIX)/include `$(SDL_CONFIG) --cflags` \
@@ -18,13 +18,13 @@ CFLAGS=-O3 -Wall -I$(DEVPREFIX)/include `$(SDL_CONFIG) --cflags` \
 	-DOSS_SOUND_SUPPORT -DTOOLCHAIN_OPENWIZ -DSZ81 
 LINK=$(CC)
 LDFLAGS=-L$(DEVPREFIX)/lib 
-LIBS=-lstdc++ `$(SDL_CONFIG) --static-libs` 
+LIBS=`$(SDL_CONFIG) --libs` -liconv
 
 # You won't need to alter anything below
 all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(LINK) -static $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 	gp2x/_buildtgz
 
 %.o: %.c 

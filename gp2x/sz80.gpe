@@ -2,8 +2,9 @@
 
 # This script executes the GP2X/Wiz binary emulating the ZX80 and with
 # the screen inverted by default.
+# 
 
-./sz81 -oi &> sz81log.txt
+./sz81 -oi 2>&1 > sz81log.txt
 sync
 cd /usr/gp2x
 exec ./gp2xmenu
