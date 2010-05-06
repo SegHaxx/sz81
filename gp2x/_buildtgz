@@ -26,8 +26,7 @@ if test -a VERSION ; then
 
 				# The openwiz build requires libiconv.
 				if [[ "${TOOLCHAIN}" == "openwiz" ]] ; then
-					cp gp2x/libiconv.so.2 ${TARGET}_${VERSION}_${TOOLCHAIN}
-					cp gp2x/COPYING-glibc-iconv ${TARGET}_${VERSION}_${TOOLCHAIN}
+					cp gp2x/*libiconv* ${TARGET}_${VERSION}_${TOOLCHAIN}
 				fi
 
 				cp README ${TARGET}_${VERSION}_${TOOLCHAIN}/readme.txt

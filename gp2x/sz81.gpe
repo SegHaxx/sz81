@@ -1,10 +1,9 @@
 #!/bin/sh
 
 # This script executes the GP2X/Wiz binary emulating the ZX81 with
-# stereo AY-chip-based sound support and with the screen inverted by
-# default.
+# stereo AY-chip-based sound support.
 
-./sz81 -i -a zs 2>&1 > sz81log.txt
+./sz81 -a zs 2>&1 > sz81log.txt
 sync
 cd /usr/gp2x
 exec ./gp2xmenu
