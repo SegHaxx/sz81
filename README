@@ -180,7 +180,7 @@ searching the internet for "zx80.rom" and "zx81.rom".
 Extract the sz81 source package, copy the zx80.rom and zx81.rom ROMs
 into the data folder and change into the extracted directory.
 
-For the PC:
+For desktop Linux:
 
     Comment/uncomment the PREFIX BINDIR DOCDIR PACKAGE_DATA_DIR group
     at the top of the Makefile depending on whether you want to do a
@@ -212,8 +212,8 @@ For the Sharp Zaurus (requires SDK):
 
 For the GPH GP2X/Wiz (requires SDK):
 
-	Thanks go to Mr 2X and Neil L from the gp32x.com forums for
-	assisting with testing the Wiz build.
+    Thanks go to Mr 2X and Neil L from the gp32x.com forums for
+    assisting with testing the Wiz build.
 
     make clean
     (For the GPH toolchain execute the following line only)

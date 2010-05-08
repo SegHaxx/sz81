@@ -1,0 +1,53 @@
+
+*** Please see readme.txt for general information about sz81 ***
+
+Operation
+=========
+
+sz81.exe can simply be run by double-clicking the program within the
+explorer window (16K ZX81 emulation is the default) but there exist
+several start-up options available from the command-line. If you open
+a DOS window or CMD shell, navigate to the folder where sz81.exe
+resides and type sz81.exe -h then you will receive a comprehensive
+list within the file stdout.txt.
+
+Examples Usage
+--------------
+
+For the ZX81:
+    For the unexpanded 1K ZX81: sz81.exe -u
+    For Bi-Pak Zon X-81 stereo sound support: sz81.exe -azs
+    For Quicksilva sound board stereo sound support: sz81.exe -aqs
+    For TV speaker sound support: sz81.exe -s
+    For printer support: sz81.exe -p printout.pbm
+
+For the ZX80:
+    For the unexpanded 1K ZX80: sz81.exe -o
+    For TV speaker sound support: sz81.exe -os
+
+etc.
+
+
+Known Issues with the Win32 Build
+=================================
+
+Configuration items set within runtime options are normally saved and
+later read from a file, but this feature has not been implemented yet.
+
+
+ToDo
+====
+
+* Graphical representation of several static start-up options to
+  hide the command-line interface.
+* A save state system.
+
+
+About the Win32 Build
+=====================
+
+Win32 Dev-C++/GCC/Win32 SDL libs version By Gilles & XavSnap.
+
+2010-05-07
+
+

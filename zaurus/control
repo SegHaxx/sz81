@@ -1,7 +1,7 @@
 Package: sz81
 Priority: optional
 Section: Games
-Version: 2.1.6.1
+Version: 2.1.6.1-2
 Architecture: arm
 Maintainer: Thunor <thunorsif@hotmail.com>
 Depends: libSDL
