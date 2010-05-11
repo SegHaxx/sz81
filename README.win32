@@ -11,8 +11,8 @@ a DOS window or CMD shell, navigate to the folder where sz81.exe
 resides and type sz81.exe -h then you will receive a comprehensive
 list within the file stdout.txt.
 
-Examples Usage
---------------
+Example Usage
+-------------
 
 For the ZX81:
     For the unexpanded 1K ZX81: sz81.exe -u
