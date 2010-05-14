@@ -210,14 +210,52 @@ basic_0001:	defb	0,1		; 1 REM
 
 ; Start of user machine code program vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
+;                 v
+;                 |
+;    +------>-----+
+;    |            |
+;    |            v
+;    |            |
+;    |       +---------+
+;    |       | Splash  |
+;    |       | Screen  |
+;    |       |         |
+;    |       +---------+
+;    |          |   |
+;    |     Back ^   v
+;    |          |   |
+;    |       +---------+ Help  +---------+
+;    |       | Options |--->---| Help    |
+;    ^---<---| Screen  |       | Screens |
+;    | Save  |         |---<---|         |
+;    |       +---------+  Back |         |
+;    |          |   |          |         |
+;    |     Back ^   v Play     |   ~~~   |
+;    |          |   |          |         |
+;    |       +---------+ Help  |         |
+;    |       | Game    |--->---|         |
+;    +---<---| Screen  |       |         |
+;      Save  |         |---<---|         |
+;            +---------+  Back +---------+
+
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
+
+STATE_SPLASH	equ	0
+STATE_OPTIONS	equ	1
+STATE_HELP	equ	2
+STATE_GAME_PLAY	equ	3
+STATE_GAME_FILL	equ	4
+STATE_GAME_END	equ	5
+STATE_GAME_REPLAY equ	6
 
 mem_16514:	jr	start
 rnd_seed:	defb	0
 sp_original:	defw	0
 screen_buffer:	defw	0
 fade_offsets:	defw	0
+temp_buffer	defs	6
+game_state	defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -231,43 +269,27 @@ start:		ld	(sp_original),sp
 		sbc	hl,bc
 		ld	(fade_offsets),hl
 		ld	sp,hl
-		
-		ld	a,_SPC			; Wipe screen buffer and
-		call	screen_buffer_wipe	; set-up eol markers.
 
 		call	splash_draw
-		call	screen_buffer_blit
-
-		ld	a,WRITE_TO_D_FILE	; speed test temp temp
-		ld	bc,33*0
-		ld	de,(FRAMES)
-		ld	h,2
-		call	hex_write
 
 		call	fade_offsets_create
 
-		ld	a,WRITE_TO_D_FILE	; speed test temp temp
-		ld	bc,33*1
-		ld	de,(FRAMES)
-		ld	h,2
-		call	hex_write
-
 		ld	a,WRITE_TO_D_FILE
-		ld	bc,33*24-1-12
+		ld	bc,33*23+10
 		ld	de,txt_press_a_key
-		call	char_write
+		call	string_write
 
 		call	keyboard_wait
 		
-		;call	main_draw
-		;call	screen_buffer_fade
+		;call	options_draw
 
-		call	panel_draw
-		call	board_draw
+		call	game_draw
 
-		call	screen_buffer_fade
 
-		call	keyboard_wait		; temp temp
+
+
+
+
 
 		ld	sp,(sp_original)
 		ret
@@ -281,20 +303,18 @@ start:		ld	(sp_original),sp
 ; 
 ; On exit: a = char pressed
 
-keyboard_wait:	push	bc
-		push	de
-		push	hl
-kwl0:		call	KEYB_SCAN
-		ld	b,h
-		ld	c,l
+keyboard_wait:	call	KEYB_SCAN	; Wait until the user has
+		ld	a,0xff		; released the keyboard first.
+		cp	l
+		jr	nz,keyboard_wait
+kwl0:		call	KEYB_SCAN	; Get keyboard state in hl.
 		ld	a,0xff
 		cp	l
 		jr	z,kwl0
-		call	KEYB_DECODE
+		ld	b,h
+		ld	c,l
+		call	KEYB_DECODE	; Decode bc to a char.
 		ld	a,(hl)
-		pop	hl
-		pop	de
-		pop	bc
 		ret
 
 ; *********************************************************************
@@ -457,59 +477,59 @@ sbwl2:		ld	(hl),a
 ; *********************************************************************
 ; Splash Draw                                                         *
 ; *********************************************************************
-; This draws the splash screen to the screen buffer.
+; This manages showing the splash screen. It's also wiping the screen
+; buffer for the very first time which sets-up the eol markers.
 
-splash_draw:	ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*24-1-12
-		ld	de,txt_initialising
-		call	char_write
+splash_draw:	ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,0
+		ld	de,splash_data
+		call	string_write
+		call	screen_buffer_blit
 		ret
 
 ; *********************************************************************
-; Panel Draw                                                          *
+; Game Draw                                                           *
 ; *********************************************************************
-; This draws the panel to the screen buffer.
+; This manages showing the game screen.
 
-panel_draw:	ld	a,WRITE_TO_SCRBUF
+game_draw:	ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,panel_data
-		call	char_write
-		ret
-				
-; *********************************************************************
-; Board Draw                                                          *
-; *********************************************************************
-; This draws the game board to the screen buffer.
-
-board_draw:	ld	hl,(screen_buffer)
+		call	string_write
+		ld	hl,(screen_buffer)	; Draw game board.
 		ld	de,8
 		add	hl,de
 		ld	a,_SPC
 		ld	d,_SLS
 		ld	b,8
-bdl0:		push	bc
+gdl0:		push	bc
 		ld	b,3
-bdl1:		push	bc
+gdl1:		push	bc
 		ld	b,8
-bdl2:		push	bc
+gdl2:		push	bc
 		ld	b,3
-bdl3:		ld	(hl),a
+gdl3:		ld	(hl),a
 		inc	hl
-		djnz	bdl3
+		djnz	gdl3
 		ld	c,a
 		ld	a,d
 		ld	d,c
 		pop	bc
-		djnz	bdl2
+		djnz	gdl2
 		ld	bc,9
 		add	hl,bc
 		pop	bc
-		djnz	bdl1
+		djnz	gdl1
 		ld	c,a
 		ld	a,d
 		ld	d,c
 		pop	bc
-		djnz	bdl0
+		djnz	gdl0
+		call	screen_buffer_fade
 		ret
 
 ; *********************************************************************
@@ -519,19 +539,17 @@ bdl3:		ld	(hl),a
 ; 
 ; On entry: a  = 0 to write to the D_FILE
 ;           a  = 1 to write to the screen buffer
-;           bc = offset into the D_FILE (the initial NL is accounted
-;                for so don't include it) or screen buffer
+;           bc = destination offset (the D_FILE's initial NL is
+;                accounted for so don't include it yourself)
 ;           de = the number to write
-;           h  = 0 for no leading chars
+;           h  = 0 for leading zeroes
 ;           h  = 1 for leading spaces
-;           h  = 2 for leading zeroes
-
-hex_write_data:	defs	6
+;           h  = 2 for no leading chars
+;           l  = the number of nibbles to write: 4 to 1.
 
 hex_write:	push	af
 		push	bc
-		ld	bc,hex_write_data
-		ld	l,4
+		ld	bc,temp_buffer
 hwl0:		ld	a,l
 		cp	4
 		jr	nz,hwl2
@@ -553,64 +571,64 @@ hwl4:		cp	2
 hwl5:		ld	a,e
 		jr	hwl3
 hwl6:		or	a
-		jr	nz,hwl8
-		ld	a,h
-		or	a
-		jr	z,hwl10
-		cp	1
 		jr	nz,hwl7
-		xor	a
-		jr	hwl9
-hwl7:		xor	a
-hwl8:		add	a,0x1c
-hwl9:		ld	(bc),a
+		ld	a,h
+		cp	2
+		jr	z,hwl9
+		cp	1
+		ld	a,0
+		jr	z,hwl8
+hwl7:		add	a,0x1c
+hwl8:		ld	(bc),a
 		inc	bc
-hwl10:		dec	l
+hwl9:		dec	l
 		jr	nz,hwl0
 		ld	a,0xff
 		ld	(bc),a
 		inc	bc
-		dec	a
+		ld	a,0xfe
 		ld	(bc),a
 		pop	bc
 		pop	af
-		ld	de,hex_write_data
-		call	char_write
+		ld	de,temp_buffer
+		call	string_write
 		ret
 
 ; *********************************************************************
-; Char Write                                                          *
+; String Write                                                        *
 ; *********************************************************************
-; This writes chars somewhere.
+; This writes one or more strings somewhere. Each line should be
+; terminated by an 0xff and the data itself terminated by an 0xfe.
+; Additionally it is possible to skip rightwards by up to 15 chars
+; by embedding 0xe0 to 0xef which helps to reduce wasteful padding.
 ;
 ; On entry: a  = 0 to write to the D_FILE
 ;           a  = 1 to write to the screen buffer
-;           bc = offset into the D_FILE (the initial NL is accounted
-;                for so don't include it) or screen buffer
-;           de = address of data, lines terminated with 0xff
-;                and the data terminated with 0xfe
+;           bc = destination offset (the D_FILE's initial NL is
+;                accounted for so don't include it yourself)
+;           de = address of data
 
-char_write:	or	a
-		jr	nz,cwl0
+string_write:	or	a
+		jr	nz,swl0
 		ld	hl,(D_FILE)
 		inc	hl
-		jr	cwl1
-cwl0:		ld	hl,(screen_buffer)
-cwl1:		add	hl,bc
-cwl2:		push	hl
-cwl3:		ld	a,(de)
+		jr	swl1
+swl0:		ld	hl,(screen_buffer)
+swl1:		add	hl,bc
+swl2:		push	hl
+swl3:		ld	a,(de)
 		inc	de
 		cp	0xff
-		jr	z,cwl4
+		jr	z,swl4
 		ld	(hl),a
 		inc	hl
-		jr	cwl3
-cwl4:		pop	hl
+		jr	swl3
+swl4:		pop	hl
 		ld	bc,33
 		add	hl,bc
 		ld	a,(de)
 		cp	0xfe
-		jr	nz,cwl2
+		jr	nz,swl2
 		ret
 
 ; *********************************************************************
@@ -652,28 +670,27 @@ mul8l2:		ld	b,h
 ; On exit: a = random number
 
 get_random_number:
-		ld 	a,(rnd_seed)
-		or	a		; Zero will result in no
-		jr	nz,grnl0	; feedback and must be checked
-		dec	a		; for and dealt with.
-grnl0:		sra	a		; The tap sequence relates to
-		and	0x7f		; the bit index like this :-
+		ld 	a,(rnd_seed)	; Zero will result in no
+		or	a		; feedback and must be checked
+		jr	nz,grnl0	; for and dealt with.
+		dec	a		; The tap sequence relates to
+grnl0:		srl	a		; the bit index like this :-
 		ld	b,a		; Taps: 12345678
-		sra	a		; Bits: 76543210
-		sra	a
+		srl	a		; Bits: 76543210
+		srl	a
 		xor	b		; tap6 xor tap8
 		ld	a,b
-		sra	a
-		sra	a
-		sra	a
+		srl	a
+		srl	a
+		srl	a
 		xor	b		; tap5 xor (tap6 xor tap8)
 		ld	a,b
-		sra	a
-		sra	a
-		sra	a
-		sra	a
+		srl	a
+		srl	a
+		srl	a
+		srl	a
 		xor	b		; tap4 xor (tap5 xor (tap6 xor tap8))
-		and	0x1
+		and	1
 		rrca
 		or	b
 		ld	(rnd_seed),a
@@ -709,12 +726,22 @@ panel_data:	defb	_H   ,_I   ,_S   ,_C   ,_O   ,_R   ,_EV  ,0xff
 		defb	_BV  ,_A   ,_C   ,_K   ,0xff
 		defb	0xfe
 
-txt_initialising:
-		defb	_I,_N,_I,_T,_I,_A,_L,_I,_S,_I,_N,_G,0xff
+splash_data:	defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	0xff
+		defb	_S,_P,_L,_A,_S,_H,_SPC,_S,_C,_R,_E,_E,_N,0xff
 		defb	0xfe
 
 txt_press_a_key:
-		defb	_SPC,_P,_R,_E,_S,_S,_SPC,_A,_SPC,_K,_E,_Y,0xff
+		defb	_P,_R,_E,_S,_S,_SPC,_A,_SPC,_K,_E,_Y,0xff
 		defb	0xfe
 
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

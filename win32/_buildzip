@@ -17,6 +17,7 @@ if test -a VERSION ; then
 		cp data/* ${TARGET}_${VERSION}_win32/data
 		cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_win32/games
 
+		cp win32/help.p ${TARGET}_${VERSION}_win32
 		cp win32/COPYING.sdl ${TARGET}_${VERSION}_win32/COPYING.sdl.txt
 		cp win32/sdl.dll win32/${TARGET}.exe ${TARGET}_${VERSION}_win32
 

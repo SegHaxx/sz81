@@ -6,10 +6,10 @@ Operation
 
 sz81.exe can simply be run by double-clicking the program within the
 explorer window (16K ZX81 emulation is the default) but there exist
-several start-up options available from the command-line. If you open
-a DOS window or CMD shell, navigate to the folder where sz81.exe
-resides and type sz81.exe -h then you will receive a comprehensive
-list within the file stdout.txt.
+several start-up options available from the command-line i.e. you'll
+need to open a DOS window or CMD shell within the folder where sz81.exe
+resides. Load the file help.p with the emulator to view the currently
+supported options.
 
 Example Usage
 -------------
@@ -31,8 +31,8 @@ etc.
 Known Issues with the Win32 Build
 =================================
 
-Configuration items set within runtime options are normally saved and
-later read from a file, but this feature has not been implemented yet.
+Printer support is broken.
+The game 3DF1 locks-up the file selector.
 
 
 ToDo
@@ -48,6 +48,6 @@ About the Win32 Build
 
 Win32 Dev-C++/GCC/Win32 SDL libs version By Gilles & XavSnap.
 
-2010-05-07
+2010-05-14
 
 
