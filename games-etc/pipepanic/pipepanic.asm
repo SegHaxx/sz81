@@ -185,7 +185,7 @@ DF_SZ:		defb	2		; Number of lines in lower part of screen.
 S_TOP:		defw	20		; BASIC line number of line at top of screen.
 LAST_K:		defw	0xffff
 DB_ST:		defb	0
-MARGIN:		defb	0x37
+MARGIN:		defb	55		; Blank lines above/below TV picture: US = 31, UK = 55.
 NXTLIN:		defw	display_file	; Memory address of next program line to be executed.
 OLDPPC:		defw	0
 FLAGX:		defb	0
@@ -242,20 +242,25 @@ basic_0001:	defb	0,1		; 1 REM
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
 
-STATE_QUIT	equ	0
-STATE_SPLASH	equ	1
-STATE_OPTIONS	equ	2
-STATE_HELP	equ	3
-STATE_GAME	equ	4
+STATE_SAVE	equ	0
+STATE_QUIT	equ	1
+STATE_SPLASH	equ	2
+STATE_OPTIONS	equ	3
+STATE_HELP	equ	4
+STATE_GAME	equ	5
 
 mem_16514:	jr	start
-rnd_seed:	defb	0
-sp_original:	defw	0
 screen_buffer:	defw	0
 fade_offsets:	defw	0
 temp_buffer:	defw	0
-game_state:	defb	0
 board_data:	defw	0
+keyb_buffer:	defw	0
+keyb_buffer_old: defw	0
+events_array:	defw	0
+sp_original:	defw	0
+rnd_seed:	defb	0
+program_state:	defb	0
+previous_state:	defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -276,6 +281,18 @@ start:		ld	(sp_original),sp
 		ccf
 		sbc	hl,bc
 		ld	(board_data),hl
+		ld	bc,40
+		ccf
+		sbc	hl,bc
+		ld	(keyb_buffer),hl
+		ld	bc,40
+		ccf
+		sbc	hl,bc
+		ld	(keyb_buffer_old),hl
+		ld	bc,16
+		ccf
+		sbc	hl,bc
+		ld	(events_array),hl
 		ld	sp,hl
 
 		ld	a,_SPC			; Initialise the screen
@@ -284,24 +301,30 @@ start:		ld	(sp_original),sp
 		call	screen_buffer_blit
 		call	fade_offsets_create
 		call	board_data_create
+		ld	a,STATE_QUIT
+		ld	(previous_state),a
 		ld	a,STATE_SPLASH
-		ld	(game_state),a
+		ld	(program_state),a
 		;Register blink for txt_press_a_key here.
 
-stl0:		ld	a,_SPC
-		call	screen_buffer_wipe
-		;call	events_generate
-		ld	a,(game_state)
+stl0:		call	events_generate
+		ld	a,(program_state)
 		cp	STATE_QUIT
-		jp	z,quit
+		jp	z,st_quit
 		cp	STATE_SPLASH
 		jr	nz,stl20
 		; *********************
 		; * STATE_SPLASH      *
 		; *********************
 
+		call	keyboard_get	; temp temp
+		cp	0xff
+		jr	z,stl100
+		ld	a,STATE_OPTIONS
+		call	state_change
+		call	options_draw
+		call	screen_buffer_fade
 
-		
 		jr	stl100
 stl20:		cp	STATE_OPTIONS
 		jr	nz,stl40
@@ -309,16 +332,20 @@ stl20:		cp	STATE_OPTIONS
 		; * STATE_OPTIONS     *
 		; *********************
 
+		call	keyboard_get	; temp temp
+		cp	0xff
+		jr	z,stl100
+		ld	a,STATE_GAME
+		call	state_change
+		call	game_draw
+		call	screen_buffer_fade
 
-		
 		jr	stl100
 stl40:		cp	STATE_HELP
 		jr	nz,stl60
 		; *********************
 		; * STATE_HELP        *
 		; *********************
-
-
 
 		jr	stl100
 stl60:		cp	STATE_GAME
@@ -327,11 +354,15 @@ stl60:		cp	STATE_GAME
 		; * STATE_GAME        *
 		; *********************
 
-
+		call	keyboard_get	; temp temp
+		cp	0xff
+		jr	z,stl100
+		ld	a,STATE_QUIT
+		call	state_change
 		
 		jr	stl100
 
-stl100:		ld	a,(game_state)
+stl100:		ld	a,(program_state)
 		cp	STATE_SPLASH
 		jr	nz,stl120
 		call	splash_draw
@@ -353,12 +384,226 @@ stl160:		cp	STATE_GAME
 		call	game_draw
 		jr	stl200
 
-stl200:		;call	blink_apply
-		call	screen_buffer_blit
+stl200:		
+		ld	hl,(screen_buffer)	; temp temp
+		ld	bc,33*9
+		add	hl,bc
+		ld	a,(rnd_seed)
+		inc	a
+		bit	5,a
+		jr	z,stl1
+		xor	a
+stl1:		ld	(rnd_seed),a
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	(hl),_ASKV
 
+		;call	blink_apply
+		call	screen_buffer_blit
+		;call	timer_tick		; Wishful thinking ;)
 		jp	stl0
 
-quit:		ld	sp,(sp_original)
+st_quit:	ld	sp,(sp_original)
+		ld	a,(program_state)	; Return program state
+		ld	b,0			; in bc so that SAVE
+		ld	c,a			; can be checked for.
+		ret
+
+; *********************************************************************
+; Events Generate                                                     *
+; *********************************************************************
+
+events_generate:
+		call	keyb_buffer_update
+		; Compare keyb_buffer to keyb_buffer_old here
+		; and generate pressed/released events.
+		ret
+
+; *********************************************************************
+; Keyboard Buffer Update                                              *
+; *********************************************************************
+; This first copies the existing keyb_buffer to keyb_buffer_old and
+; then records the current state of all keys within the keyb_buffer.
+; 
+; This is how the keyboard is organised :-
+; 
+; +-----------------------------+
+; | Port | Keys  |  Keys | Port |
+; +      |---------------|      +
+; |      |     Bits      |      |
+; |      | 01234   43210 |      |
+; +-----------------------------+
+; | F7FE | 12345 | 67890 | EFFE |
+; | FBFE | QWERT | YUIOP | DFFE | ^ = Shift
+; | FDFE | ASDFG | HJKL* | BFFE | * = Newline
+; | FEFE | ^ZXCV | BNM._ | 7FFE | _ = Space
+; +-----------------------------+
+; 
+; So...
+; ld bc,{choose a port from above}
+; in a,(c)
+; cpl
+; ...returns 0x81 if any keys under bit0 are pressed, 0x84 under bit2
+; and 0x90 under bit4
+
+keyb_buffer_update:
+		ld	hl,(keyb_buffer)	; Copy current contents
+		ld	de,(keyb_buffer_old)	; of keyb_buffer to
+		ld	bc,40			; keyb_buffer_old.
+		ldir
+
+;-----------------------------------------
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*2
+		ld	de,kbu_data
+		;call	string_write
+
+		ld	a,0
+		ld	bc,0xf7fe
+		ld	hl,33*2+6
+kbul0:		push	af
+		push	bc
+		push	hl
+		in	a,(c)
+		cpl
+		ld	d,0
+		ld	e,a
+		ld	b,h
+		ld	c,l
+		ld	hl,0x0002
+		ld	a,WRITE_TO_SCRBUF
+		;call	hex_write
+		pop	hl
+		ld	bc,33
+		add	hl,bc
+		pop	bc
+		rrc	b
+		pop	af
+		inc	a
+		bit	2,a
+		jr	z,kbul0
+
+		ld	a,0
+		ld	bc,0xeffe
+		ld	hl,33*2+11
+kbul1:		push	af
+		push	bc
+		push	hl
+		in	a,(c)
+		cpl
+		ld	d,0
+		ld	e,a
+		ld	b,h
+		ld	c,l
+		ld	hl,0x0002
+		ld	a,WRITE_TO_SCRBUF
+		;call	hex_write
+		pop	hl
+		ld	bc,33
+		add	hl,bc
+		pop	bc
+		rlc	b
+		pop	af
+		inc	a
+		bit	2,a
+		jr	z,kbul1
+
+		ret
+
+kbu_data:	defb	_1,_2,_3,_4,_5,0xd4,_SPC,_MNS,0xd4,_SPC,_6,_7,_8,_9,_0,0xf1
+		defb	_Q,_W,_E,_R,_T,0xd4,_SPC,_MNS,0xd4,_SPC,_Y,_U,_I,_O,_P,0xf1
+		defb	_A,_S,_D,_F,_G,0xd4,_SPC,_MNS,0xd4,_SPC,_H,_J,_K,_L,_ASK,0xf1
+		defb	_ASK,_Z,_X,_C,_V,0xd4,_SPC,_MNS,0xd4,_SPC,_B,_N,_M,_FST,_ASK,0xf1
+		defb	0xf0
+;-----------------------------------------
+
+		;call	KEYB_SCAN
+
+		;ld	hl,(MARGIN)
+
+;		ld	a,h		; Invert the bits in hl.
+;		xor	0xff
+;		ld	h,a
+;		ld	a,l
+;		xor	0xff
+;		ld	l,a
+
+;		push	hl		; temp temp
+;		ld	a,WRITE_TO_SCRBUF
+;		ld	bc,33*2+5
+;		ld	d,h
+;		ld	e,l	
+;		ld	hl,0x0004
+;		call	hex_write
+;		pop	hl
+
+
+;		ld	de,(keyb_buffer)
+;		ld	bc,0x0401
+;kbul0:		ld	a,h
+;		and	b
+;		jr	z,kbul1
+;		ld	a,l
+;		and	c
+;		jr	z,kbul1
+;		ld	a,1
+;kbul1:		ld	(de),a
+;		inc	de
+;		sla	b
+;		bit	6,b
+;		jr	z,kbul0
+;		ld	b,0x02
+;		sla	c
+;		jr	nz,kbul0
+
+;		ld	bc,0		; temp temp
+;kbul99:		push	bc
+;		ld	hl,(keyb_buffer)
+;		add	hl,bc
+;		ld	e,(hl)
+;		ld	hl,33*3
+;		add	hl,bc
+;		add	hl,bc
+;		ld	b,h
+;		ld	c,l	
+;		ld	hl,0x0001
+;		ld	a,WRITE_TO_SCRBUF
+;		call	hex_write
+;		pop	bc
+;		inc	c
+;		ld	a,14
+;		cp	c
+;		jr	nz,kbul99
+		
+		;bit	0,h
+		;jr	z,kbul0
+		;res	0,h		; Convert the 0100 SHIFT
+		;set	1,h		; to a more usable 0201.
+		;set	0,l
+
+		ret
+
+; *********************************************************************
+; Timer Tick                                                          *
+; *********************************************************************
+; This ticks at 25Hz on a 50Hz ZX81.
+
+timer_tick:	ld	a,(FRAMES)
+		and	1
+		jr	nz,timer_tick
+		ret
+
+; *********************************************************************
+; State Change                                                        *
+; *********************************************************************
+; On entry: a = the new program state (the previous state is recorded)
+
+state_change:	ld	b,a
+		ld	a,(program_state)
+		ld	(previous_state),a
+		ld	a,b		
+		ld	(program_state),a
 		ret
 
 ; *********************************************************************
@@ -523,7 +768,9 @@ sbwl2:		ld	(hl),a
 ; *********************************************************************
 ; This draws the splash screen to the screen buffer.
 
-splash_draw:	ld	a,WRITE_TO_SCRBUF
+splash_draw:	ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,splash_data
 		call	string_write
@@ -534,7 +781,9 @@ splash_draw:	ld	a,WRITE_TO_SCRBUF
 ; *********************************************************************
 ; This draws the options screen to the screen buffer.
 
-options_draw:	ld	a,WRITE_TO_SCRBUF
+options_draw:	ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,options_data
 		call	string_write
@@ -660,7 +909,7 @@ hwl9:		dec	l
 ; 
 ; * 0xd1 to 0xdf to duplicate the next char 1 to 15 times
 ; * 0xe1 to 0xef to skip 1 to 15 columns
-; * 0xf1 to 0xff for 1 to 15 newlines (CR to original x offset + LF)
+; * 0xf1 to 0xff for 1 to 15 newlines (CR to original xoffset + LF)
 ; * 0xf0 which MUST terminate the data
 ; 
 ; Look in the data section for examples on how to use this.
@@ -746,16 +995,6 @@ kwl0:		call	KEYB_SCAN	; Get keyboard state in hl.
 ;          a = 0xff if no key pressed
 
 keyboard_get:	call	KEYB_SCAN	; Get keyboard state in hl.
-
-		push	hl		; temp temp
-		ld	d,h
-		ld	e,l
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*1
-		ld	hl,0x0004
-		call	hex_write
-		pop	hl
-
 		ld	a,0xff
 		cp	l
 		jr	z,kgl0
@@ -763,6 +1002,16 @@ keyboard_get:	call	KEYB_SCAN	; Get keyboard state in hl.
 		ld	c,l
 		call	KEYB_DECODE	; Decode bc to a char.
 		ld	a,(hl)
+
+		push	af		; temp temp
+		ld	d,0
+		ld	e,a
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*1
+		ld	hl,0x0004
+		call	hex_write
+		pop	af
+
 kgl0:		ret
 
 ; *********************************************************************
