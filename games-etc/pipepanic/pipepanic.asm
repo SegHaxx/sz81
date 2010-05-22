@@ -239,8 +239,12 @@ basic_0001:	defb	0,1		; 1 REM
 ;              +---------+   Back  +---------+
 ; 
 
+EVENTS_MAX	equ	16
+TEMP_BUFFER_MAX	equ	6
+
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
+WRITE_TO_MEMBLK	equ	2
 
 STATE_SAVE	equ	0
 STATE_QUIT	equ	1
@@ -253,123 +257,130 @@ mem_16514:	jr	start
 screen_buffer:	defw	0
 fade_offsets:	defw	0
 temp_buffer:	defw	0
-board_data:	defw	0
 keyb_buffer:	defw	0
 keyb_buffer_old: defw	0
-events_array:	defw	0
+event_queue:	defw	0
+board_array:	defw	0
+pipe_pieces:	defw	0
 sp_original:	defw	0
+state_current:	defb	0
+state_previous:	defb	0
+screen_redraw:	defb	0
+frames_last:	defw	0
+event_queue_start: defw	0
+event_queue_end: defw	0
 rnd_seed:	defb	0
-program_state:	defb	0
-previous_state:	defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
 		add	hl,sp
 		ld	bc,33*24
-		ccf
+		and	a
 		sbc	hl,bc
 		ld	(screen_buffer),hl
 		ld	bc,33*26*2
-		ccf
 		sbc	hl,bc
 		ld	(fade_offsets),hl
-		ld	bc,6
-		ccf
+		ld	bc,TEMP_BUFFER_MAX
 		sbc	hl,bc
 		ld	(temp_buffer),hl
-		ld	bc,(2*8+1)*3*8+1
-		ccf
-		sbc	hl,bc
-		ld	(board_data),hl
 		ld	bc,40
-		ccf
 		sbc	hl,bc
 		ld	(keyb_buffer),hl
-		ld	bc,40
-		ccf
 		sbc	hl,bc
 		ld	(keyb_buffer_old),hl
-		ld	bc,16
-		ccf
+		ld	bc,EVENTS_MAX
 		sbc	hl,bc
-		ld	(events_array),hl
+		ld	(event_queue),hl
+		ld	bc,8*8
+		sbc	hl,bc
+		ld	(board_array),hl
+		ld	bc,9*19
+		sbc	hl,bc
+		ld	(pipe_pieces),hl
 		ld	sp,hl
 
-		ld	a,_SPC			; Initialise the screen
-		call	screen_buffer_wipe	; buffer eol markers.
-		call	splash_draw
-		call	screen_buffer_blit
+		; [Re]Initialise the engine.
+		ld	a,_SPC
+		call	screen_buffer_wipe	; Initialise eol markers.
+		ld	a,1
+		ld	(screen_redraw),a	; Show the splash screen
+		call	splash_draw		; whilst things are
+		call	screen_buffer_blit	; being initialised.
 		call	fade_offsets_create
-		call	board_data_create
-		ld	a,STATE_QUIT
-		ld	(previous_state),a
-		ld	a,STATE_SPLASH
-		ld	(program_state),a
-		;Register blink for txt_press_a_key here.
 
+		ld	a,WRITE_TO_MEMBLK
+		ld	bc,(pipe_pieces)
+		ld	de,pipe_data
+		call	string_write
+
+		call	keyb_buffer_reset
+		call	event_queue_flush
+		call	board_array_reset
+		
+		ld	a,STATE_QUIT
+		call	state_change
+		ld	a,STATE_SPLASH
+		call	state_change
+		ld	a,2
+		ld	(screen_redraw),a
+
+		; Main loop.
 stl0:		call	events_generate
-		ld	a,(program_state)
-		cp	STATE_QUIT
-		jp	z,st_quit
+		ld	a,(state_current)
 		cp	STATE_SPLASH
 		jr	nz,stl20
-		; *********************
-		; * STATE_SPLASH      *
-		; *********************
+		; STATE_SPLASH ----------------------------------------
 
 		call	keyboard_get	; temp temp
 		cp	0xff
 		jr	z,stl100
 		ld	a,STATE_OPTIONS
 		call	state_change
+		ld	a,1
+		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
 
 		jr	stl100
 stl20:		cp	STATE_OPTIONS
 		jr	nz,stl40
-		; *********************
-		; * STATE_OPTIONS     *
-		; *********************
+		; STATE_OPTIONS ---------------------------------------
 
 		call	keyboard_get	; temp temp
 		cp	0xff
 		jr	z,stl100
 		ld	a,STATE_GAME
 		call	state_change
+		ld	a,1
+		ld	(screen_redraw),a
 		call	game_draw
 		call	screen_buffer_fade
 
 		jr	stl100
 stl40:		cp	STATE_HELP
 		jr	nz,stl60
-		; *********************
-		; * STATE_HELP        *
-		; *********************
+		; STATE_HELP ------------------------------------------
 
 		jr	stl100
 stl60:		cp	STATE_GAME
 		jr	nz,stl100
-		; *********************
-		; * STATE_GAME        *
-		; *********************
+		; STATE_GAME ------------------------------------------
 
 		call	keyboard_get	; temp temp
-		cp	0xff
-		jr	z,stl100
+		cp	_Q
+		jr	nz,stl100
 		ld	a,STATE_QUIT
 		call	state_change
+		jr	st_quit
 		
 		jr	stl100
 
-stl100:		ld	a,(program_state)
+		; Update all or parts of the screen as required.
+stl100:		ld	a,(state_current)
 		cp	STATE_SPLASH
 		jr	nz,stl120
 		call	splash_draw
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*23+10
-		ld	de,txt_press_a_key
-		call	string_write
 		jr	stl200
 stl120:		cp	STATE_OPTIONS
 		jr	nz,stl140
@@ -384,28 +395,18 @@ stl160:		cp	STATE_GAME
 		call	game_draw
 		jr	stl200
 
-stl200:		
-		ld	hl,(screen_buffer)	; temp temp
-		ld	bc,33*9
-		add	hl,bc
-		ld	a,(rnd_seed)
-		inc	a
-		bit	5,a
-		jr	z,stl1
-		xor	a
-stl1:		ld	(rnd_seed),a
-		ld	b,0
-		ld	c,a
-		add	hl,bc
-		ld	(hl),_ASKV
+stl200:		xor	a
+		ld	(screen_redraw),a
+
+		call	cycles_test		; For testing.
 
 		;call	blink_apply
 		call	screen_buffer_blit
-		;call	timer_tick		; Wishful thinking ;)
+		call	timer_tick		; Limit main loop cycles.
 		jp	stl0
 
 st_quit:	ld	sp,(sp_original)
-		ld	a,(program_state)	; Return program state
+		ld	a,(state_current)	; Return program state
 		ld	b,0			; in bc so that SAVE
 		ld	c,a			; can be checked for.
 		ret
@@ -413,11 +414,25 @@ st_quit:	ld	sp,(sp_original)
 ; *********************************************************************
 ; Events Generate                                                     *
 ; *********************************************************************
+; This compares the contents of keyb_buffer_old to keyb_buffer and
+; creates pressed and released events which are added to the event
+; queue.
 
 events_generate:
 		call	keyb_buffer_update
-		; Compare keyb_buffer to keyb_buffer_old here
-		; and generate pressed/released events.
+
+		ret
+
+; *********************************************************************
+; Event Queue Flush                                                   *
+; *********************************************************************
+; This [re]initialises the linear event buffer which also flushes it
+; of any events.
+
+event_queue_flush:
+		ld	hl,(event_queue)
+		ld	(event_queue_start),hl
+		ld	(event_queue_end),hl
 		ret
 
 ; *********************************************************************
@@ -430,13 +445,13 @@ events_generate:
 ; 
 ; +-----------------------------+
 ; | Port | Keys  |  Keys | Port |
-; +      |---------------|      +
+; |      |---------------|      |
 ; |      |     Bits      |      |
 ; |      | 01234   43210 |      |
 ; +-----------------------------+
 ; | F7FE | 12345 | 67890 | EFFE |
 ; | FBFE | QWERT | YUIOP | DFFE | ^ = Shift
-; | FDFE | ASDFG | HJKL* | BFFE | * = Newline
+; | FDFE | ASDFG | HJKL\ | BFFE | \ = Newline
 ; | FEFE | ^ZXCV | BNM._ | 7FFE | _ = Space
 ; +-----------------------------+
 ; 
@@ -453,145 +468,145 @@ keyb_buffer_update:
 		ld	bc,40			; keyb_buffer_old.
 		ldir
 
-;-----------------------------------------
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*2
-		ld	de,kbu_data
-		;call	string_write
-
-		ld	a,0
-		ld	bc,0xf7fe
-		ld	hl,33*2+6
-kbul0:		push	af
-		push	bc
-		push	hl
-		in	a,(c)
-		cpl
-		ld	d,0
-		ld	e,a
-		ld	b,h
-		ld	c,l
-		ld	hl,0x0002
-		ld	a,WRITE_TO_SCRBUF
-		;call	hex_write
-		pop	hl
-		ld	bc,33
-		add	hl,bc
-		pop	bc
-		rrc	b
-		pop	af
-		inc	a
-		bit	2,a
-		jr	z,kbul0
-
-		ld	a,0
-		ld	bc,0xeffe
-		ld	hl,33*2+11
-kbul1:		push	af
-		push	bc
-		push	hl
-		in	a,(c)
-		cpl
-		ld	d,0
-		ld	e,a
-		ld	b,h
-		ld	c,l
-		ld	hl,0x0002
-		ld	a,WRITE_TO_SCRBUF
-		;call	hex_write
-		pop	hl
-		ld	bc,33
-		add	hl,bc
-		pop	bc
-		rlc	b
-		pop	af
-		inc	a
-		bit	2,a
-		jr	z,kbul1
-
-		ret
-
-kbu_data:	defb	_1,_2,_3,_4,_5,0xd4,_SPC,_MNS,0xd4,_SPC,_6,_7,_8,_9,_0,0xf1
-		defb	_Q,_W,_E,_R,_T,0xd4,_SPC,_MNS,0xd4,_SPC,_Y,_U,_I,_O,_P,0xf1
-		defb	_A,_S,_D,_F,_G,0xd4,_SPC,_MNS,0xd4,_SPC,_H,_J,_K,_L,_ASK,0xf1
-		defb	_ASK,_Z,_X,_C,_V,0xd4,_SPC,_MNS,0xd4,_SPC,_B,_N,_M,_FST,_ASK,0xf1
-		defb	0xf0
-;-----------------------------------------
-
-		;call	KEYB_SCAN
-
-		;ld	hl,(MARGIN)
-
-;		ld	a,h		; Invert the bits in hl.
-;		xor	0xff
-;		ld	h,a
-;		ld	a,l
-;		xor	0xff
-;		ld	l,a
-
-;		push	hl		; temp temp
+		ld	hl,(keyb_buffer)
+		ld	bc,0xfefe
+kbul0:		in	a,(c)			; Read the port.
+		cpl				; Invert the bits.
+		ld	e,b
+		ld	b,5
+kbul1:		sra	a			; Isolate the bit and
+		ld	d,0			; make it a byte.
+		rl	d
+		ld	(hl),d			; Store 0 for released,
+		inc	hl			; 1 for pressed within
+		djnz	kbul1			; the keyb_buffer.
+		ld	b,e
+		rlc	b			; fe becomes fd, fb, f7,
+		ld	a,b			; ef, df, bf, 7f and then
+		cp	0xfe			; back to fe.
+		jr	nz,kbul0
+		
+;		ld	hl,(keyb_buffer)	; For testing.
+;		ld	bc,33*3			; Uncomment to show the
+;		ld	de,0x0805		; contents of the
+;kbul10:		push	bc			; keyb_buffer.
+;		push	de
+;		push	hl
 ;		ld	a,WRITE_TO_SCRBUF
-;		ld	bc,33*2+5
-;		ld	d,h
-;		ld	e,l	
-;		ld	hl,0x0004
+;		ld	e,(hl)
+;		ld	hl,0x0001
 ;		call	hex_write
 ;		pop	hl
-
-
-;		ld	de,(keyb_buffer)
-;		ld	bc,0x0401
-;kbul0:		ld	a,h
-;		and	b
-;		jr	z,kbul1
-;		ld	a,l
-;		and	c
-;		jr	z,kbul1
-;		ld	a,1
-;kbul1:		ld	(de),a
-;		inc	de
-;		sla	b
-;		bit	6,b
-;		jr	z,kbul0
-;		ld	b,0x02
-;		sla	c
-;		jr	nz,kbul0
-
-;		ld	bc,0		; temp temp
-;kbul99:		push	bc
-;		ld	hl,(keyb_buffer)
-;		add	hl,bc
-;		ld	e,(hl)
-;		ld	hl,33*3
-;		add	hl,bc
+;		pop	de
+;		pop	bc
+;		inc	hl
+;		inc	bc
+;		dec	e
+;		jr	nz,kbul10
+;		ld	e,5
+;		push	hl
+;		ld	h,b
+;		ld	l,c
+;		ld	bc,28
 ;		add	hl,bc
 ;		ld	b,h
-;		ld	c,l	
-;		ld	hl,0x0001
-;		ld	a,WRITE_TO_SCRBUF
-;		call	hex_write
-;		pop	bc
-;		inc	c
-;		ld	a,14
-;		cp	c
-;		jr	nz,kbul99
-		
-		;bit	0,h
-		;jr	z,kbul0
-		;res	0,h		; Convert the 0100 SHIFT
-		;set	1,h		; to a more usable 0201.
-		;set	0,l
+;		ld	c,l
+;		pop	hl
+;		dec	d
+;		jr	nz,kbul10
 
 		ret
 
 ; *********************************************************************
-; Timer Tick                                                          *
+; Keyboard Buffer Reset                                               *
 ; *********************************************************************
-; This ticks at 25Hz on a 50Hz ZX81.
+; This resets both keyb_buffer and keyb_buffer_old to zero (released).
 
-timer_tick:	ld	a,(FRAMES)
-		and	1
-		jr	nz,timer_tick
+keyb_buffer_reset:
+		ld	hl,(keyb_buffer)
+		ld	de,(keyb_buffer_old)
+		ld	b,40
+		xor	a
+kbrl0:		ld	(hl),a
+		inc	hl
+		ld	(de),a
+		inc	de
+		djnz	kbrl0
+		ret
+
+; *********************************************************************
+; Keyboard Wait                                                       *
+; *********************************************************************
+; This waits for a key press and returns the result. Note that if more
+; than one key is being pressed (excluding SHIFT) then it will always
+; return 0x00 i.e. space.
+; 
+; On exit: a = char pressed
+
+;keyboard_wait:	call	KEYB_SCAN	; Wait until the user has
+;		ld	a,0xff		; released the keyboard first.
+;		cp	l
+;		jr	nz,keyboard_wait
+;kwl0:		call	KEYB_SCAN	; Get keyboard state in hl.
+;		ld	a,0xff
+;		cp	l
+;		jr	z,kwl0
+;		ld	b,h
+;		ld	c,l
+;		call	KEYB_DECODE	; Decode bc to a char.
+;		ld	a,(hl)
+;		ret
+
+; *********************************************************************
+; Keyboard Get                                                        *
+; *********************************************************************
+; This returns the current single key being pressed else 0xff.
+; 
+; On exit: a = char if key pressed
+;          a = 0xff if no key pressed
+
+keyboard_get:	call	KEYB_SCAN	; Get keyboard state in hl.
+		ld	a,0xff
+		cp	l
+		jr	z,kgl0
+		ld	b,h
+		ld	c,l
+		call	KEYB_DECODE	; Decode bc to a char.
+		ld	a,(hl)
+kgl0:		
+;		push	af		; For testing.
+;		ld	d,0		; Uncomment to show the single
+;		ld	e,a		; char being pressed or 0xff.
+;		ld	a,WRITE_TO_SCRBUF
+;		ld	bc,33*2
+;		ld	hl,0x0002
+;		call	hex_write
+;		pop	af
+
+		ret
+
+; *********************************************************************
+; Board Array Reset                                                   *
+; *********************************************************************
+; This resets the board array to something resembling a chequerboard.
+
+board_array_reset:
+		ld	hl,(board_array)
+		ld	a,1
+		ld	c,0
+		ld	b,8
+barl0:		push	bc
+		ld	b,4
+barl1:		ld	(hl),a
+		inc	hl
+		ld	(hl),c
+		inc	hl
+		djnz	barl1
+		pop	bc
+		ld	d,a
+		ld	a,c
+		ld	c,d
+		djnz	barl0
 		ret
 
 ; *********************************************************************
@@ -600,10 +615,64 @@ timer_tick:	ld	a,(FRAMES)
 ; On entry: a = the new program state (the previous state is recorded)
 
 state_change:	ld	b,a
-		ld	a,(program_state)
-		ld	(previous_state),a
+		ld	a,(state_current)
+		ld	(state_previous),a
 		ld	a,b		
-		ld	(program_state),a
+		ld	(state_current),a
+		ret
+
+; *********************************************************************
+; Timer Tick                                                          *
+; *********************************************************************
+; This will limit the main loop to 25Hz (PAL) or 30Hz (NTSC).
+; 3250000 CPU cycles = 65000 x 50, or 54166.66 x 60.
+
+timer_tick:	ld	hl,(frames_last)
+		ld	bc,(FRAMES)
+		and	a		; Clear carry flag.
+		sbc	hl,bc
+
+;		push	bc		; For testing.
+;		push	hl		; Uncomment to show the number
+;		ld	a,WRITE_TO_SCRBUF ; of frames consumed.
+;		ld	bc,33*1
+;		ex	de,hl
+;		ld	hl,0x0002
+;		call	hex_write
+;		pop	hl
+;		pop	bc
+
+		ld	a,l
+		cp	2
+		jr	c,timer_tick
+		ld	(frames_last),bc
+		ret
+
+; *********************************************************************
+; Cycles Test                                                         *
+; *********************************************************************
+; This renders a moving char across the full width of the screen that
+; I can then time with my stopwatch :) Note that not all parts of all
+; screens are continuously rebuilt and so the char is inverted each
+; screen width to distinguish it from the last.
+
+cycles_test_offset:
+		defw	0
+cycles_test_char:
+		defb	0x12
+
+cycles_test:	ld	hl,(screen_buffer)
+		ld	bc,(cycles_test_offset)
+		add	hl,bc
+		ld	a,(cycles_test_char)
+		ld	(hl),a
+		inc	bc
+		bit	5,c
+		jr	z,stl1
+		ld	bc,0
+		xor	0x80
+stl1:		ld	(cycles_test_char),a
+		ld	(cycles_test_offset),bc
 		ret
 
 ; *********************************************************************
@@ -768,79 +837,161 @@ sbwl2:		ld	(hl),a
 ; *********************************************************************
 ; This draws the splash screen to the screen buffer.
 
-splash_draw:	ld	a,_SPC
+splash_draw:	ld	a,(screen_redraw)
+		or	a
+		jr	z,sdl0
+		ld	a,_SPC
 		call	screen_buffer_wipe
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,splash_data
 		call	string_write
-		ret
+		ld	a,(screen_redraw)
+		cp	2
+		jr	nz,sdl0
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*23+10
+		ld	de,txt_press_a_key
+		call	string_write
+		; Register blink for txt_press_a_key here.
+		; Register blink for txt_press_a_key here.
+		; Register blink for txt_press_a_key here.
+sdl0:		ret
 
 ; *********************************************************************
 ; Options Draw                                                        *
 ; *********************************************************************
 ; This draws the options screen to the screen buffer.
 
-options_draw:	ld	a,_SPC
+options_draw:	ld	a,(screen_redraw)
+		or	a
+		jr	z,odl0
+		ld	a,_SPC
 		call	screen_buffer_wipe
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,options_data
 		call	string_write
-		ret
+odl0:		ret
 		
+; *********************************************************************
+; Help Draw                                                           *
+; *********************************************************************
+; This draws the help screen to the screen buffer.
+
+help_draw:	ld	a,(screen_redraw)
+		or	a
+		jr	z,hdl0
+
+hdl0:		ret
+
 ; *********************************************************************
 ; Game Draw                                                           *
 ; *********************************************************************
 ; This draws the game screen to the screen buffer.
 
-game_draw:	ld	a,WRITE_TO_SCRBUF
+game_draw:	ld	a,(screen_redraw)
+		or	a
+		jr	z,gdl0
+		ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,panel_data
 		call	string_write
-		ld	a,WRITE_TO_SCRBUF
+		call	board_draw
+gdl0:		ret
+
+; *********************************************************************
+; Board Draw                                                          *
+; *********************************************************************
+; This will draw the contents of the board array to the screen buffer.
+
+board_draw:	ld	de,(board_array)
+		ld	hl,(screen_buffer)
 		ld	bc,8
-		ld	de,(board_data)
-		call	string_write
+		add	hl,bc
+		ld	b,8
+bdl0:		push	bc
+		ld	b,8
+bdl1:		push	bc
+		ld	a,(de)
+		ld	b,h
+		ld	c,l
+		push	de
+		push	hl
+		call	pipe_draw
+		pop	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		pop	de
+		inc	de
+		pop	bc
+		djnz	bdl1
+		ld	bc,75
+		add	hl,bc
+		pop	bc
+		djnz	bdl0
 		ret
 
 ; *********************************************************************
-; Board Data Create                                                   *
+; Pipe Draw                                                           *
 ; *********************************************************************
-; This creates the board data.
+; This will draw a pipe piece to the screen buffer.
+; 
+; On entry: a  = the pipe piece 0 to 33
+;           bc = destination offset
+; 
+; Key to pipe pieces :-
+; 
+; +-------------------------------------------------------------------+
+; | 0   2   4   6   8  10  12  14  16  18  20  22  24  26  28  30  32 |
+; +-------------------------------------------------------------------+
+; |   |   | O | O |   |   | O |   | O | O |   |   | # |   | # |   | # |
+; |   |OO<| O |OOO|OX | XO|OO | OO|OO | OO|###| X | X |## | ##|###|###|
+; |   |   | O | O |   |   |   | O | O | O |   | # |   | # |   | # |   |
+; +-------------------------------------------------------------------+
+; | 1   3   5   7   9  11  13  15  17  19  21  23  25  27  29  31  33 |
+; +-------------------------------------------------------------------+
+; |///|   |   |   | O |   | O |   | O | # | # |   |   | # |   | # | # |
+; |///|<OO|OOO| X | X |OO | OO|OOO|OOO| # |###|#X | X#|## | ##|## | ##|
+; |///|   |   | O |   | O |   | O |   | # | # |   |   |   | # | # | # |
+; +-------------------------------------------------------------------+
 
-board_data_create:
-		ld	hl,(board_data)
-		ld	a,_SPC
-		ld	d,_SLS
-		ld	b,8
-bdcl0:		push	bc
-		ld	b,3
-bdcl1:		push	bc
-		ld	b,8
-bdcl2:		ld	c,0xd3
-		ld	(hl),c
-		inc	hl
-		ld	(hl),a
-		inc	hl
+pipe_draw:	ld	hl,(pipe_pieces)
+		ld	d,b
+		ld	e,c
+		
+		cp	19
+		jr	nc,pdl2
+		ld	b,a
+		add	a,a
+		add	a,a
+		add	a,a
+		add	a,b
+		ld	b,0
 		ld	c,a
-		ld	a,d
-		ld	d,c
-		djnz	bdcl2
-		ld	c,0xf1
-		ld	(hl),c
-		inc	hl
-		pop	bc
-		djnz	bdcl1
-		ld	c,a
-		ld	a,d
-		ld	d,c
-		pop	bc
-		djnz	bdcl0
-		ld	c,0xf0
-		ld	(hl),c
-		inc	hl
-		ret
+		add	hl,bc
+		ld	a,3
+pdl1:		ld	bc,3
+		ldir
+		ex	de,hl
+		ld	bc,30
+		add	hl,bc
+		ex	de,hl
+		dec	a
+		jr	nz,pdl1
+		jr	pdl10
+		
+pdl2:		
+
+
+
+
+				
+		
+pdl10:		ret
 
 ; *********************************************************************
 ; Hex Write                                                           *
@@ -914,105 +1065,61 @@ hwl9:		dec	l
 ; 
 ; Look in the data section for examples on how to use this.
 ; 
-; On entry: a  = 0 to write to the D_FILE
-;           a  = 1 to write to the screen buffer
+; On entry: a  = WRITE_TO_D_FILE to write to the D_FILE
+;           a  = WRITE_TO_SCRBUF to write to the screen buffer
+;           a  = WRITE_TO_MEMBLK to write to a block of memory
+;                (useful for simply decompressing compressed data)
 ;           bc = destination offset (the D_FILE's initial NL is
-;                accounted for so don't include it yourself)
+;                accounted for so don't include it yourself) or
+;                memory block address
 ;           de = address of data
 
-string_write:	or	a
+string_write:	cp	WRITE_TO_D_FILE
 		jr	nz,swl0
 		ld	hl,(D_FILE)
 		inc	hl
-		jr	swl1
-swl0:		ld	hl,(screen_buffer)
-swl1:		add	hl,bc
-swl2:		push	hl
-swl3:		ld	a,(de)
+		jr	swl2
+swl0:		cp	WRITE_TO_SCRBUF
+		jr	nz,swl1
+		ld	hl,(screen_buffer)
+		jr	swl2
+swl1:		ld	hl,0
+swl2:		add	hl,bc
+swl3:		push	hl
+swl4:		ld	a,(de)
 		inc	de
 		cp	0xd0
-		jr	nc,swl4		; Jump if >=
+		jr	nc,swl5		; Jump if >=
 		ld	(hl),a		; Normal char.
 		inc	hl
-		jr	swl3
-swl4:		cp	0xe0
-		jr	nc,swl6		; Jump if >=
+		jr	swl4
+swl5:		cp	0xe0
+		jr	nc,swl7		; Jump if >=
 		and	0x0f		; Duplicate next char.
 		ld	b,a
 		ld	a,(de)		; Get next char.
 		inc	de
-swl5:		ld	(hl),a
+swl6:		ld	(hl),a
 		inc	hl
-		djnz	swl5
-		jr	swl3
-swl6:		cp	0xf0
-		jr	nc,swl7		; Jump if >=
+		djnz	swl6
+		jr	swl4
+swl7:		cp	0xf0
+		jr	nc,swl8		; Jump if >=
 		and	0x0f		; Skip columns.
 		ld	c,a
 		ld	b,0
 		add	hl,bc
-		jr	swl3
-swl7:		jr	nz,swl8		; Jump if a != 0xf0
+		jr	swl4
+swl8:		jr	nz,swl9		; Jump if a != 0xf0
 		pop	hl		; End of data.
 		ret
-swl8:		pop	hl		; Newlines.
+swl9:		pop	hl		; Newlines.
 		and	0x0f
 		ld	bc,33
-swl9:		add	hl,bc
+swl10:		add	hl,bc
 		dec	a
-		jr	nz,swl9
-		jr	swl2
-
-; *********************************************************************
-; Keyboard Wait                                                       *
-; *********************************************************************
-; This waits for a key press and returns the result. Note that if more
-; than one key is being pressed (excluding SHIFT) then it will always
-; return 0x00 i.e. space.
-; 
-; On exit: a = char pressed
-
-keyboard_wait:	call	KEYB_SCAN	; Wait until the user has
-		ld	a,0xff		; released the keyboard first.
-		cp	l
-		jr	nz,keyboard_wait
-kwl0:		call	KEYB_SCAN	; Get keyboard state in hl.
-		ld	a,0xff
-		cp	l
-		jr	z,kwl0
-		ld	b,h
-		ld	c,l
-		call	KEYB_DECODE	; Decode bc to a char.
-		ld	a,(hl)
-		ret
-
-; *********************************************************************
-; Keyboard Get                                                        *
-; *********************************************************************
-; This returns the current key being pressed else 0xff.
-; 
-; On exit: a = char if key pressed
-;          a = 0xff if no key pressed
-
-keyboard_get:	call	KEYB_SCAN	; Get keyboard state in hl.
-		ld	a,0xff
-		cp	l
-		jr	z,kgl0
-		ld	b,h
-		ld	c,l
-		call	KEYB_DECODE	; Decode bc to a char.
-		ld	a,(hl)
-
-		push	af		; temp temp
-		ld	d,0
-		ld	e,a
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*1
-		ld	hl,0x0004
-		call	hex_write
-		pop	af
-
-kgl0:		ret
+		jr	nz,swl10
+		jr	swl3
 
 ; *********************************************************************
 ; Multiply8                                                           *
@@ -1082,6 +1189,27 @@ grnl0:		srl	a		; the bit index like this :-
 ; *********************************************************************
 ; Data                                                                *
 ; *********************************************************************
+
+pipe_data:	defb	0xd9,_SPC
+		defb	0xd9,_SLS
+		defb	0xd3,_SPC,0x80,0x80,_LTHV,0xd6
+		defb	_SPC,_LTHV,0x80,0x80,0xd4
+		defb	_SPC,0x80,_SPC,_SPC,0x80,_SPC,_SPC,0x80,0xd4
+		defb	_SPC,0xd3,0x80,0xd4
+		defb	_SPC,0x80,_SPC,0xd3,0x80,_SPC,0x80,0xd5
+		defb	_SPC,_XV ,_SPC,_SPC,0x80,0xd4
+		defb	_SPC,0x80,_XV ,0xd5
+		defb	_SPC,0x80,_SPC,_SPC,_XV ,0xd8
+		defb	_SPC,_XV ,0x80,0xd6
+		defb	_SPC,0x80,0x80,_SPC,_SPC,0x80,_SPC
+		defb	_SPC,0x80,_SPC,0x80,0x80,0xd5
+		defb	_SPC,0x80,_SPC,_SPC,0x80,0x80,0xd7
+		defb	_SPC,0x80,0x80,_SPC,0x80,0xd4
+		defb	_SPC,0xd3,0x80,_SPC,0x80,_SPC
+		defb	_SPC,0x80,_SPC,0x80,0x80,_SPC,_SPC,0x80,_SPC
+		defb	_SPC,0x80,_SPC,0xd3,0x80,0xd4
+		defb	_SPC,0x80,_SPC,_SPC,0x80,0x80,_SPC,0x80,_SPC
+		defb	0xf0
 
 options_data:	defb	0xf4
 		defb	0xea,_S,_E,_T,_SPC,_CV,_O,_N,_T,_R,_O,_L,_S,0xf2
