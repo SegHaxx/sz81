@@ -295,7 +295,7 @@ start:		ld	(sp_original),sp
 		ld	bc,8*8
 		sbc	hl,bc
 		ld	(board_array),hl
-		ld	bc,9*19
+		ld	bc,9*34
 		sbc	hl,bc
 		ld	(pipe_pieces),hl
 		ld	sp,hl
@@ -308,11 +308,7 @@ start:		ld	(sp_original),sp
 		call	splash_draw		; whilst things are
 		call	screen_buffer_blit	; being initialised.
 		call	fade_offsets_create
-
-		ld	a,WRITE_TO_MEMBLK
-		ld	bc,(pipe_pieces)
-		ld	de,pipe_data
-		call	string_write
+		call	pipe_pieces_create
 
 		call	keyb_buffer_reset
 		call	event_queue_flush
@@ -907,6 +903,8 @@ gdl0:		ret
 ; *********************************************************************
 ; This will draw the contents of the board array to the screen buffer.
 
+board_draw_pipe: defb	0	; For testing.
+
 board_draw:	ld	de,(board_array)
 		ld	hl,(screen_buffer)
 		ld	bc,8
@@ -920,6 +918,14 @@ bdl1:		push	bc
 		ld	c,l
 		push	de
 		push	hl
+
+		ld	a,(board_draw_pipe)	; For testing.
+		inc	a
+		cp	34
+		jr	nz,bdl2
+		xor	a
+bdl2:		ld	(board_draw_pipe),a
+
 		call	pipe_draw
 		pop	hl
 		inc	hl
@@ -962,14 +968,15 @@ bdl1:		push	bc
 pipe_draw:	ld	hl,(pipe_pieces)
 		ld	d,b
 		ld	e,c
-		
-		cp	19
-		jr	nc,pdl2
-		ld	b,a
-		add	a,a
-		add	a,a
-		add	a,a
-		add	a,b
+		ld	b,0
+		ld	c,a
+		sla	c		; Multiply by 9.
+		rl	b
+		sla	c
+		rl	b
+		sla	c
+		rl	b
+		add	hl,bc
 		ld	b,0
 		ld	c,a
 		add	hl,bc
@@ -982,16 +989,36 @@ pdl1:		ld	bc,3
 		ex	de,hl
 		dec	a
 		jr	nz,pdl1
-		jr	pdl10
-		
-pdl2:		
+		ret
 
+; *********************************************************************
+; Pipe Pieces Create                                                  *
+; *********************************************************************
 
+pipe_pieces_create:
+		ld	a,WRITE_TO_MEMBLK	; Decompress the pipe
+		ld	bc,(pipe_pieces)	; data.
+		ld	de,pipe_data
+		call	string_write
 
-
-				
-		
-pdl10:		ret
+		ld	hl,(pipe_pieces)	; Create pieces 19 to
+		ld	bc,9*4			; 33 by copying and
+		add	hl,bc			; modifying 4 to 18.
+		ld	d,h
+		ld	e,l
+		ld	bc,9*15
+		add	hl,bc
+		ex	de,hl
+		ld	b,c
+ppcl0:		ld	a,(hl)
+		inc	hl
+		cp	0x80
+		jr	nz,ppcl1
+		ld	a,0x08
+ppcl1:		ld	(de),a
+		inc	de
+		djnz	ppcl0
+		ret
 
 ; *********************************************************************
 ; Hex Write                                                           *
