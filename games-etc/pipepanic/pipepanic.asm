@@ -221,9 +221,9 @@ basic_0001:	defb	0,1		; 1 REM
 ;    |         | Screen  |
 ;    |         |         |
 ;    |         +---------+
-;    |            |   |
-;    |       Back ^   v
-;    |            |   |
+;    |              |
+;    |              v
+;    |              |
 ;    |         +---------+  Help   +---------+
 ;    |         | Options |---->----| Help    |
 ;    ^----<----| Screen  |         | Screens |
@@ -239,6 +239,9 @@ basic_0001:	defb	0,1		; 1 REM
 ;              +---------+   Back  +---------+
 ; 
 
+DEBUG_TIMING	equ	0
+DEBUG_OTHER	equ	0
+
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 
@@ -253,10 +256,12 @@ STATE_OPTIONS	equ	3
 STATE_HELP	equ	4
 STATE_GAME	equ	5
 
+BLINK_PAL	equ	50/2
+BLINK_NTSC	equ	60/2
+
 mem_16514:	jr	start
 screen_buffer:	defw	0
 fade_offsets:	defw	0
-temp_buffer:	defw	0
 keyb_buffer:	defw	0
 keyb_buffer_old: defw	0
 event_queue:	defw	0
@@ -267,9 +272,25 @@ state_current:	defb	0
 state_previous:	defb	0
 screen_redraw:	defb	0
 frames_last:	defw	0
-event_queue_start: defw	0
-event_queue_end: defw	0
+event_queue_start: defb	0
+event_queue_end: defb	0
+blink_offset:	defw	0
+blink_height:	defb	0
+blink_width:	defb	0
+blink_count:	defb	0
+blink_delay:	defb	0
+blink_last:	defw	0
+action_up:	defb	_Q
+action_down:	defb	_A
+action_left:	defb	_O
+action_right:	defb	_P
+action_select:	defb	_K
 rnd_seed:	defb	0
+temp_buffer:	defs	TEMP_BUFFER_MAX
+
+cursor_options_position: defb 0
+cursor_options_offset: defw 0	;33*4+8,33*12+12,33*14+12,33*16+12,33*18+12
+cursor_options_offset_last: defw 0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -281,15 +302,12 @@ start:		ld	(sp_original),sp
 		ld	bc,33*26*2
 		sbc	hl,bc
 		ld	(fade_offsets),hl
-		ld	bc,TEMP_BUFFER_MAX
-		sbc	hl,bc
-		ld	(temp_buffer),hl
 		ld	bc,40
 		sbc	hl,bc
 		ld	(keyb_buffer),hl
 		sbc	hl,bc
 		ld	(keyb_buffer_old),hl
-		ld	bc,EVENTS_MAX
+		ld	bc,EVENTS_MAX*2
 		sbc	hl,bc
 		ld	(event_queue),hl
 		ld	bc,8*8
@@ -303,13 +321,15 @@ start:		ld	(sp_original),sp
 		; [Re]Initialise the engine.
 		ld	a,_SPC
 		call	screen_buffer_wipe	; Initialise eol markers.
-		ld	a,1
-		ld	(screen_redraw),a	; Show the splash screen
-		call	splash_draw		; whilst things are
-		call	screen_buffer_blit	; being initialised.
+		ld	a,1			; Show the splash screen
+		ld	(screen_redraw),a	; whilst things are
+		call	splash_draw		; being initialised.
+		call	screen_buffer_blit
 		call	fade_offsets_create
 		call	pipe_pieces_create
 
+		ld	e,0			; Initialise the
+		call	blink_register		; blink system.
 		call	keyb_buffer_reset
 		call	event_queue_flush
 		call	board_array_reset
@@ -321,56 +341,66 @@ start:		ld	(sp_original),sp
 		ld	a,2
 		ld	(screen_redraw),a
 
+		ld	a,1			; Default to Play.
+		ld	(cursor_options_position),a
+		ld	hl,33*12+12
+		ld	(cursor_options_offset),hl
+		ld	(cursor_options_offset_last),hl
+
 		; Main loop.
 stl0:		call	events_generate
 		ld	a,(state_current)
 		cp	STATE_SPLASH
 		jr	nz,stl20
 		; STATE_SPLASH ----------------------------------------
-
-		call	keyboard_get	; temp temp
-		cp	0xff
-		jr	z,stl100
-		ld	a,STATE_OPTIONS
-		call	state_change
-		ld	a,1
+stl11:		call	event_poll
+		jr	nc,stl100
+		jr	z,stl11			; Ignore releases.
+		call	blink_unregister	; Any press will
+		ld	a,STATE_OPTIONS		; change to the
+		call	state_change		; options screen.
+		ld	a,7
 		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
+		call	event_queue_flush
+		jr	stl11
 
-		jr	stl100
 stl20:		cp	STATE_OPTIONS
 		jr	nz,stl40
 		; STATE_OPTIONS ---------------------------------------
-
-		call	keyboard_get	; temp temp
-		cp	0xff
-		jr	z,stl100
+stl21:		call	event_poll
+		jr	nc,stl100
+		jr	z,stl21			; Ignore releases.
+		call	blink_unregister	; temp temp
 		ld	a,STATE_GAME
 		call	state_change
 		ld	a,1
 		ld	(screen_redraw),a
 		call	game_draw
 		call	screen_buffer_fade
+		call	event_queue_flush
+		jr	stl21
 
-		jr	stl100
 stl40:		cp	STATE_HELP
 		jr	nz,stl60
 		; STATE_HELP ------------------------------------------
-
 		jr	stl100
+
 stl60:		cp	STATE_GAME
 		jr	nz,stl100
 		; STATE_GAME ------------------------------------------
-
-		call	keyboard_get	; temp temp
-		cp	_Q
-		jr	nz,stl100
-		ld	a,STATE_QUIT
+stl61:		call	event_poll
+		jr	nc,stl100
+		jr	z,stl61			; Ignore releases.
+		ld	a,STATE_SPLASH		; temp temp
 		call	state_change
-		jr	st_quit
-		
-		jr	stl100
+		ld	a,3
+		ld	(screen_redraw),a
+		call	splash_draw
+		call	screen_buffer_fade
+		call	event_queue_flush
+		jr	stl61
 
 		; Update all or parts of the screen as required.
 stl100:		ld	a,(state_current)
@@ -384,7 +414,7 @@ stl120:		cp	STATE_OPTIONS
 		jr	stl200
 stl140:		cp	STATE_HELP
 		jr	nz,stl160
-		;call	help_draw
+		call	help_draw
 		jr	stl200
 stl160:		cp	STATE_GAME
 		jr	nz,stl200
@@ -394,9 +424,9 @@ stl160:		cp	STATE_GAME
 stl200:		xor	a
 		ld	(screen_redraw),a
 
-		call	cycles_test		; For testing.
+		call	dump_debug_info
 
-		;call	blink_apply
+		call	blink_apply
 		call	screen_buffer_blit
 		call	timer_tick		; Limit main loop cycles.
 		jp	stl0
@@ -405,6 +435,223 @@ st_quit:	ld	sp,(sp_original)
 		ld	a,(state_current)	; Return program state
 		ld	b,0			; in bc so that SAVE
 		ld	c,a			; can be checked for.
+		ret
+
+; *********************************************************************
+; Dump Debug Info                                                     *
+; *********************************************************************
+
+		cond	DEBUG_TIMING
+movchar_offset:	defw	0
+movchar_char:	defb	0x12
+		endc
+
+dump_debug_info:
+		cond	DEBUG_OTHER
+		ld	b,EVENTS_MAX
+		ld	hl,(event_queue)	; Dumps the contents
+		ld	de,33*3			; of the event queue.
+ddil0:		push	bc
+		push	de
+		ld	b,d
+		ld	c,e
+		ld	a,(hl)
+		inc	hl
+		ld	d,a
+		ld	a,(hl)
+		inc	hl
+		ld	e,a
+		push	hl
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0004
+		call	hex_write
+		pop	hl
+		pop	de
+		ex	de,hl
+		ld	bc,33
+		add	hl,bc
+		ex	de,hl
+		pop	bc
+		djnz	ddil0
+		endc
+		
+		cond	DEBUG_OTHER
+		ld	hl,(keyb_buffer)
+		ld	bc,33*11+5		; Dumps the contents of
+		ld	de,0x0805		; the keyb_buffer.
+ddil1:		push	bc
+		push	de
+		push	hl
+		ld	a,WRITE_TO_SCRBUF
+		ld	e,(hl)
+		ld	hl,0x0001
+		call	hex_write
+		pop	hl
+		pop	de
+		pop	bc
+		inc	hl
+		inc	bc
+		dec	e
+		jr	nz,ddil1
+		ld	e,5
+		push	hl
+		ld	h,b
+		ld	l,c
+		ld	bc,28
+		add	hl,bc
+		ld	b,h
+		ld	c,l
+		pop	hl
+		dec	d
+		jr	nz,ddil1
+		endc
+		
+		cond	DEBUG_TIMING
+		ld	hl,(screen_buffer)	; Shows a moving char
+		ld	bc,(movchar_offset)	; to help gauge fluidity.
+		add	hl,bc
+		ld	a,(movchar_char)
+		ld	(hl),a
+		inc	bc
+		bit	5,c
+		jr	z,ddil2
+		ld	bc,0
+		xor	0x80
+ddil2:		ld	(movchar_char),a
+		ld	(movchar_offset),bc
+		endc
+
+		ret
+		
+; *********************************************************************
+; Blink Unregister                                                    *
+; *********************************************************************
+; This will restore a previously registered blink to its original state
+; and then unregister it.
+
+blink_unregister:
+		ld	a,(blink_height)
+		or	a
+		jr	z,bul0			; Unregister only.
+		ld	a,(blink_count)
+		and	1
+		jr	z,bul0			; No need to restore.
+		call	blink_apply		; Blink one more time.
+bul0:		ld	e,0			; [Re]initialise the
+		call	blink_register		; blink system.
+		ret
+
+; *********************************************************************
+; Blink Register                                                      *
+; *********************************************************************
+; This registers an area of the screen buffer for blinking and then
+; applies the initial blink. Subsequent blinks are applied within the
+; main loop just before blitting the contents of the screen buffer.
+; Passing zero as the height will [re]initialise the blink system.
+; 
+; On entry: bc = destination offset
+;           d  = width
+;           e  = height (0 to [re]initialise the blink system)
+
+blink_register:	ld	(blink_offset),bc
+		ld	(blink_height),de
+		ld	a,0
+		ld	(blink_count),a
+		ld	(blink_last),a
+		ld	(blink_last+1),a
+
+		ld	a,(MARGIN)
+		cp	55			; PAL or NTSC?
+		jr	nz,bregl0
+		ld	a,BLINK_PAL
+		jr	bregl1
+bregl0:		ld	a,BLINK_NTSC
+bregl1:		ld	(blink_delay),a
+
+		call	blink_apply
+		ret
+		
+; *********************************************************************
+; Blink Apply                                                         *
+; *********************************************************************
+; This blinks an area of the screen buffer that's been previously
+; registered via blink_register. Since newly registered blinks have
+; their initial blink automatically applied, it is not necessary for
+; this to be called directly other than from the main loop.
+
+blink_apply:	ld	a,(blink_height)	; If height is 0 then
+		or	a			; nothing's registered.
+		ret	z
+
+		ld	bc,(FRAMES)
+		ld	a,(blink_count)		; Force application of
+		or	a			; initial blink now.
+		jr	z,bal1
+		ld	hl,(blink_last)
+		and	a			; Clear carry flag.
+		sbc	hl,bc
+		ld	a,(blink_delay)
+		cp	l			; Is it time to blink?
+		ret	nc			; Not yet.
+
+bal1:		ld	(blink_last),bc		; Store FRAMES.
+		ld	hl,(screen_buffer)	; Apply the blink.
+		ld	bc,(blink_offset)
+		add	hl,bc
+		ld	a,(blink_height)
+		ld	b,a
+bal2:		ld	c,b
+		ld	d,h
+		ld	e,l
+		ld	a,(blink_width)
+		ld	b,a
+bal3:		ld	a,(hl)
+		xor	0x80			; Toggle inverse video.
+		ld	(hl),a
+		inc	hl
+		djnz	bal3
+		ld	hl,33
+		add	hl,de
+		ld	b,c
+		djnz	bal2
+		ld	hl,blink_count
+		inc	(hl)
+		ret
+
+; *********************************************************************
+; Event Poll                                                          *
+; *********************************************************************
+; On exit: carry is set if event found with
+;            a = char (shift is 0xe9)
+;            zero is set if event is a release
+;          carry is clear if not found
+
+event_poll:	ld	a,(event_queue_start)
+		ld	c,a
+		ld	a,(event_queue_end)
+		cp	c
+		jr	nz,epl0
+		and	a			; Clear carry flag.
+		ret
+
+epl0:		ld	b,0
+		ld	hl,(event_queue)
+		add	hl,bc
+		ld	d,(hl)			; Retrieve char code.
+		inc	hl
+		ld	e,(hl)			; Retrieve pressed state.
+
+		ld	a,c
+		add	a,2			; Increment the queue's
+		cp	EVENTS_MAX*2		; start pointer.
+		jr	nz,epl1			; Wrap it back to the
+		xor	a			; top when required.
+epl1:		ld	(event_queue_start),a
+
+		ld	a,e			; If a release then this
+		or	a			; will set the zero flag.
+		ld	a,d
+		scf
 		ret
 
 ; *********************************************************************
@@ -417,6 +664,64 @@ st_quit:	ld	sp,(sp_original)
 events_generate:
 		call	keyb_buffer_update
 
+		ld	hl,(keyb_buffer)
+		ld	de,(keyb_buffer_old)
+		ld	b,40
+egl0:		ld	a,(hl)
+		sla	a
+		ex	de,hl
+		or	(hl)		; A press will be 2 and a
+		ex	de,hl		; release will be 1.
+		cp	1
+		jr	z,egl1
+		cp	2
+		jr	nz,egl10
+egl1:		push	bc
+		push	de
+		push	hl
+
+		ld	e,a
+		dec	e		; Pressed = 1, released = 0.
+		ld	hl,0x007d	; Convert the scancode to a
+		ld	a,40		; char using the ROM's
+		sub	b		; K-UNSHIFT table.
+		ld	b,0
+		ld	c,a
+		add	hl,bc		; Shift will result in being
+		ld	d,(hl)		; E9 (DIM) which will suffice.
+
+		ld	a,(event_queue_end) 	; Add the event to the
+		ld	b,0			; end of the queue.
+		ld	c,a
+		ld	hl,(event_queue)
+		add	hl,bc
+		ld	(hl),d			; Store the char code.
+		inc	hl
+		ld	(hl),e			; Store pressed state.
+
+		ld	a,(event_queue_end)	; Increment the queue's
+		add	a,2			; end pointer.
+		cp	EVENTS_MAX*2
+		jr	nz,egl2			; Wrap it back to the
+		xor	a			; top when required.
+egl2:		ld	(event_queue_end),a
+
+		ld	b,a			; If the end meets the
+		ld	a,(event_queue_start)	; start then move the
+		cp	b			; start forward which
+		jr	nz,egl4			; will erase the event
+		add	a,2			; that was there.
+		cp	EVENTS_MAX*2
+		jr	nz,egl3			; Wrap it back to the
+		xor	a			; top when required.
+egl3:		ld	(event_queue_start),a
+
+egl4:		pop	hl
+		pop	de
+		pop	bc
+egl10:		inc	hl
+		inc	de
+		djnz	egl0
 		ret
 
 ; *********************************************************************
@@ -426,9 +731,9 @@ events_generate:
 ; of any events.
 
 event_queue_flush:
-		ld	hl,(event_queue)
-		ld	(event_queue_start),hl
-		ld	(event_queue_end),hl
+		xor	a
+		ld	(event_queue_start),a
+		ld	(event_queue_end),a
 		ret
 
 ; *********************************************************************
@@ -481,36 +786,6 @@ kbul1:		sra	a			; Isolate the bit and
 		ld	a,b			; ef, df, bf, 7f and then
 		cp	0xfe			; back to fe.
 		jr	nz,kbul0
-		
-;		ld	hl,(keyb_buffer)	; For testing.
-;		ld	bc,33*3			; Uncomment to show the
-;		ld	de,0x0805		; contents of the
-;kbul10:		push	bc			; keyb_buffer.
-;		push	de
-;		push	hl
-;		ld	a,WRITE_TO_SCRBUF
-;		ld	e,(hl)
-;		ld	hl,0x0001
-;		call	hex_write
-;		pop	hl
-;		pop	de
-;		pop	bc
-;		inc	hl
-;		inc	bc
-;		dec	e
-;		jr	nz,kbul10
-;		ld	e,5
-;		push	hl
-;		ld	h,b
-;		ld	l,c
-;		ld	bc,28
-;		add	hl,bc
-;		ld	b,h
-;		ld	c,l
-;		pop	hl
-;		dec	d
-;		jr	nz,kbul10
-
 		ret
 
 ; *********************************************************************
@@ -528,57 +803,6 @@ kbrl0:		ld	(hl),a
 		ld	(de),a
 		inc	de
 		djnz	kbrl0
-		ret
-
-; *********************************************************************
-; Keyboard Wait                                                       *
-; *********************************************************************
-; This waits for a key press and returns the result. Note that if more
-; than one key is being pressed (excluding SHIFT) then it will always
-; return 0x00 i.e. space.
-; 
-; On exit: a = char pressed
-
-;keyboard_wait:	call	KEYB_SCAN	; Wait until the user has
-;		ld	a,0xff		; released the keyboard first.
-;		cp	l
-;		jr	nz,keyboard_wait
-;kwl0:		call	KEYB_SCAN	; Get keyboard state in hl.
-;		ld	a,0xff
-;		cp	l
-;		jr	z,kwl0
-;		ld	b,h
-;		ld	c,l
-;		call	KEYB_DECODE	; Decode bc to a char.
-;		ld	a,(hl)
-;		ret
-
-; *********************************************************************
-; Keyboard Get                                                        *
-; *********************************************************************
-; This returns the current single key being pressed else 0xff.
-; 
-; On exit: a = char if key pressed
-;          a = 0xff if no key pressed
-
-keyboard_get:	call	KEYB_SCAN	; Get keyboard state in hl.
-		ld	a,0xff
-		cp	l
-		jr	z,kgl0
-		ld	b,h
-		ld	c,l
-		call	KEYB_DECODE	; Decode bc to a char.
-		ld	a,(hl)
-kgl0:		
-;		push	af		; For testing.
-;		ld	d,0		; Uncomment to show the single
-;		ld	e,a		; char being pressed or 0xff.
-;		ld	a,WRITE_TO_SCRBUF
-;		ld	bc,33*2
-;		ld	hl,0x0002
-;		call	hex_write
-;		pop	af
-
 		ret
 
 ; *********************************************************************
@@ -621,54 +845,28 @@ state_change:	ld	b,a
 ; Timer Tick                                                          *
 ; *********************************************************************
 ; This will limit the main loop to 25Hz (PAL) or 30Hz (NTSC).
-; 3250000 CPU cycles = 65000 x 50, or 54166.66 x 60.
 
 timer_tick:	ld	hl,(frames_last)
 		ld	bc,(FRAMES)
-		and	a		; Clear carry flag.
+		and	a			; Clear carry flag.
 		sbc	hl,bc
 
-;		push	bc		; For testing.
-;		push	hl		; Uncomment to show the number
-;		ld	a,WRITE_TO_SCRBUF ; of frames consumed.
-;		ld	bc,33*1
-;		ex	de,hl
-;		ld	hl,0x0002
-;		call	hex_write
-;		pop	hl
-;		pop	bc
-
+		cond	DEBUG_TIMING
+		push	bc
+		push	hl
+		ld	a,WRITE_TO_SCRBUF	; Shows the number
+		ld	bc,33*1			; of frames consumed.
+		ex	de,hl
+		ld	hl,0x0002
+		call	hex_write
+		pop	hl
+		pop	bc
+		endc
+		
 		ld	a,l
 		cp	2
 		jr	c,timer_tick
 		ld	(frames_last),bc
-		ret
-
-; *********************************************************************
-; Cycles Test                                                         *
-; *********************************************************************
-; This renders a moving char across the full width of the screen that
-; I can then time with my stopwatch :) Note that not all parts of all
-; screens are continuously rebuilt and so the char is inverted each
-; screen width to distinguish it from the last.
-
-cycles_test_offset:
-		defw	0
-cycles_test_char:
-		defb	0x12
-
-cycles_test:	ld	hl,(screen_buffer)
-		ld	bc,(cycles_test_offset)
-		add	hl,bc
-		ld	a,(cycles_test_char)
-		ld	(hl),a
-		inc	bc
-		bit	5,c
-		jr	z,stl1
-		ld	bc,0
-		xor	0x80
-stl1:		ld	(cycles_test_char),a
-		ld	(cycles_test_offset),bc
 		ret
 
 ; *********************************************************************
@@ -835,6 +1033,9 @@ sbwl2:		ld	(hl),a
 
 splash_draw:	ld	a,(screen_redraw)
 		or	a
+		ret	z
+
+		and	1
 		jr	z,sdl0
 		ld	a,_SPC
 		call	screen_buffer_wipe
@@ -842,17 +1043,19 @@ splash_draw:	ld	a,(screen_redraw)
 		ld	bc,0
 		ld	de,splash_data
 		call	string_write
-		ld	a,(screen_redraw)
-		cp	2
-		jr	nz,sdl0
+
+sdl0:		ld	a,(screen_redraw)
+		and	2
+		jr	z,sdl10
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,33*23+10
 		ld	de,txt_press_a_key
 		call	string_write
-		; Register blink for txt_press_a_key here.
-		; Register blink for txt_press_a_key here.
-		; Register blink for txt_press_a_key here.
-sdl0:		ret
+		ld	bc,33*23+9
+		ld	de,0xd01
+		call	blink_register
+
+sdl10:		ret
 
 ; *********************************************************************
 ; Options Draw                                                        *
@@ -861,6 +1064,9 @@ sdl0:		ret
 
 options_draw:	ld	a,(screen_redraw)
 		or	a
+		ret	z
+
+		and	1
 		jr	z,odl0
 		ld	a,_SPC
 		call	screen_buffer_wipe
@@ -868,7 +1074,27 @@ options_draw:	ld	a,(screen_redraw)
 		ld	bc,0
 		ld	de,options_data
 		call	string_write
-odl0:		ret
+
+odl0:		ld	a,(screen_redraw)
+		and	2
+		jr	z,odl4
+		call	blink_unregister
+		ld	bc,(cursor_options_offset_last)
+		ld	hl,(screen_buffer)
+		add	hl,bc
+		ld	(hl),_SPC
+
+odl4:		ld	a,(screen_redraw)
+		and	4
+		jr	z,odl10
+		ld	bc,(cursor_options_offset)
+		ld	hl,(screen_buffer)
+		add	hl,bc
+		ld	(hl),_GTH
+		ld	de,0x0101
+		call	blink_register
+
+odl10:		ret
 		
 ; *********************************************************************
 ; Help Draw                                                           *
@@ -877,7 +1103,7 @@ odl0:		ret
 
 help_draw:	ld	a,(screen_redraw)
 		or	a
-		jr	z,hdl0
+		ret	z
 
 hdl0:		ret
 
@@ -888,6 +1114,9 @@ hdl0:		ret
 
 game_draw:	ld	a,(screen_redraw)
 		or	a
+		ret	z
+
+		and	1
 		jr	z,gdl0
 		ld	a,_SPC
 		call	screen_buffer_wipe
@@ -896,6 +1125,7 @@ game_draw:	ld	a,(screen_redraw)
 		ld	de,panel_data
 		call	string_write
 		call	board_draw
+
 gdl0:		ret
 
 ; *********************************************************************
@@ -903,7 +1133,9 @@ gdl0:		ret
 ; *********************************************************************
 ; This will draw the contents of the board array to the screen buffer.
 
-board_draw_pipe: defb	0	; For testing.
+		cond	DEBUG_OTHER
+board_draw_pipe: defb	0
+		endc
 
 board_draw:	ld	de,(board_array)
 		ld	hl,(screen_buffer)
@@ -919,13 +1151,15 @@ bdl1:		push	bc
 		push	de
 		push	hl
 
-		ld	a,(board_draw_pipe)	; For testing.
-		inc	a
+		cond	DEBUG_OTHER
+		ld	a,(board_draw_pipe)	; Draws all the pipe
+		inc	a			; pieces.
 		cp	34
 		jr	nz,bdl2
 		xor	a
 bdl2:		ld	(board_draw_pipe),a
-
+		endc
+		
 		call	pipe_draw
 		pop	hl
 		inc	hl
@@ -1037,7 +1271,7 @@ ppcl1:		ld	(de),a
 
 hex_write:	push	af
 		push	bc
-		ld	bc,(temp_buffer)
+		ld	bc,temp_buffer
 hwl0:		ld	a,l
 		cp	4
 		jr	nz,hwl2
@@ -1075,7 +1309,7 @@ hwl9:		dec	l
 		ld	(bc),a
 		pop	bc
 		pop	af
-		ld	de,(temp_buffer)
+		ld	de,temp_buffer
 		call	string_write
 		ret
 
@@ -1219,8 +1453,8 @@ grnl0:		srl	a		; the bit index like this :-
 
 pipe_data:	defb	0xd9,_SPC
 		defb	0xd9,_SLS
-		defb	0xd3,_SPC,0x80,0x80,_LTHV,0xd6
-		defb	_SPC,_LTHV,0x80,0x80,0xd4
+		defb	0xd3,_SPC,0x80,_LTHV,0xd8
+		defb	_SPC,_LTHV,0x80,0xd4
 		defb	_SPC,0x80,_SPC,_SPC,0x80,_SPC,_SPC,0x80,0xd4
 		defb	_SPC,0xd3,0x80,0xd4
 		defb	_SPC,0x80,_SPC,0xd3,0x80,_SPC,0x80,0xd5
@@ -1239,34 +1473,33 @@ pipe_data:	defb	0xd9,_SPC
 		defb	0xf0
 
 options_data:	defb	0xf4
-		defb	0xea,_S,_E,_T,_SPC,_CV,_O,_N,_T,_R,_O,_L,_S,0xf2
+		defb	0xea,_S,_E,_T,_SPC,_C,_O,_N,_T,_R,_O,_L,_S,0xf2
 		defb	0xea,_U,_P,0xe5,_EQU,0xf1
 		defb	0xea,_D,_O,_W,_N,0xe3,_EQU,0xf1
 		defb	0xea,_L,_E,_F,_T,0xe3,_EQU,0xf1
 		defb	0xea,_R,_I,_G,_H,_T,0xe2,_EQU,0xf1
 		defb	0xea,_S,_E,_L,_E,_C,_T,0xe1,_EQU,0xf2
-		defb	0xee,_PV,_L,_A,_Y,0xf2
-		defb	0xee,_SV,_A,_V,_E,0xf2
-		defb	0xee,_HV,_E,_L,_P,0xf2
-		defb	0xee,_QV,_U,_I,_T,0xf3
+		defb	0xee,_P,_L,_A,_Y,0xf2
+		defb	0xee,_S,_A,_V,_E,0xf2
+		defb	0xee,_H,_E,_L,_P,0xf2
+		defb	0xee,_Q,_U,_I,_T,0xf3
 		defb	0xe4,_OBR,_C,_CBR,_SPC,_2,_0,_1,_0,_SPC,_T,_H,
 		defb	_U,_N,_O,_R,_CMA,_SPC,_G,_N,_U,_SPC,_G,_P,_L,0xf2
 		defb	0xea,_S,_Z,_8,_1,_FST,_S,_F,_FST,_N,_E,_T
 		defb	0xf0
 
-panel_data:	defb	_H,_I,_S,_C,_O,_R,_EV,0xf3
+panel_data:	defb	_H,_I,_S,_C,_O,_R,_E,0xf3
 		defb	_S,_C,_O,_R,_E,0xf3
-		defb	_T,_I,_M,_E,_OBR,_S,_CBR,0xf3
+		defb	_T,_I,_M,_E,_OBR,_S,_CBR,0xf4
 		defb	0xd7,_MNS,0xf1
 		defb	0xe3,_GTH,0xf1
 		defb	0xe3,_GTH,0xf1
 		defb	0xe3,_GTH,0xf1
-		defb	0xd7,_MNS,0xf2
-		defb	_FV,_I,_L,_L,0xf2
-		defb	_NV,_E,_W,0xf2
-		defb	_SV,_A,_V,_E,0xf2
-		defb	_HV,_E,_L,_P,0xf2
-		defb	_BV,_A,_C,_K
+		defb	0xd7,_MNS,0xf3
+		defb	_F,_I,_L,_L,0xf2
+		defb	_N,_E,_W,0xf2
+		defb	_H,_E,_L,_P,0xf2
+		defb	_B,_A,_C,_K
 		defb	0xf0
 
 splash_data:	defb	0xfa
