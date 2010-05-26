@@ -140,11 +140,17 @@ _NL		equ	0x76
 
 _INT		equ	0xcf
 _USR		equ	0xd4
+_NOT		equ	0xd7
 _PWR		equ	0xd8		; **
+_THEN		equ	0xde
+_STOP		equ	0xe3
 _REM		equ	0xea
 _LET		equ	0xf1
 _RUN		equ	0xf7
+_SAVE		equ	0xf8
 _RAND		equ	0xf9
+_IF		equ	0xfa
+
 
 ; RST routines (a selection of).
 
@@ -168,7 +174,7 @@ PPC		equ	0x4007
 p_start:	org	0x4009
 
 VERSN:		defb	0
-E_PPC:		defw	20		; BASIC line number of line with cursor.
+E_PPC:		defw	50		; BASIC line number of line with cursor.
 D_FILE:		defw	display_file
 DF_CC:		defw	display_file+1
 VARS:		defw	variables
@@ -182,7 +188,7 @@ BERG:		defb	0
 MEM:		defw	MEMBOT
 SPARE1:		defb	0
 DF_SZ:		defb	2		; Number of lines in lower part of screen.
-S_TOP:		defw	20		; BASIC line number of line at top of screen.
+S_TOP:		defw	50		; BASIC line number of line at top of screen.
 LAST_K:		defw	0xffff
 DB_ST:		defb	0
 MARGIN:		defb	55		; Blank lines above/below TV picture: US = 31, UK = 55.
@@ -218,24 +224,24 @@ basic_0001:	defb	0,1		; 1 REM
 ;    |              |
 ;    |         +---------+
 ;    |         | Splash  |
-;    |         | Screen  |
+;    ^         | Screen  |
 ;    |         |         |
 ;    |         +---------+
 ;    |              |
 ;    |              v
 ;    |              |
 ;    |         +---------+  Help   +---------+
-;    |         | Options |---->----| Help    |
-;    ^----<----| Screen  |         | Screens |
-;    |   Save  |         |----<----|         |
-;    |         +---------+   Back  |         |
-;    |            |   |            |         |
-;    |       Back ^   v Play       |   ~~~   |
-;    |            |   |            |         |
-;    |         +---------+  Help   |         |
-;    |         | Game    |---->----|         |
-;    +----<----| Screen  |         |         |
+;    |   Quit  | Options |---->----| Help    |
+;    +----<----| Screen  |         | Screens |
 ;        Save  |         |----<----|         |
+;              +---------+   Back  |         |
+;                 |   |            |         |
+;            Back ^   v Play       |   ~~~   |
+;                 |   |            |         |
+;              +---------+  Help   |         |
+;              | Game    |---->----|         |
+;              | Screen  |         |         |
+;              |         |----<----|         |
 ;              +---------+   Back  +---------+
 ; 
 
@@ -249,12 +255,15 @@ WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
 WRITE_TO_MEMBLK	equ	2
 
-STATE_SAVE	equ	0
-STATE_QUIT	equ	1
+STATE_QUIT	equ	0
+STATE_SAVE	equ	1
 STATE_SPLASH	equ	2
 STATE_OPTIONS	equ	3
 STATE_HELP	equ	4
 STATE_GAME	equ	5
+
+SUBSTATE_NONE	equ	0
+SUBSTATE_SETCTRLS equ	1
 
 BLINK_PAL	equ	50/2
 BLINK_NTSC	equ	60/2
@@ -270,6 +279,7 @@ pipe_pieces:	defw	0
 sp_original:	defw	0
 state_current:	defb	0
 state_previous:	defb	0
+substate_current: defb	0
 screen_redraw:	defb	0
 frames_last:	defw	0
 event_queue_start: defb	0
@@ -287,10 +297,10 @@ action_right:	defb	_P
 action_select:	defb	_K
 rnd_seed:	defb	0
 temp_buffer:	defs	TEMP_BUFFER_MAX
-
-cursor_options_position: defb 0
-cursor_options_offset: defw 0	;33*4+8,33*12+12,33*14+12,33*16+12,33*18+12
-cursor_options_offset_last: defw 0
+cursor_options_position:
+		defb	0
+cursor_options_offset:
+		defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -325,19 +335,23 @@ start:		ld	(sp_original),sp
 		ld	(screen_redraw),a	; whilst things are
 		call	splash_draw		; being initialised.
 		call	screen_buffer_blit
+
+		ld	a,(FRAMES)		; Initialise random
+		ld 	(rnd_seed),a		; seed from frames-low.
+
 		call	fade_offsets_create
 		call	pipe_pieces_create
-
 		ld	e,0			; Initialise the
 		call	blink_register		; blink system.
 		call	keyb_buffer_reset
 		call	event_queue_flush
-		call	board_array_reset
-		
+
 		ld	a,STATE_QUIT
 		call	state_change
 		ld	a,STATE_SPLASH
 		call	state_change
+		ld	a,SUBSTATE_NONE
+		call	substate_change
 		ld	a,2
 		ld	(screen_redraw),a
 
@@ -345,17 +359,16 @@ start:		ld	(sp_original),sp
 		ld	(cursor_options_position),a
 		ld	hl,33*12+12
 		ld	(cursor_options_offset),hl
-		ld	(cursor_options_offset_last),hl
 
 		; Main loop.
-stl0:		call	events_generate
+main_top:	call	events_generate
 		ld	a,(state_current)
 		cp	STATE_SPLASH
-		jr	nz,stl20
+		jr	nz,main_not_splash
 		; STATE_SPLASH ----------------------------------------
-stl11:		call	event_poll
-		jr	nc,stl100
-		jr	z,stl11			; Ignore releases.
+main_splash:	call	event_poll
+		jp	nc,main_update
+		jr	z,main_splash		; Ignore releases.
 		call	blink_unregister	; Any press will
 		ld	a,STATE_OPTIONS		; change to the
 		call	state_change		; options screen.
@@ -364,15 +377,62 @@ stl11:		call	event_poll
 		call	options_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
-		jr	stl11
+		jr	main_splash
 
-stl20:		cp	STATE_OPTIONS
-		jr	nz,stl40
+main_not_splash:
+		cp	STATE_OPTIONS
+		jp	nz,main_not_options
 		; STATE_OPTIONS ---------------------------------------
-stl21:		call	event_poll
-		jr	nc,stl100
-		jr	z,stl21			; Ignore releases.
-		call	blink_unregister	; temp temp
+main_options:	call	event_poll
+		jp	nc,main_update
+		jr	z,main_options		; Ignore releases.
+		ld	b,a
+		ld	a,(substate_current)
+		cp	SUBSTATE_SETCTRLS
+		ld	a,b
+		jr	nz,main_opt_up
+		; Set controls here.
+		; Set controls here.
+		; Set controls here.
+		jr	main_options
+main_opt_up:	ld	hl,action_up
+		cp	(hl)
+		jr	nz,main_opt_down
+		ld	a,(cursor_options_position)
+		or	a
+		jr	nz,main_opt_upl0
+		ld	a,5
+main_opt_upl0:	dec	a
+main_opt_upl1:	ld	(cursor_options_position),a
+		ld	a,6
+		ld	(screen_redraw),a
+		jr	main_options
+main_opt_down:	ld	hl,action_down
+		cp	(hl)
+		jr	nz,main_opt_select
+		ld	a,(cursor_options_position)
+		cp	4
+		jr	nz,main_opt_downl0
+		ld	a,-1
+main_opt_downl0:
+		inc	a
+		jr	main_opt_upl1
+main_opt_select:
+		ld	hl,action_select
+		cp	(hl)
+		jr	nz,main_options
+		ld	a,(cursor_options_position)
+		or	a
+		jr	nz,main_opt_sel_play
+		; Set SUBSTATE_SETCTRLS here.
+		; Unregister blink on the options cursor here.
+		; Register blink on the action up control here.
+		jr	main_options
+main_opt_sel_play:
+		cp	1
+		jr	nz,main_opt_sel_save
+		call	blink_unregister
+		call	board_array_reset
 		ld	a,STATE_GAME
 		call	state_change
 		ld	a,1
@@ -380,19 +440,34 @@ stl21:		call	event_poll
 		call	game_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
-		jr	stl21
+		jr	main_options
+main_opt_sel_save:
+		cp	2
+		jr	nz,main_opt_sel_help
+		ld	a,STATE_SAVE
+		call	state_change
+		jr	main_quit
+main_opt_sel_help:
+		cp	3
+		jr	nz,main_opt_sel_quit
+		jr	main_options
+main_opt_sel_quit:
+		ld	a,STATE_QUIT
+		call	state_change
+		jr	main_quit
 
-stl40:		cp	STATE_HELP
-		jr	nz,stl60
+main_not_options:
+		cp	STATE_HELP
+		jr	nz,main_not_help
 		; STATE_HELP ------------------------------------------
-		jr	stl100
+		jr	main_update
 
-stl60:		cp	STATE_GAME
-		jr	nz,stl100
+main_not_help:	cp	STATE_GAME
+		jr	nz,main_update
 		; STATE_GAME ------------------------------------------
-stl61:		call	event_poll
-		jr	nc,stl100
-		jr	z,stl61			; Ignore releases.
+main_game:	call	event_poll
+		jr	nc,main_update
+		jr	z,main_game		; Ignore releases.
 		ld	a,STATE_SPLASH		; temp temp
 		call	state_change
 		ld	a,3
@@ -400,28 +475,29 @@ stl61:		call	event_poll
 		call	splash_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
-		jr	stl61
+		jr	main_game
 
-		; Update all or parts of the screen as required.
-stl100:		ld	a,(state_current)
+		; Update all or part of the relevant screen.
+main_update:	ld	a,(state_current)
 		cp	STATE_SPLASH
-		jr	nz,stl120
+		jr	nz,main_upd_options
 		call	splash_draw
-		jr	stl200
-stl120:		cp	STATE_OPTIONS
-		jr	nz,stl140
+		jr	main_upd_screen
+main_upd_options:
+		cp	STATE_OPTIONS
+		jr	nz,main_upd_help
 		call	options_draw
-		jr	stl200
-stl140:		cp	STATE_HELP
-		jr	nz,stl160
+		jr	main_upd_screen
+main_upd_help:	cp	STATE_HELP
+		jr	nz,main_upd_game
 		call	help_draw
-		jr	stl200
-stl160:		cp	STATE_GAME
-		jr	nz,stl200
+		jr	main_upd_screen
+main_upd_game:	cp	STATE_GAME
+		jr	nz,main_upd_screen
 		call	game_draw
-		jr	stl200
 
-stl200:		xor	a
+main_upd_screen:
+		xor	a
 		ld	(screen_redraw),a
 
 		call	dump_debug_info
@@ -429,100 +505,14 @@ stl200:		xor	a
 		call	blink_apply
 		call	screen_buffer_blit
 		call	timer_tick		; Limit main loop cycles.
-		jp	stl0
+		jp	main_top
 
-st_quit:	ld	sp,(sp_original)
+main_quit:	ld	sp,(sp_original)
 		ld	a,(state_current)	; Return program state
 		ld	b,0			; in bc so that SAVE
 		ld	c,a			; can be checked for.
 		ret
 
-; *********************************************************************
-; Dump Debug Info                                                     *
-; *********************************************************************
-
-		cond	DEBUG_TIMING
-movchar_offset:	defw	0
-movchar_char:	defb	0x12
-		endc
-
-dump_debug_info:
-		cond	DEBUG_OTHER
-		ld	b,EVENTS_MAX
-		ld	hl,(event_queue)	; Dumps the contents
-		ld	de,33*3			; of the event queue.
-ddil0:		push	bc
-		push	de
-		ld	b,d
-		ld	c,e
-		ld	a,(hl)
-		inc	hl
-		ld	d,a
-		ld	a,(hl)
-		inc	hl
-		ld	e,a
-		push	hl
-		ld	a,WRITE_TO_SCRBUF
-		ld	hl,0x0004
-		call	hex_write
-		pop	hl
-		pop	de
-		ex	de,hl
-		ld	bc,33
-		add	hl,bc
-		ex	de,hl
-		pop	bc
-		djnz	ddil0
-		endc
-		
-		cond	DEBUG_OTHER
-		ld	hl,(keyb_buffer)
-		ld	bc,33*11+5		; Dumps the contents of
-		ld	de,0x0805		; the keyb_buffer.
-ddil1:		push	bc
-		push	de
-		push	hl
-		ld	a,WRITE_TO_SCRBUF
-		ld	e,(hl)
-		ld	hl,0x0001
-		call	hex_write
-		pop	hl
-		pop	de
-		pop	bc
-		inc	hl
-		inc	bc
-		dec	e
-		jr	nz,ddil1
-		ld	e,5
-		push	hl
-		ld	h,b
-		ld	l,c
-		ld	bc,28
-		add	hl,bc
-		ld	b,h
-		ld	c,l
-		pop	hl
-		dec	d
-		jr	nz,ddil1
-		endc
-		
-		cond	DEBUG_TIMING
-		ld	hl,(screen_buffer)	; Shows a moving char
-		ld	bc,(movchar_offset)	; to help gauge fluidity.
-		add	hl,bc
-		ld	a,(movchar_char)
-		ld	(hl),a
-		inc	bc
-		bit	5,c
-		jr	z,ddil2
-		ld	bc,0
-		xor	0x80
-ddil2:		ld	(movchar_char),a
-		ld	(movchar_offset),bc
-		endc
-
-		ret
-		
 ; *********************************************************************
 ; Blink Unregister                                                    *
 ; *********************************************************************
@@ -562,11 +552,11 @@ blink_register:	ld	(blink_offset),bc
 
 		ld	a,(MARGIN)
 		cp	55			; PAL or NTSC?
-		jr	nz,bregl0
+		jr	nz,brl0
 		ld	a,BLINK_PAL
-		jr	bregl1
-bregl0:		ld	a,BLINK_NTSC
-bregl1:		ld	(blink_delay),a
+		jr	brl1
+brl0:		ld	a,BLINK_NTSC
+brl1:		ld	(blink_delay),a
 
 		call	blink_apply
 		ret
@@ -808,7 +798,8 @@ kbrl0:		ld	(hl),a
 ; *********************************************************************
 ; Board Array Reset                                                   *
 ; *********************************************************************
-; This resets the board array to something resembling a chequerboard.
+; This resets the board array to something resembling a chequerboard
+; with the entry and exit pipe pieces randomnly set.
 
 board_array_reset:
 		ld	hl,(board_array)
@@ -827,6 +818,33 @@ barl1:		ld	(hl),a
 		ld	a,c
 		ld	c,d
 		djnz	barl0
+
+		ld	a,14
+barl2:		ld	d,a
+		ld	a,(FRAMES)		; This helps to open up
+		and	0x0f			; the gaps between the
+		ld	b,a			; entry and exit pipes.
+barl3:		call	get_random_number	; 0 to 255.
+		djnz	barl3
+		srl	a
+		srl	a		; Now we have the positions
+		and	0x38		; down the board left-hand side.
+		ld	hl,(board_array)
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	a,d
+		cp	14
+		jr	nz,barl4
+		ld	e,3		; Exit pipe.
+		jr	barl5
+barl4:		ld	bc,7		; Right-hand side positions.
+		add	hl,bc
+		ld	e,2		; Entry pipe.
+barl5:		ld	(hl),e
+		sub	7
+		jr	nz,barl2
+
 		ret
 
 ; *********************************************************************
@@ -839,6 +857,15 @@ state_change:	ld	b,a
 		ld	(state_previous),a
 		ld	a,b		
 		ld	(state_current),a
+		ret
+
+; *********************************************************************
+; Substate Change                                                     *
+; *********************************************************************
+; On entry: a = the new program substate
+
+substate_change:
+		ld	(substate_current),a
 		ret
 
 ; *********************************************************************
@@ -1077,24 +1104,33 @@ options_draw:	ld	a,(screen_redraw)
 
 odl0:		ld	a,(screen_redraw)
 		and	2
-		jr	z,odl4
+		jr	z,odl10
 		call	blink_unregister
-		ld	bc,(cursor_options_offset_last)
+		ld	bc,(cursor_options_offset)
 		ld	hl,(screen_buffer)
 		add	hl,bc
 		ld	(hl),_SPC
 
-odl4:		ld	a,(screen_redraw)
+odl10:		ld	a,(screen_redraw)
 		and	4
-		jr	z,odl10
-		ld	bc,(cursor_options_offset)
+		jr	z,odl20
+		ld	hl,cursor_options_offsets
+		ld	a,(cursor_options_position)
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		add	hl,bc
+		ld	c,(hl)
+		inc	hl
+		ld	b,(hl)
+		ld	(cursor_options_offset),bc
 		ld	hl,(screen_buffer)
 		add	hl,bc
 		ld	(hl),_GTH
 		ld	de,0x0101
 		call	blink_register
 
-odl10:		ret
+odl20:		ret
 		
 ; *********************************************************************
 ; Help Draw                                                           *
@@ -1418,7 +1454,8 @@ mul8l2:		ld	b,h
 ; a maximal length tap sequence of [8,6,5,4]
 ; (see http://www.wikipedia.org/wiki/Linear_feedback_shift_register).
 ; 
-; On exit: a = random number
+; On exit: a = random number between 0 and 255
+;          Only registers a and c are modified here.
 
 get_random_number:
 		ld 	a,(rnd_seed)	; Zero will result in no
@@ -1426,30 +1463,119 @@ get_random_number:
 		jr	nz,grnl0	; for and dealt with.
 		dec	a		; The tap sequence relates to
 grnl0:		srl	a		; the bit index like this :-
-		ld	b,a		; Taps: 12345678
+		ld	c,a		; Taps: 12345678
 		srl	a		; Bits: 76543210
 		srl	a
-		xor	b		; tap6 xor tap8
-		ld	a,b
+		xor	c		; tap6 xor tap8
+		ld	a,c
 		srl	a
 		srl	a
 		srl	a
-		xor	b		; tap5 xor (tap6 xor tap8)
-		ld	a,b
+		xor	c		; tap5 xor (tap6 xor tap8)
+		ld	a,c
 		srl	a
 		srl	a
 		srl	a
 		srl	a
-		xor	b		; tap4 xor (tap5 xor (tap6 xor tap8))
+		xor	c		; tap4 xor (tap5 xor (tap6 xor tap8))
 		and	1
 		rrca
-		or	b
+		or	c
 		ld	(rnd_seed),a
 		ret
 
 ; *********************************************************************
+; Dump Debug Info                                                     *
+; *********************************************************************
+
+		cond	DEBUG_TIMING
+movchar_offset:	defw	0
+movchar_char:	defb	0x12
+		endc
+
+dump_debug_info:
+		cond	DEBUG_OTHER
+		ld	b,EVENTS_MAX
+		ld	hl,(event_queue)	; Dumps the contents
+		ld	de,33*3			; of the event queue.
+ddil0:		push	bc
+		push	de
+		ld	b,d
+		ld	c,e
+		ld	a,(hl)
+		inc	hl
+		ld	d,a
+		ld	a,(hl)
+		inc	hl
+		ld	e,a
+		push	hl
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0004
+		call	hex_write
+		pop	hl
+		pop	de
+		ex	de,hl
+		ld	bc,33
+		add	hl,bc
+		ex	de,hl
+		pop	bc
+		djnz	ddil0
+		endc
+		
+		cond	DEBUG_OTHER
+		ld	hl,(keyb_buffer)
+		ld	bc,33*11+5		; Dumps the contents of
+		ld	de,0x0805		; the keyb_buffer.
+ddil1:		push	bc
+		push	de
+		push	hl
+		ld	a,WRITE_TO_SCRBUF
+		ld	e,(hl)
+		ld	hl,0x0001
+		call	hex_write
+		pop	hl
+		pop	de
+		pop	bc
+		inc	hl
+		inc	bc
+		dec	e
+		jr	nz,ddil1
+		ld	e,5
+		push	hl
+		ld	h,b
+		ld	l,c
+		ld	bc,28
+		add	hl,bc
+		ld	b,h
+		ld	c,l
+		pop	hl
+		dec	d
+		jr	nz,ddil1
+		endc
+		
+		cond	DEBUG_TIMING
+		ld	hl,(screen_buffer)	; Shows a moving char
+		ld	bc,(movchar_offset)	; to help gauge fluidity.
+		add	hl,bc
+		ld	a,(movchar_char)
+		ld	(hl),a
+		inc	bc
+		bit	5,c
+		jr	z,ddil2
+		ld	bc,0
+		xor	0x80
+ddil2:		ld	(movchar_char),a
+		ld	(movchar_offset),bc
+		endc
+
+		ret
+		
+; *********************************************************************
 ; Data                                                                *
 ; *********************************************************************
+
+cursor_options_offsets:
+		defw	33*4+8,33*12+12,33*14+12,33*16+12,33*18+12
 
 pipe_data:	defb	0xd9,_SPC
 		defb	0xd9,_SLS
@@ -1513,9 +1639,9 @@ txt_press_a_key:
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		defb	_NL
-basic_0010:	defb	0,10		; 10 RAND USR 16514
+basic_0010:	defb	0,10		; 10 LET R=USR 16514
 		defw	basic_0020-basic_0010-4
-		defb	_RAND,_USR,_1,_6,_5,_1,_4
+		defb	_LET,_R,_EQU,_USR,_1,_6,_5,_1,_4
 		defb	0x7e
 		defb	0x8f
 		defb	0x01
@@ -1523,8 +1649,20 @@ basic_0010:	defb	0,10		; 10 RAND USR 16514
 		defb	0x00
 		defb	0x00
 		defb	_NL
-basic_0020:	defb	0,20		; 20 REM ** TYPE RUN **
-		defw	basic_end-basic_0020-4
+basic_0020:	defb	0,20		; 20 IF NOT R THEN STOP
+		defw	basic_0030-basic_0020-4
+		defb	_IF,_NOT,_R,_THEN,_STOP
+		defb	_NL
+basic_0030:	defb	0,30		; 30 SAVE "PIPEPANIC"
+		defw	basic_0040-basic_0030-4
+		defb	_SAVE,_DQT,_P,_I,_P,_E,_P,_A,_N,_I,_C,_DQT
+		defb	_NL
+basic_0040:	defb	0,40		; 40 RUN
+		defw	basic_0050-basic_0040-4
+		defb	_RUN
+		defb	_NL
+basic_0050:	defb	0,50		; 50 REM ** TYPE RUN **
+		defw	basic_end-basic_0050-4
 		defb	_REM,_PWR,_SPC,_T,_Y,_P,_E,_RUN,_PWR
 		defb	_NL
 basic_end:
