@@ -247,8 +247,9 @@ basic_0001:	defb	0,1		; 1 REM
 ; 
 
 DEBUG_TIMING	equ	0
+DEBUG_KEYB	equ	0
+DEBUG_EVENTS	equ	0
 DEBUG_PIPES	equ	1
-DEBUG_OTHER	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
@@ -303,6 +304,7 @@ action_down:	defb	_A,1
 action_left:	defb	_O,1
 action_right:	defb	_P,1
 action_select:	defb	_K,0
+controls_set_idx: defb	0
 temp_buffer:	defs	TEMP_BUFFER_MAX
 cursor_options_position: defb 0
 cursor_options_offset: defw 0
@@ -369,7 +371,7 @@ start:		ld	(sp_original),sp
 		ld	(cursor_options_position),a
 		ld	hl,33*12+12
 		ld	(cursor_options_offset),hl
-
+		
 		; Main loop.
 main_top:	call	events_generate
 		ld	a,(state_current)
@@ -382,7 +384,7 @@ main_splash:	call	event_poll
 		call	blink_unregister	; Any press will
 		ld	a,STATE_OPTIONS		; change to the
 		call	state_change		; options screen.
-		ld	a,7
+		ld	a,15
 		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
@@ -401,9 +403,31 @@ main_options:	call	event_poll
 		cp	SUBSTATE_SETCTRLS
 		ld	a,b
 		jr	nz,main_opt_up
-		; Set controls here.
-		; Set controls here.
-		; Set controls here.
+		ld	c,a
+		ld	a,8
+		ld	(screen_redraw),a
+		ld	b,5			; Manage setting 5
+		ld	hl,action_up		; unique controls.
+main_opt_ctr_setl0:
+		ld	a,(controls_set_idx)
+		cp	b
+		jr	z,main_opt_ctr_setl1
+		ld	a,c
+		cp	(hl)
+		jr	z,main_options		; Ignore duplicates.
+		inc	hl
+		inc	hl
+		djnz	main_opt_ctr_setl0	; 0 won't be reached here.
+main_opt_ctr_setl1:
+		ld	(hl),c			; Store new control.
+		dec	a
+		ld	(controls_set_idx),a	; 5,4,3,2,1.
+		or	a
+		jr	nz,main_options		; Get another control.
+		ld	a,SUBSTATE_NONE
+		call	substate_change		; We're finished now.
+		ld	a,14
+		ld	(screen_redraw),a
 		jr	main_options
 main_opt_up:	ld	hl,action_up
 		cp	(hl)
@@ -434,10 +458,14 @@ main_opt_select:
 		ld	a,(cursor_options_position)
 		or	a
 		jr	nz,main_opt_sel_play
-		; Set SUBSTATE_SETCTRLS here.
-		; Unregister blink on the options cursor here.
-		; Register blink on the action up control here.
-		jr	main_options
+		call	blink_unregister
+		ld	a,SUBSTATE_SETCTRLS
+		call	substate_change
+		ld	a,5
+		ld	(controls_set_idx),a
+		ld	a,8
+		ld	(screen_redraw),a
+		jp	main_options
 main_opt_sel_play:
 		cp	1
 		jr	nz,main_opt_sel_save
@@ -450,7 +478,7 @@ main_opt_sel_play:
 		call	game_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
-		jr	main_options
+		jp	main_options
 main_opt_sel_save:
 		cp	2
 		jr	nz,main_opt_sel_help
@@ -507,9 +535,6 @@ main_upd_game:	cp	STATE_GAME
 		call	game_draw
 
 main_upd_screen:
-		xor	a
-		ld	(screen_redraw),a
-
 		call	dump_debug_info
 
 		call	blink_apply
@@ -532,11 +557,13 @@ main_quit:	ld	sp,(sp_original)
 blink_unregister:
 		ld	a,(blink_height)
 		or	a
-		jr	z,bul0			; Unregister only.
+		jr	z,bul0			; [Re]initialise only.
 		ld	a,(blink_count)
 		and	1
 		jr	z,bul0			; No need to restore.
-		call	blink_apply		; Blink one more time.
+		xor	a			; Apply one more initial
+		ld	(blink_count),a		; blink to reset to
+		call	blink_apply		; original state.
 bul0:		ld	e,0			; [Re]initialise the
 		call	blink_register		; blink system.
 		ret
@@ -555,7 +582,7 @@ bul0:		ld	e,0			; [Re]initialise the
 
 blink_register:	ld	(blink_offset),bc
 		ld	(blink_height),de
-		ld	a,0
+		xor	a
 		ld	(blink_count),a
 		ld	(blink_last),a
 		ld	(blink_last+1),a
@@ -575,9 +602,9 @@ blink_apply:	ld	a,(blink_height)	; If height is 0 then
 		ret	z
 
 		ld	bc,(FRAMES)
-		ld	a,(blink_count)		; Force application of
-		or	a			; initial blink now.
-		jr	z,bal1
+		ld	a,(blink_count)		; Don't wait to apply
+		or	a			; the initial blink
+		jr	z,bal1			; when blink_count = 0.
 		ld	hl,(blink_last)
 		and	a			; Clear carry flag.
 		sbc	hl,bc
@@ -717,7 +744,7 @@ egl7:		ld	a,(hl)		; that is a repeatable action.
 egl8:		inc	hl
 		djnz	egl7
 		jr	egl10
-egl9:		dec	e		; Pressed = 1, released = 0.
+egl9:		dec	e		; 0 = released, 1 = pressed.
 		call	event_push
 
 egl10:		pop	hl
@@ -734,7 +761,7 @@ egl11:		inc	hl
 ; This pushes an event onto the event queue.
 ; 
 ; On entry: d = char code 0 to 0xff
-;           e = pressed state 0 or 1
+;           e = state 0 to 0xff (0 = released, 1 = pressed)
 
 event_push:	ld	a,(event_queue_end) 	; Add the event to the
 		ld	b,0			; end of the queue.
@@ -871,12 +898,7 @@ barl1:		ld	(hl),a
 
 		ld	a,14
 barl2:		ld	d,a
-		ld	a,(FRAMES)	; This helps to open up
-		and	7		; the gaps between the
-		inc	a		; entry and exit pipes.
-		ld	b,a
-barl3:		call	get_random_number	; 0 to 255.
-		djnz	barl3
+		call	get_random_number	; 0 to 255.
 		srl	a
 		srl	a		; Now we have the positions
 		and	0x38		; down the board left-hand side.
@@ -1130,10 +1152,15 @@ sdl0:		ld	a,(screen_redraw)
 		ld	de,txt_press_a_key
 		call	string_write
 		ld	bc,33*23+9
-		ld	de,0xd01
+		ld	de,0x0d01
 		call	blink_register
 
-sdl10:		ret
+sdl10:		
+
+screen_redraw_reset:
+		xor	a
+		ld	(screen_redraw),a
+		ret
 
 ; *********************************************************************
 ; Options Draw                                                        *
@@ -1181,8 +1208,70 @@ odl10:		ld	a,(screen_redraw)
 		ld	de,0x0101
 		call	blink_register
 
-odl20:		ret
-		
+odl20:		ld	a,(screen_redraw)
+		and	8
+		jr	z,odl30
+		ld	de,action_up
+		ld	hl,33*6+19
+		ld	b,5
+odl21:		push	bc
+		push	de
+		push	hl
+		push	bc
+		ld	bc,(screen_buffer)
+		add	hl,bc
+		ld	a,(de)
+		cp	0xe9		; Shift?
+		jr	nz,odl23
+		ld	(hl),_S
+		inc	hl
+		ld	(hl),_H
+		inc	hl
+		ld	(hl),_F
+odl22:		ld	de,0x0301
+		jr	odl26
+odl23:		cp	_SPC		; Space?
+		jr	nz,odl24
+		ld	(hl),_S
+		inc	hl
+		ld	(hl),_P
+		inc	hl
+		ld	(hl),_C
+		jr	odl22
+odl24:		cp	_NL		; Newline?
+		jr	nz,odl25
+		ld	(hl),_N
+		inc	hl
+		ld	(hl),_L
+		inc	hl
+		ld	(hl),_SPC
+		ld	de,0x0201
+		jr	odl26
+odl25:		ld	(hl),a		; Printable char.
+		inc	hl
+		ld	(hl),_SPC
+		inc	hl
+		ld	(hl),_SPC
+		ld	de,0x0101
+odl26:		pop	bc
+		ld	a,(controls_set_idx)	; This will be 0 if
+		cp	b			; SUBSTATE_SETCTRLS is
+		jr	nz,odl27		; off and so blink 
+		pop	bc			; won't be applied.
+		push	bc
+		call	blink_register
+odl27:		pop	hl
+		ld	bc,33
+		add	hl,bc
+		pop	de
+		inc	de
+		inc	de
+		pop	bc
+		djnz	odl21
+
+odl30:		
+		jp	screen_redraw_reset
+
 ; *********************************************************************
 ; Help Draw                                                           *
 ; *********************************************************************
@@ -1192,7 +1281,8 @@ help_draw:	ld	a,(screen_redraw)
 		or	a
 		ret	z
 
-hdl0:		ret
+hdl0:		
+		jp	screen_redraw_reset
 
 ; *********************************************************************
 ; Game Draw                                                           *
@@ -1213,16 +1303,13 @@ game_draw:	ld	a,(screen_redraw)
 		call	string_write
 		call	board_draw
 
-gdl0:		ret
+gdl0:		
+		jp	screen_redraw_reset
 
 ; *********************************************************************
 ; Board Draw                                                          *
 ; *********************************************************************
 ; This will draw the contents of the board array to the screen buffer.
-
-		cond	DEBUG_PIPES
-board_draw_pipe: defb	0
-		endc
 
 board_draw:	ld	de,(board_array)
 		ld	hl,(screen_buffer)
@@ -1239,14 +1326,15 @@ bdl1:		push	bc
 		push	hl
 
 		cond	DEBUG_PIPES
-		ld	a,(board_draw_pipe)	; Draws all the pipe
-		inc	a			; pieces.
-		cp	34
-		jr	nz,bdl2
-		xor	a
-bdl2:		ld	(board_draw_pipe),a
+		push	bc
+		call	get_random_number	; 0 to 255.
+		srl	a
+		srl	a
+		srl	a
+		xor	2			; 0 to 33.
+		pop	bc
 		endc
-		
+
 		call	pipe_draw
 		pop	hl
 		inc	hl
@@ -1525,14 +1613,19 @@ mul8l2:		ld	b,h
 ; (see http://www.wikipedia.org/wiki/Linear_feedback_shift_register).
 ; 
 ; On exit: a = random number between 0 and 255
-;          Only registers a and c are modified here.
+;          Only registers a and bc are modified here.
 
 get_random_number:
-		ld 	a,(rnd_seed)	; Zero will result in no
+		ld	a,(FRAMES)	; I've found this loop helps to
+		and	7		; spread the results about a
+		inc	a		; bit to eliminate patterns.
+		ld	b,a
+
+grnl0:		ld 	a,(rnd_seed)	; Zero will result in no
 		or	a		; feedback and must be checked
-		jr	nz,grnl0	; for and dealt with.
+		jr	nz,grnl1	; for and dealt with.
 		dec	a		; The tap sequence relates to
-grnl0:		srl	a		; the bit index like this :-
+grnl1:		srl	a		; the bit index like this :-
 		ld	c,a		; Taps: 12345678
 		srl	a		; Bits: 76543210
 		srl	a
@@ -1552,6 +1645,8 @@ grnl0:		srl	a		; the bit index like this :-
 		rrca
 		or	c
 		ld	(rnd_seed),a
+
+		djnz	grnl0
 		ret
 
 ; *********************************************************************
@@ -1564,7 +1659,7 @@ movchar_char:	defb	0x12
 		endc
 
 dump_debug_info:
-		cond	DEBUG_OTHER
+		cond	DEBUG_EVENTS
 		ld	b,EVENTS_MAX
 		ld	hl,(event_queue)	; Dumps the contents
 		ld	de,33*3			; of the event queue.
@@ -1592,7 +1687,7 @@ ddil0:		push	bc
 		djnz	ddil0
 		endc
 		
-		cond	DEBUG_OTHER
+		cond	DEBUG_KEYB
 		ld	hl,(keyb_buffer)
 		ld	bc,33*11+5		; Dumps the contents of
 		ld	de,0x0805		; the keyb_buffer.
@@ -1679,7 +1774,7 @@ options_data:	defb	0xf4
 		defb	0xee,_S,_A,_V,_E,0xf2
 		defb	0xee,_H,_E,_L,_P,0xf2
 		defb	0xee,_Q,_U,_I,_T,0xf3
-		defb	0xe4,_OBR,_C,_CBR,_SPC,_2,_0,_1,_0,_SPC,_T,_H,
+		defb	0xe4,_OBR,_C,_CBR,_SPC,_2,_0,_1,_0,_SPC,_T,_H
 		defb	_U,_N,_O,_R,_CMA,_SPC,_G,_N,_U,_SPC,_G,_P,_L,0xf2
 		defb	0xea,_S,_Z,_8,_1,_FST,_S,_F,_FST,_N,_E,_T
 		defb	0xf0
