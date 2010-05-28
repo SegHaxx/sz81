@@ -138,6 +138,7 @@ _ZV		equ	_Z+0x80
 
 _NL		equ	0x76
 
+_VAL		equ	0xc5
 _INT		equ	0xcf
 _USR		equ	0xd4
 _NOT		equ	0xd7
@@ -146,11 +147,11 @@ _THEN		equ	0xde
 _STOP		equ	0xe3
 _REM		equ	0xea
 _LET		equ	0xf1
+_PRINT		equ	0xf5
 _RUN		equ	0xf7
 _SAVE		equ	0xf8
 _RAND		equ	0xf9
 _IF		equ	0xfa
-
 
 ; RST routines (a selection of).
 
@@ -174,7 +175,7 @@ PPC		equ	0x4007
 p_start:	org	0x4009
 
 VERSN:		defb	0
-E_PPC:		defw	50		; BASIC line number of line with cursor.
+E_PPC:		defw	40		; BASIC line number of line with cursor.
 D_FILE:		defw	display_file
 DF_CC:		defw	display_file+1
 VARS:		defw	variables
@@ -188,7 +189,7 @@ BERG:		defb	0
 MEM:		defw	MEMBOT
 SPARE1:		defb	0
 DF_SZ:		defb	2		; Number of lines in lower part of screen.
-S_TOP:		defw	50		; BASIC line number of line at top of screen.
+S_TOP:		defw	40		; BASIC line number of line at top of screen.
 LAST_K:		defw	0xffff
 DB_ST:		defb	0
 MARGIN:		defb	55		; Blank lines above/below TV picture: US = 31, UK = 55.
@@ -246,6 +247,7 @@ basic_0001:	defb	0,1		; 1 REM
 ; 
 
 DEBUG_TIMING	equ	0
+DEBUG_PIPES	equ	1
 DEBUG_OTHER	equ	0
 
 EVENTS_MAX	equ	16
@@ -268,6 +270,11 @@ SUBSTATE_SETCTRLS equ	1
 BLINK_PAL	equ	50/2
 BLINK_NTSC	equ	60/2
 
+EVENT_REPEAT_DELAY_PAL equ 50/3
+EVENT_REPEAT_DELAY_NTSC equ 60/3
+EVENT_REPEAT_INTERVAL_PAL equ 50/8
+EVENT_REPEAT_INTERVAL_NTSC equ 60/8
+
 mem_16514:	jr	start
 screen_buffer:	defw	0
 fade_offsets:	defw	0
@@ -277,6 +284,7 @@ event_queue:	defw	0
 board_array:	defw	0
 pipe_pieces:	defw	0
 sp_original:	defw	0
+rnd_seed:	defb	0
 state_current:	defb	0
 state_previous:	defb	0
 substate_current: defb	0
@@ -290,17 +298,18 @@ blink_width:	defb	0
 blink_count:	defb	0
 blink_delay:	defb	0
 blink_last:	defw	0
-action_up:	defb	_Q
-action_down:	defb	_A
-action_left:	defb	_O
-action_right:	defb	_P
-action_select:	defb	_K
-rnd_seed:	defb	0
+action_up:	defb	_Q,1	; char,repeat
+action_down:	defb	_A,1
+action_left:	defb	_O,1
+action_right:	defb	_P,1
+action_select:	defb	_K,0
 temp_buffer:	defs	TEMP_BUFFER_MAX
-cursor_options_position:
-		defb	0
-cursor_options_offset:
-		defw	0
+cursor_options_position: defb 0
+cursor_options_offset: defw 0
+event_repeat_delay_master: defw 0
+event_repeat_interval_master: defw 0
+event_repeat_delay: defw 0
+event_repeat_last: defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -339,6 +348,7 @@ start:		ld	(sp_original),sp
 		ld	a,(FRAMES)		; Initialise random
 		ld 	(rnd_seed),a		; seed from frames-low.
 
+		call	localise
 		call	fade_offsets_create
 		call	pipe_pieces_create
 		ld	e,0			; Initialise the
@@ -450,7 +460,7 @@ main_opt_sel_save:
 main_opt_sel_help:
 		cp	3
 		jr	nz,main_opt_sel_quit
-		jr	main_options
+		jp	main_options
 main_opt_sel_quit:
 		ld	a,STATE_QUIT
 		call	state_change
@@ -549,15 +559,6 @@ blink_register:	ld	(blink_offset),bc
 		ld	(blink_count),a
 		ld	(blink_last),a
 		ld	(blink_last+1),a
-
-		ld	a,(MARGIN)
-		cp	55			; PAL or NTSC?
-		jr	nz,brl0
-		ld	a,BLINK_PAL
-		jr	brl1
-brl0:		ld	a,BLINK_NTSC
-brl1:		ld	(blink_delay),a
-
 		call	blink_apply
 		ret
 		
@@ -649,7 +650,7 @@ epl1:		ld	(event_queue_start),a
 ; *********************************************************************
 ; This compares the contents of keyb_buffer_old to keyb_buffer and
 ; creates pressed and released events which are added to the event
-; queue.
+; queue. It will repeat press events for actions flagged as repeatable.
 
 events_generate:
 		call	keyb_buffer_update
@@ -660,27 +661,82 @@ events_generate:
 egl0:		ld	a,(hl)
 		sla	a
 		ex	de,hl
-		or	(hl)		; A press will be 2 and a
-		ex	de,hl		; release will be 1.
-		cp	1
-		jr	z,egl1
-		cp	2
-		jr	nz,egl10
-egl1:		push	bc
+		or	(hl)
+		ex	de,hl
+		or	a		; No activity at all.
+		jr	z,egl11
+		push	bc
 		push	de
 		push	hl
 
 		ld	e,a
-		dec	e		; Pressed = 1, released = 0.
 		ld	hl,0x007d	; Convert the scancode to a
 		ld	a,40		; char using the ROM's
 		sub	b		; K-UNSHIFT table.
 		ld	b,0
 		ld	c,a
 		add	hl,bc		; Shift will result in being
-		ld	d,(hl)		; E9 (DIM) which will suffice.
+		ld	d,(hl)		; 0xe9 (DIM) which will suffice.
 
-		ld	a,(event_queue_end) 	; Add the event to the
+		ld	a,e
+		cp	1		; Is it a new release?
+		jr	z,egl9
+		cp	2		; Is it a new press?
+		jr	nz,egl6
+		ld	hl,(event_repeat_delay_master)
+		ld	(event_repeat_delay),hl
+		ld	hl,(FRAMES)
+		ld	(event_repeat_last),hl
+		jr	egl9
+egl6:		ld	b,5		; It's a repeat press and we
+		ld	hl,action_up	; need to see if it's a char
+egl7:		ld	a,(hl)		; that is a repeatable action.
+		inc	hl
+		cp	d
+		jr	nz,egl8		; It's not an action.
+		ld	a,(hl)
+		or	a
+		jr	z,egl8		; It's not repeatable.
+		push	bc
+		push	hl
+		ld	bc,(FRAMES)
+		ld	hl,(event_repeat_last)
+		and	a		; Clear carry flag.
+		sbc	hl,bc
+		ld	a,(event_repeat_delay)
+		cp	l		; Is it time to repeat?
+		pop	hl
+		pop	bc
+		jr	nc,egl8		; Not yet.
+		ld	hl,(event_repeat_interval_master)
+		ld	(event_repeat_delay),hl
+		ld	hl,(FRAMES)
+		ld	(event_repeat_last),hl
+		dec	e		; 3 to 2.
+		jr	egl9
+egl8:		inc	hl
+		djnz	egl7
+		jr	egl10
+egl9:		dec	e		; Pressed = 1, released = 0.
+		call	event_push
+
+egl10:		pop	hl
+		pop	de
+		pop	bc
+egl11:		inc	hl
+		inc	de
+		djnz	egl0
+		ret
+
+; *********************************************************************
+; Event Push                                                          *
+; *********************************************************************
+; This pushes an event onto the event queue.
+; 
+; On entry: d = char code 0 to 0xff
+;           e = pressed state 0 or 1
+
+event_push:	ld	a,(event_queue_end) 	; Add the event to the
 		ld	b,0			; end of the queue.
 		ld	c,a
 		ld	hl,(event_queue)
@@ -692,27 +748,21 @@ egl1:		push	bc
 		ld	a,(event_queue_end)	; Increment the queue's
 		add	a,2			; end pointer.
 		cp	EVENTS_MAX*2
-		jr	nz,egl2			; Wrap it back to the
+		jr	nz,evpul0		; Wrap it back to the
 		xor	a			; top when required.
-egl2:		ld	(event_queue_end),a
+evpul0:		ld	(event_queue_end),a
 
 		ld	b,a			; If the end meets the
 		ld	a,(event_queue_start)	; start then move the
 		cp	b			; start forward which
-		jr	nz,egl4			; will erase the event
+		jr	nz,evpul2		; will erase the event
 		add	a,2			; that was there.
 		cp	EVENTS_MAX*2
-		jr	nz,egl3			; Wrap it back to the
+		jr	nz,evpul1		; Wrap it back to the
 		xor	a			; top when required.
-egl3:		ld	(event_queue_start),a
+evpul1:		ld	(event_queue_start),a
 
-egl4:		pop	hl
-		pop	de
-		pop	bc
-egl10:		inc	hl
-		inc	de
-		djnz	egl0
-		ret
+evpul2:		ret
 
 ; *********************************************************************
 ; Event Queue Flush                                                   *
@@ -821,9 +871,10 @@ barl1:		ld	(hl),a
 
 		ld	a,14
 barl2:		ld	d,a
-		ld	a,(FRAMES)		; This helps to open up
-		and	0x0f			; the gaps between the
-		ld	b,a			; entry and exit pipes.
+		ld	a,(FRAMES)	; This helps to open up
+		and	7		; the gaps between the
+		inc	a		; entry and exit pipes.
+		ld	b,a
 barl3:		call	get_random_number	; 0 to 255.
 		djnz	barl3
 		srl	a
@@ -1169,7 +1220,7 @@ gdl0:		ret
 ; *********************************************************************
 ; This will draw the contents of the board array to the screen buffer.
 
-		cond	DEBUG_OTHER
+		cond	DEBUG_PIPES
 board_draw_pipe: defb	0
 		endc
 
@@ -1187,7 +1238,7 @@ bdl1:		push	bc
 		push	de
 		push	hl
 
-		cond	DEBUG_OTHER
+		cond	DEBUG_PIPES
 		ld	a,(board_draw_pipe)	; Draws all the pipe
 		inc	a			; pieces.
 		cp	34
@@ -1419,6 +1470,25 @@ swl10:		add	hl,bc
 		jr	swl3
 
 ; *********************************************************************
+; Localise                                                            *
+; *********************************************************************
+
+localise:	ld	a,(MARGIN)
+		cp	55			; PAL or NTSC?
+		jr	nz,locall0
+		ld	a,BLINK_PAL
+		ld	bc,EVENT_REPEAT_INTERVAL_PAL
+		ld	hl,EVENT_REPEAT_DELAY_PAL
+		jr	locall1
+locall0:	ld	a,BLINK_NTSC
+		ld	bc,EVENT_REPEAT_INTERVAL_NTSC
+		ld	hl,EVENT_REPEAT_DELAY_NTSC
+locall1:	ld	(blink_delay),a
+		ld	(event_repeat_interval_master),bc
+		ld	(event_repeat_delay_master),hl
+		ret
+
+; *********************************************************************
 ; Multiply8                                                           *
 ; *********************************************************************
 ; A general straightforward byte multiplication routine for use when
@@ -1639,15 +1709,9 @@ txt_press_a_key:
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		defb	_NL
-basic_0010:	defb	0,10		; 10 LET R=USR 16514
+basic_0010:	defb	0,10		; 10 LET R=VAL "USR 16514"
 		defw	basic_0020-basic_0010-4
-		defb	_LET,_R,_EQU,_USR,_1,_6,_5,_1,_4
-		defb	0x7e
-		defb	0x8f
-		defb	0x01
-		defb	0x04
-		defb	0x00
-		defb	0x00
+		defb	_LET,_R,_EQU,_VAL,_DQT,_USR,_1,_6,_5,_1,_4,_DQT
 		defb	_NL
 basic_0020:	defb	0,20		; 20 IF NOT R THEN STOP
 		defw	basic_0030-basic_0020-4
@@ -1658,12 +1722,8 @@ basic_0030:	defb	0,30		; 30 SAVE "PIPEPANIC"
 		defb	_SAVE,_DQT,_P,_I,_P,_E,_P,_A,_N,_I,_C,_DQT
 		defb	_NL
 basic_0040:	defb	0,40		; 40 RUN
-		defw	basic_0050-basic_0040-4
+		defw	basic_end-basic_0040-4
 		defb	_RUN
-		defb	_NL
-basic_0050:	defb	0,50		; 50 REM ** TYPE RUN **
-		defw	basic_end-basic_0050-4
-		defb	_REM,_PWR,_SPC,_T,_Y,_P,_E,_RUN,_PWR
 		defb	_NL
 basic_end:
 
@@ -1679,7 +1739,8 @@ basic_end:
 ; Expanded for > 3k RAM.
 
 display_file:	defb	_NL
-		defs	32
+		defb	_T,_Y,_P,_E,_SPC,_R,_U,_N
+		defs	32-8
 		defb	_NL
 		defs	32
 		defb	_NL
