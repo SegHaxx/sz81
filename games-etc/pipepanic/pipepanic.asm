@@ -189,11 +189,11 @@ BERG:		defb	0
 MEM:		defw	MEMBOT
 SPARE1:		defb	0
 DF_SZ:		defb	2		; Number of lines in lower part of screen.
-S_TOP:		defw	40		; BASIC line number of line at top of screen.
+S_TOP:		defw	10		; BASIC line number of line at top of screen.
 LAST_K:		defw	0xffff
 DB_ST:		defb	0
 MARGIN:		defb	55		; Blank lines above/below TV picture: US = 31, UK = 55.
-NXTLIN:		defw	display_file	; Memory address of next program line to be executed.
+NXTLIN:		defw	basic_0040	; Memory address of next program line to be executed.
 OLDPPC:		defw	0
 FLAGX:		defb	0
 STRLEN:		defw	0
@@ -253,6 +253,7 @@ DEBUG_PIPES	equ	1
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
+HELP_PAGE_MAX	equ	3
 
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
@@ -312,6 +313,7 @@ event_repeat_delay_master: defw 0
 event_repeat_interval_master: defw 0
 event_repeat_delay: defw 0
 event_repeat_last: defw	0
+help_page:	defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -371,6 +373,9 @@ start:		ld	(sp_original),sp
 		ld	(cursor_options_position),a
 		ld	hl,33*12+12
 		ld	(cursor_options_offset),hl
+		
+		xor	a
+		ld	(help_page),a
 		
 		; Main loop.
 main_top:	call	events_generate
@@ -484,21 +489,62 @@ main_opt_sel_save:
 		jr	nz,main_opt_sel_help
 		ld	a,STATE_SAVE
 		call	state_change
-		jr	main_quit
+		jp	main_quit
 main_opt_sel_help:
 		cp	3
 		jr	nz,main_opt_sel_quit
+		call	blink_unregister
+		ld	a,STATE_HELP
+		call	state_change
+		ld	a,1
+		ld	(screen_redraw),a
+		call	help_draw
+		call	screen_buffer_fade
+		call	event_queue_flush
 		jp	main_options
 main_opt_sel_quit:
 		ld	a,STATE_QUIT
 		call	state_change
-		jr	main_quit
+		jp	main_quit
 
 main_not_options:
 		cp	STATE_HELP
 		jr	nz,main_not_help
 		; STATE_HELP ------------------------------------------
-		jr	main_update
+main_help:	call	event_poll
+		jr	nc,main_update
+		jr	z,main_help		; Ignore releases.
+		ld	hl,action_up
+		cp	(hl)
+		jr	nz,main_hlp_down
+		ld	a,(help_page)
+		or	a
+		jr	z,main_help
+		dec	a
+main_hlp_upl0:	ld	(help_page),a
+		ld	a,1
+		ld	(screen_redraw),a
+		jr	main_help
+main_hlp_down:	ld	hl,action_down
+		cp	(hl)
+		jr	nz,main_hlp_select
+		ld	a,(help_page)
+		inc	a
+		cp	HELP_PAGE_MAX
+		jr	c,main_hlp_upl0
+		jr	main_help
+main_hlp_select:
+		ld	hl,action_select
+		cp	(hl)
+		jr	nz,main_help
+		ld	a,STATE_OPTIONS
+		call	state_change
+		ld	a,15
+		ld	(screen_redraw),a
+		call	options_draw
+		call	screen_buffer_fade
+		call	event_queue_flush
+		jr	main_help
 
 main_not_help:	cp	STATE_GAME
 		jr	nz,main_update
@@ -506,11 +552,11 @@ main_not_help:	cp	STATE_GAME
 main_game:	call	event_poll
 		jr	nc,main_update
 		jr	z,main_game		; Ignore releases.
-		ld	a,STATE_SPLASH		; temp temp
+		ld	a,STATE_OPTIONS		; temp temp
 		call	state_change
-		ld	a,3
+		ld	a,15
 		ld	(screen_redraw),a
-		call	splash_draw
+		call	options_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
 		jr	main_game
@@ -536,7 +582,6 @@ main_upd_game:	cp	STATE_GAME
 
 main_upd_screen:
 		call	dump_debug_info
-
 		call	blink_apply
 		call	screen_buffer_blit
 		call	timer_tick		; Limit main loop cycles.
@@ -1136,7 +1181,7 @@ splash_draw:	ld	a,(screen_redraw)
 		ret	z
 
 		and	1
-		jr	z,sdl0
+		jr	z,sdl10
 		ld	a,_SPC
 		call	screen_buffer_wipe
 		ld	a,WRITE_TO_SCRBUF
@@ -1144,9 +1189,9 @@ splash_draw:	ld	a,(screen_redraw)
 		ld	de,splash_data
 		call	string_write
 
-sdl0:		ld	a,(screen_redraw)
+sdl10:		ld	a,(screen_redraw)
 		and	2
-		jr	z,sdl10
+		jr	z,sdl20
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,33*23+10
 		ld	de,txt_press_a_key
@@ -1155,7 +1200,7 @@ sdl0:		ld	a,(screen_redraw)
 		ld	de,0x0d01
 		call	blink_register
 
-sdl10:		
+sdl20:		
 
 screen_redraw_reset:
 		xor	a
@@ -1172,7 +1217,7 @@ options_draw:	ld	a,(screen_redraw)
 		ret	z
 
 		and	1
-		jr	z,odl0
+		jr	z,odl10
 		ld	a,_SPC
 		call	screen_buffer_wipe
 		ld	a,WRITE_TO_SCRBUF
@@ -1180,18 +1225,18 @@ options_draw:	ld	a,(screen_redraw)
 		ld	de,options_data
 		call	string_write
 
-odl0:		ld	a,(screen_redraw)
+odl10:		ld	a,(screen_redraw)
 		and	2
-		jr	z,odl10
+		jr	z,odl20
 		call	blink_unregister
 		ld	bc,(cursor_options_offset)
 		ld	hl,(screen_buffer)
 		add	hl,bc
 		ld	(hl),_SPC
 
-odl10:		ld	a,(screen_redraw)
+odl20:		ld	a,(screen_redraw)
 		and	4
-		jr	z,odl20
+		jr	z,odl30
 		ld	hl,cursor_options_offsets
 		ld	a,(cursor_options_position)
 		ld	b,0
@@ -1208,13 +1253,13 @@ odl10:		ld	a,(screen_redraw)
 		ld	de,0x0101
 		call	blink_register
 
-odl20:		ld	a,(screen_redraw)
+odl30:		ld	a,(screen_redraw)
 		and	8
-		jr	z,odl30
+		jr	z,odl40
 		ld	de,action_up
 		ld	hl,33*6+19
 		ld	b,5
-odl21:		push	bc
+odl31:		push	bc
 		push	de
 		push	hl
 		push	bc
@@ -1222,54 +1267,54 @@ odl21:		push	bc
 		add	hl,bc
 		ld	a,(de)
 		cp	0xe9		; Shift?
-		jr	nz,odl23
+		jr	nz,odl33
 		ld	(hl),_S
 		inc	hl
 		ld	(hl),_H
 		inc	hl
 		ld	(hl),_F
-odl22:		ld	de,0x0301
-		jr	odl26
-odl23:		cp	_SPC		; Space?
-		jr	nz,odl24
+odl32:		ld	de,0x0301
+		jr	odl36
+odl33:		cp	_SPC		; Space?
+		jr	nz,odl34
 		ld	(hl),_S
 		inc	hl
 		ld	(hl),_P
 		inc	hl
 		ld	(hl),_C
-		jr	odl22
-odl24:		cp	_NL		; Newline?
-		jr	nz,odl25
+		jr	odl32
+odl34:		cp	_NL		; Newline?
+		jr	nz,odl35
 		ld	(hl),_N
 		inc	hl
 		ld	(hl),_L
 		inc	hl
 		ld	(hl),_SPC
 		ld	de,0x0201
-		jr	odl26
-odl25:		ld	(hl),a		; Printable char.
+		jr	odl36
+odl35:		ld	(hl),a		; Printable char.
 		inc	hl
 		ld	(hl),_SPC
 		inc	hl
 		ld	(hl),_SPC
 		ld	de,0x0101
-odl26:		pop	bc
+odl36:		pop	bc
 		ld	a,(controls_set_idx)	; This will be 0 if
 		cp	b			; SUBSTATE_SETCTRLS is
-		jr	nz,odl27		; off and so blink 
+		jr	nz,odl37		; off and so blink 
 		pop	bc			; won't be applied.
 		push	bc
 		call	blink_register
-odl27:		pop	hl
+odl37:		pop	hl
 		ld	bc,33
 		add	hl,bc
 		pop	de
 		inc	de
 		inc	de
 		pop	bc
-		djnz	odl21
+		djnz	odl31
 
-odl30:		
+odl40:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1281,7 +1326,24 @@ help_draw:	ld	a,(screen_redraw)
 		or	a
 		ret	z
 
-hdl0:		
+		and	1
+		jr	z,hdl10
+		ld	a,_SPC
+		call	screen_buffer_wipe
+		ld	a,(help_page)
+		sla	a
+		ld	b,0
+		ld	c,a
+		ld	hl,help_page_offsets
+		add	hl,bc
+		ld	e,(hl)
+		inc	hl
+		ld	d,(hl)
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,0
+		call	string_write
+
+hdl10:
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1294,7 +1356,7 @@ game_draw:	ld	a,(screen_redraw)
 		ret	z
 
 		and	1
-		jr	z,gdl0
+		jr	z,gdl10
 		ld	a,_SPC
 		call	screen_buffer_wipe
 		ld	a,WRITE_TO_SCRBUF
@@ -1303,7 +1365,7 @@ game_draw:	ld	a,(screen_redraw)
 		call	string_write
 		call	board_draw
 
-gdl0:		
+gdl10:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1442,6 +1504,7 @@ ppcl1:		ld	(de),a
 ;           h  = 0 for leading zeroes
 ;           h  = 1 for leading spaces
 ;           h  = 2 for no leading chars
+;           h's bit 7 holds the inverse video state
 ;           l  = the number of nibbles to write: 4 to 1.
 
 hex_write:	push	af
@@ -1471,14 +1534,17 @@ hwl6:		or	a
 		jr	nz,hwl7
 		ld	a,h
 		cp	2
-		jr	z,hwl9
+		jr	z,hwl10
 		cp	1
 		ld	a,0
 		jr	z,hwl8
 hwl7:		add	a,0x1c
-hwl8:		ld	(bc),a
+hwl8:		bit	7,h
+		jr	z,hwl9
+		or	0x80
+hwl9:		ld	(bc),a
 		inc	bc
-hwl9:		dec	l
+hwl10:		dec	l
 		jr	nz,hwl0
 		ld	a,0xf0
 		ld	(bc),a
@@ -1742,6 +1808,68 @@ ddil2:		ld	(movchar_char),a
 cursor_options_offsets:
 		defw	33*4+8,33*12+12,33*14+12,33*16+12,33*18+12
 
+help_page_offsets: defw	help_pg0_data,help_pg1_data,help_pg2_data
+
+help_pg0_data:	defb	0xda,0x80,_IV,_NV,_SV,_TV,_RV,_UV,_CV,_TV,_IV
+		defb	_OV,_NV,_SV,0xd6,0x80,_1V,_SLSV,_3V,0x80,0xf2
+		defb	_C,_O,_N,_N,_E,_C,_T,_SPC,_T,_H,_E,_SPC,_S,_T
+		defb	_A,_R,_T,_SPC,_P,_I,_P,_E,_SPC,_T,_O,_SPC,_T,_H
+		defb	_E,0xf1
+		defb	_E,_N,_D,_SPC,_P,_I,_P,_E,_SPC,_U,_T,_I,_L,_I,_S
+		defb	_I,_N,_G,_SPC,_A,_S,_SPC,_M,_A,_N,_Y,_SPC,_P,_I
+		defb	_P,_E,_S,0xf1
+		defb	_F,_R,_O,_M,_SPC,_T,_H,_E,_SPC,_P,_R,_E,_V,_I,_E
+		defb	_W,_SPC,_B,_A,_R,_SPC,_A,_S,_SPC,_P,_O,_S,_S,_I
+		defb	_B,_L,_E,0xf1
+		defb	_W,_I,_T,_H,_I,_N,_SPC,_T,_H,_E,_SPC,_S,_H,_O,_R
+		defb	_T,_E,_S,_T,_SPC,_T,_I,_M,_E,_FST,0xf2
+		defb	_T,_H,_E,_SPC,_P,_I,_P,_E,_SPC,_N,_E,_T,_W,_O,_R
+		defb	_K,_SPC,_W,_I,_L,_L,_SPC,_B,_E,_SPC,_F,_I,_L,_L
+		defb	_E,_D,0xf1
+		defb	_W,_H,_E,_N,_SPC,_E,_I,_T,_H,_E,_R,_SPC,_T,_H,_E
+		defb	_SPC,_T,_I,_M,_E,_SPC,_H,_A,_S,_SPC,_E,_X,_P,_I
+		defb	_R,_E,_D,0xf1
+		defb	_O,_R,_SPC,_DQT,_F,_I,_L,_L,_DQT,_SPC,_O,_R,_SPC
+		defb	_T,_H,_E,_SPC,_S,_T,_A,_R,_T,_SPC,_P,_I,_P,_E
+		defb	_SPC,_H,_A,_V,_E,0xf1
+		defb	_B,_E,_E,_N,_SPC,_S,_E,_L,_E,_C,_T,_E,_D,_SPC
+		defb	_OBR,_F,_I,_L,_L,_I,_N,_G,_SPC,_E,_A,_R,_L,_Y
+		defb	0xf1
+		defb	_R,_E,_W,_A,_R,_D,_S,_SPC,_A,_SPC,_B,_O,_N,_U,_S
+		defb	_CBR,_FST,0xf2
+		defb	_T,_H,_E,_SPC,_G,_A,_M,_E,_SPC,_W,_I,_L,_L,_SPC
+		defb	_E,_N,_D,_SPC,_P,_R,_E,_M,_A,_T,_U,_R,_E,_L,_Y
+		defb	0xf1
+		defb	_W,_H,_E,_N,_SPC,_B,_E,_I,_N,_G,_SPC,_F,_I,_L,_L
+		defb	_E,_D,_SPC,_I,_F,_SPC,_E,_I,_T,_H,_E,_R,_SPC,_A
+		defb	0xf1
+		defb	_L,_E,_A,_K,_Y,_SPC,_P,_I,_P,_E,_SPC,_I,_S,_SPC
+		defb	_D,_E,_T,_E,_C,_T,_E,_D,_SPC,_O,_R,_SPC,_T,_H,_E
+		defb	0xf1
+		defb	_N,_E,_T,_W,_O,_R,_K,_SPC,_B,_U,_R,_S,_T,_S,_SPC,
+		defb	_A,_S,_SPC,_A,_SPC,_R,_E,_S,_U,_L,_T,_SPC,_O,_F
+		defb	0xf1
+		defb	_F,_A,_I,_L,_I,_N,_G,_SPC,_T,_O,_SPC,_C,_O,_N,_N
+		defb	_E,_C,_T,_SPC,_T,_O,_SPC,_T,_H,_E,_SPC,_E,_N,_D
+		defb	0xf1
+		defb	_P,_I,_P,_E,_FST,0xf2
+		defb	0xf3
+		defb	_B,_O,_T,_T,_O,_M
+		defb	0xf0
+
+help_pg1_data:	defb	0xdc,0x80,_SV,_CV,_OV,_RV,_IV,_NV,_GV,0xd9,0x80
+		defb	_2V,_SLSV,_3V,0x80,0xf1
+		defb	0xff,0xf7
+		defb	_B,_O,_T,_T,_O,_M
+		defb	0xf0
+
+help_pg2_data:	defb	0xd9,0x80,_PV,_IV,_PV,_EV,_SPCV,_FV,_RV,_EV,_QV
+		defb	_UV,_EV,_NV,_CV,_YV,0xd5,0x80,_3V,_SLSV,_3V,0x80
+		defb	0xf1
+		defb	0xff,0xf7
+		defb	_B,_O,_T,_T,_O,_M
+		defb	0xf0
+
 pipe_data:	defb	0xd9,_SPC
 		defb	0xd9,_SLS
 		defb	0xd3,_SPC,0x80,_LTHV,0xd8
@@ -1804,13 +1932,13 @@ txt_press_a_key:
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		defb	_NL
-basic_0010:	defb	0,10		; 10 LET R=VAL "USR 16514"
+basic_0010:	defb	0,10		; 10 LET S=VAL "USR 16514"
 		defw	basic_0020-basic_0010-4
-		defb	_LET,_R,_EQU,_VAL,_DQT,_USR,_1,_6,_5,_1,_4,_DQT
+		defb	_LET,_S,_EQU,_VAL,_DQT,_USR,_1,_6,_5,_1,_4,_DQT
 		defb	_NL
-basic_0020:	defb	0,20		; 20 IF NOT R THEN STOP
+basic_0020:	defb	0,20		; 20 IF NOT S THEN STOP
 		defw	basic_0030-basic_0020-4
-		defb	_IF,_NOT,_R,_THEN,_STOP
+		defb	_IF,_NOT,_S,_THEN,_STOP
 		defb	_NL
 basic_0030:	defb	0,30		; 30 SAVE "PIPEPANIC"
 		defw	basic_0040-basic_0030-4
@@ -1834,8 +1962,7 @@ basic_end:
 ; Expanded for > 3k RAM.
 
 display_file:	defb	_NL
-		defb	_T,_Y,_P,_E,_SPC,_R,_U,_N
-		defs	32-8
+		defs	32
 		defb	_NL
 		defs	32
 		defb	_NL
