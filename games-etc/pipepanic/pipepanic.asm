@@ -1392,9 +1392,10 @@ bdl1:		push	bc
 		call	get_random_number	; 0 to 255.
 		srl	a
 		srl	a
-		srl	a
-		xor	2			; 0 to 33.
-		pop	bc
+		cp	34
+		jr	c,bdl2
+		sub	34
+bdl2:		pop	bc
 		endc
 
 		call	pipe_draw
@@ -1810,64 +1811,108 @@ cursor_options_offsets:
 
 help_page_offsets: defw	help_pg0_data,help_pg1_data,help_pg2_data
 
-help_pg0_data:	defb	0xda,0x80,_IV,_NV,_SV,_TV,_RV,_UV,_CV,_TV,_IV
-		defb	_OV,_NV,_SV,0xd6,0x80,_1V,_SLSV,_3V,0x80,0xf2
-		defb	_C,_O,_N,_N,_E,_C,_T,_SPC,_T,_H,_E,_SPC,_S,_T
-		defb	_A,_R,_T,_SPC,_P,_I,_P,_E,_SPC,_T,_O,_SPC,_T,_H
-		defb	_E,0xf1
-		defb	_E,_N,_D,_SPC,_P,_I,_P,_E,_SPC,_U,_T,_I,_L,_I,_S
-		defb	_I,_N,_G,_SPC,_A,_S,_SPC,_M,_A,_N,_Y,_SPC,_P,_I
-		defb	_P,_E,_S,0xf1
-		defb	_F,_R,_O,_M,_SPC,_T,_H,_E,_SPC,_P,_R,_E,_V,_I,_E
-		defb	_W,_SPC,_B,_A,_R,_SPC,_A,_S,_SPC,_P,_O,_S,_S,_I
-		defb	_B,_L,_E,0xf1
-		defb	_W,_I,_T,_H,_I,_N,_SPC,_T,_H,_E,_SPC,_S,_H,_O,_R
-		defb	_T,_E,_S,_T,_SPC,_T,_I,_M,_E,_FST,0xf2
+; Note to self: next time, write a function that accepts ASCII text.
+
+help_pg0_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_1V,_SLSV
+		defb	_3V,0x80,0xf2
+		defb	_I,_N,_S,_T,_R,_U,_C,_T,_I,_O,_N,_S,0xf1
+		defb	0xdc,_MNS,0xf2
+		defb	_C,_O,_N,_N,_E,_C,_T,_SPC,_T,_H,_E,_SPC,_SPC,_S
+		defb	_T,_A,_R,_T,_SPC,_SPC,_P,_I,_P,_E,_SPC,_SPC,_T
+		defb	_O,_SPC,_T,_H,_E,0xf1
+		defb	_E,_N,_D,_SPC,_P,_I,_P,_E,_SPC,_U,_S,_I,_N,_G
+		defb	_SPC,_A,_S,_SPC,_SPC,_M,_A,_N,_Y,_SPC,_P,_I,_P
+		defb	_E,_S,_SPC,_A,_S,0xf1
+		defb	_P,_O,_S,_S,_I,_B,_L,_E,_SPC,_SPC,_F,_R,_O,_M
+		defb	_SPC,_SPC,_T,_H,_E,_SPC,_SPC,_P,_R,_E,_V,_I,_E
+		defb	_W,_SPC,_B,_A,_R,0xf1
+		defb	_W,_I,_T,_H,_I,_N,_SPC,_SPC,_T,_H,_E,_SPC,_SPC
+		defb	_SPC,_S,_H,_O,_R,_T,_E,_S,_T,_SPC,_SPC,_P,_O,_S
+		defb	_S,_I,_B,_L,_E,0xf1
+		defb	_T,_I,_M,_E,_FST,0xf2
 		defb	_T,_H,_E,_SPC,_P,_I,_P,_E,_SPC,_N,_E,_T,_W,_O,_R
-		defb	_K,_SPC,_W,_I,_L,_L,_SPC,_B,_E,_SPC,_F,_I,_L,_L
-		defb	_E,_D,0xf1
+		defb	_K,_SPC,_SPC,_W,_I,_L,_L,_SPC,_B,_E,_SPC,_F,_I
+		defb	_L,_L,_E,_D,0xf1
 		defb	_W,_H,_E,_N,_SPC,_E,_I,_T,_H,_E,_R,_SPC,_T,_H,_E
 		defb	_SPC,_T,_I,_M,_E,_SPC,_H,_A,_S,_SPC,_E,_X,_P,_I
 		defb	_R,_E,_D,0xf1
 		defb	_O,_R,_SPC,_DQT,_F,_I,_L,_L,_DQT,_SPC,_O,_R,_SPC
 		defb	_T,_H,_E,_SPC,_S,_T,_A,_R,_T,_SPC,_P,_I,_P,_E
 		defb	_SPC,_H,_A,_V,_E,0xf1
-		defb	_B,_E,_E,_N,_SPC,_S,_E,_L,_E,_C,_T,_E,_D,_SPC
-		defb	_OBR,_F,_I,_L,_L,_I,_N,_G,_SPC,_E,_A,_R,_L,_Y
-		defb	0xf1
+		defb	_B,_E,_E,_N,_SPC,_SPC,_S,_E,_L,_E,_C,_T,_E,_D
+		defb	_SPC,_SPC,_SPC,_OBR,_F,_I,_L,_L,_I,_N,_G,_SPC
+		defb	_SPC,_E,_A,_R,_L,_Y,0xf1
 		defb	_R,_E,_W,_A,_R,_D,_S,_SPC,_A,_SPC,_B,_O,_N,_U,_S
 		defb	_CBR,_FST,0xf2
-		defb	_T,_H,_E,_SPC,_G,_A,_M,_E,_SPC,_W,_I,_L,_L,_SPC
-		defb	_E,_N,_D,_SPC,_P,_R,_E,_M,_A,_T,_U,_R,_E,_L,_Y
-		defb	0xf1
-		defb	_W,_H,_E,_N,_SPC,_B,_E,_I,_N,_G,_SPC,_F,_I,_L,_L
-		defb	_E,_D,_SPC,_I,_F,_SPC,_E,_I,_T,_H,_E,_R,_SPC,_A
-		defb	0xf1
-		defb	_L,_E,_A,_K,_Y,_SPC,_P,_I,_P,_E,_SPC,_I,_S,_SPC
-		defb	_D,_E,_T,_E,_C,_T,_E,_D,_SPC,_O,_R,_SPC,_T,_H,_E
-		defb	0xf1
-		defb	_N,_E,_T,_W,_O,_R,_K,_SPC,_B,_U,_R,_S,_T,_S,_SPC,
-		defb	_A,_S,_SPC,_A,_SPC,_R,_E,_S,_U,_L,_T,_SPC,_O,_F
-		defb	0xf1
-		defb	_F,_A,_I,_L,_I,_N,_G,_SPC,_T,_O,_SPC,_C,_O,_N,_N
-		defb	_E,_C,_T,_SPC,_T,_O,_SPC,_T,_H,_E,_SPC,_E,_N,_D
-		defb	0xf1
+		defb	_T,_H,_E,_SPC,_G,_A,_M,_E,_SPC,_SPC,_W,_I,_L,_L
+		defb	_SPC,_SPC,_E,_N,_D,_SPC,_SPC,_P,_R,_E,_M,_A,_T
+		defb	_U,_R,_E,_L,_Y,0xf1
+		defb	_W,_H,_I,_L,_S,_T,_SPC,_B,_E,_I,_N,_G,_SPC,_SPC
+		defb	_F,_I,_L,_L,_E,_D,_SPC,_I,_F,_SPC,_E,_I,_T,_H,_E
+		defb	_R,_SPC,_A,0xf1
+		defb	_L,_E,_A,_K,_Y,_SPC,_P,_I,_P,_E,_SPC,_SPC,_I,_S
+		defb	_SPC,_SPC,_D,_E,_T,_E,_C,_T,_E,_D,_SPC,_SPC,_O
+		defb	_R,_SPC,_T,_H,_E,0xf1
+		defb	_N,_E,_T,_W,_O,_R,_K,_SPC,_SPC,_B,_U,_R,_S,_T,_S
+		defb	_SPC,_SPC,_A,_S,_SPC,_SPC,_A,_SPC,_R,_E,_S,_U,_L
+		defb	_T,_SPC,_O,_F,0xf1
+		defb	_F,_A,_I,_L,_I,_N,_G,_SPC,_T,_O,_SPC,_SPC,_C,_O
+		defb	_N,_N,_E,_C,_T,_SPC,_SPC,_T,_O,_SPC,_SPC,_T,_H
+		defb	_E,_SPC,_E,_N,_D,0xf1
 		defb	_P,_I,_P,_E,_FST,0xf2
-		defb	0xf3
-		defb	_B,_O,_T,_T,_O,_M
 		defb	0xf0
 
-help_pg1_data:	defb	0xdc,0x80,_SV,_CV,_OV,_RV,_IV,_NV,_GV,0xd9,0x80
-		defb	_2V,_SLSV,_3V,0x80,0xf1
-		defb	0xff,0xf7
-		defb	_B,_O,_T,_T,_O,_M
+help_pg1_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_2V,_SLSV
+		defb	_3V,0x80,0xf2
+		defb	_S,_C,_O,_R,_I,_N,_G,0xf1
+		defb	0xd7,_MNS,0xf2
+		defb	_PLS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_P,_I,_P,_E,_SPC,_P,_L,_A,_C,_E,_D,_FST,0xf2
+		defb	_MNS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_P,_I,_P,_E,_SPC,_O,_V,_E,_R,_W,_R,_I,_T,_T,_E
+		defb	_N,_FST,0xf2
+		defb	_SPC,_PLS,_5,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_S,_E,_C,_O,_N,_D,_SPC,_R,_E,_M,_A,_I,_N,_I,_N
+		defb	_G,_SPC,_I,_F,0xf1
+		defb	0xd4,_SPC,_Y,_O,_U,_SPC,_F,_I,_L,_L,_SPC,_T,_H
+		defb	_E,_SPC,_N,_E,_T,_W,_O,_R,_K,_SPC,_E,_A,_R,_L,_Y
+		defb	_FST,0xf2
+		defb	_MNS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_U,_N,_C,_O,_N,_N,_E,_C,_T,_E,_D,_SPC,_P,_I,_P
+		defb	_E,0xf1
+		defb	0xd4,_SPC,_F,_O,_U,_N,_D,_SPC,_W,_H,_E,_N,_SPC
+		defb	_F,_I,_L,_L,_I,_N,_G,_FST,0xf2
+		defb	_PLS,_5,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_F,_I,_L,_L,_E,_D,_SPC,_P,_I,_P,_E,_FST,0xf2
 		defb	0xf0
 
-help_pg2_data:	defb	0xd9,0x80,_PV,_IV,_PV,_EV,_SPCV,_FV,_RV,_EV,_QV
-		defb	_UV,_EV,_NV,_CV,_YV,0xd5,0x80,_3V,_SLSV,_3V,0x80
-		defb	0xf1
-		defb	0xff,0xf7
-		defb	_B,_O,_T,_T,_O,_M
+help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
+		defb	_3V,0x80,0xf2
+		defb	_P,_I,_P,_E,_SPC,_F,_R,_E,_Q,_U,_E,_N,_C,_Y,0xf1
+		defb	0xde,_MNS,0xf2
+		defb	_T,_H,_E,_SPC,_SPC,_P,_I,_P,_E,_S,_SPC,_SPC,_T
+		defb	_H,_A,_T,_SPC,_SPC,_A,_P,_P,_E,_A,_R,_SPC,_SPC
+		defb	_O,_N,_SPC,_T,_H,_E,0xf1
+		defb	_P,_R,_E,_V,_I,_E,_W,_SPC,_B,_A,_R,_SPC,_A,_R,_E
+		defb	_SPC,_SPC,_S,_H,_U,_F,_F,_L,_E,_D,_SPC,_F,_R,_O
+		defb	_M,_SPC,_A,0xf1
+		defb	_S,_E,_T,_SPC,_F,_R,_E,_Q,_U,_E,_N,_C,_Y,_SPC
+		defb	_MNS,_MNS,_SPC,_E,_V,_E,_R,_Y,_SPC,_SPC,_6,_7
+		defb	_SPC,_P,_I,_P,_E,_S,0xf1
+		defb	_W,_I,_L,_L,_SPC,_I,_N,_C,_L,_U,_D,_E,_SPC,_T
+		defb	_H,_E,_SPC,_F,_O,_L,_L,_O,_W,_I,_N,_G,_CLN,0xf2
+		defb	_SPC,_ASK,_SPC,_1,_8,_SPC,_C,_O,_R,_N,_E,_R,_SPC
+		defb	_P,_I,_E,_C,_E,_S,0xf1
+		defb	_SPC,_ASK,_SPC,_1,_3,_SPC,_T,_SPC,_P,_I,_E,_C,_E
+		defb	_S,0xf1
+		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_V,_E,_R,_T,_I,_C,_A
+		defb	_L,_SPC,_P,_I,_P,_E,_S,0xf1
+		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_H,_O,_R,_I,_Z,_O,_N
+		defb	_T,_A,_L,_SPC,_P,_I,_P,_E,_S,0xf1
+		defb	_SPC,_ASK,_SPC,_1,_0,_SPC,_T,_E,_R,_M,_I,_N,_A
+		defb	_T,_O,_R,_S,0xf1
+		defb	_SPC,_ASK,_SPC,_SPC,_4,_SPC,_C,_R,_O,_S,_S,_E,_S
+		defb	0xf2
 		defb	0xf0
 
 pipe_data:	defb	0xd9,_SPC
