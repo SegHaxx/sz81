@@ -249,7 +249,7 @@ basic_0001:	defb	0,1		; 1 REM
 DEBUG_TIMING	equ	0
 DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
-DEBUG_PIPES	equ	1
+DEBUG_PIPES	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
@@ -268,9 +268,13 @@ STATE_GAME	equ	5
 
 SUBSTATE_NONE	equ	0
 SUBSTATE_SETCTRLS equ	1
+SUBSTATE_PANEL	equ	2
 
 BLINK_PAL	equ	50/2
 BLINK_NTSC	equ	60/2
+
+CURSOR_GAME_DELAY_PAL equ 50/4
+CURSOR_GAME_DELAY_NTSC equ 60/4
 
 EVENT_REPEAT_DELAY_PAL equ 50/3
 EVENT_REPEAT_DELAY_NTSC equ 60/3
@@ -278,6 +282,7 @@ EVENT_REPEAT_INTERVAL_PAL equ 50/8
 EVENT_REPEAT_INTERVAL_NTSC equ 60/8
 
 mem_16514:	jr	start
+temp_buffer:	defw	0
 screen_buffer:	defw	0
 fade_offsets:	defw	0
 keyb_buffer:	defw	0
@@ -306,20 +311,28 @@ action_left:	defb	_O,1
 action_right:	defb	_P,1
 action_select:	defb	_K,0
 controls_set_idx: defb	0
-temp_buffer:	defs	TEMP_BUFFER_MAX
-cursor_options_position: defb 0
-cursor_options_offset: defw 0
 event_repeat_delay_master: defw 0
 event_repeat_interval_master: defw 0
 event_repeat_delay: defw 0
 event_repeat_last: defw	0
 help_page:	defb	0
+cursor_options_position: defb 0
+cursor_options_offset: defw 0
+cursor_game_position: defb 0
+cursor_game_offset: defw 0
+cursor_game_state: defb	0
+cursor_game_delay: defb	0
+cursor_game_last: defw	0
+cursor_panel_position: defb 0
+cursor_panel_offset: defw 0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
-		add	hl,sp
+		add	hl,sp			; Carry will be clear.
+		ld	bc,TEMP_BUFFER_MAX
+		sbc	hl,bc
+		ld	(temp_buffer),hl
 		ld	bc,33*24
-		and	a
 		sbc	hl,bc
 		ld	(screen_buffer),hl
 		ld	bc,33*26*2
@@ -336,21 +349,20 @@ start:		ld	(sp_original),sp
 		ld	bc,8*8
 		sbc	hl,bc
 		ld	(board_array),hl
-		ld	bc,9*34
+		ld	bc,9*19
 		sbc	hl,bc
 		ld	(pipe_pieces),hl
 		ld	sp,hl
 
-		; [Re]Initialise the engine.
+		; -----------------------------------------------------
+		; Engine Initialisation
+		; -----------------------------------------------------
 		ld	a,_SPC
 		call	screen_buffer_wipe	; Initialise eol markers.
 		ld	a,1			; Show the splash screen
 		ld	(screen_redraw),a	; whilst things are
 		call	splash_draw		; being initialised.
 		call	screen_buffer_blit
-
-		ld	a,(FRAMES)		; Initialise random
-		ld 	(rnd_seed),a		; seed from frames-low.
 
 		call	localise
 		call	fade_offsets_create
@@ -376,20 +388,23 @@ start:		ld	(sp_original),sp
 		
 		xor	a
 		ld	(help_page),a
-		
-		; Main loop.
+		; -----------------------------------------------------
+		; Main Loop
+		; -----------------------------------------------------
 main_top:	call	events_generate
 		ld	a,(state_current)
 		cp	STATE_SPLASH
 		jr	nz,main_not_splash
-		; STATE_SPLASH ----------------------------------------
+		; -----------------------------------------------------
+		; STATE_SPLASH
+		; -----------------------------------------------------
 main_splash:	call	event_poll
 		jp	nc,main_update
 		jr	z,main_splash		; Ignore releases.
 		call	blink_unregister	; Any press will
 		ld	a,STATE_OPTIONS		; change to the
 		call	state_change		; options screen.
-		ld	a,15
+		ld	a,1+2+4+8
 		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
@@ -399,7 +414,9 @@ main_splash:	call	event_poll
 main_not_splash:
 		cp	STATE_OPTIONS
 		jp	nz,main_not_options
-		; STATE_OPTIONS ---------------------------------------
+		; -----------------------------------------------------
+		; STATE_OPTIONS
+		; -----------------------------------------------------
 main_options:	call	event_poll
 		jp	nc,main_update
 		jr	z,main_options		; Ignore releases.
@@ -431,7 +448,7 @@ main_opt_ctr_setl1:
 		jr	nz,main_options		; Get another control.
 		ld	a,SUBSTATE_NONE
 		call	substate_change		; We're finished now.
-		ld	a,14
+		ld	a,2+4+8
 		ld	(screen_redraw),a
 		jr	main_options
 main_opt_up:	ld	hl,action_up
@@ -443,7 +460,7 @@ main_opt_up:	ld	hl,action_up
 		ld	a,5
 main_opt_upl0:	dec	a
 main_opt_upl1:	ld	(cursor_options_position),a
-		ld	a,6
+		ld	a,2+4
 		ld	(screen_redraw),a
 		jr	main_options
 main_opt_down:	ld	hl,action_down
@@ -475,10 +492,18 @@ main_opt_sel_play:
 		cp	1
 		jr	nz,main_opt_sel_save
 		call	blink_unregister
-		call	board_array_reset
 		ld	a,STATE_GAME
 		call	state_change
-		ld	a,1
+		ld	a,(FRAMES)		; Initialise random
+		ld 	(rnd_seed),a		; seed from frames-low.
+		call	board_array_reset
+		xor	a
+		ld	(cursor_game_state),a
+		ld	a,8*3+3
+		ld	(cursor_game_position),a
+		ld	bc,(FRAMES)
+		ld	(cursor_game_last),bc
+		ld	a,1+8
 		ld	(screen_redraw),a
 		call	game_draw
 		call	screen_buffer_fade
@@ -510,9 +535,11 @@ main_opt_sel_quit:
 main_not_options:
 		cp	STATE_HELP
 		jr	nz,main_not_help
-		; STATE_HELP ------------------------------------------
+		; -----------------------------------------------------
+		; STATE_HELP
+		; -----------------------------------------------------
 main_help:	call	event_poll
-		jr	nc,main_update
+		jp	nc,main_update
 		jr	z,main_help		; Ignore releases.
 		ld	hl,action_up
 		cp	(hl)
@@ -539,7 +566,7 @@ main_hlp_select:
 		jr	nz,main_help
 		ld	a,STATE_OPTIONS
 		call	state_change
-		ld	a,15
+		ld	a,1+2+4+8
 		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
@@ -547,21 +574,105 @@ main_hlp_select:
 		jr	main_help
 
 main_not_help:	cp	STATE_GAME
-		jr	nz,main_update
-		; STATE_GAME ------------------------------------------
+		jp	nz,main_update
+		; -----------------------------------------------------
+		; STATE_GAME
+		; -----------------------------------------------------
 main_game:	call	event_poll
-		jr	nc,main_update
+		jp	nc,main_update
 		jr	z,main_game		; Ignore releases.
-		ld	a,STATE_OPTIONS		; temp temp
+		ld	b,a
+		ld	a,(substate_current)
+		cp	SUBSTATE_PANEL
+		ld	a,b
+		jr	nz,main_gam_up
+		; Manage panel input here.
+		; Manage panel input here.
+		; Manage panel input here.
+		jr	main_game
+main_gam_up:	push	af
+		ld	a,4			; Erase the board cursor
+		ld	(screen_redraw),a	; by replacing the pipe
+		call	game_draw		; piece at its current
+		pop	af			; offset.
+		ld	hl,action_up
+		cp	(hl)
+		jr	nz,main_gam_down
+		ld	a,(cursor_game_position)
+		cp	8
+		jr	nc,main_gam_upl0
+		add	a,64
+main_gam_upl0:	sub	8
+main_gam_upl1:	ld	(cursor_game_position),a
+		xor	a			; Reset to frame 0 and
+		ld	(cursor_game_state),a	; update frames last
+		ld	bc,(FRAMES)		; so that its visible.
+		ld	(cursor_game_last),bc
+		ld	a,8			; Draw the board cursor.
+		ld	(screen_redraw),a
+		jr	main_game
+main_gam_down:	ld	hl,action_down
+		cp	(hl)
+		jr	nz,main_gam_left
+		ld	a,(cursor_game_position)
+		cp	56
+		jr	c,main_gam_dnl0
+		sub	64
+main_gam_dnl0:	add	a,8
+		jr	main_gam_upl1
+main_gam_left:	ld	hl,action_left
+		cp	(hl)
+		jr	nz,main_gam_right
+		ld	a,(cursor_game_position)
+		ld	b,a
+		and	7			; Remainder of /8.
+		ld	a,b
+		jr	nz,main_gam_ltl2
+		srl	a
+		srl	a
+		srl	a			; Quotient of /8.
+		jr	z,main_gam_ltl0
+		cp	5			; 0, 5, 6 and 7 will
+		ld	a,b			; tranfer to the panel.
+		jr	c,main_gam_ltl1
+main_gam_ltl0:	ld	a,SUBSTATE_PANEL
+		call	substate_change
+		jr	main_game
+main_gam_ltl1:	add	a,8
+main_gam_ltl2:	dec	a
+		jr	main_gam_upl1
+main_gam_right:	ld	hl,action_right
+		cp	(hl)
+		jr	nz,main_gam_sel
+		ld	a,(cursor_game_position)
+		ld	b,a
+		and	7			; Remainder of /8.
+		cp	7
+		ld	a,b
+		jr	nz,main_gam_rtl1
+
+
+		sub	8
+main_gam_rtl1:	inc	a
+		jr	main_gam_upl1
+main_gam_sel:
+
+		call	blink_unregister	; temp temp
+		ld	a,STATE_OPTIONS
 		call	state_change
-		ld	a,15
+		ld	a,SUBSTATE_NONE
+		call	substate_change
+		ld	a,1+2+4+8
 		ld	(screen_redraw),a
 		call	options_draw
 		call	screen_buffer_fade
 		call	event_queue_flush
-		jr	main_game
 
-		; Update all or part of the relevant screen.
+		jp	main_game
+
+		; -----------------------------------------------------
+		; Screen Update
+		; -----------------------------------------------------
 main_update:	ld	a,(state_current)
 		cp	STATE_SPLASH
 		jr	nz,main_upd_options
@@ -578,7 +689,13 @@ main_upd_help:	cp	STATE_HELP
 		jr	main_upd_screen
 main_upd_game:	cp	STATE_GAME
 		jr	nz,main_upd_screen
-		call	game_draw
+		ld	a,(substate_current)
+		cp	SUBSTATE_NONE
+		jr	nz,main_upd_gal0
+		ld	a,(screen_redraw)	; The cursor requires
+		or	2			; animating when it's
+		ld	(screen_redraw),a	; on the board.
+main_upd_gal0:	call	game_draw
 
 main_upd_screen:
 		call	dump_debug_info
@@ -621,7 +738,7 @@ bul0:		ld	e,0			; [Re]initialise the
 ; main loop just before blitting the contents of the screen buffer.
 ; Passing zero as the height will [re]initialise the blink system.
 ; 
-; On entry: bc = destination offset
+; On entry: bc = destination offset into screen buffer
 ;           d  = width
 ;           e  = height (0 to [re]initialise the blink system)
 
@@ -1365,7 +1482,81 @@ game_draw:	ld	a,(screen_redraw)
 		call	string_write
 		call	board_draw
 
-gdl10:		
+gdl10:		ld	a,(screen_redraw)
+		and	2
+		jr	z,gdl20
+		ld	bc,(FRAMES)		; If it's time, flag
+		ld	hl,(cursor_game_last)	; the board cursor for
+		and	a			; animating.
+		sbc	hl,bc
+		ld	a,(cursor_game_delay)
+		cp	l
+		jr	nc,gdl20
+		ld	(cursor_game_last),bc
+		ld	a,(cursor_game_state)
+		xor	1			; Flip the animation
+		ld	(cursor_game_state),a	; frame.
+		ld	a,(screen_redraw)
+		or	4+8
+		ld	(screen_redraw),a
+
+gdl20:		ld	a,(screen_redraw)
+		and	4
+		jr	z,gdl30
+		ld	a,(cursor_game_position) ; Erase the board
+		ld	b,0			; cursor by replacing
+		ld	c,a			; the pipe piece at
+		ld	hl,(board_array)	; its current offset.
+		add	hl,bc
+		ld	a,(hl)
+		ld	hl,(screen_buffer)
+		ld	bc,(cursor_game_offset)
+		add	hl,bc
+		ld	b,h
+		ld	c,l
+		call	pipe_draw
+
+gdl30:		ld	a,(screen_redraw)
+		and	8
+		jr	z,gdl40
+		ld	a,(cursor_game_position) ; Draw the board cursor.
+		srl	a
+		srl	a
+		srl	a			; Quotient of /8.
+		ld	hl,0
+		or	a
+		jr	z,gdl32
+		ld	b,a			; Update the cursor's
+		ld	de,33*3			; offset based upon the
+gdl31:		add	hl,de			; current value of
+		djnz	gdl31			; cursor_game_position.
+gdl32:		ld	a,(cursor_game_position)
+		and	7			; Remainder of /8.
+		ld	b,a
+		sla	a
+		add	a,b			; Multiplied by 3.
+		add	a,8			; Board screen offset.
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	(cursor_game_offset),hl
+		ld	a,(cursor_game_state)
+		or	a			; Draw on frame 0 only
+		jr	nz,gdl40		; so that it flashes.
+		ld	bc,(screen_buffer)
+		add	hl,bc
+		ld	(hl),0x01
+		inc	hl
+		inc	hl
+		ld	(hl),0x02
+		ld	bc,64
+		add	hl,bc
+		ld	(hl),0x04
+		inc	hl
+		inc	hl
+		ld	(hl),0x87
+
+gdl40:
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1392,9 +1583,10 @@ bdl1:		push	bc
 		call	get_random_number	; 0 to 255.
 		srl	a
 		srl	a
-		cp	34
+		srl	a
+		cp	19
 		jr	c,bdl2
-		sub	34
+		sub	19
 bdl2:		pop	bc
 		endc
 
@@ -1416,26 +1608,26 @@ bdl2:		pop	bc
 ; *********************************************************************
 ; Pipe Draw                                                           *
 ; *********************************************************************
-; This will draw a pipe piece to the screen buffer.
+; This will draw a pipe piece.
 ; 
-; On entry: a  = the pipe piece 0 to 33
-;           bc = destination offset
+; On entry: a  = the pipe piece 0 to 18
+;           bc = destination address
 ; 
 ; Key to pipe pieces :-
 ; 
-; +-------------------------------------------------------------------+
-; | 0   2   4   6   8  10  12  14  16  18  20  22  24  26  28  30  32 |
-; +-------------------------------------------------------------------+
-; |   |   | O | O |   |   | O |   | O | O |   |   | # |   | # |   | # |
-; |   |OO<| O |OOO|OX | XO|OO | OO|OO | OO|###| X | X |## | ##|###|###|
-; |   |   | O | O |   |   |   | O | O | O |   | # |   | # |   | # |   |
-; +-------------------------------------------------------------------+
-; | 1   3   5   7   9  11  13  15  17  19  21  23  25  27  29  31  33 |
-; +-------------------------------------------------------------------+
-; |///|   |   |   | O |   | O |   | O | # | # |   |   | # |   | # | # |
-; |///|<OO|OOO| X | X |OO | OO|OOO|OOO| # |###|#X | X#|## | ##|## | ##|
-; |///|   |   | O |   | O |   | O |   | # | # |   |   |   | # | # | # |
-; +-------------------------------------------------------------------+
+; +---------------------------------------+
+; | 0   2   4   6   8  10  12  14  16  18 |
+; +---------------------------------------+
+; |   |   | O | O |   |   | O |   | O | O |
+; |   |OO<| O |OOO|OX | XO|OO | OO|OO | OO|
+; |   |   | O | O |   |   |   | O | O | O |
+; +---------------------------------------+
+; | 1   3   5   7   9  11  13  15  17 |
+; +-----------------------------------+
+; |///|   |   |   | O |   | O |   | O |
+; |///|<OO|OOO| X | X |OO | OO|OOO|OOO|
+; |///|   |   | O |   | O |   | O |   |
+; +-----------------------------------+
 
 pipe_draw:	ld	hl,(pipe_pieces)
 		ld	d,b
@@ -1472,24 +1664,6 @@ pipe_pieces_create:
 		ld	bc,(pipe_pieces)	; data.
 		ld	de,pipe_data
 		call	string_write
-
-		ld	hl,(pipe_pieces)	; Create pieces 19 to
-		ld	bc,9*4			; 33 by copying and
-		add	hl,bc			; modifying 4 to 18.
-		ld	d,h
-		ld	e,l
-		ld	bc,9*15
-		add	hl,bc
-		ex	de,hl
-		ld	b,c
-ppcl0:		ld	a,(hl)
-		inc	hl
-		cp	0x80
-		jr	nz,ppcl1
-		ld	a,0x08
-ppcl1:		ld	(de),a
-		inc	de
-		djnz	ppcl0
 		ret
 
 ; *********************************************************************
@@ -1510,7 +1684,7 @@ ppcl1:		ld	(de),a
 
 hex_write:	push	af
 		push	bc
-		ld	bc,temp_buffer
+		ld	bc,(temp_buffer)
 hwl0:		ld	a,l
 		cp	4
 		jr	nz,hwl2
@@ -1551,7 +1725,7 @@ hwl10:		dec	l
 		ld	(bc),a
 		pop	bc
 		pop	af
-		ld	de,temp_buffer
+		ld	de,(temp_buffer)
 		call	string_write
 		ret
 
@@ -1634,13 +1808,17 @@ localise:	ld	a,(MARGIN)
 		ld	a,BLINK_PAL
 		ld	bc,EVENT_REPEAT_INTERVAL_PAL
 		ld	hl,EVENT_REPEAT_DELAY_PAL
+		ld	d,CURSOR_GAME_DELAY_PAL
 		jr	locall1
 locall0:	ld	a,BLINK_NTSC
 		ld	bc,EVENT_REPEAT_INTERVAL_NTSC
 		ld	hl,EVENT_REPEAT_DELAY_NTSC
+		ld	d,CURSOR_GAME_DELAY_NTSC
 locall1:	ld	(blink_delay),a
 		ld	(event_repeat_interval_master),bc
 		ld	(event_repeat_delay_master),hl
+		ld	a,d
+		ld	(cursor_game_delay),a		
 		ret
 
 ; *********************************************************************
@@ -1811,8 +1989,6 @@ cursor_options_offsets:
 
 help_page_offsets: defw	help_pg0_data,help_pg1_data,help_pg2_data
 
-; Note to self: next time, write a function that accepts ASCII text.
-
 help_pg0_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_1V,_SLSV
 		defb	_3V,0x80,0xf2
 		defb	_I,_N,_S,_T,_R,_U,_C,_T,_I,_O,_N,_S,0xf1
@@ -1840,10 +2016,10 @@ help_pg0_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_1V,_SLSV
 		defb	_T,_H,_E,_SPC,_S,_T,_A,_R,_T,_SPC,_P,_I,_P,_E
 		defb	_SPC,_H,_A,_V,_E,0xf1
 		defb	_B,_E,_E,_N,_SPC,_SPC,_S,_E,_L,_E,_C,_T,_E,_D
-		defb	_SPC,_SPC,_SPC,_OBR,_F,_I,_L,_L,_I,_N,_G,_SPC
+		defb	_SPC,_MNS,_MNS,_SPC,_F,_I,_L,_L,_I,_N,_G,_SPC
 		defb	_SPC,_E,_A,_R,_L,_Y,0xf1
 		defb	_R,_E,_W,_A,_R,_D,_S,_SPC,_A,_SPC,_B,_O,_N,_U,_S
-		defb	_CBR,_FST,0xf2
+		defb	_FST,0xf2
 		defb	_T,_H,_E,_SPC,_G,_A,_M,_E,_SPC,_SPC,_W,_I,_L,_L
 		defb	_SPC,_SPC,_E,_N,_D,_SPC,_SPC,_P,_R,_E,_M,_A,_T
 		defb	_U,_R,_E,_L,_Y,0xf1
@@ -1867,15 +2043,16 @@ help_pg1_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_2V,_SLSV
 		defb	_S,_C,_O,_R,_I,_N,_G,0xf1
 		defb	0xd7,_MNS,0xf2
 		defb	_PLS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
-		defb	_P,_I,_P,_E,_SPC,_P,_L,_A,_C,_E,_D,_FST,0xf2
+		defb	_P,_I,_P,_E,_SPC,_F,_R,_E,_E,_L,_Y,_SPC,_P,_L,_A
+		defb	_C,_E,_D,_FST,0xf2
 		defb	_MNS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
 		defb	_P,_I,_P,_E,_SPC,_O,_V,_E,_R,_W,_R,_I,_T,_T,_E
 		defb	_N,_FST,0xf2
-		defb	_SPC,_PLS,_5,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_PLS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
 		defb	_S,_E,_C,_O,_N,_D,_SPC,_R,_E,_M,_A,_I,_N,_I,_N
 		defb	_G,_SPC,_I,_F,0xf1
-		defb	0xd4,_SPC,_Y,_O,_U,_SPC,_F,_I,_L,_L,_SPC,_T,_H
-		defb	_E,_SPC,_N,_E,_T,_W,_O,_R,_K,_SPC,_E,_A,_R,_L,_Y
+		defb	0xd4,_SPC,_T,_H,_E,_SPC,_N,_E,_T,_W,_O,_R,_K,_SPC
+		defb	_I,_S,_SPC,_F,_I,_L,_L,_E,_D,_SPC,_E,_A,_R,_L,_Y
 		defb	_FST,0xf2
 		defb	_MNS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
 		defb	_U,_N,_C,_O,_N,_N,_E,_C,_T,_E,_D,_SPC,_P,_I,_P
@@ -1897,19 +2074,19 @@ help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
 		defb	_SPC,_SPC,_S,_H,_U,_F,_F,_L,_E,_D,_SPC,_F,_R,_O
 		defb	_M,_SPC,_A,0xf1
 		defb	_S,_E,_T,_SPC,_F,_R,_E,_Q,_U,_E,_N,_C,_Y,_SPC
-		defb	_MNS,_MNS,_SPC,_E,_V,_E,_R,_Y,_SPC,_SPC,_6,_7
+		defb	_MNS,_MNS,_SPC,_E,_V,_E,_R,_Y,_SPC,_SPC,_7,_0
 		defb	_SPC,_P,_I,_P,_E,_S,0xf1
 		defb	_W,_I,_L,_L,_SPC,_I,_N,_C,_L,_U,_D,_E,_SPC,_T
 		defb	_H,_E,_SPC,_F,_O,_L,_L,_O,_W,_I,_N,_G,_CLN,0xf2
-		defb	_SPC,_ASK,_SPC,_1,_8,_SPC,_C,_O,_R,_N,_E,_R,_SPC
+		defb	_SPC,_ASK,_SPC,_2,_0,_SPC,_C,_O,_R,_N,_E,_R,_SPC
 		defb	_P,_I,_E,_C,_E,_S,0xf1
-		defb	_SPC,_ASK,_SPC,_1,_3,_SPC,_T,_SPC,_P,_I,_E,_C,_E
+		defb	_SPC,_ASK,_SPC,_1,_2,_SPC,_T,_SPC,_P,_I,_E,_C,_E
 		defb	_S,0xf1
 		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_V,_E,_R,_T,_I,_C,_A
 		defb	_L,_SPC,_P,_I,_P,_E,_S,0xf1
 		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_H,_O,_R,_I,_Z,_O,_N
 		defb	_T,_A,_L,_SPC,_P,_I,_P,_E,_S,0xf1
-		defb	_SPC,_ASK,_SPC,_1,_0,_SPC,_T,_E,_R,_M,_I,_N,_A
+		defb	_SPC,_ASK,_SPC,_1,_2,_SPC,_T,_E,_R,_M,_I,_N,_A
 		defb	_T,_O,_R,_S,0xf1
 		defb	_SPC,_ASK,_SPC,_SPC,_4,_SPC,_C,_R,_O,_S,_S,_E,_S
 		defb	0xf2
