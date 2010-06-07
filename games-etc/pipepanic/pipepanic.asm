@@ -254,6 +254,7 @@ DEBUG_PIPES	equ	0
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 HELP_PAGE_MAX	equ	3
+PIPE_ARRAY_MAX	equ	70
 
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
@@ -268,13 +269,16 @@ STATE_GAME	equ	5
 
 SUBSTATE_NONE	equ	0
 SUBSTATE_SETCTRLS equ	1
-SUBSTATE_PANEL	equ	2
+SUBSTATE_GAME	equ	2
+SUBSTATE_FILL	equ	3
+SUBSTATE_HIFILL	equ	4
+SUBSTATE_END	equ	5
 
 BLINK_PAL	equ	50/2
 BLINK_NTSC	equ	60/2
 
-CURSOR_GAME_DELAY_PAL equ 50/4
-CURSOR_GAME_DELAY_NTSC equ 60/4
+CURSOR_GAME_DELAY_PAL equ 50/2
+CURSOR_GAME_DELAY_NTSC equ 60/2
 
 EVENT_REPEAT_DELAY_PAL equ 50/3
 EVENT_REPEAT_DELAY_NTSC equ 60/3
@@ -290,6 +294,7 @@ keyb_buffer_old: defw	0
 event_queue:	defw	0
 board_array:	defw	0
 pipe_pieces:	defw	0
+pipe_array:	defw	0
 sp_original:	defw	0
 rnd_seed:	defb	0
 state_current:	defb	0
@@ -320,11 +325,15 @@ cursor_options_position: defb 0
 cursor_options_offset: defw 0
 cursor_game_position: defb 0
 cursor_game_offset: defw 0
-cursor_game_state: defb	0
+cursor_game_frame: defb	0
 cursor_game_delay: defb	0
 cursor_game_last: defw	0
 cursor_panel_position: defb 0
 cursor_panel_offset: defw 0
+
+pipe_array_idx:	defb	0
+preview_bar_slot0: defb	0
+preview_bar_slot1: defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -352,6 +361,9 @@ start:		ld	(sp_original),sp
 		ld	bc,9*19
 		sbc	hl,bc
 		ld	(pipe_pieces),hl
+		ld	bc,PIPE_ARRAY_MAX
+		sbc	hl,bc
+		ld	(pipe_array),hl
 		ld	sp,hl
 
 		; -----------------------------------------------------
@@ -401,15 +413,17 @@ main_top:	call	events_generate
 main_splash:	call	event_poll
 		jp	nc,main_update
 		jr	z,main_splash		; Ignore releases.
-		call	blink_unregister	; Any press will
+main_spll0:	call	blink_unregister	; Any press will
 		ld	a,STATE_OPTIONS		; change to the
 		call	state_change		; options screen.
-		ld	a,1+2+4+8
+		ld	a,SUBSTATE_NONE
+		call	substate_change
+main_spll1:	ld	a,1+2+4+8
 		ld	(screen_redraw),a
 		call	options_draw
-		call	screen_buffer_fade
+main_spll2:	call	screen_buffer_fade
 		call	event_queue_flush
-		jr	main_splash
+		jp	main_update
 
 main_not_splash:
 		cp	STATE_OPTIONS
@@ -436,7 +450,7 @@ main_opt_ctr_setl0:
 		jr	z,main_opt_ctr_setl1
 		ld	a,c
 		cp	(hl)
-		jr	z,main_options		; Ignore duplicates.
+		jp	z,main_update		; Ignore duplicates.
 		inc	hl
 		inc	hl
 		djnz	main_opt_ctr_setl0	; 0 won't be reached here.
@@ -445,12 +459,12 @@ main_opt_ctr_setl1:
 		dec	a
 		ld	(controls_set_idx),a	; 5,4,3,2,1.
 		or	a
-		jr	nz,main_options		; Get another control.
+		jp	nz,main_update		; Get another control.
 		ld	a,SUBSTATE_NONE
 		call	substate_change		; We're finished now.
 		ld	a,2+4+8
 		ld	(screen_redraw),a
-		jr	main_options
+		jp	main_update
 main_opt_up:	ld	hl,action_up
 		cp	(hl)
 		jr	nz,main_opt_down
@@ -462,7 +476,7 @@ main_opt_upl0:	dec	a
 main_opt_upl1:	ld	(cursor_options_position),a
 		ld	a,2+4
 		ld	(screen_redraw),a
-		jr	main_options
+		jp	main_update
 main_opt_down:	ld	hl,action_down
 		cp	(hl)
 		jr	nz,main_opt_select
@@ -476,7 +490,7 @@ main_opt_downl0:
 main_opt_select:
 		ld	hl,action_select
 		cp	(hl)
-		jr	nz,main_options
+		jp	nz,main_update
 		ld	a,(cursor_options_position)
 		or	a
 		jr	nz,main_opt_sel_play
@@ -487,28 +501,37 @@ main_opt_select:
 		ld	(controls_set_idx),a
 		ld	a,8
 		ld	(screen_redraw),a
-		jp	main_options
+		jp	main_update
 main_opt_sel_play:
 		cp	1
 		jr	nz,main_opt_sel_save
 		call	blink_unregister
 		ld	a,STATE_GAME
 		call	state_change
+		ld	a,SUBSTATE_GAME
+		call	substate_change
 		ld	a,(FRAMES)		; Initialise random
 		ld 	(rnd_seed),a		; seed from frames-low.
 		call	board_array_reset
+		ld	a,PIPE_ARRAY_MAX	; Force pipe array
+		ld	(pipe_array_idx),a	; refill.
+		call	pipe_get
+		ld	(preview_bar_slot0),a
+		call	pipe_get
+		ld	(preview_bar_slot1),a
 		xor	a
-		ld	(cursor_game_state),a
-		ld	a,8*3+3
+		ld	(cursor_game_frame),a
+		ld	a,8*4+3
 		ld	(cursor_game_position),a
+		ld	a,0xff
+		ld	(cursor_panel_position),a
 		ld	bc,(FRAMES)
 		ld	(cursor_game_last),bc
-		ld	a,1+8
+		ld	a,1+8+32
+main_opt_sel_plyl0:
 		ld	(screen_redraw),a
 		call	game_draw
-		call	screen_buffer_fade
-		call	event_queue_flush
-		jp	main_options
+		jp	main_spll2
 main_opt_sel_save:
 		cp	2
 		jr	nz,main_opt_sel_help
@@ -518,15 +541,14 @@ main_opt_sel_save:
 main_opt_sel_help:
 		cp	3
 		jr	nz,main_opt_sel_quit
+main_opt_sel_hlpl0:
 		call	blink_unregister
 		ld	a,STATE_HELP
 		call	state_change
 		ld	a,1
 		ld	(screen_redraw),a
 		call	help_draw
-		call	screen_buffer_fade
-		call	event_queue_flush
-		jp	main_options
+		jp	main_spll2
 main_opt_sel_quit:
 		ld	a,STATE_QUIT
 		call	state_change
@@ -546,12 +568,12 @@ main_help:	call	event_poll
 		jr	nz,main_hlp_down
 		ld	a,(help_page)
 		or	a
-		jr	z,main_help
+		jp	z,main_update
 		dec	a
 main_hlp_upl0:	ld	(help_page),a
 		ld	a,1
 		ld	(screen_redraw),a
-		jr	main_help
+		jp	main_update
 main_hlp_down:	ld	hl,action_down
 		cp	(hl)
 		jr	nz,main_hlp_select
@@ -559,19 +581,17 @@ main_hlp_down:	ld	hl,action_down
 		inc	a
 		cp	HELP_PAGE_MAX
 		jr	c,main_hlp_upl0
-		jr	main_help
+		jp	main_update
 main_hlp_select:
 		ld	hl,action_select
 		cp	(hl)
-		jr	nz,main_help
-		ld	a,STATE_OPTIONS
+		jp	nz,main_update
+		ld	a,(state_previous)
 		call	state_change
-		ld	a,1+2+4+8
-		ld	(screen_redraw),a
-		call	options_draw
-		call	screen_buffer_fade
-		call	event_queue_flush
-		jr	main_help
+		cp	STATE_OPTIONS
+		jp	z,main_spll1		; Back to Options.
+		ld	a,1+16+32
+		jp	main_opt_sel_plyl0	; Back to game.
 
 main_not_help:	cp	STATE_GAME
 		jp	nz,main_update
@@ -582,20 +602,101 @@ main_game:	call	event_poll
 		jp	nc,main_update
 		jr	z,main_game		; Ignore releases.
 		ld	b,a
-		ld	a,(substate_current)
-		cp	SUBSTATE_PANEL
+		ld	a,(cursor_panel_position)
+		cp	0xff			; Is panel cursor off?
 		ld	a,b
-		jr	nz,main_gam_up
-		; Manage panel input here.
-		; Manage panel input here.
-		; Manage panel input here.
-		jr	main_game
-main_gam_up:	push	af
-		ld	a,4			; Erase the board cursor
-		ld	(screen_redraw),a	; by replacing the pipe
-		call	game_draw		; piece at its current
-		pop	af			; offset.
+		jp	z,main_gam_up
+main_gam_pnl_up:
 		ld	hl,action_up
+		cp	(hl)
+		jr	nz,main_gam_pnl_down
+		ld	a,(cursor_panel_position)
+		or	a
+		jr	nz,main_gam_pnl_upl0
+		ld	a,5
+main_gam_pnl_upl0:
+		dec	a
+main_gam_pnl_upl1:
+		ld	(cursor_panel_position),a
+		ld	a,16
+		ld	(screen_redraw),a
+		jp	main_update
+main_gam_pnl_down:
+		ld	hl,action_down
+		cp	(hl)
+		jr	nz,main_gam_pnl_leftright
+		ld	a,(cursor_panel_position)
+		cp	4
+		jr	nz,main_gam_pnl_dnl0
+		ld	a,-1
+main_gam_pnl_dnl0:
+		inc	a
+		jr	main_gam_pnl_upl1
+main_gam_pnl_leftright:
+		ld	hl,action_left
+		ld	b,7
+		cp	(hl)
+		jr	z,main_gam_pnl_lefrigl0
+		ld	hl,action_right
+		ld	b,0
+		cp	(hl)
+		jr	z,main_gam_pnl_lefrigl0
+		jr	main_gam_pnl_sel
+main_gam_pnl_lefrigl0:
+		ld	a,(cursor_panel_position)
+		or	a
+		jr	nz,main_gam_pnl_lefrigl2
+main_gam_pnl_lefrigl1:
+		add	a,b			; Transfer the cursor
+		push	af			; to the game board.
+		call	blink_unregister
+		ld	a,0xff			; Panel cursor is off.
+		ld	(cursor_panel_position),a
+		pop	af
+		jr	main_gam_upl2
+main_gam_pnl_lefrigl2:
+		cp	4
+		jr	nz,main_gam_pnl_lefrigl3
+		dec	a			; Now we have 1,2 or 3.
+main_gam_pnl_lefrigl3:
+		sla	a
+		sla	a
+		sla	a			; Multiply by 8.
+		add	a,4*8
+		jr	main_gam_pnl_lefrigl1
+main_gam_pnl_sel:
+		ld	hl,action_select
+		cp	(hl)
+		jp	nz,main_update
+		ld	a,(cursor_panel_position)
+		or	a
+		jr	nz,main_gam_pnl_sel_fill
+main_gam_pnl_sel_hifill:
+		; Fill hiscore network here.
+		; Fill hiscore network here.
+		; Fill hiscore network here.
+		jp	main_update
+main_gam_pnl_sel_fill:
+		cp	1
+		jr	nz,main_gam_pnl_sel_new
+		; Fill network here.
+		; Fill network here.
+		; Fill network here.
+		jp	main_update
+main_gam_pnl_sel_new:
+		cp	2
+		jr	nz,main_gam_pnl_sel_help
+		; New game here.
+		; New game here.
+		; New game here.
+		jp	main_update
+main_gam_pnl_sel_help:
+		cp	3
+		jp	z,main_opt_sel_hlpl0
+main_gam_pnl_sel_back:
+		jp	main_spll0
+
+main_gam_up:	ld	hl,action_up
 		cp	(hl)
 		jr	nz,main_gam_down
 		ld	a,(cursor_game_position)
@@ -603,14 +704,20 @@ main_gam_up:	push	af
 		jr	nc,main_gam_upl0
 		add	a,64
 main_gam_upl0:	sub	8
-main_gam_upl1:	ld	(cursor_game_position),a
+main_gam_upl1:	push	af
+		ld	a,4			; Firstly erase the
+		ld	(screen_redraw),a	; existing game cursor.
+		call	game_draw
+		pop	af
+main_gam_upl2:	ld	(cursor_game_position),a
 		xor	a			; Reset to frame 0 and
-		ld	(cursor_game_state),a	; update frames last
-		ld	bc,(FRAMES)		; so that its visible.
+		ld	(cursor_game_frame),a	; update frames last
+		ld	bc,(FRAMES)		; so that it's visible.
 		ld	(cursor_game_last),bc
-		ld	a,8			; Draw the board cursor.
-		ld	(screen_redraw),a
-		jr	main_game
+		ld	a,8			; Draw the game cursor.
+		ld	(screen_redraw),a	; at its new location.
+		jp	main_update
+
 main_gam_down:	ld	hl,action_down
 		cp	(hl)
 		jr	nz,main_gam_left
@@ -620,58 +727,78 @@ main_gam_down:	ld	hl,action_down
 		sub	64
 main_gam_dnl0:	add	a,8
 		jr	main_gam_upl1
+
 main_gam_left:	ld	hl,action_left
 		cp	(hl)
 		jr	nz,main_gam_right
 		ld	a,(cursor_game_position)
 		ld	b,a
-		and	7			; Remainder of /8.
+		and	7			; Calculate the column.
 		ld	a,b
-		jr	nz,main_gam_ltl2
+		jr	nz,main_gam_lefl4
+		srl	a			; Calculate the row.
 		srl	a
-		srl	a
-		srl	a			; Quotient of /8.
-		jr	z,main_gam_ltl0
-		cp	5			; 0, 5, 6 and 7 will
-		ld	a,b			; tranfer to the panel.
-		jr	c,main_gam_ltl1
-main_gam_ltl0:	ld	a,SUBSTATE_PANEL
-		call	substate_change
-		jr	main_game
-main_gam_ltl1:	add	a,8
-main_gam_ltl2:	dec	a
+		srl	a			; Divide by 8.
+		jr	nz,main_gam_lefl1
+main_gam_lefl0:	ld	(cursor_panel_position),a
+		ld	a,4+16			; Erase the game cursor
+		ld	(screen_redraw),a	; and show the panel
+		call	game_draw		; cursor.
+		ld	a,0xff			; Board cursor is off.
+		ld	(cursor_game_position),a
+		jp	main_update
+main_gam_lefl1:	cp	5
+		jr	c,main_gam_lefl3
+main_gam_lefl2:	sub	4			; Rows 0, 5 to 7 will
+		cp	3			; transfer to the panel.
+		jr	nz,main_gam_lefl0
+		inc	a
+		jr	main_gam_lefl0
+main_gam_lefl3:	ld	a,b
+		add	a,8
+main_gam_lefl4:	dec	a
 		jr	main_gam_upl1
+
 main_gam_right:	ld	hl,action_right
 		cp	(hl)
 		jr	nz,main_gam_sel
 		ld	a,(cursor_game_position)
 		ld	b,a
-		and	7			; Remainder of /8.
+		and	7			; Calculate the column.
 		cp	7
 		ld	a,b
-		jr	nz,main_gam_rtl1
-
-
+		jr	nz,main_gam_rigl3
+		srl	a			; Calculate the row.
+		srl	a
+		srl	a			; Divide by 8.
+		jr	z,main_gam_lefl0
+		cp	5
+		jr	c,main_gam_rigl2
+		jr	main_gam_lefl2
+main_gam_rigl2:	ld	a,b
 		sub	8
-main_gam_rtl1:	inc	a
-		jr	main_gam_upl1
-main_gam_sel:
+main_gam_rigl3:	inc	a
+		jp	main_gam_upl1
 
-		call	blink_unregister	; temp temp
-		ld	a,STATE_OPTIONS
-		call	state_change
-		ld	a,SUBSTATE_NONE
-		call	substate_change
-		ld	a,1+2+4+8
+main_gam_sel:	ld	hl,(board_array)
+		ld	a,(cursor_game_position)
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	a,(preview_bar_slot0)
+		ld	(hl),a
+		ld	a,(preview_bar_slot1)
+		ld	(preview_bar_slot0),a
+		call	pipe_get
+		ld	(preview_bar_slot1),a
+		ld	a,32
 		ld	(screen_redraw),a
-		call	options_draw
-		call	screen_buffer_fade
-		call	event_queue_flush
-
-		jp	main_game
+		call	game_draw
+		ld	a,(cursor_game_position)
+		jp	main_gam_upl1
 
 		; -----------------------------------------------------
-		; Screen Update
+		; Update
 		; -----------------------------------------------------
 main_update:	ld	a,(state_current)
 		cp	STATE_SPLASH
@@ -689,9 +816,9 @@ main_upd_help:	cp	STATE_HELP
 		jr	main_upd_screen
 main_upd_game:	cp	STATE_GAME
 		jr	nz,main_upd_screen
-		ld	a,(substate_current)
-		cp	SUBSTATE_NONE
-		jr	nz,main_upd_gal0
+		ld	a,(cursor_game_position)
+		cp	0xff			; Is game cursor off?
+		jr	z,main_upd_gal0
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
@@ -1203,17 +1330,6 @@ focl3:		inc	bc
 		jr	nz,focl0	; (66).
 		ret
 
-fade_data_x:	defb	26,29,10,22,7,1,24,14
-		defb	16,32,15,4,30,11,28,8
-		defb	17,31,5,3,20,9,12,0
-		defb	25,27,19,2,21,6,18,23
-		defb	13
-
-fade_data_y:	defb	6,7,18,13,10,9,0,3
-		defb	1,21,5,17,23,19,4,8
-		defb	15,2,22,20,12,11,14,16
-		defb	5,17
-
 ; *********************************************************************
 ; Screen Buffer Fade                                                  *
 ; *********************************************************************
@@ -1383,7 +1499,7 @@ odl31:		push	bc
 		ld	bc,(screen_buffer)
 		add	hl,bc
 		ld	a,(de)
-		cp	0xe9		; Shift?
+		cp	0xe9			; Shift?
 		jr	nz,odl33
 		ld	(hl),_S
 		inc	hl
@@ -1392,7 +1508,7 @@ odl31:		push	bc
 		ld	(hl),_F
 odl32:		ld	de,0x0301
 		jr	odl36
-odl33:		cp	_SPC		; Space?
+odl33:		cp	_SPC			; Space?
 		jr	nz,odl34
 		ld	(hl),_S
 		inc	hl
@@ -1400,7 +1516,7 @@ odl33:		cp	_SPC		; Space?
 		inc	hl
 		ld	(hl),_C
 		jr	odl32
-odl34:		cp	_NL		; Newline?
+odl34:		cp	_NL			; Newline?
 		jr	nz,odl35
 		ld	(hl),_N
 		inc	hl
@@ -1409,7 +1525,7 @@ odl34:		cp	_NL		; Newline?
 		ld	(hl),_SPC
 		ld	de,0x0201
 		jr	odl36
-odl35:		ld	(hl),a		; Printable char.
+odl35:		ld	(hl),a			; Printable char.
 		inc	hl
 		ld	(hl),_SPC
 		inc	hl
@@ -1486,16 +1602,16 @@ gdl10:		ld	a,(screen_redraw)
 		and	2
 		jr	z,gdl20
 		ld	bc,(FRAMES)		; If it's time, flag
-		ld	hl,(cursor_game_last)	; the board cursor for
+		ld	hl,(cursor_game_last)	; the game cursor for
 		and	a			; animating.
 		sbc	hl,bc
 		ld	a,(cursor_game_delay)
 		cp	l
 		jr	nc,gdl20
 		ld	(cursor_game_last),bc
-		ld	a,(cursor_game_state)
+		ld	a,(cursor_game_frame)
 		xor	1			; Flip the animation
-		ld	(cursor_game_state),a	; frame.
+		ld	(cursor_game_frame),a	; frame.
 		ld	a,(screen_redraw)
 		or	4+8
 		ld	(screen_redraw),a
@@ -1503,7 +1619,7 @@ gdl10:		ld	a,(screen_redraw)
 gdl20:		ld	a,(screen_redraw)
 		and	4
 		jr	z,gdl30
-		ld	a,(cursor_game_position) ; Erase the board
+		ld	a,(cursor_game_position) ; Erase the game
 		ld	b,0			; cursor by replacing
 		ld	c,a			; the pipe piece at
 		ld	hl,(board_array)	; its current offset.
@@ -1519,7 +1635,7 @@ gdl20:		ld	a,(screen_redraw)
 gdl30:		ld	a,(screen_redraw)
 		and	8
 		jr	z,gdl40
-		ld	a,(cursor_game_position) ; Draw the board cursor.
+		ld	a,(cursor_game_position) ; Draw the game cursor.
 		srl	a
 		srl	a
 		srl	a			; Quotient of /8.
@@ -1540,7 +1656,7 @@ gdl32:		ld	a,(cursor_game_position)
 		ld	c,a
 		add	hl,bc
 		ld	(cursor_game_offset),hl
-		ld	a,(cursor_game_state)
+		ld	a,(cursor_game_frame)
 		or	a			; Draw on frame 0 only
 		jr	nz,gdl40		; so that it flashes.
 		ld	bc,(screen_buffer)
@@ -1556,7 +1672,57 @@ gdl32:		ld	a,(cursor_game_position)
 		inc	hl
 		ld	(hl),0x87
 
-gdl40:
+gdl40:		ld	a,(screen_redraw)
+		and	16
+		jr	z,gdl50
+		call	blink_unregister	; Blink the panel cursor.
+		ld	hl,cursor_panel_offsets
+		ld	a,(cursor_panel_position)
+		ld	d,4
+		or	a
+		jr	nz,gdl41
+		ld	d,7
+gdl41:		cp	2
+		jr	nz,gdl42
+		ld	d,3
+gdl42:		ld	b,0
+		ld	c,a
+		add	hl,bc
+		add	hl,bc
+		ld	c,(hl)
+		inc	hl
+		ld	b,(hl)
+		ld	(cursor_panel_offset),bc
+		ld	e,0x01
+		call	blink_register
+
+gdl50:		ld	a,(screen_redraw)
+		and	32
+		jr	z,gdl60
+		ld	hl,(screen_buffer)	; Draw the preview bar
+		ld	bc,33*11		; pipes.
+		add	hl,bc
+		ld	b,h
+		ld	c,l
+		push	bc
+		ld	a,(preview_bar_slot1)
+		call	pipe_draw
+		pop	bc
+		inc	bc
+		inc	bc
+		inc	bc
+		inc	bc
+		ld	a,(preview_bar_slot0)
+		call	pipe_draw
+
+		ld	a,(pipe_array_idx)	; temp temp
+		ld	e,a
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*9+3
+		ld	hl,0x0002
+		call	hex_write
+
+gdl60:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1603,6 +1769,59 @@ bdl2:		pop	bc
 		add	hl,bc
 		pop	bc
 		djnz	bdl0
+		ret
+
+; *********************************************************************
+; Pipe Get                                                            *
+; *********************************************************************
+; This returns the next pipe from the pipe array and tops it up when
+; necessary with PIPE_ARRAY_MAX additional shuffled pipe pieces.
+
+pipe_get:	ld	a,(pipe_array_idx)
+		cp	PIPE_ARRAY_MAX
+		jr	nz,pgl10
+
+		ld	hl,(pipe_array)		; Refill the pipe_array.
+		ex	de,hl
+		ld	hl,pipe_array_data
+		ld	bc,PIPE_ARRAY_MAX
+		ld	a,c
+		ldir
+
+		ld	hl,(pipe_array)		; Shuffle the pipe_array.
+		ld	d,h
+		ld	e,l
+		ld	b,a
+pgl0:		push	bc
+		push	hl
+		call	get_random_number	; 0 to 255.
+		srl	a
+		cp	PIPE_ARRAY_MAX
+		jr	c,pgl1
+		sub	PIPE_ARRAY_MAX
+pgl1:		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	a,(hl)
+		ex	de,hl
+		ld	b,(hl)
+		ld	(hl),a
+		ex	de,hl
+		ld	(hl),b
+		pop	hl
+		pop	bc
+		inc	de
+		djnz	pgl0
+		xor	a
+
+pgl10:		ld	b,0
+		ld	c,a
+		ld	hl,(pipe_array)
+		add	hl,bc
+		ld	b,(hl)
+		inc	a
+		ld	(pipe_array_idx),a
+		ld	a,b
 		ret
 
 ; *********************************************************************
@@ -1862,8 +2081,8 @@ mul8l2:		ld	b,h
 
 get_random_number:
 		ld	a,(FRAMES)	; I've found this loop helps to
-		and	7		; spread the results about a
-		inc	a		; bit to eliminate patterns.
+		and	7		; open up the gaps between the
+		inc	a		; results.
 		ld	b,a
 
 grnl0:		ld 	a,(rnd_seed)	; Zero will result in no
@@ -1984,8 +2203,24 @@ ddil2:		ld	(movchar_char),a
 ; Data                                                                *
 ; *********************************************************************
 
+pipe_array_data: defb	12,17,4,8,5,18,9,11,14,4,6,14,9,5,11,15
+		defb	10,4,17,12,5,5,4,8,15,5,16,13,13,7,5,17
+		defb	9,4,11,7,15,5,14,14,7,18,12,4,16,5,5,6
+		defb	12,10,10,4,11,4,16,6,6,18,8,4,13,11,5,13
+		defb	13,12,4,5,14,4
+
+fade_data_x:	defb	26,29,10,22,7,1,24,14,16,32,15,4,30,11,28,8
+		defb	17,31,5,3,20,9,12,0,25,27,19,2,21,6,18,23
+		defb	13
+
+fade_data_y:	defb	6,7,18,13,10,9,0,3,1,21,5,17,23,19,4,8
+		defb	15,2,22,20,12,11,14,16,5,17
+
 cursor_options_offsets:
 		defw	33*4+8,33*12+12,33*14+12,33*16+12,33*18+12
+
+cursor_panel_offsets:
+		defw	0,33*17,33*19,33*21,33*23
 
 help_page_offsets: defw	help_pg0_data,help_pg1_data,help_pg2_data
 
