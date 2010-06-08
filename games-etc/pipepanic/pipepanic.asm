@@ -330,10 +330,11 @@ cursor_game_delay: defb	0
 cursor_game_last: defw	0
 cursor_panel_position: defb 0
 cursor_panel_offset: defw 0
-
 pipe_array_idx:	defb	0
 preview_bar_slot0: defb	0
 preview_bar_slot1: defb	0
+score:		defw	0
+hiscore:	defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -513,6 +514,8 @@ main_opt_sel_play:
 		ld	a,(FRAMES)		; Initialise random
 		ld 	(rnd_seed),a		; seed from frames-low.
 		call	board_array_reset
+		ld	hl,0
+		ld	(score),hl
 		ld	a,PIPE_ARRAY_MAX	; Force pipe array
 		ld	(pipe_array_idx),a	; refill.
 		call	pipe_get
@@ -780,11 +783,32 @@ main_gam_rigl2:	ld	a,b
 main_gam_rigl3:	inc	a
 		jp	main_gam_upl1
 
-main_gam_sel:	ld	hl,(board_array)
+main_gam_sel:	ld	hl,action_select
+		cp	(hl)
+		jp	nz,main_update
+		ld	hl,(board_array)
 		ld	a,(cursor_game_position)
 		ld	b,0
 		ld	c,a
 		add	hl,bc
+		ld	a,(hl)
+		ld	de,score
+		ex	de,hl
+		cp	2
+		jr	nc,main_gam_sell0	; Space?
+		ld	b,10
+		call	bcd_word_add
+		jr	main_gam_sell2
+main_gam_sell0:	jr	nz,main_gam_sell1	; Pipe-in?
+		; Initiate fill here.
+		; Initiate fill here.
+		; Initiate fill here.
+		jr	main_update
+main_gam_sell1:	cp	3			; Pipe-out?
+		jr	z,main_update
+		ld	b,10
+		call	bcd_word_subtract
+main_gam_sell2:	ex	de,hl
 		ld	a,(preview_bar_slot0)
 		ld	(hl),a
 		ld	a,(preview_bar_slot1)
@@ -835,6 +859,57 @@ main_quit:	ld	sp,(sp_original)
 		ld	a,(state_current)	; Return program state
 		ld	b,0			; in bc so that SAVE
 		ld	c,a			; can be checked for.
+		ret
+
+; *********************************************************************
+; BCD Word Add                                                        *
+; *********************************************************************
+; Add an amount to a BCD word.
+; 
+; On entry: b  = amount
+;           hl = address of word
+;           Only registers a and bc are modified here.
+
+bcd_word_add:	ld	a,(hl)
+bcdwal0:	add	a,1
+		daa
+		jr	nc,bcdwal2
+		ld	c,a
+		inc	hl
+		ld	a,(hl)
+		add	a,1
+		daa
+		ld	(hl),a
+		dec	hl
+		ld	a,c
+bcdwal2:	djnz	bcdwal0
+		ld	(hl),a
+		ret
+
+; *********************************************************************
+; BCD Word Subtract                                                   *
+; *********************************************************************
+; Subtract an amount from a BCD word.
+; 
+; On entry: b  = amount
+;           hl = address of word
+;           Only registers a and bc are modified here.
+
+bcd_word_subtract:
+		ld	a,(hl)
+bcdwsl0:	sub	1
+		daa
+		jr	nc,bcdwsl2
+		ld	c,a
+		inc	hl
+		ld	a,(hl)
+		sub	1
+		daa
+		ld	(hl),a
+		dec	hl
+		ld	a,c
+bcdwsl2:	djnz	bcdwsl0
+		ld	(hl),a
 		ret
 
 ; *********************************************************************
@@ -1595,8 +1670,13 @@ game_draw:	ld	a,(screen_redraw)
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,0
 		ld	de,panel_data
-		call	string_write
-		call	board_draw
+		call	string_write		; Draw the panel.
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*1
+		ld	de,(hiscore)
+		ld	hl,0x0004
+		call	hex_write		; Write the hiscore.
+		call	board_draw		; Draw the board.
 
 gdl10:		ld	a,(screen_redraw)
 		and	2
@@ -1714,12 +1794,10 @@ gdl50:		ld	a,(screen_redraw)
 		inc	bc
 		ld	a,(preview_bar_slot0)
 		call	pipe_draw
-
-		ld	a,(pipe_array_idx)	; temp temp
-		ld	e,a
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*9+3
-		ld	hl,0x0002
+		ld	a,WRITE_TO_SCRBUF	; Write the score.
+		ld	bc,33*4
+		ld	de,(score)
+		ld	hl,0x0004
 		call	hex_write
 
 gdl60:		
@@ -1776,6 +1854,8 @@ bdl2:		pop	bc
 ; *********************************************************************
 ; This returns the next pipe from the pipe array and tops it up when
 ; necessary with PIPE_ARRAY_MAX additional shuffled pipe pieces.
+; 
+; On exit: a = next pipe piece
 
 pipe_get:	ld	a,(pipe_array_idx)
 		cp	PIPE_ARRAY_MAX
@@ -2283,7 +2363,7 @@ help_pg1_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_2V,_SLSV
 		defb	_MNS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
 		defb	_P,_I,_P,_E,_SPC,_O,_V,_E,_R,_W,_R,_I,_T,_T,_E
 		defb	_N,_FST,0xf2
-		defb	_PLS,_1,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
+		defb	_SPC,_PLS,_5,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
 		defb	_S,_E,_C,_O,_N,_D,_SPC,_R,_E,_M,_A,_I,_N,_I,_N
 		defb	_G,_SPC,_I,_F,0xf1
 		defb	0xd4,_SPC,_T,_H,_E,_SPC,_N,_E,_T,_W,_O,_R,_K,_SPC
@@ -2329,8 +2409,8 @@ help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
 
 pipe_data:	defb	0xd9,_SPC
 		defb	0xd9,_SLS
-		defb	0xd3,_SPC,0x80,_LTHV,0xd8
-		defb	_SPC,_LTHV,0x80,0xd4
+		defb	0xd3,_SPC,_LTHV,_LTHV,0xd8
+		defb	_SPC,_LTHV,_LTHV,0xd4
 		defb	_SPC,0x80,_SPC,_SPC,0x80,_SPC,_SPC,0x80,0xd4
 		defb	_SPC,0xd3,0x80,0xd4
 		defb	_SPC,0x80,_SPC,0xd3,0x80,_SPC,0x80,0xd5
