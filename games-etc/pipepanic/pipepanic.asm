@@ -255,6 +255,7 @@ EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 HELP_PAGE_MAX	equ	3
 PIPE_ARRAY_MAX	equ	70
+COUNTDOWN_MAX	equ	0x0240	; BCD
 
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
@@ -285,6 +286,9 @@ EVENT_REPEAT_DELAY_NTSC equ 60/3
 EVENT_REPEAT_INTERVAL_PAL equ 50/8
 EVENT_REPEAT_INTERVAL_NTSC equ 60/8
 
+COUNTDOWN_DELAY_PAL equ	50
+COUNTDOWN_DELAY_NTSC equ 60
+
 mem_16514:	jr	start
 temp_buffer:	defw	0
 screen_buffer:	defw	0
@@ -300,7 +304,7 @@ rnd_seed:	defb	0
 state_current:	defb	0
 state_previous:	defb	0
 substate_current: defb	0
-screen_redraw:	defb	0
+screen_redraw:	defw	0
 frames_last:	defw	0
 event_queue_start: defb	0
 event_queue_end: defb	0
@@ -310,7 +314,7 @@ blink_width:	defb	0
 blink_count:	defb	0
 blink_delay:	defb	0
 blink_last:	defw	0
-action_up:	defb	_Q,1	; char,repeat
+action_up:	defb	_Q,1	; Character,repeat yes/no.
 action_down:	defb	_A,1
 action_left:	defb	_O,1
 action_right:	defb	_P,1
@@ -335,6 +339,9 @@ preview_bar_slot0: defb	0
 preview_bar_slot1: defb	0
 score:		defw	0
 hiscore:	defw	0
+countdown_time: defw	0
+countdown_delay: defb	0
+countdown_last:	defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -366,7 +373,6 @@ start:		ld	(sp_original),sp
 		sbc	hl,bc
 		ld	(pipe_array),hl
 		ld	sp,hl
-
 		; -----------------------------------------------------
 		; Engine Initialisation
 		; -----------------------------------------------------
@@ -376,7 +382,6 @@ start:		ld	(sp_original),sp
 		ld	(screen_redraw),a	; whilst things are
 		call	splash_draw		; being initialised.
 		call	screen_buffer_blit
-
 		call	localise
 		call	fade_offsets_create
 		call	pipe_pieces_create
@@ -384,7 +389,6 @@ start:		ld	(sp_original),sp
 		call	blink_register		; blink system.
 		call	keyb_buffer_reset
 		call	event_queue_flush
-
 		ld	a,STATE_QUIT
 		call	state_change
 		ld	a,STATE_SPLASH
@@ -393,12 +397,10 @@ start:		ld	(sp_original),sp
 		call	substate_change
 		ld	a,2
 		ld	(screen_redraw),a
-
 		ld	a,1			; Default to Play.
 		ld	(cursor_options_position),a
 		ld	hl,33*12+12
 		ld	(cursor_options_offset),hl
-		
 		xor	a
 		ld	(help_page),a
 		; -----------------------------------------------------
@@ -528,11 +530,16 @@ main_opt_sel_play:
 		ld	(cursor_game_position),a
 		ld	a,0xff
 		ld	(cursor_panel_position),a
-		ld	bc,(FRAMES)
-		ld	(cursor_game_last),bc
-		ld	a,1+8+32
-main_opt_sel_plyl0:
+		ld	hl,(FRAMES)
+		ld	(cursor_game_last),hl
+		ld	hl,(FRAMES)
+		ld	(countdown_last),hl
+		ld	hl,COUNTDOWN_MAX
+		ld	(countdown_time),hl
+		ld	a,1+8+32+64
 		ld	(screen_redraw),a
+		ld	a,1
+		ld	(screen_redraw+1),a
 		call	game_draw
 		jp	main_spll2
 main_opt_sel_save:
@@ -593,8 +600,12 @@ main_hlp_select:
 		call	state_change
 		cp	STATE_OPTIONS
 		jp	z,main_spll1		; Back to Options.
-		ld	a,1+16+32
-		jp	main_opt_sel_plyl0	; Back to game.
+		ld	a,1+16+32+64
+		ld	(screen_redraw),a
+		ld	a,1
+		ld	(screen_redraw+1),a
+		call	game_draw
+		jp	main_spll2		; Back to game.
 
 main_not_help:	cp	STATE_GAME
 		jp	nz,main_update
@@ -796,17 +807,17 @@ main_gam_sel:	ld	hl,action_select
 		ex	de,hl
 		cp	2
 		jr	nc,main_gam_sell0	; Space?
-		ld	b,10
+		ld	b,10			; +10 points.
 		call	bcd_word_add
 		jr	main_gam_sell2
 main_gam_sell0:	jr	nz,main_gam_sell1	; Pipe-in?
-		; Initiate fill here.
-		; Initiate fill here.
-		; Initiate fill here.
+		; Fill network here.
+		; Fill network here.
+		; Fill network here.
 		jr	main_update
 main_gam_sell1:	cp	3			; Pipe-out?
 		jr	z,main_update
-		ld	b,10
+		ld	b,10			; -10 points.
 		call	bcd_word_subtract
 main_gam_sell2:	ex	de,hl
 		ld	a,(preview_bar_slot0)
@@ -815,12 +826,11 @@ main_gam_sell2:	ex	de,hl
 		ld	(preview_bar_slot0),a
 		call	pipe_get
 		ld	(preview_bar_slot1),a
-		ld	a,32
+		ld	a,32+64
 		ld	(screen_redraw),a
 		call	game_draw
 		ld	a,(cursor_game_position)
 		jp	main_gam_upl1
-
 		; -----------------------------------------------------
 		; Update
 		; -----------------------------------------------------
@@ -840,6 +850,12 @@ main_upd_help:	cp	STATE_HELP
 		jr	main_upd_screen
 main_upd_game:	cp	STATE_GAME
 		jr	nz,main_upd_screen
+		ld	a,(substate_current)
+		cp	SUBSTATE_GAME
+		jr	nz,main_upd_gal0
+		ld	a,(screen_redraw)	; The countdown time
+		or	128			; requires animating.
+		ld	(screen_redraw),a
 		ld	a,(cursor_game_position)
 		cp	0xff			; Is game cursor off?
 		jr	z,main_upd_gal0
@@ -862,54 +878,14 @@ main_quit:	ld	sp,(sp_original)
 		ret
 
 ; *********************************************************************
-; BCD Word Add                                                        *
+; Fill Initiate                                                       *
 ; *********************************************************************
-; Add an amount to a BCD word.
-; 
-; On entry: b  = amount
-;           hl = address of word
-;           Only registers a and bc are modified here.
 
-bcd_word_add:	ld	a,(hl)
-bcdwal0:	add	a,1
-		daa
-		jr	nc,bcdwal2
-		ld	c,a
-		inc	hl
-		ld	a,(hl)
-		add	a,1
-		daa
-		ld	(hl),a
-		dec	hl
-		ld	a,c
-bcdwal2:	djnz	bcdwal0
-		ld	(hl),a
-		ret
+fill_initiate:	ld	a,SUBSTATE_FILL
+		call	substate_change
 
-; *********************************************************************
-; BCD Word Subtract                                                   *
-; *********************************************************************
-; Subtract an amount from a BCD word.
-; 
-; On entry: b  = amount
-;           hl = address of word
-;           Only registers a and bc are modified here.
 
-bcd_word_subtract:
-		ld	a,(hl)
-bcdwsl0:	sub	1
-		daa
-		jr	nc,bcdwsl2
-		ld	c,a
-		inc	hl
-		ld	a,(hl)
-		sub	1
-		daa
-		ld	(hl),a
-		dec	hl
-		ld	a,c
-bcdwsl2:	djnz	bcdwsl0
-		ld	(hl),a
+
 		ret
 
 ; *********************************************************************
@@ -1513,6 +1489,7 @@ sdl20:
 screen_redraw_reset:
 		xor	a
 		ld	(screen_redraw),a
+		ld	(screen_redraw+1),a
 		ret
 
 ; *********************************************************************
@@ -1794,13 +1771,75 @@ gdl50:		ld	a,(screen_redraw)
 		inc	bc
 		ld	a,(preview_bar_slot0)
 		call	pipe_draw
-		ld	a,WRITE_TO_SCRBUF	; Write the score.
-		ld	bc,33*4
+
+gdl60:		ld	a,(screen_redraw)
+		and	64
+		jr	z,gdl70
+		ld	a,(score+1)		; Write the score.
+		cp	0x80			; I've set negative
+		jr	c,gdl62			; numbers between 9999
+		ld	b,a			; and 8000 which will
+		ld	a,(score)		; suffice.
+		ld	c,a
+		or	a
+		ld	a,0
+		jr	z,gdl61
+		ld	a,0x99
+gdl61:		sub	b
+		daa
+		ld	d,a
+		xor	a
+		sub	c
+		daa
+		ld	e,a
+		ld	a,_MNS
+		jr	gdl63
+gdl62:		ld	a,_SPC
 		ld	de,(score)
+gdl63:		ld	hl,(screen_buffer)
+		ld	bc,33*4+4
+		add	hl,bc			; Write a trailing
+		ld	(hl),a			; minus sign or space.
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*4
 		ld	hl,0x0004
 		call	hex_write
 
-gdl60:		
+gdl70:		ld	a,(screen_redraw)
+		and	128
+		jr	z,gdl80
+		ld	bc,(FRAMES)		; If it's time, decrement
+		ld	hl,(countdown_last)	; the countdown time
+		and	a			; and flag it for
+		sbc	hl,bc			; redisplaying.
+		ld	a,(countdown_delay)
+		cp	l
+		jr	nc,gdl80
+		ld	(countdown_last),bc
+		ld	b,1
+		ld	hl,countdown_time
+		call	bcd_word_subtract
+		ld	a,(countdown_time+1)
+		or	a
+		jr	nz,gdl71
+		ld	a,(countdown_time)
+		or	a
+		jr	nz,gdl71
+		call	fill_initiate		; Countdown is now 0.
+gdl71:		ld	a,(screen_redraw+1)
+		or	1
+		ld	(screen_redraw+1),a
+
+gdl80:		ld	a,(screen_redraw+1)
+		and	1
+		jr	z,gdl90
+		ld	a,WRITE_TO_SCRBUF	; Write the countdown
+		ld	bc,33*7			; time.
+		ld	de,(countdown_time)
+		ld	hl,0x0003
+		call	hex_write
+
+gdl90:
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -1966,6 +2005,57 @@ pipe_pieces_create:
 		ret
 
 ; *********************************************************************
+; BCD Word Add                                                        *
+; *********************************************************************
+; Add an amount to a BCD word.
+; 
+; On entry: b  = amount
+;           hl = address of word
+;           Only registers a and bc are modified here.
+
+bcd_word_add:	ld	a,(hl)
+bcdwal0:	add	a,1
+		daa
+		jr	nc,bcdwal2
+		ld	c,a
+		inc	hl
+		ld	a,(hl)
+		add	a,1
+		daa
+		ld	(hl),a
+		dec	hl
+		ld	a,c
+bcdwal2:	djnz	bcdwal0
+		ld	(hl),a
+		ret
+
+; *********************************************************************
+; BCD Word Subtract                                                   *
+; *********************************************************************
+; Subtract an amount from a BCD word.
+; 
+; On entry: b  = amount
+;           hl = address of word
+;           Only registers a and bc are modified here.
+
+bcd_word_subtract:
+		ld	a,(hl)
+bcdwsl0:	sub	1
+		daa
+		jr	nc,bcdwsl2
+		ld	c,a
+		inc	hl
+		ld	a,(hl)
+		sub	1
+		daa
+		ld	(hl),a
+		dec	hl
+		ld	a,c
+bcdwsl2:	djnz	bcdwsl0
+		ld	(hl),a
+		ret
+
+; *********************************************************************
 ; Hex Write                                                           *
 ; *********************************************************************
 ; This writes hexadecimal (or BCD) numbers somewhere.
@@ -2108,16 +2198,20 @@ localise:	ld	a,(MARGIN)
 		ld	bc,EVENT_REPEAT_INTERVAL_PAL
 		ld	hl,EVENT_REPEAT_DELAY_PAL
 		ld	d,CURSOR_GAME_DELAY_PAL
+		ld	e,COUNTDOWN_DELAY_PAL
 		jr	locall1
 locall0:	ld	a,BLINK_NTSC
 		ld	bc,EVENT_REPEAT_INTERVAL_NTSC
 		ld	hl,EVENT_REPEAT_DELAY_NTSC
 		ld	d,CURSOR_GAME_DELAY_NTSC
+		ld	e,COUNTDOWN_DELAY_NTSC
 locall1:	ld	(blink_delay),a
 		ld	(event_repeat_interval_master),bc
 		ld	(event_repeat_delay_master),hl
 		ld	a,d
 		ld	(cursor_game_delay),a		
+		ld	a,e
+		ld	(countdown_delay),a		
 		ret
 
 ; *********************************************************************
@@ -2283,11 +2377,16 @@ ddil2:		ld	(movchar_char),a
 ; Data                                                                *
 ; *********************************************************************
 
-pipe_array_data: defb	12,17,4,8,5,18,9,11,14,4,6,14,9,5,11,15
-		defb	10,4,17,12,5,5,4,8,15,5,16,13,13,7,5,17
-		defb	9,4,11,7,15,5,14,14,7,18,12,4,16,5,5,6
-		defb	12,10,10,4,11,4,16,6,6,18,8,4,13,11,5,13
-		defb	13,12,4,5,14,4
+;11,11,11,11,11,12,12,12,12,12,13,13,13,13,13,14,14,14,14,14
+;15,15,15,15,16,16,16,16,17,17,17,17,18,18,18,18
+;4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5
+;7,7,8,8,9,9,10,10,6,6,6,6
+
+pipe_array_data: defb	14,5,16,18,17,7,5,12,17,5,17,16,5,10,13,15
+		defb	17,4,12,5,16,14,4,5,14,4,4,8,18,4,6,8
+		defb	14,13,5,15,6,5,4,10,16,11,4,15,5,13,5,15
+		defb	4,11,11,12,6,9,18,11,4,4,4,14,7,13,13,9
+		defb	11,12,6,12,5,18
 
 fade_data_x:	defb	26,29,10,22,7,1,24,14,16,32,15,4,30,11,28,8
 		defb	17,31,5,3,20,9,12,0,25,27,19,2,21,6,18,23
@@ -2395,13 +2494,13 @@ help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
 		defb	_H,_E,_SPC,_F,_O,_L,_L,_O,_W,_I,_N,_G,_CLN,0xf2
 		defb	_SPC,_ASK,_SPC,_2,_0,_SPC,_C,_O,_R,_N,_E,_R,_SPC
 		defb	_P,_I,_E,_C,_E,_S,0xf1
-		defb	_SPC,_ASK,_SPC,_1,_2,_SPC,_T,_SPC,_P,_I,_E,_C,_E
+		defb	_SPC,_ASK,_SPC,_1,_6,_SPC,_T,_SPC,_P,_I,_E,_C,_E
 		defb	_S,0xf1
 		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_V,_E,_R,_T,_I,_C,_A
 		defb	_L,_SPC,_P,_I,_P,_E,_S,0xf1
 		defb	_SPC,_ASK,_SPC,_1,_1,_SPC,_H,_O,_R,_I,_Z,_O,_N
 		defb	_T,_A,_L,_SPC,_P,_I,_P,_E,_S,0xf1
-		defb	_SPC,_ASK,_SPC,_1,_2,_SPC,_T,_E,_R,_M,_I,_N,_A
+		defb	_SPC,_ASK,_SPC,_SPC,_8,_SPC,_T,_E,_R,_M,_I,_N,_A
 		defb	_T,_O,_R,_S,0xf1
 		defb	_SPC,_ASK,_SPC,_SPC,_4,_SPC,_C,_R,_O,_S,_S,_E,_S
 		defb	0xf2
