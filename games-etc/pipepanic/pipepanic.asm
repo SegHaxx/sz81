@@ -337,9 +337,9 @@ cursor_panel_offset: defw 0
 pipe_array_idx:	defb	0
 preview_bar_slot0: defb	0
 preview_bar_slot1: defb	0
-score:		defw	0
-hiscore:	defw	0
-countdown_time: defw	0
+score:		defw	0	; Stored as BCD.
+hiscore:	defw	0	; Stored as BCD.
+countdown_time: defw	0	; Stored as BCD.
 countdown_delay: defb	0
 countdown_last:	defw	0
 
@@ -508,34 +508,15 @@ main_opt_select:
 main_opt_sel_play:
 		cp	1
 		jr	nz,main_opt_sel_save
-		call	blink_unregister
-		ld	a,STATE_GAME
-		call	state_change
-		ld	a,SUBSTATE_GAME
-		call	substate_change
-		ld	a,(FRAMES)		; Initialise random
-		ld 	(rnd_seed),a		; seed from frames-low.
-		call	board_array_reset
-		ld	hl,0
-		ld	(score),hl
-		ld	a,PIPE_ARRAY_MAX	; Force pipe array
-		ld	(pipe_array_idx),a	; refill.
-		call	pipe_get
-		ld	(preview_bar_slot0),a
-		call	pipe_get
-		ld	(preview_bar_slot1),a
+		call	game_new		; Initialise the game.
 		xor	a
-		ld	(cursor_game_frame),a
-		ld	a,8*4+3
+		ld	(cursor_game_frame),a	; Position the cursor
+		ld	a,8*4+3			; mid board.
 		ld	(cursor_game_position),a
 		ld	a,0xff
 		ld	(cursor_panel_position),a
 		ld	hl,(FRAMES)
 		ld	(cursor_game_last),hl
-		ld	hl,(FRAMES)
-		ld	(countdown_last),hl
-		ld	hl,COUNTDOWN_MAX
-		ld	(countdown_time),hl
 		ld	a,1+8+32+64
 		ld	(screen_redraw),a
 		ld	a,1
@@ -657,6 +638,9 @@ main_gam_pnl_leftright:
 		jr	z,main_gam_pnl_lefrigl0
 		jr	main_gam_pnl_sel
 main_gam_pnl_lefrigl0:
+		ld	a,(substate_current)	; Don't allow exiting
+		cp	SUBSTATE_GAME		; the panel if the game
+		jp	nz,main_update		; isn't running.
 		ld	a,(cursor_panel_position)
 		or	a
 		jr	nz,main_gam_pnl_lefrigl2
@@ -693,16 +677,16 @@ main_gam_pnl_sel_hifill:
 main_gam_pnl_sel_fill:
 		cp	1
 		jr	nz,main_gam_pnl_sel_new
-		; Fill network here.
-		; Fill network here.
-		; Fill network here.
+		call	fill_initiate
 		jp	main_update
 main_gam_pnl_sel_new:
 		cp	2
 		jr	nz,main_gam_pnl_sel_help
-		; New game here.
-		; New game here.
-		; New game here.
+		call	game_new		; Reinitialise the game.
+		ld	a,1+16+32+64
+		ld	(screen_redraw),a
+		ld	a,1
+		ld	(screen_redraw+1),a
 		jp	main_update
 main_gam_pnl_sel_help:
 		cp	3
@@ -811,9 +795,7 @@ main_gam_sel:	ld	hl,action_select
 		call	bcd_word_add
 		jr	main_gam_sell2
 main_gam_sell0:	jr	nz,main_gam_sell1	; Pipe-in?
-		; Fill network here.
-		; Fill network here.
-		; Fill network here.
+		call	fill_initiate
 		jr	main_update
 main_gam_sell1:	cp	3			; Pipe-out?
 		jr	z,main_update
@@ -880,12 +862,72 @@ main_quit:	ld	sp,(sp_original)
 ; *********************************************************************
 ; Fill Initiate                                                       *
 ; *********************************************************************
+; This initiates filling of the pipe network, moves the game cursor to
+; the panel if necessary and transfers the remainder of the countdown
+; time to the score.
 
-fill_initiate:	ld	a,SUBSTATE_FILL
+fill_initiate:	ld	a,(substate_current)
+		cp	SUBSTATE_GAME
+		ret	nz
+
+		ld	a,SUBSTATE_FILL		; Set new substate.
 		call	substate_change
 
+		ld	a,(cursor_panel_position) ; Is the panel cursor
+		cp	0xff			; already visible?
+		jr	nz,fil0
+		ld	a,4			; Erase the game cursor
+		ld	(screen_redraw),a	; now.
+		call	game_draw
+		ld	a,0xff			; Turn game cursor off.
+		ld	(cursor_game_position),a
+		ld	a,1			; Turn panel cursor on
+		ld	(cursor_panel_position),a ; and position on Fill.
 
+fil0:		ld	hl,countdown_time+1	; Is the countdown time
+		ld	a,(hl)			; already zero?
+		dec	hl
+		or	(hl)
+		jr	z,fil10
+fil1:		ld	b,1			; For every second add
+		call	bcd_word_subtract	; 5 to the score.
+		ld	hl,score
+		ld	b,5
+		call	bcd_word_add
+		jr	fil0
 
+fil10:		ld	a,16+64			; Show the panel cursor,
+		ld	(screen_redraw),a	; redisplay the score
+		ld	a,1			; and countdown time
+		ld	(screen_redraw+1),a	; now.
+		call	game_draw
+		ret
+
+; *********************************************************************
+; Game New                                                            *
+; *********************************************************************
+; This reinitialises everything generally required to start a new game.
+
+game_new:	call	blink_unregister
+		ld	a,STATE_GAME
+		call	state_change
+		ld	a,SUBSTATE_GAME
+		call	substate_change
+		ld	a,(FRAMES)		; Initialise random
+		ld 	(rnd_seed),a		; seed from frames-low.
+		call	board_array_reset
+		ld	a,PIPE_ARRAY_MAX	; Force pipe array
+		ld	(pipe_array_idx),a	; refill.
+		call	pipe_get
+		ld	(preview_bar_slot0),a
+		call	pipe_get
+		ld	(preview_bar_slot1),a
+		ld	hl,0
+		ld	(score),hl
+		ld	hl,COUNTDOWN_MAX
+		ld	(countdown_time),hl
+		ld	hl,(FRAMES)
+		ld	(countdown_last),hl
 		ret
 
 ; *********************************************************************
@@ -1637,7 +1679,10 @@ hdl10:
 ; This draws the game screen to the screen buffer.
 
 game_draw:	ld	a,(screen_redraw)
-		or	a
+		ld	b,a
+		ld	a,(screen_redraw+1)
+		or	b
+		ld	a,b
 		ret	z
 
 		and	1
@@ -1818,12 +1863,10 @@ gdl70:		ld	a,(screen_redraw)
 		ld	(countdown_last),bc
 		ld	b,1
 		ld	hl,countdown_time
-		call	bcd_word_subtract
-		ld	a,(countdown_time+1)
-		or	a
-		jr	nz,gdl71
-		ld	a,(countdown_time)
-		or	a
+		call	bcd_word_subtract	; hl is preserved here.
+		ld	a,(hl)
+		inc	hl
+		or	(hl)
 		jr	nz,gdl71
 		call	fill_initiate		; Countdown is now 0.
 gdl71:		ld	a,(screen_redraw+1)
