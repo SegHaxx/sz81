@@ -250,12 +250,15 @@ DEBUG_TIMING	equ	0
 DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
 DEBUG_PIPES	equ	0
+DEBUG_STACK	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 HELP_PAGE_MAX	equ	3
 PIPE_ARRAY_MAX	equ	70
 COUNTDOWN_MAX	equ	0x0240	; BCD
+FILL_ANIMATION_MAX equ	64*4
+FILL_NODES_MAX	equ	8*4
 
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
@@ -272,22 +275,12 @@ SUBSTATE_NONE	equ	0
 SUBSTATE_SETCTRLS equ	1
 SUBSTATE_GAME	equ	2
 SUBSTATE_FILL	equ	3
-SUBSTATE_HIFILL	equ	4
-SUBSTATE_END	equ	5
+SUBSTATE_REMDEAD equ	4
+SUBSTATE_FILLANIM equ	5
+SUBSTATE_END	equ	6
 
-BLINK_PAL	equ	50/2
-BLINK_NTSC	equ	60/2
-
-CURSOR_GAME_DELAY_PAL equ 50/2
-CURSOR_GAME_DELAY_NTSC equ 60/2
-
-EVENT_REPEAT_DELAY_PAL equ 50/3
-EVENT_REPEAT_DELAY_NTSC equ 60/3
-EVENT_REPEAT_INTERVAL_PAL equ 50/8
-EVENT_REPEAT_INTERVAL_NTSC equ 60/8
-
-COUNTDOWN_DELAY_PAL equ	50
-COUNTDOWN_DELAY_NTSC equ 60
+ONE_SECOND_PAL	equ	50
+ONE_SECOND_NTSC	equ	60
 
 mem_16514:	jr	start
 temp_buffer:	defw	0
@@ -297,8 +290,11 @@ keyb_buffer:	defw	0
 keyb_buffer_old: defw	0
 event_queue:	defw	0
 board_array:	defw	0
+board_array2:	defw	0
 pipe_pieces:	defw	0
 pipe_array:	defw	0
+fill_animation:	defw	0
+fill_nodes:	defw	0
 sp_original:	defw	0
 rnd_seed:	defb	0
 state_current:	defb	0
@@ -342,6 +338,8 @@ hiscore:	defw	0	; Stored as BCD.
 countdown_time: defw	0	; Stored as BCD.
 countdown_delay: defb	0
 countdown_last:	defw	0
+fill_animate_delay: defb 0
+fill_animate_last: defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -366,12 +364,20 @@ start:		ld	(sp_original),sp
 		ld	bc,8*8
 		sbc	hl,bc
 		ld	(board_array),hl
+		sbc	hl,bc
+		ld	(board_array2),hl
 		ld	bc,9*19
 		sbc	hl,bc
 		ld	(pipe_pieces),hl
 		ld	bc,PIPE_ARRAY_MAX
 		sbc	hl,bc
 		ld	(pipe_array),hl
+		ld	bc,FILL_ANIMATION_MAX*4
+		sbc	hl,bc
+		ld	(fill_animation),hl
+		ld	bc,FILL_NODES_MAX*2
+		sbc	hl,bc
+		ld	(fill_nodes),hl
 		ld	sp,hl
 		; -----------------------------------------------------
 		; Engine Initialisation
@@ -677,7 +683,7 @@ main_gam_pnl_sel_hifill:
 main_gam_pnl_sel_fill:
 		cp	1
 		jr	nz,main_gam_pnl_sel_new
-		call	fill_initiate
+		call	fill_prepare
 		jp	main_update
 main_gam_pnl_sel_new:
 		cp	2
@@ -795,7 +801,7 @@ main_gam_sel:	ld	hl,action_select
 		call	bcd_word_add
 		jr	main_gam_sell2
 main_gam_sell0:	jr	nz,main_gam_sell1	; Pipe-in?
-		call	fill_initiate
+		call	fill_prepare
 		jr	main_update
 main_gam_sell1:	cp	3			; Pipe-out?
 		jr	z,main_update
@@ -844,7 +850,11 @@ main_upd_game:	cp	STATE_GAME
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
-main_upd_gal0:	call	game_draw
+		jr	main_upd_gal1
+main_upd_gal0:	cp	SUBSTATE_FILL
+		jr	nz,main_upd_gal1
+		call	fill_network
+main_upd_gal1:	call	game_draw
 
 main_upd_screen:
 		call	dump_debug_info
@@ -860,47 +870,329 @@ main_quit:	ld	sp,(sp_original)
 		ret
 
 ; *********************************************************************
-; Fill Initiate                                                       *
+; Fill Network                                                        *
 ; *********************************************************************
-; This initiates filling of the pipe network, moves the game cursor to
-; the panel if necessary and transfers the remainder of the countdown
-; time to the score.
+; This fills the network at the board array level i.e. by the pipe.
+; It's done instantly non-visually to mark the pipes as visited,
+; unvisited or leaky within the board array copy.
 
-fill_initiate:	ld	a,(substate_current)
+fill_network:	ld	hl,(board_array)	; Make a copy of the
+		ld	de,(board_array2)	; board array.
+		ld	bc,8*8
+		ldir
+
+		ld	hl,(fill_nodes)		; Wipe the nodes
+		ld	b,FILL_NODES_MAX	; list.
+		xor	a
+fnl10:		ld	(hl),a
+		inc	hl
+		inc	hl
+		djnz	fnl10
+
+		ld	hl,(board_array2)	; Locate start pipe
+		push	hl			; down the right-hand
+		ld	bc,7			; side of the board.
+		add	hl,bc
+		inc	bc
+fnl20:		ld	a,(hl)
+		cp	2
+		jr	z,fnl21
+		add	hl,bc
+		jr	fnl20
+fnl21:		or	0x20			; Mark as visited.
+		ld	(hl),a
+		pop	bc
+		and	a
+		sbc	hl,bc			; Make de an offset
+		ex	de,hl			; into board_array2.
+
+		ld	hl,(fill_nodes)		; Create first node.
+		ld	(hl),8			;    N=1
+		inc	hl			; W=8   E=2
+		ld	(hl),e			;    S=4
+
+fnl30:		ld	hl,(fill_nodes)		; Process nodes.
+		ld	b,FILL_NODES_MAX
+		ld	c,0			; Node found flag.
+fnl31:		ld	a,(hl)			; Get next node.
+		ld	(hl),0			; Kill it now since 
+		inc	hl			; new ones might be
+		ld	e,(hl)			; created later.
+		inc	hl
+		or	a
+		jr	z,fnl200
+
+		ld	d,a			; Backup direction.
+
+		cp	1			; Going north?
+		jr	nz,fnl50
+		ld	a,e			; Is it adjoining the
+		cp	8			; board edge?
+		jr	nc,fnl100
+		jr	fnl80
+fnl50:		cp	2			; Going east?
+		jr	nz,fnl60
+		ld	a,e			; Is it adjoining the
+		and	7			; board edge?
+		cp	7
+		jr	nz,fnl100
+		jr	fnl80
+fnl60:		cp	4			; Going south?
+		jr	nz,fnl70
+		ld	a,e			; Is it adjoining the
+		cp	56			; board edge?
+		jr	c,fnl100
+		jr	fnl80
+fnl70:		ld	a,e			; Going west.
+		and	7			; Is it adjoining the
+		jr	nz,fnl100		; board edge?
+fnl80:		push	hl
+		ld	hl,(board_array2)
+		ld	d,0
+		add	hl,de
+		ld	a,(hl)
+		or	0x40			; Mark as leaky.
+		ld	(hl),a
+		pop	hl
+		jr	fnl200
+
+fnl100:		ld	a,d			; Retrieve direction.
+
+		push	de
+		push	hl
+		ld	hl,(board_array2)
+		ld	d,0
+		add	hl,de
+		ld	de,-8
+		cp	1			; Get northerly pipe?
+		jr	z,fnl110
+		ld	de,1
+		cp	2			; Get easterly pipe?
+		jr	z,fnl110
+		ld	de,8
+		cp	4			; Get southerly pipe?
+		jr	z,fnl110
+		ld	de,-1			; Get westerly pipe.
+fnl110:		add	hl,de
+		ld	a,(hl)
+		pop	hl
+		pop	de
+
+		; Need to get directions for pipe here.
+		; Need to get directions for pipe here.
+		; Need to get directions for pipe here.
+
+
+
+
+fnl200:		;djnz	fnl31
+;		ld	a,c
+;		or	a
+;		jr	nz,fnl30
+
+
+		ld	de,(board_array2)	; temp temp
+		ld	hl,8
+		ld	b,0
+fnl900:		push	bc
+		push	de
+		push	hl
+		ld	b,h
+		ld	c,l
+		ld	a,(de)
+		ld	e,a
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0002
+		call	hex_write
+		pop	hl
+		pop	de
+		pop	bc
+		inc	b
+		ld	a,b
+		cp	64
+		jr	nc,fnl902
+		and	7
+		jr	nz,fnl901
+		push	bc
+		ld	bc,99-24
+		add	hl,bc
+		pop	bc
+fnl901:		inc	de
+		inc	hl
+		inc	hl
+		inc	hl
+		jr	fnl900
+fnl902:
+
+
+
+		ld	a,SUBSTATE_REMDEAD	; Set new substate.
+		call	substate_change
+		ret
+
+; *********************************************************************
+; Fill Animate                                                        *
+; *********************************************************************
+; 
+
+fill_animate:
+;		ld	hl,(fill_animation)	; Wipe the animation
+;		ld	bc,FILL_ANIMATION_MAX	; list.
+;		ld	d,0
+;fnl30:		ld	(hl),d			; 0=end of frames.
+;		inc	hl
+;		ld	(hl),d			; 0=water (default).
+;		inc	hl
+;		inc	hl
+;		inc	hl
+;		dec	bc
+;		ld	a,c
+;		or	a
+;		jr	nz,fnl30
+;		ld	a,b
+;		or	a
+;		jr	nz,fnl30
+
+;		ld	hl,(fill_nodes)		; Wipe the nodes
+;		ld	b,FILL_NODES_MAX	; list.
+;fnl40:		ld	(hl),d			; d is zeroised above.
+;		inc	hl
+;		inc	hl
+;		inc	hl
+;		djnz	fnl40
+
+;		ld	hl,(screen_buffer)	; Locate the start pipe
+;		ld	bc,33+8+3*7		; within the
+;		add	hl,bc			; screen buffer.
+;		ld	bc,33*3
+;fnl50:		ld	a,(hl)
+;		cp	_LTHV
+;		jr	z,fnl51
+;		add	hl,bc
+;		jr	fnl50
+;fnl51:		ex	de,hl
+
+;		ld	hl,(fill_animation)	; Create first frame.
+;		ld	b,2
+;		xor	a
+;fnl52:		ld	(hl),1			; Frame 1.
+;		inc	hl			; 0=water (default),
+;		ld	(hl),a			; 1=score+.
+;		inc	hl
+;		ld	(hl),e
+;		inc	hl
+;		ld	(hl),d			; screen_buffer offset.
+;		inc	hl
+;		inc	a
+;		djnz	fnl52
+
+;		ld	hl,(fill_nodes)		; Create first node.
+;		ld	(hl),4			; 1=N,2=E,3=S,4=W
+;		inc	hl
+;		ld	(hl),e			; screen_buffer offset.
+;		inc	hl
+;		ld	(hl),d
+
+
+
+;		ld	hl,(screen_buffer)
+;		ex	de,hl
+;		and	a
+;		sbc	hl,de
+;		ex	de,hl
+;		ld	a,WRITE_TO_SCRBUF	; temp temp
+;		ld	bc,33*1+8
+;		ld	hl,0x0004
+;		call	hex_write
+
+
+
+;fnl60:		ld	hl,(fill_nodes)
+;		ld	b,FILL_NODES_MAX
+;		ld	c,0
+;fnl61:		ld	a,(hl)
+;		inc	hl
+;		ld	e,(hl)
+;		inc	hl
+;		ld	d,(hl)
+;		inc	hl
+;		or	a
+;		jr	z,fnl70
+;		inc	c
+;		push	bc
+;		cp	1			; North?
+;		jr	nz,fnl62
+;		ld	bc,-33
+;		jr	fnl65
+;fnl62:		cp	2			; East?
+;		jr	nz,fnl63
+;		ld	bc,1
+;		jr	fnl65
+;fnl63:		cp	3			; South?
+;		jr	nz,fnl64
+;		ld	bc,33
+;		jr	fnl65
+;fnl64:		ld	bc,-1			; West then.
+;fnl65:		ex	de,hl
+;		add	hl,bc
+;		ex	de,hl
+;		ld	a,(de)
+;		pop	bc
+		
+;		ld	a,(de)
+;		cp	0x80
+
+;		ld	a,0x08		; temp temp
+;		ld	(de),a		; temp temp
+
+
+;fnl70:		;djnz	fnl61
+		;ld	a,c
+		;or	a
+		;jr	nz,fnl60
+
+
+		ret
+		
+; *********************************************************************
+; Fill Prepare                                                        *
+; *********************************************************************
+
+fill_prepare:	ld	a,(substate_current)
 		cp	SUBSTATE_GAME
 		ret	nz
 
-		ld	a,SUBSTATE_FILL		; Set new substate.
-		call	substate_change
-
 		ld	a,(cursor_panel_position) ; Is the panel cursor
 		cp	0xff			; already visible?
-		jr	nz,fil0
-		ld	a,4			; Erase the game cursor
-		ld	(screen_redraw),a	; now.
+		jr	nz,fpl10
+		ld	a,4			; Erase the game cursor.
+		ld	(screen_redraw),a
 		call	game_draw
 		ld	a,0xff			; Turn game cursor off.
 		ld	(cursor_game_position),a
 		ld	a,1			; Turn panel cursor on
 		ld	(cursor_panel_position),a ; and position on Fill.
 
-fil0:		ld	hl,countdown_time+1	; Is the countdown time
-		ld	a,(hl)			; already zero?
+fpl10:		ld	hl,countdown_time+1	; Is the countdown time
+		ld	a,(hl)			; zero?
 		dec	hl
 		or	(hl)
-		jr	z,fil10
-fil1:		ld	b,1			; For every second add
-		call	bcd_word_subtract	; 5 to the score.
-		ld	hl,score
+		jr	z,fpl20
+		ld	b,1			; For every second
+		call	bcd_word_subtract	; remaining add 5 to
+		ld	hl,score		; the score.
 		ld	b,5
 		call	bcd_word_add
-		jr	fil0
+		jr	fpl10
 
-fil10:		ld	a,16+64			; Show the panel cursor,
+fpl20:		ld	a,16+64			; Show the panel cursor,
 		ld	(screen_redraw),a	; redisplay the score
-		ld	a,1			; and countdown time
-		ld	(screen_redraw+1),a	; now.
+		ld	a,1			; and countdown time.
+		ld	(screen_redraw+1),a
 		call	game_draw
+
+		ld	a,SUBSTATE_FILL		; Set new substate.
+		call	substate_change
 		ret
 
 ; *********************************************************************
@@ -1868,7 +2160,7 @@ gdl70:		ld	a,(screen_redraw)
 		inc	hl
 		or	(hl)
 		jr	nz,gdl71
-		call	fill_initiate		; Countdown is now 0.
+		call	fill_prepare		; Countdown is now 0.
 gdl71:		ld	a,(screen_redraw+1)
 		or	1
 		ld	(screen_redraw+1),a
@@ -2000,13 +2292,13 @@ pgl10:		ld	b,0
 ; | 0   2   4   6   8  10  12  14  16  18 |
 ; +---------------------------------------+
 ; |   |   | O | O |   |   | O |   | O | O |
-; |   |OO<| O |OOO|OX | XO|OO | OO|OO | OO|
+; |   |<< | O |OOO|OX | XO|OO | OO|OO | OO|
 ; |   |   | O | O |   |   |   | O | O | O |
 ; +---------------------------------------+
 ; | 1   3   5   7   9  11  13  15  17 |
 ; +-----------------------------------+
 ; |///|   |   |   | O |   | O |   | O |
-; |///|<OO|OOO| X | X |OO | OO|OOO|OOO|
+; |///| <<|OOO| X | X |OO | OO|OOO|OOO|
 ; |///|   |   | O |   | O |   | O |   |
 ; +-----------------------------------+
 
@@ -2237,24 +2529,22 @@ swl10:		add	hl,bc
 localise:	ld	a,(MARGIN)
 		cp	55			; PAL or NTSC?
 		jr	nz,locall0
-		ld	a,BLINK_PAL
-		ld	bc,EVENT_REPEAT_INTERVAL_PAL
-		ld	hl,EVENT_REPEAT_DELAY_PAL
-		ld	d,CURSOR_GAME_DELAY_PAL
-		ld	e,COUNTDOWN_DELAY_PAL
+		ld	a,ONE_SECOND_PAL
 		jr	locall1
-locall0:	ld	a,BLINK_NTSC
-		ld	bc,EVENT_REPEAT_INTERVAL_NTSC
-		ld	hl,EVENT_REPEAT_DELAY_NTSC
-		ld	d,CURSOR_GAME_DELAY_NTSC
-		ld	e,COUNTDOWN_DELAY_NTSC
-locall1:	ld	(blink_delay),a
-		ld	(event_repeat_interval_master),bc
-		ld	(event_repeat_delay_master),hl
-		ld	a,d
-		ld	(cursor_game_delay),a		
-		ld	a,e
-		ld	(countdown_delay),a		
+locall0:	ld	a,ONE_SECOND_NTSC
+
+locall1:	ld	(countdown_delay),a		; 1s
+		srl	a
+		ld	(blink_delay),a			; 1/2s
+		ld	(cursor_game_delay),a		; 1/2s
+		srl	a
+		ld	(event_repeat_delay_master),a	; 1/4s
+		ld	(fill_animate_delay),a		; 1/4s
+		srl	a
+		ld	(event_repeat_interval_master),a ; 1/8s
+		xor	a
+		ld	(event_repeat_interval_master+1),a
+		ld	(event_repeat_delay_master+1),a
 		ret
 
 ; *********************************************************************
@@ -2412,6 +2702,16 @@ ddil1:		push	bc
 		xor	0x80
 ddil2:		ld	(movchar_char),a
 		ld	(movchar_offset),bc
+		endc
+
+		cond	DEBUG_STACK
+		ld	a,WRITE_TO_SCRBUF	; Dump SP to calculate
+		ld	bc,33*1+28		; the program's entire
+		ld	hl,0			; memory usage.
+		add	hl,sp
+		ex	de,hl
+		ld	hl,0x0004
+		call	hex_write
 		endc
 
 		ret
