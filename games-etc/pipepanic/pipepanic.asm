@@ -916,7 +916,7 @@ fnl30:		ld	hl,(fill_nodes)		; Process nodes.
 		ld	c,0			; Node found flag.
 fnl31:		ld	a,(hl)			; Get next node.
 		ld	(hl),0			; Kill it now since 
-		inc	hl			; new ones might be
+		inc	hl			; new ones may be
 		ld	e,(hl)			; created later.
 		inc	hl
 		or	a
@@ -953,8 +953,8 @@ fnl80:		push	hl
 		ld	a,(hl)
 		or	0x40			; Mark as leaky.
 		ld	(hl),a
-		pop	hl
-		jr	fnl200
+		pop	hl			; For this node it's
+		jr	fnl200			; the end of the road.
 
 fnl100:		ld	a,d			; Retrieve direction.
 
@@ -974,16 +974,29 @@ fnl100:		ld	a,d			; Retrieve direction.
 		jr	z,fnl110
 		ld	de,-1			; Get westerly pipe.
 fnl110:		add	hl,de
-		ld	a,(hl)
+		ld	a,(hl)			; Got it!
 		pop	hl
 		pop	de
 
-		; Need to get directions for pipe here.
-		; Need to get directions for pipe here.
-		; Need to get directions for pipe here.
+		call	pipe_exits_get
 
+		ld	bc,33*9+5		; temp temp
+		ld	e,a
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0002
+		call	hex_write
 
+		; Is it a valid connection?
+		; Is it a valid connection?
+		; Is it a valid connection?
 
+		; Is pipe already visited?
+		; Is pipe already visited?
+		; Is pipe already visited?
+
+		; Create new nodes for all directions.
+		; Create new nodes for all directions.
+		; Create new nodes for all directions.
 
 fnl200:		;djnz	fnl31
 ;		ld	a,c
@@ -1028,6 +1041,26 @@ fnl902:
 
 		ld	a,SUBSTATE_REMDEAD	; Set new substate.
 		call	substate_change
+		ret
+
+; *********************************************************************
+; Pipe Exits Get                                                      *
+; *********************************************************************
+; This returns the exits for a particular pipe piece.
+; 
+; On entry: a = pipe piece
+;  On exit: a = exits 1=N,2=E,4=S,8=W so a cross would be 0x0f
+;           Only register a is modified here.
+
+pipe_exits_get:	push	bc
+		push	hl
+		ld	hl,pipe_exits_data
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	a,(hl)
+		pop	hl
+		pop	bc
 		ret
 
 ; *********************************************************************
@@ -1157,6 +1190,7 @@ fill_animate:
 ; *********************************************************************
 ; Fill Prepare                                                        *
 ; *********************************************************************
+; This prepares the interface for SUBSTATE_FILL and beyond.
 
 fill_prepare:	ld	a,(substate_current)
 		cp	SUBSTATE_GAME
@@ -2719,6 +2753,8 @@ ddil2:		ld	(movchar_char),a
 ; *********************************************************************
 ; Data                                                                *
 ; *********************************************************************
+
+pipe_exits_data: defb	0,0,8,2,5,10,15,4,8,1,2,12,9,3,6,14,13,11,7
 
 ;11,11,11,11,11,12,12,12,12,12,13,13,13,13,13,14,14,14,14,14
 ;15,15,15,15,16,16,16,16,17,17,17,17,18,18,18,18
