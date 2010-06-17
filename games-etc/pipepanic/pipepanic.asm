@@ -375,7 +375,7 @@ start:		ld	(sp_original),sp
 		ld	bc,FILL_ANIMATION_MAX*4
 		sbc	hl,bc
 		ld	(fill_animation),hl
-		ld	bc,FILL_NODES_MAX*2
+		ld	bc,FILL_NODES_MAX*3
 		sbc	hl,bc
 		ld	(fill_nodes),hl
 		ld	sp,hl
@@ -914,13 +914,15 @@ fnl21:		or	0x20			; Mark as visited.
 fnl30:		ld	hl,(fill_nodes)		; Process nodes.
 		ld	b,FILL_NODES_MAX
 		ld	c,0			; Node found flag.
-fnl31:		ld	a,(hl)			; Get next node.
-		ld	(hl),0			; Kill it now since 
-		inc	hl			; new ones may be
-		ld	e,(hl)			; created later.
+fnl31:		push	hl
+		push	bc
+		ld	a,(hl)			; Get node's direction.
+		ld	(hl),0			; Kill it since it's
+		inc	hl			; not needed anymore.
+		ld	e,(hl)
 		inc	hl
 		or	a
-		jr	z,fnl200
+		jp	z,fnl200
 
 		ld	d,a			; Backup direction.
 
@@ -946,59 +948,97 @@ fnl60:		cp	4			; Going south?
 fnl70:		ld	a,e			; Going west.
 		and	7			; Is it adjoining the
 		jr	nz,fnl100		; board edge?
-fnl80:		push	hl
-		ld	hl,(board_array2)
-		ld	d,0
-		add	hl,de
+fnl80:		ld	hl,(board_array2)
+		ld	b,0
+		ld	c,e
+		add	hl,bc
 		ld	a,(hl)
 		or	0x40			; Mark as leaky.
 		ld	(hl),a
-		pop	hl			; For this node it's
-		jr	fnl200			; the end of the road.
+		jr	fnl200			; Node is finished with.
 
 fnl100:		ld	a,d			; Retrieve direction.
 
-		push	de
-		push	hl
 		ld	hl,(board_array2)
-		ld	d,0
-		add	hl,de
-		ld	de,-8
+		ld	b,0
+		ld	c,e
+		add	hl,bc
+		ld	bc,-8
 		cp	1			; Get northerly pipe?
 		jr	z,fnl110
-		ld	de,1
+		ld	bc,1
 		cp	2			; Get easterly pipe?
 		jr	z,fnl110
-		ld	de,8
+		ld	bc,8
 		cp	4			; Get southerly pipe?
 		jr	z,fnl110
-		ld	de,-1			; Get westerly pipe.
-fnl110:		add	hl,de
-		ld	a,(hl)			; Got it!
-		pop	hl
-		pop	de
+		ld	bc,-1			; Get westerly pipe.
+fnl110:		add	hl,bc
 
+		ld	a,(hl)			; Get target pipe.
 		call	pipe_exits_get
+		ld	b,a			; Backup exits.
 
-		ld	bc,33*9+5		; temp temp
+		ld	a,d			; Retrieve direction.
+
+		cp	4			; Reverse source
+		jr	nc,fnl120		; direction so that the
+		sla	d			; connection with the
+		sla	d			; target pipe can be
+		jr	fnl121			; validated.
+fnl120:		srl	d
+		srl	d
+fnl121:		ld	a,b			; Retrieve exits.
+		and	d			; Is source dir there?
+		jr	z,fnl80			; No so mark as leaky.
+		ld	a,d
+		cpl
+		ld	d,a
+		ld	a,b			; Retrieve exits.
+		and	d			; Remove source direction.
+
+		;ld	a,(hl)			; Get target pipe.
+
+		; Is pipe already visited?
+		; Is pipe already visited?
+		; Is pipe already visited?
+
+		; Mark pipe as visited?
+		; Mark pipe as visited?
+		; Mark pipe as visited?
+
+		; Create new nodes for all directions.
+		; Create new nodes for all directions.
+		; Create new nodes for all directions.
+
+
+		push	hl
+		ld	bc,33*9		; temp temp
 		ld	e,a
 		ld	a,WRITE_TO_SCRBUF
 		ld	hl,0x0002
 		call	hex_write
+		pop	hl
+		push	hl
+		ld	bc,33*9+2	; temp temp
+		ld	e,(hl)
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0002
+		call	hex_write
+		pop	hl
+		ld	de,(board_array2)
+		and	a
+		sbc	hl,de
+		ex	de,hl
+		ld	bc,33*9+4	; temp temp
+		ld	a,WRITE_TO_SCRBUF
+		ld	hl,0x0002
+		call	hex_write
 
-		; Is it a valid connection?
-		; Is it a valid connection?
-		; Is it a valid connection?
 
-		; Is pipe already visited?
-		; Is pipe already visited?
-		; Is pipe already visited?
-
-		; Create new nodes for all directions.
-		; Create new nodes for all directions.
-		; Create new nodes for all directions.
-
-fnl200:		;djnz	fnl31
+fnl200:		pop	bc
+		pop	hl
+;		djnz	fnl31
 ;		ld	a,c
 ;		or	a
 ;		jr	nz,fnl30
