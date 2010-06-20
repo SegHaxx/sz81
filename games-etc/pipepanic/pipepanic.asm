@@ -249,8 +249,8 @@ basic_0001:	defb	0,1		; 1 REM
 DEBUG_TIMING	equ	0
 DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
-DEBUG_PIPES	equ	0
 DEBUG_STACK	equ	0
+DEBUG_FILL	equ	1
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
@@ -338,6 +338,8 @@ hiscore:	defw	0	; Stored as BCD.
 countdown_time: defw	0	; Stored as BCD.
 countdown_delay: defb	0
 countdown_last:	defw	0
+fill_remdead_delay: defb 0
+fill_remdead_last: defw	0
 fill_animate_delay: defb 0
 fill_animate_last: defw	0
 
@@ -850,11 +852,15 @@ main_upd_game:	cp	STATE_GAME
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
-		jr	main_upd_gal1
+		jr	main_upd_gal2
 main_upd_gal0:	cp	SUBSTATE_FILL
 		jr	nz,main_upd_gal1
 		call	fill_network
-main_upd_gal1:	call	game_draw
+		jr	main_upd_gal2
+main_upd_gal1:	cp	SUBSTATE_REMDEAD
+		jr	nz,main_upd_gal2
+		call	fill_remdead
+main_upd_gal2:	call	game_draw
 
 main_upd_screen:
 		call	dump_debug_info
@@ -955,7 +961,7 @@ fnl80:		ld	hl,(board_array2)
 		ld	a,(hl)
 		or	0x40			; Mark as leaky.
 		ld	(hl),a
-		jr	fnl200			; Node is finished with.
+		jp	fnl200			; Node is finished with.
 
 fnl100:		ld	a,d			; Retrieve direction.
 
@@ -976,6 +982,7 @@ fnl100:		ld	a,d			; Retrieve direction.
 fnl110:		add	hl,bc
 
 		ld	a,(hl)			; Get target pipe.
+		and	0x1f			; Filter out flags.
 		call	pipe_exits_get
 		ld	b,a			; Backup exits.
 
@@ -990,95 +997,64 @@ fnl120:		srl	d
 		srl	d
 fnl121:		ld	a,b			; Retrieve exits.
 		and	d			; Is source dir there?
-		jr	z,fnl80			; No so mark as leaky.
+		jr	z,fnl80			; No, so mark as leaky.
 		ld	a,d
 		cpl
 		ld	d,a
 		ld	a,b			; Retrieve exits.
 		and	d			; Remove source direction.
+		ld	b,a			; Update exits.
 
-		;ld	a,(hl)			; Get target pipe.
+		ld	a,(hl)			; Get target pipe.
+		ld	d,a
+		and	0x20			; Already visited?
+		jr	nz,fnl200		; Yeah, so move on.
+		ld	a,d
+		or	0x20			; Mark as visited.
+		ld	(hl),a
 
-		; Is pipe already visited?
-		; Is pipe already visited?
-		; Is pipe already visited?
-
-		; Mark pipe as visited?
-		; Mark pipe as visited?
-		; Mark pipe as visited?
-
-		; Create new nodes for all directions.
-		; Create new nodes for all directions.
-		; Create new nodes for all directions.
-
-
-		push	hl
-		ld	bc,33*9		; temp temp
-		ld	e,a
-		ld	a,WRITE_TO_SCRBUF
-		ld	hl,0x0002
-		call	hex_write
-		pop	hl
-		push	hl
-		ld	bc,33*9+2	; temp temp
-		ld	e,(hl)
-		ld	a,WRITE_TO_SCRBUF
-		ld	hl,0x0002
-		call	hex_write
-		pop	hl
 		ld	de,(board_array2)
 		and	a
 		sbc	hl,de
-		ex	de,hl
-		ld	bc,33*9+4	; temp temp
-		ld	a,WRITE_TO_SCRBUF
-		ld	hl,0x0002
-		call	hex_write
+		ex	de,hl			; e is now target offset.
+		
+		ld	hl,(fill_nodes)		; Locate a free slot
+		ld	d,1			; to create a new node.
+fnl130:		ld	a,(hl)
+		or	a
+		jr	z,fnl131
+		inc	hl
+		inc	hl
+		jr	fnl130
 
+fnl131:		ld	a,b			; Retrieve exits.
+		and	d			; Isolate direction.
+		jr	z,fnl132
+		ld	(hl),a			; Store new node.
+		inc	hl
+		ld	(hl),e
+		inc	hl
+
+fnl132:		sla	d			; 1,2,4 and finally 8.
+		bit	4,d
+		jr	z,fnl130
+
+		pop	bc
+		inc	c			; At least one node
+		push	bc			; exists.
 
 fnl200:		pop	bc
 		pop	hl
-;		djnz	fnl31
-;		ld	a,c
-;		or	a
-;		jr	nz,fnl30
-
-
-		ld	de,(board_array2)	; temp temp
-		ld	hl,8
-		ld	b,0
-fnl900:		push	bc
-		push	de
-		push	hl
-		ld	b,h
-		ld	c,l
-		ld	a,(de)
-		ld	e,a
-		ld	a,WRITE_TO_SCRBUF
-		ld	hl,0x0002
-		call	hex_write
-		pop	hl
-		pop	de
-		pop	bc
-		inc	b
-		ld	a,b
-		cp	64
-		jr	nc,fnl902
-		and	7
-		jr	nz,fnl901
-		push	bc
-		ld	bc,99-24
-		add	hl,bc
-		pop	bc
-fnl901:		inc	de
 		inc	hl
 		inc	hl
-		inc	hl
-		jr	fnl900
-fnl902:
+		dec	b
+		jp	nz,fnl31
+		ld	a,c
+		or	a
+		jp	nz,fnl30
 
-
-
+		ld	hl,(FRAMES)		; Prepare to remove
+		ld	(fill_remdead_last),hl	; any dead pipes.
 		ld	a,SUBSTATE_REMDEAD	; Set new substate.
 		call	substate_change
 		ret
@@ -1104,126 +1080,86 @@ pipe_exits_get:	push	bc
 		ret
 
 ; *********************************************************************
+; Fill Remove Dead Pipes                                              *
+; *********************************************************************
+; This removes dead pipes animatedly from board_array, board_array2
+; and the screen.
+
+fill_remdead:	ld	bc,(FRAMES)		; If it's time, remove
+		ld	hl,(fill_remdead_last)	; another dead pipe
+		and	a			; until all are gone.
+		sbc	hl,bc
+		ld	a,(fill_remdead_delay)
+		cp	l
+		ret	nc
+		ld	(fill_remdead_last),bc
+
+		ld	de,0
+frdl0:		ld	hl,(board_array2)
+		add	hl,de
+		ld	a,(hl)
+		cp	4			; Filter out spaces and
+		jr	c,frdl10		; an unvisited end pipe.
+		and	0x20			; Was it visited?
+		jr	nz,frdl10		; Yes, so leave it.
+
+		ld	b,e
+		srl	b
+		srl	b			; Divide board array
+		srl	b			; index by 8.
+		ld	a,e			; Calculate type of
+		bit	0,b			; space to erase with.
+		jr	nz,frdl1
+		inc	a
+frdl1:		and	1
+
+		ld	(hl),a			; Erase the dead pipe
+		ld	hl,(board_array)	; both in the board
+		add	hl,de			; array and the copy.
+		ld	(hl),a
+
+		ld	hl,score
+		ld	b,10			; -10 points.
+		call	bcd_word_subtract
+
+		ld	a,(screen_redraw)	; Flag score for
+		or	64			; redisplaying.
+		ld	(screen_redraw),a
+		ld	a,(screen_redraw+1)	; Flag the board for
+		or	2			; redrawing.
+		ld	(screen_redraw+1),a
+		ret
+		
+frdl10:		inc	e
+		ld	a,e
+		cp	64
+		jr	c,frdl0
+
+		ld	hl,0			; Prepare to animate
+		ld	(fill_animate_last),hl	; the filling of the
+		ld	a,SUBSTATE_FILLANIM	; pipe network.
+		call	substate_change
+		ret
+
+; *********************************************************************
 ; Fill Animate                                                        *
 ; *********************************************************************
-; 
 
 fill_animate:
-;		ld	hl,(fill_animation)	; Wipe the animation
-;		ld	bc,FILL_ANIMATION_MAX	; list.
-;		ld	d,0
-;fnl30:		ld	(hl),d			; 0=end of frames.
-;		inc	hl
-;		ld	(hl),d			; 0=water (default).
-;		inc	hl
-;		inc	hl
-;		inc	hl
-;		dec	bc
-;		ld	a,c
-;		or	a
-;		jr	nz,fnl30
-;		ld	a,b
-;		or	a
-;		jr	nz,fnl30
 
-;		ld	hl,(fill_nodes)		; Wipe the nodes
-;		ld	b,FILL_NODES_MAX	; list.
-;fnl40:		ld	(hl),d			; d is zeroised above.
-;		inc	hl
-;		inc	hl
-;		inc	hl
-;		djnz	fnl40
-
-;		ld	hl,(screen_buffer)	; Locate the start pipe
-;		ld	bc,33+8+3*7		; within the
-;		add	hl,bc			; screen buffer.
-;		ld	bc,33*3
-;fnl50:		ld	a,(hl)
-;		cp	_LTHV
-;		jr	z,fnl51
-;		add	hl,bc
-;		jr	fnl50
-;fnl51:		ex	de,hl
-
-;		ld	hl,(fill_animation)	; Create first frame.
-;		ld	b,2
-;		xor	a
-;fnl52:		ld	(hl),1			; Frame 1.
-;		inc	hl			; 0=water (default),
-;		ld	(hl),a			; 1=score+.
-;		inc	hl
-;		ld	(hl),e
-;		inc	hl
-;		ld	(hl),d			; screen_buffer offset.
-;		inc	hl
-;		inc	a
-;		djnz	fnl52
-
-;		ld	hl,(fill_nodes)		; Create first node.
-;		ld	(hl),4			; 1=N,2=E,3=S,4=W
-;		inc	hl
-;		ld	(hl),e			; screen_buffer offset.
-;		inc	hl
-;		ld	(hl),d
-
-
-
-;		ld	hl,(screen_buffer)
-;		ex	de,hl
-;		and	a
-;		sbc	hl,de
-;		ex	de,hl
-;		ld	a,WRITE_TO_SCRBUF	; temp temp
-;		ld	bc,33*1+8
-;		ld	hl,0x0004
-;		call	hex_write
-
-
-
-;fnl60:		ld	hl,(fill_nodes)
-;		ld	b,FILL_NODES_MAX
-;		ld	c,0
-;fnl61:		ld	a,(hl)
-;		inc	hl
-;		ld	e,(hl)
-;		inc	hl
-;		ld	d,(hl)
-;		inc	hl
-;		or	a
-;		jr	z,fnl70
-;		inc	c
+;		push	af
 ;		push	bc
-;		cp	1			; North?
-;		jr	nz,fnl62
-;		ld	bc,-33
-;		jr	fnl65
-;fnl62:		cp	2			; East?
-;		jr	nz,fnl63
-;		ld	bc,1
-;		jr	fnl65
-;fnl63:		cp	3			; South?
-;		jr	nz,fnl64
-;		ld	bc,33
-;		jr	fnl65
-;fnl64:		ld	bc,-1			; West then.
-;fnl65:		ex	de,hl
-;		add	hl,bc
-;		ex	de,hl
-;		ld	a,(de)
+;		push	de
+;		push	hl
+;		ld	e,a
+;		ld	a,WRITE_TO_SCRBUF	; temp temp
+;		ld	bc,33*9
+;		ld	hl,0x0002
+;		call	hex_write
+;		pop	hl
+;		pop	de
 ;		pop	bc
-		
-;		ld	a,(de)
-;		cp	0x80
-
-;		ld	a,0x08		; temp temp
-;		ld	(de),a		; temp temp
-
-
-;fnl70:		;djnz	fnl61
-		;ld	a,c
-		;or	a
-		;jr	nz,fnl60
-
+;		pop	af
 
 		ret
 		
@@ -2248,7 +2184,12 @@ gdl80:		ld	a,(screen_redraw+1)
 		ld	hl,0x0003
 		call	hex_write
 
-gdl90:
+gdl90:		ld	a,(screen_redraw+1)
+		and	2
+		jr	z,gdl100
+		call	board_draw
+		
+gdl100:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -2269,19 +2210,6 @@ bdl1:		push	bc
 		ld	c,l
 		push	de
 		push	hl
-
-		cond	DEBUG_PIPES
-		push	bc
-		call	get_random_number	; 0 to 255.
-		srl	a
-		srl	a
-		srl	a
-		cp	19
-		jr	c,bdl2
-		sub	19
-bdl2:		pop	bc
-		endc
-
 		call	pipe_draw
 		pop	hl
 		inc	hl
@@ -2613,6 +2541,7 @@ locall1:	ld	(countdown_delay),a		; 1s
 		ld	(cursor_game_delay),a		; 1/2s
 		srl	a
 		ld	(event_repeat_delay_master),a	; 1/4s
+		ld	(fill_remdead_delay),a		; 1/4s
 		ld	(fill_animate_delay),a		; 1/4s
 		srl	a
 		ld	(event_repeat_interval_master),a ; 1/8s
@@ -2787,6 +2716,49 @@ ddil2:		ld	(movchar_char),a
 		ld	hl,0x0004
 		call	hex_write
 		endc
+
+		cond	DEBUG_FILL
+		ld	a,(state_current)
+		cp	STATE_GAME
+		jr	nz,ddil35
+		ld	a,(substate_current)
+		cp	SUBSTATE_REMDEAD
+		jr	nz,ddil35
+		ld	de,(board_array2)	; Show leaky and dead
+		ld	hl,(screen_buffer)	; pipes.
+		ld	bc,33+9
+		add	hl,bc
+		ld	b,0
+ddil30:		ld	a,(de)
+		cp	2
+		jr	c,ddil33
+		cp	3
+		jr	z,ddil33
+		and	0x40
+		jr	z,ddil31
+		ld	a,_LV
+		jr	ddil32
+ddil31:		ld	a,(de)
+		and	0x20
+		jr	nz,ddil33
+		ld	a,_DV
+ddil32:		ld	(hl),a
+ddil33:		inc	de
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	b
+		ld	a,b
+		and	7
+		jr	nz,ddil34
+		push	bc
+		ld	bc,99-24
+		add	hl,bc
+		pop	bc
+ddil34:		ld	a,b
+		cp	64
+		jr	c,ddil30
+ddil35:		endc
 
 		ret
 		
