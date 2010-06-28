@@ -250,7 +250,8 @@ DEBUG_TIMING	equ	0
 DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
 DEBUG_STACK	equ	0
-DEBUG_FILL	equ	1
+DEBUG_FILL	equ	0
+DEBUG_NODES	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
@@ -258,8 +259,9 @@ HELP_PAGE_MAX	equ	3
 PIPE_ARRAY_MAX	equ	70
 COUNTDOWN_MAX	equ	0x0240	; BCD
 FILL_ANIMATION_MAX equ	64*4
-FILL_NODES_MAX	equ	8*4
-
+FILL_NODES_MAX	equ	24	; I reached 21 with an abnormal amount
+				; of crosses and Ts. 8*3 should be the
+				; maximum nodes possible.
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
 WRITE_TO_MEMBLK	equ	2
@@ -277,7 +279,8 @@ SUBSTATE_GAME	equ	2
 SUBSTATE_FILL	equ	3
 SUBSTATE_REMDEAD equ	4
 SUBSTATE_FILLANIM equ	5
-SUBSTATE_END	equ	6
+SUBSTATE_HISCORE equ	6
+SUBSTATE_END	equ	7
 
 ONE_SECOND_PAL	equ	50
 ONE_SECOND_NTSC	equ	60
@@ -342,6 +345,9 @@ fill_remdead_delay: defb 0
 fill_remdead_last: defw	0
 fill_animate_delay: defb 0
 fill_animate_last: defw	0
+fill_animate_frame: defb 0
+fill_animate_subframe: defb 0
+fill_animate_leak: defb	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -374,10 +380,10 @@ start:		ld	(sp_original),sp
 		ld	bc,PIPE_ARRAY_MAX
 		sbc	hl,bc
 		ld	(pipe_array),hl
-		ld	bc,FILL_ANIMATION_MAX*4
+		ld	bc,FILL_ANIMATION_MAX*3
 		sbc	hl,bc
 		ld	(fill_animation),hl
-		ld	bc,FILL_NODES_MAX*3
+		ld	bc,FILL_NODES_MAX*5
 		sbc	hl,bc
 		ld	(fill_nodes),hl
 		ld	sp,hl
@@ -591,8 +597,12 @@ main_hlp_select:
 		jp	z,main_spll1		; Back to Options.
 		ld	a,1+16+32+64
 		ld	(screen_redraw),a
+		ld	a,(substate_current)
+		cp	SUBSTATE_FILLANIM
 		ld	a,1
-		ld	(screen_redraw+1),a
+		jr	nz,main_hlp_sell0
+		or	4
+main_hlp_sell0:	ld	(screen_redraw+1),a
 		call	game_draw
 		jp	main_spll2		; Back to game.
 
@@ -678,6 +688,9 @@ main_gam_pnl_sel:
 		or	a
 		jr	nz,main_gam_pnl_sel_fill
 main_gam_pnl_sel_hifill:
+		; Fill hiscore network here.
+		; Fill hiscore network here.
+		; Fill hiscore network here.
 		; Fill hiscore network here.
 		; Fill hiscore network here.
 		; Fill hiscore network here.
@@ -852,15 +865,19 @@ main_upd_game:	cp	STATE_GAME
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
-		jr	main_upd_gal2
+		jr	main_upd_gal3
 main_upd_gal0:	cp	SUBSTATE_FILL
 		jr	nz,main_upd_gal1
 		call	fill_network
-		jr	main_upd_gal2
+		jr	main_upd_gal3
 main_upd_gal1:	cp	SUBSTATE_REMDEAD
 		jr	nz,main_upd_gal2
 		call	fill_remdead
-main_upd_gal2:	call	game_draw
+		jr	main_upd_gal3
+main_upd_gal2:	cp	SUBSTATE_FILLANIM
+		jr	nz,main_upd_gal3
+		call	fill_animate
+main_upd_gal3:	call	game_draw
 
 main_upd_screen:
 		call	dump_debug_info
@@ -876,16 +893,437 @@ main_quit:	ld	sp,(sp_original)
 		ret
 
 ; *********************************************************************
+; Fill Animate                                                        *
+; *********************************************************************
+; +-----+ +-----+
+; | |2| | | | | |
+; ------- -------
+; |2|1|0| |2|1| |
+; ------- -------
+; | |2| | | | | |
+; +-----+ +-----+
+
+fill_animate:	ld	bc,(FRAMES)		; If it's time, animate
+		ld	hl,(fill_animate_last)	; another unit of water
+		and	a			; until a leak is found
+		sbc	hl,bc			; or no more nodes.
+		ld	a,(fill_animate_delay)
+		cp	l
+		ret	nc
+		ld	(fill_animate_last),bc
+
+		ld	hl,fill_animate_frame	; New frame.
+		inc	(hl)
+
+		ld	a,(fill_animate_subframe) ; New subframe.
+		inc	a
+		cp	3
+		jr	c,fal10
+		xor	a
+fal10:		ld	(fill_animate_subframe),a
+
+		ld	hl,(fill_nodes)
+		ld	b,FILL_NODES_MAX
+		ld	c,0			; Node found flag.
+fal31:		push	hl
+		push	bc
+		ld	a,(hl)			; Get node's direction.
+		or	a
+		jr	z,fal200
+		ld	b,a
+		inc	hl
+		ld	c,(hl)			; Get last subframe.
+		ld	a,(fill_animate_subframe)
+		cp	c
+		jr	z,fal200
+		ld	c,a
+		ld	(hl),c			; Update subframe.
+		inc	hl
+		ld	e,(hl)			; Get board_array2 offset.
+		inc	hl
+
+		cp	2
+		jr	nz,fal50
+		; ------------------------
+		; Subframe 1 to Subframe 2
+		; ------------------------
+		; Update node.
+		; Animate node.
+		; If pipe is leaky then
+		;     kill node and stop after current subframe.
+		call	fa_node_update
+		call	fa_node_animate
+		call	fa_node_pipe_get
+		and	0x40			; Is it leaky?
+		jr	z,fal200
+		call	fa_node_kill		; Yes, it's leaky.
+		ld	a,1			; Prepare to end fill
+		ld	(fill_animate_leak),a	; after current subframe.
+		jr	fal200
+
+fal50:		or	a
+		jr	nz,fal60
+		; ------------------------
+		; Subframe 2 to Subframe 0
+		; ------------------------
+		; Update node.
+		; Animate node.
+		call	fa_node_update
+		call	fa_node_animate
+		jr	fal200
+
+fal60:		; ------------------------
+		; Subframe 0 to Subframe 1
+		; ------------------------
+		; Update node.
+		; If pipe is scored then
+		;     kill node.
+		; else
+		;     score pipe.
+		;     If pipe is not an end-pipe nor a terminator then
+		;         animate node.
+		;     Kill node.
+		;     Create new nodes for all pipe exits (exclude
+		;     originating direction if possible).
+		call	fa_node_update
+		call	fa_node_pipe_get
+		ld	d,a
+		and	0x80			; Is it already scored?
+		jr	z,fal62
+		call	fa_node_kill		; Yeah, so kill node.
+		jr	fal200
+fal62:		ld	a,d
+		or	0x80			; Flag pipe as scored.
+		call	fa_node_pipe_set
+		push	bc
+		push	hl
+		ld	hl,score
+		ld	b,50			; +50 points.
+		call	bcd_word_add
+		ld	a,(screen_redraw)	; Flag score for
+		or	64			; redisplaying.
+		ld	(screen_redraw),a
+		pop	hl
+		pop	bc
+		ld	a,d
+		and	0x1f			; Filter out flags.
+		cp	2			; Is it the end-pipe?
+		jr	z,fal64
+		cp	7			; Is it a terminator?
+		jr	c,fal64
+		cp	11
+		jr	nc,fal64
+		call	fa_node_animate
+fal64:		;call	fa_node_kill
+		; Create new nodes for all pipe exits here.
+		; Create new nodes for all pipe exits here.
+		; Create new nodes for all pipe exits here.
+
+
+
+
+
+
+
+fal200:		pop	bc
+		pop	hl
+		;inc	hl
+		;inc	hl
+		;inc	hl
+		;inc	hl
+		;inc	hl
+		;dec	b
+		;jr	nz,fal31
+
+		;ld	a,c
+		;or	a
+		;jr	z,fal??
+
+		; Do something with fill_animate_leak here.
+		; Do something with fill_animate_leak here.
+		; Do something with fill_animate_leak here.
+
+		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
+		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
+		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
+
+		ret
+
+fal210:
+
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Kill                                            *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: hl is pointing to the screen buffer offset.
+;           No registers are modified here.
+
+fa_node_kill:	push	hl
+		dec	hl
+		dec	hl
+		dec	hl
+		ld	(hl),0			; Kill node.
+		pop	hl
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Pipe Set                                        *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: e = the node's board_array2 offset
+;           a = the node's pipe
+;           Only register d is modified here.
+
+fa_node_pipe_set:		
+		push	hl
+		ld	hl,(board_array2)
+		ld	d,0
+		add	hl,de
+		ld	(hl),a			; Set pipe.
+		pop	hl
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Pipe Get                                        *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: e = the node's board_array2 offset.
+;  On exit: a = the node's pipe (including flags) from board_array2
+;           Only register d is modified here.
+
+fa_node_pipe_get:		
+		push	hl
+		ld	hl,(board_array2)
+		ld	d,0
+		add	hl,de
+		ld	a,(hl)			; Get pipe.
+		pop	hl
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Animate                                         *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: hl is pointing to the screen buffer offset.
+;           Only register a is modified here.
+
+fa_node_animate:
+		push	de
+		push	hl
+		ld	e,(hl)			; Read screen buffer
+		inc	hl			; offset from fill_nodes.
+		ld	d,(hl)
+
+		ld	hl,(fill_animation)
+fa_nal10:	ld	a,(hl)
+		or	a			; Zero means end of list.
+		jr	z,fa_nal11
+		inc	hl
+		inc	hl
+		inc	hl
+		jr	fa_nal10
+fa_nal11:	ld	a,(fill_animate_frame)
+		ld	(hl),a			; Store frame.
+		inc	hl
+		ld	(hl),e
+		inc	hl			; Store screen buffer
+		ld	(hl),d			; offset.
+		
+		ld	a,(screen_redraw+1)	; Flag frame for
+		or	2			; drawing.
+		ld	(screen_redraw+1),a
+		pop	hl
+		pop	de
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Update                                          *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: b  = direction
+;           c  = current subframe
+;           e  = board_array2 offset
+;           hl is pointing to the screen buffer offset.
+;           Only register a is modified here although e will be
+;           updated on subframe 0.
+
+fa_node_update: ld	a,c			; Moving to subframe 0
+		or	a			; requires that the
+		jr	nz,fa_nul20		; board_array2 offset
+		ld	a,b			; is updated.
+		cp	1
+		jr	nz,fa_nul10
+		ld	a,e
+		sub	8
+		jr	fa_nul13
+fa_nul10:	cp	2
+		jr	nz,fa_nul11
+		ld	a,e
+		inc	a
+		jr	fa_nul13
+fa_nul11:	cp	4
+		jr	nz,fa_nul12
+		ld	a,e
+		add	a,8
+		jr	fa_nul13
+fa_nul12:	ld	a,e
+		dec	a
+fa_nul13:	ld	e,a
+		dec	hl			; Update
+		ld	(hl),e			; board_array2 offset.
+		inc	hl
+
+fa_nul20:	push	de			; Move the node's
+		push	hl			; screen buffer offset
+		ld	e,(hl)			; to its new location.
+		inc	hl
+		ld	d,(hl)
+		ld	a,b
+		cp	1
+		jr	nz,fa_nul21
+		ld	hl,-33
+		jr	fa_nul24
+fa_nul21:	cp	2
+		jr	nz,fa_nul22
+		ld	hl,1
+		jr	fa_nul24
+fa_nul22:	cp	4
+		jr	nz,fa_nul23
+		ld	hl,33
+		jr	fa_nul24
+fa_nul23:	ld	hl,-1
+fa_nul24:	add	hl,de
+		ex	de,hl
+		pop	hl
+		ld	(hl),e
+		inc	hl			; Update screen buffer
+		ld	(hl),d			; offset.
+		dec	hl
+		pop	de
+
+		ret
+
+
+
+
+
+
+
+
+;		ld	hl,(fill_nodes)		; Testing - show the
+;		ld	b,FILL_NODES_MAX	; nodes visually.
+;fal30:		push	bc
+;		ld	a,(hl)
+;		inc	hl
+;		ld	e,(hl)
+;		inc	hl
+;		ld	d,(hl)
+;		inc	hl
+;		or	a
+;		jr	z,fal31
+;		ex	de,hl
+;		ld	bc,(screen_buffer)
+;		add	hl,bc
+;		ld	(hl),0x08
+;		ex	de,hl
+;fal31:		pop	bc
+;		djnz	fal30
+
+;		ld	de,(board_array2)	; Testing - showing
+;		ld	hl,(screen_buffer)	; all the exits.
+;		ld	bc,33+9
+;		add	hl,bc
+;		ld	b,0
+;fatl10:		ld	a,(de)
+;		and	0x1f
+;		call	pipe_exits_get
+;		and	0x0f
+;		add	a,0x1c
+;		ld	(hl),a
+;		inc	de
+;		inc	hl
+;		inc	hl
+;		inc	hl
+;		inc	b
+;		ld	a,b
+;		and	7
+;		jr	nz,fatl11
+;		push	bc
+;		ld	bc,99-24
+;		add	hl,bc
+;		pop	bc
+;fatl11:		ld	a,b
+;		cp	64
+;		jr	c,fatl10
+
+;		ld	d,0			; Testing - locating
+;		ld	e,-1			; the start pipe as an
+;fatl12:		inc	e			; index and using that
+;		ld	hl,(board_array2)	; to create the start
+;		add	hl,de			; node.
+;		ld	a,(hl)
+;		and	0x1f
+;		cp	2
+;		jr	nz,fatl12
+;		call	pipe_exits_get
+;		and	0x0f
+;		add	a,0x9c
+;		ld	c,a
+;		ld	hl,(screen_buffer)	; Longwinded isn't it,
+;		ld	a,e			; converting 0 to 63
+;		srl	a			; into a screen offset.
+;		srl	a
+;		srl	a			; I think that once the
+;		or	a			; start node has been
+;		jr	z,fatl15		; calculated and created
+;		ld	b,a			; then all other nodes
+;		push	de			; can be created using
+;		ld	de,99			; that since one node
+;fatl14:		add	hl,de			; will be visiting the
+;		djnz	fatl14			; centre of the next if
+;		pop	de			; they are connected,
+;fatl15:		ld	a,e			; else filling will stop
+;		and	7			; anyway as it'll be a
+;		ld	d,a			; leak.
+;		sla	a
+;		add	a,d			; I will though have to
+;		ld	d,0			; convert back to get
+;		ld	e,a			; the pipe exits :s
+;		add	hl,de
+;		ld	de,33+9
+;		add	hl,de
+;		ld	a,c
+;		ld	(hl),a
+;		dec	hl
+;		ld	(hl),0x08
+
+; *********************************************************************
 ; Fill Network                                                        *
 ; *********************************************************************
 ; This fills the network at the board array level i.e. by the pipe.
 ; It's done instantly non-visually to mark the pipes as visited,
 ; unvisited or leaky within the board array copy.
 
+		cond	DEBUG_NODES
+node_highest:	defb	0
+		endc
+
 fill_network:	ld	hl,(board_array)	; Make a copy of the
 		ld	de,(board_array2)	; board array.
 		ld	bc,8*8
 		ldir
+
+		cond	DEBUG_NODES
+		xor	a
+		ld	(node_highest),a
+		endc
 
 		ld	hl,(fill_nodes)		; Wipe the nodes
 		ld	b,FILL_NODES_MAX	; list.
@@ -916,6 +1354,9 @@ fnl21:		or	0x20			; Mark as visited.
 		ld	(hl),8			;    N=1
 		inc	hl			; W=8   E=2
 		ld	(hl),e			;    S=4
+
+		ld	hl,(fill_animation)	; Store it temporarily
+		ld	(hl),e			; here for fill_animate.
 
 fnl30:		ld	hl,(fill_nodes)		; Process nodes.
 		ld	b,FILL_NODES_MAX
@@ -1030,6 +1471,32 @@ fnl130:		ld	a,(hl)
 fnl131:		ld	a,b			; Retrieve exits.
 		and	d			; Isolate direction.
 		jr	z,fnl132
+
+		cond	DEBUG_NODES
+		push	af
+		push	bc
+		push	de
+		push	hl
+		ld	de,(fill_nodes)		; Show the highest
+		and	a			; index into fill_nodes.
+		sbc	hl,de
+		srl	l			; A node is two bytes.
+		ld	a,(node_highest)
+		cp	l			; 21/15h is the highest
+		jr	nc,fn_dnl0		; I've seen so far.
+		ld	a,l
+		ld	(node_highest),a
+fn_dnl0:	ld	e,a
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*9
+		ld	hl,0x0002
+		call	hex_write
+		pop	hl
+		pop	de
+		pop	bc
+		pop	af
+		endc
+
 		ld	(hl),a			; Store new node.
 		inc	hl
 		ld	(hl),e
@@ -1053,6 +1520,74 @@ fnl200:		pop	bc
 		or	a
 		jp	nz,fnl30
 
+		ld	hl,(fill_nodes)		; Wipe the nodes
+		ld	b,FILL_NODES_MAX	; list in preparation
+		xor	a			; for fill_animate.
+fnl210:		ld	(hl),a
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		djnz	fnl210
+
+		ld	hl,(fill_animation)	; Create first node
+		ld	e,(hl)			; which was stored
+		ld	hl,0			; earlier temporarily
+		ld	a,e			; in fill_animation.
+		and	7
+		ld	b,a			; The node requires
+		sla	a			; converting from a
+		add	a,b			; board_array2 offset
+		ld	b,0			; into a screen_buffer
+		ld	c,a			; offset.
+		add	hl,bc
+		ld	a,e
+		srl	a
+		srl	a
+		srl	a
+		ld	bc,99
+fnl220:		or	a
+		jr	z,fnl221
+		add	hl,bc
+		dec	a
+		jr	fnl220
+fnl221:		ld	bc,33+9
+		add	hl,bc
+		ld	a,e
+		ex	de,hl
+		ld	hl,(fill_nodes)		; Store the node.
+		ld	(hl),8			; Direction.
+		inc	hl
+		ld	(hl),1			; Subframe.
+		inc	hl
+		ld	(hl),a			; board_array2 offset.
+		inc	hl
+		ld	(hl),e			; Screen buffer offset.
+		inc	hl
+		ld	(hl),d
+
+		ld	hl,(fill_animation)	; Wipe the animation
+		ld	bc,FILL_ANIMATION_MAX	; list. There's no
+fnl230:		ld	(hl),0			; initial water unit
+		inc	hl			; for the first node
+		inc	hl			; since it starts in
+		inc	hl			; the middle of the
+		dec	bc			; pipe and would hide
+		ld	a,c			; the "<".
+		or	a
+		jr	nz,fnl230
+		ld	a,b
+		or	a
+		jr	nz,fnl230
+
+		xor	a
+		ld	(fill_animate_leak),a
+
+		ld	a,1
+		ld	(fill_animate_frame),a
+		ld	(fill_animate_subframe),a
+		
 		ld	hl,(FRAMES)		; Prepare to remove
 		ld	(fill_remdead_last),hl	; any dead pipes.
 		ld	a,SUBSTATE_REMDEAD	; Set new substate.
@@ -1099,9 +1634,9 @@ frdl0:		ld	hl,(board_array2)
 		add	hl,de
 		ld	a,(hl)
 		cp	4			; Filter out spaces and
-		jr	c,frdl10		; an unvisited end pipe.
+		jr	c,frdl20		; an unvisited end pipe.
 		and	0x20			; Was it visited?
-		jr	nz,frdl10		; Yes, so leave it.
+		jr	nz,frdl20		; Yes, so leave it.
 
 		ld	b,e
 		srl	b
@@ -1118,51 +1653,48 @@ frdl1:		and	1
 		add	hl,de			; array and the copy.
 		ld	(hl),a
 
+		ld	c,a			; Erase the dead pipe
+		ld	a,e			; within the screen
+		and	7			; buffer too since
+		ld	e,a			; redrawing the entire
+		sla	a			; board for one pipe is
+		add	a,e			; not very efficient.
+		ld	d,0
+		ld	e,a			; Normally I keep all
+		ld	hl,(screen_buffer)	; the related drawing
+		add	hl,de			; routines together
+		ld	de,8			; but I can't put this
+		add	hl,de			; in game_draw as it
+		ld	a,b			; won't know the offset.
+		or	a
+		jr	z,frdl11
+		ld	de,99
+frdl10:		add	hl,de
+		djnz	frdl10
+frdl11:		ld	a,c
+		ld	b,h
+		ld	c,l
+		call	pipe_draw
+
 		ld	hl,score
 		ld	b,10			; -10 points.
 		call	bcd_word_subtract
-
 		ld	a,(screen_redraw)	; Flag score for
 		or	64			; redisplaying.
 		ld	(screen_redraw),a
-		ld	a,(screen_redraw+1)	; Flag the board for
-		or	2			; redrawing.
-		ld	(screen_redraw+1),a
 		ret
 		
-frdl10:		inc	e
+frdl20:		inc	e
 		ld	a,e
 		cp	64
 		jr	c,frdl0
 
-		ld	hl,0			; Prepare to animate
+		ld	hl,(FRAMES)		; Prepare to animate
 		ld	(fill_animate_last),hl	; the filling of the
 		ld	a,SUBSTATE_FILLANIM	; pipe network.
 		call	substate_change
 		ret
 
-; *********************************************************************
-; Fill Animate                                                        *
-; *********************************************************************
-
-fill_animate:
-
-;		push	af
-;		push	bc
-;		push	de
-;		push	hl
-;		ld	e,a
-;		ld	a,WRITE_TO_SCRBUF	; temp temp
-;		ld	bc,33*9
-;		ld	hl,0x0002
-;		call	hex_write
-;		pop	hl
-;		pop	de
-;		pop	bc
-;		pop	af
-
-		ret
-		
 ; *********************************************************************
 ; Fill Prepare                                                        *
 ; *********************************************************************
@@ -2187,9 +2719,50 @@ gdl80:		ld	a,(screen_redraw+1)
 gdl90:		ld	a,(screen_redraw+1)
 		and	2
 		jr	z,gdl100
-		call	board_draw
-		
-gdl100:		
+		ld	a,(fill_animate_frame)	; Draw the units of
+		ld	b,a			; water for the
+		ld	hl,(fill_animation)	; current frame only.
+gdl91:		ld	a,(hl)
+		or	a
+		jr	z,gdl100		; End of list reached?
+		cp	b
+		jr	nz,gdl92
+		push	hl		
+		inc	hl
+		ld	e,(hl)
+		inc	hl
+		ld	d,(hl)
+		ld	hl,(screen_buffer)
+		add	hl,de
+		ld	(hl),0x08
+		pop	hl
+gdl92:		inc	hl
+		inc	hl
+		inc	hl
+		jr	gdl91
+
+gdl100:		ld	a,(screen_redraw+1)
+		and	4
+		jr	z,gdl110
+		ld	hl,(fill_animation)	; Draw all the units of
+gdl101:		ld	a,(hl)			; water so far.
+		or	a
+		jr	z,gdl110		; End of list reached?
+		push	hl		
+		inc	hl
+		ld	e,(hl)
+		inc	hl
+		ld	d,(hl)
+		ld	hl,(screen_buffer)
+		add	hl,de
+		ld	(hl),0x08
+		pop	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		jr	gdl101
+
+gdl110:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -2542,9 +3115,9 @@ locall1:	ld	(countdown_delay),a		; 1s
 		srl	a
 		ld	(event_repeat_delay_master),a	; 1/4s
 		ld	(fill_remdead_delay),a		; 1/4s
-		ld	(fill_animate_delay),a		; 1/4s
 		srl	a
 		ld	(event_repeat_interval_master),a ; 1/8s
+		ld	(fill_animate_delay),a		; 1/8s
 		xor	a
 		ld	(event_repeat_interval_master+1),a
 		ld	(event_repeat_delay_master+1),a
