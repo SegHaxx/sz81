@@ -251,17 +251,15 @@ DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
 DEBUG_STACK	equ	0
 DEBUG_FILL	equ	0
-DEBUG_NODES	equ	0
+DEBUG_ANIMATION	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 HELP_PAGE_MAX	equ	3
 PIPE_ARRAY_MAX	equ	70
-COUNTDOWN_MAX	equ	0x0240	; BCD
-FILL_ANIMATION_MAX equ	64*4
-FILL_NODES_MAX	equ	24	; I reached 21 with an abnormal amount
-				; of crosses and Ts. 8*3 should be the
-				; maximum nodes possible.
+COUNTDOWN_MAX	equ	0x0180	; BCD
+FILL_ANIMATION_MAX equ	64*5	; I've experienced 214.
+FILL_NODES_MAX	equ	8*3	; I've experienced 21.
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
 WRITE_TO_MEMBLK	equ	2
@@ -284,6 +282,8 @@ SUBSTATE_END	equ	7
 
 ONE_SECOND_PAL	equ	50
 ONE_SECOND_NTSC	equ	60
+
+FILL_CHAR	equ	0x08
 
 mem_16514:	jr	start
 temp_buffer:	defw	0
@@ -600,7 +600,7 @@ main_hlp_select:
 		ld	a,(substate_current)
 		cp	SUBSTATE_FILLANIM
 		ld	a,1
-		jr	nz,main_hlp_sell0
+		jr	c,main_hlp_sell0
 		or	4
 main_hlp_sell0:	ld	(screen_redraw+1),a
 		call	game_draw
@@ -895,13 +895,19 @@ main_quit:	ld	sp,(sp_original)
 ; *********************************************************************
 ; Fill Animate                                                        *
 ; *********************************************************************
-; +-----+ +-----+
-; | |2| | | | | |
-; ------- -------
-; |2|1|0| |2|1| |
-; ------- -------
-; | |2| | | | | |
-; +-----+ +-----+
+; This animates the filling of the pipe network at the unit of water
+; level i.e. by the char. Nothing is being calculated here regarding the
+; condition of the network as this was done earlier by fill_network.
+; 
+; The resolution of the board array is 8x8 and the resolution of this
+; animated fill is 24x24, so a node will move in units of 3 across a
+; single pipe (3 subframes of a pipe frame). Subframe 1 is the central
+; unit of a pipe where most of the work is done regarding node creation
+; and scoring. Subframe 2 is at the pipe's boundary and subframe 0 is
+; the node's first foray into an adjoining pipe. Both of these latter
+; subframes require little more than animating.
+; 
+; The comments down the side explain how this is achieved.
 
 fill_animate:	ld	bc,(FRAMES)		; If it's time, animate
 		ld	hl,(fill_animate_last)	; another unit of water
@@ -929,13 +935,13 @@ fal31:		push	hl
 		push	bc
 		ld	a,(hl)			; Get node's direction.
 		or	a
-		jr	z,fal200
+		jp	z,fal200
 		ld	b,a
 		inc	hl
 		ld	c,(hl)			; Get last subframe.
 		ld	a,(fill_animate_subframe)
 		cp	c
-		jr	z,fal200
+		jp	z,fal200		; Filter out new nodes.
 		ld	c,a
 		ld	(hl),c			; Update subframe.
 		inc	hl
@@ -955,7 +961,7 @@ fal31:		push	hl
 		call	fa_node_animate
 		call	fa_node_pipe_get
 		and	0x40			; Is it leaky?
-		jr	z,fal200
+		jr	z,fal190
 		call	fa_node_kill		; Yes, it's leaky.
 		ld	a,1			; Prepare to end fill
 		ld	(fill_animate_leak),a	; after current subframe.
@@ -970,7 +976,7 @@ fal50:		or	a
 		; Animate node.
 		call	fa_node_update
 		call	fa_node_animate
-		jr	fal200
+		jr	fal190
 
 fal60:		; ------------------------
 		; Subframe 0 to Subframe 1
@@ -983,17 +989,17 @@ fal60:		; ------------------------
 		;     If pipe is not an end-pipe nor a terminator then
 		;         animate node.
 		;     Kill node.
-		;     Create new nodes for all pipe exits (exclude
-		;     originating direction if possible).
+		;     Create new nodes for all pipe exits excluding
+		;     originating direction.
 		call	fa_node_update
 		call	fa_node_pipe_get
-		ld	d,a
+		ld	d,a			; Backup pipe.
 		and	0x80			; Is it already scored?
 		jr	z,fal62
 		call	fa_node_kill		; Yeah, so kill node.
 		jr	fal200
-fal62:		ld	a,d
-		or	0x80			; Flag pipe as scored.
+fal62:		ld	a,d			; Retrieve pipe.
+		or	0x80			; Mark pipe as scored.
 		call	fa_node_pipe_set
 		push	bc
 		push	hl
@@ -1005,52 +1011,124 @@ fal62:		ld	a,d
 		ld	(screen_redraw),a
 		pop	hl
 		pop	bc
-		ld	a,d
+		ld	a,d			; Retrieve pipe.
 		and	0x1f			; Filter out flags.
-		cp	2			; Is it the end-pipe?
-		jr	z,fal64
+		cp	3			; Is it the end-pipe?
+		jr	z,fal66
 		cp	7			; Is it a terminator?
 		jr	c,fal64
 		cp	11
-		jr	nc,fal64
-		call	fa_node_animate
-fal64:		;call	fa_node_kill
-		; Create new nodes for all pipe exits here.
-		; Create new nodes for all pipe exits here.
-		; Create new nodes for all pipe exits here.
+		jr	c,fal66
+fal64:		call	fa_node_animate
+fal66:		call	fa_node_kill
 
+		ld	a,d			; Retrieve pipe.
+		and	0x1f			; Filter out flags.
+		call	pipe_exits_get
+		ld	d,a			; Backup exits.
+		ld	a,b			; Retrieve direction.
+		cp	4			; Reverse originating
+		jr	nc,fal68		; direction so that it
+		sla	b			; can be removed from
+		sla	b			; the exits.
+		jr	fal70
+fal68:		srl	b
+		srl	b
+fal70:		ld	a,b
+		cpl
+		ld	b,a
+		ld	a,d			; Retrieve exits.
+		and	b			; Remove originating dir.
+		ld	d,a			; Update exits.
+		ld	b,1
+fal72:		ld	a,d			; Retrieve exits.
+		and	b			; Isolate direction.
+		jr	z,fal74
+		call	fa_node_add		; Create a new node.
+fal74:		sla	b			; 1,2,4 and finally 8.
+		bit	4,b
+		jr	z,fal72
 
-
-
-
-
+fal190:		pop	bc
+		inc	c			; At least one node
+		push	bc			; exists.
 
 fal200:		pop	bc
 		pop	hl
-		;inc	hl
-		;inc	hl
-		;inc	hl
-		;inc	hl
-		;inc	hl
-		;dec	b
-		;jr	nz,fal31
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		dec	b
+		jp	nz,fal31
 
-		;ld	a,c
-		;or	a
-		;jr	z,fal??
+		ld	a,c			; End filling if no
+		or	a			; more nodes exist.
+		jr	z,fal210
 
-		; Do something with fill_animate_leak here.
-		; Do something with fill_animate_leak here.
-		; Do something with fill_animate_leak here.
-
-		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
-		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
-		; DON'T FORGET START-PIPE HASN'T BEEN SCORED ANYWHERE YET.
-
+		ld	a,(fill_animate_leak)	; End filling if a
+		or	a			; leak was detected.
+		jr	nz,fal210
 		ret
 
 fal210:
 
+
+
+		ld	a,SUBSTATE_END		; Set new substate.
+		call	substate_change
+
+		; or
+
+		;ld	a,SUBSTATE_HISCORE	; Set new substate.
+		;call	substate_change
+
+		ret
+
+; *********************************************************************
+; Fill Animate - Node Add                                             *
+; *********************************************************************
+; This is used by fill_animate only.
+; 
+; On entry: a  = direction
+;           c  = current subframe
+;           e  = board_array2 offset
+;           hl is pointing to the screen buffer offset.
+;           No registers are modified here.
+
+fa_node_add:	push	hl
+		push	de
+		push	af
+		ld	e,(hl)			; Read screen buffer
+		inc	hl			; offset.
+		ld	d,(hl)
+
+		ld	hl,(fill_nodes)		; Locate a free slot
+fa_nadl10:	ld	a,(hl)			; to create a new node.
+		or	a
+		jr	z,fa_nadl20
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		jr	fa_nadl10
+
+fa_nadl20:	pop	af			; Store new node.
+		ld	(hl),a			; Direction.
+		inc	hl
+		ld	(hl),c			; Subframe.
+		inc	hl
+		inc	hl
+		ld	(hl),e			; Screen buffer offset.
+		inc	hl
+		ld	(hl),d
+		dec	hl
+		dec	hl
+		pop	de
+		ld	(hl),e			; board_array2 offset.
+		pop	hl
 		ret
 
 ; *********************************************************************
@@ -1076,15 +1154,17 @@ fa_node_kill:	push	hl
 ; 
 ; On entry: e = the node's board_array2 offset
 ;           a = the node's pipe
-;           Only register d is modified here.
+;           No registers are modified here.
 
 fa_node_pipe_set:		
+		push	de
 		push	hl
 		ld	hl,(board_array2)
 		ld	d,0
 		add	hl,de
 		ld	(hl),a			; Set pipe.
 		pop	hl
+		pop	de
 		ret
 
 ; *********************************************************************
@@ -1094,15 +1174,17 @@ fa_node_pipe_set:
 ; 
 ; On entry: e = the node's board_array2 offset.
 ;  On exit: a = the node's pipe (including flags) from board_array2
-;           Only register d is modified here.
+;           No registers are modified here.
 
 fa_node_pipe_get:		
+		push	de
 		push	hl
 		ld	hl,(board_array2)
 		ld	d,0
 		add	hl,de
 		ld	a,(hl)			; Get pipe.
 		pop	hl
+		pop	de
 		ret
 
 ; *********************************************************************
@@ -1120,7 +1202,7 @@ fa_node_animate:
 		inc	hl			; offset from fill_nodes.
 		ld	d,(hl)
 
-		ld	hl,(fill_animation)
+		ld	hl,(fill_animation)	; Locate a free slot.
 fa_nal10:	ld	a,(hl)
 		or	a			; Zero means end of list.
 		jr	z,fa_nal11
@@ -1207,123 +1289,196 @@ fa_nul24:	add	hl,de
 		ld	(hl),d			; offset.
 		dec	hl
 		pop	de
-
 		ret
 
+; *********************************************************************
+; Fill Remove Dead Pipes                                              *
+; *********************************************************************
+; This removes unvisited (dead pipes) from the board array, its copy
+; board_array2 and animatedly from the screen buffer.
+; 
+; The comments down the side explain how this is achieved.
 
+fill_remdead:	ld	bc,(FRAMES)		; If it's time, remove
+		ld	hl,(fill_remdead_last)	; another dead pipe
+		and	a			; until all are gone.
+		sbc	hl,bc
+		ld	a,(fill_remdead_delay)
+		cp	l
+		ret	nc
+		ld	(fill_remdead_last),bc
 
+		ld	de,0
+frdl0:		ld	hl,(board_array2)
+		add	hl,de
+		ld	a,(hl)
+		cp	4			; Filter out spaces and
+		jr	c,frdl20		; an unvisited end-pipe.
+		and	0x20			; Was it visited?
+		jr	nz,frdl20		; Yes, so leave it.
 
+		ld	b,e
+		srl	b
+		srl	b			; Divide board array
+		srl	b			; index by 8.
+		ld	a,e			; Calculate type of
+		bit	0,b			; space to erase with.
+		jr	nz,frdl1
+		inc	a
+frdl1:		and	1
 
+		ld	(hl),a			; Erase the dead pipe
+		ld	hl,(board_array)	; both in the board
+		add	hl,de			; array and the copy.
+		ld	(hl),a
 
+		ld	c,a			; Erase the dead pipe
+		ld	a,e			; within the screen
+		and	7			; buffer too since
+		ld	e,a			; redrawing the entire
+		sla	a			; board for one pipe is
+		add	a,e			; not very efficient.
+		ld	d,0
+		ld	e,a			; Normally I keep all
+		ld	hl,(screen_buffer)	; the related drawing
+		add	hl,de			; routines together
+		ld	de,8			; but I can't put this
+		add	hl,de			; in game_draw as it
+		ld	a,b			; won't know the offset.
+		or	a
+		jr	z,frdl11
+		ld	de,99
+frdl10:		add	hl,de
+		djnz	frdl10
+frdl11:		ld	a,c
+		ld	b,h
+		ld	c,l
+		call	pipe_draw
 
+		ld	hl,score
+		ld	b,10			; -10 points.
+		call	bcd_word_subtract
+		ld	a,(screen_redraw)	; Flag score for
+		or	64			; redisplaying.
+		ld	(screen_redraw),a
+		ret
+		
+frdl20:		inc	e
+		ld	a,e
+		cp	64
+		jr	c,frdl0
 
-;		ld	hl,(fill_nodes)		; Testing - show the
-;		ld	b,FILL_NODES_MAX	; nodes visually.
-;fal30:		push	bc
-;		ld	a,(hl)
-;		inc	hl
-;		ld	e,(hl)
-;		inc	hl
-;		ld	d,(hl)
-;		inc	hl
-;		or	a
-;		jr	z,fal31
-;		ex	de,hl
-;		ld	bc,(screen_buffer)
-;		add	hl,bc
-;		ld	(hl),0x08
-;		ex	de,hl
-;fal31:		pop	bc
-;		djnz	fal30
+		; The code below initialises fill_animation which follows.
 
-;		ld	de,(board_array2)	; Testing - showing
-;		ld	hl,(screen_buffer)	; all the exits.
-;		ld	bc,33+9
-;		add	hl,bc
-;		ld	b,0
-;fatl10:		ld	a,(de)
-;		and	0x1f
-;		call	pipe_exits_get
-;		and	0x0f
-;		add	a,0x1c
-;		ld	(hl),a
-;		inc	de
-;		inc	hl
-;		inc	hl
-;		inc	hl
-;		inc	b
-;		ld	a,b
-;		and	7
-;		jr	nz,fatl11
-;		push	bc
-;		ld	bc,99-24
-;		add	hl,bc
-;		pop	bc
-;fatl11:		ld	a,b
-;		cp	64
-;		jr	c,fatl10
+		ld	hl,(fill_nodes)		; Wipe the nodes
+		ld	b,FILL_NODES_MAX	; list in preparation
+		xor	a			; for fill_animate.
+frdl30:		ld	(hl),a
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	hl
+		djnz	frdl30
 
-;		ld	d,0			; Testing - locating
-;		ld	e,-1			; the start pipe as an
-;fatl12:		inc	e			; index and using that
-;		ld	hl,(board_array2)	; to create the start
-;		add	hl,de			; node.
-;		ld	a,(hl)
-;		and	0x1f
-;		cp	2
-;		jr	nz,fatl12
-;		call	pipe_exits_get
-;		and	0x0f
-;		add	a,0x9c
-;		ld	c,a
-;		ld	hl,(screen_buffer)	; Longwinded isn't it,
-;		ld	a,e			; converting 0 to 63
-;		srl	a			; into a screen offset.
-;		srl	a
-;		srl	a			; I think that once the
-;		or	a			; start node has been
-;		jr	z,fatl15		; calculated and created
-;		ld	b,a			; then all other nodes
-;		push	de			; can be created using
-;		ld	de,99			; that since one node
-;fatl14:		add	hl,de			; will be visiting the
-;		djnz	fatl14			; centre of the next if
-;		pop	de			; they are connected,
-;fatl15:		ld	a,e			; else filling will stop
-;		and	7			; anyway as it'll be a
-;		ld	d,a			; leak.
-;		sla	a
-;		add	a,d			; I will though have to
-;		ld	d,0			; convert back to get
-;		ld	e,a			; the pipe exits :s
-;		add	hl,de
-;		ld	de,33+9
-;		add	hl,de
-;		ld	a,c
-;		ld	(hl),a
-;		dec	hl
-;		ld	(hl),0x08
+		ld	hl,(board_array2)	; Locate start-pipe.
+		push	hl
+		dec	hl
+frdl40:		inc	hl
+		ld	a,(hl)
+		ld	b,a
+		and	0x1f			; Filter out flags.
+		cp	2
+		jr	nz,frdl40
+		ld	a,b
+		or	0x80			; Mark as scored.
+		ld	(hl),a
+		pop	bc
+		and	a
+		sbc	hl,bc			; Make de an offset
+		ex	de,hl			; into board_array2.
+
+		ld	hl,0			; Create first node.
+		ld	a,e
+		and	7
+		ld	b,a			; The node requires
+		sla	a			; converting from a
+		add	a,b			; board_array2 offset
+		ld	b,0			; into a screen_buffer
+		ld	c,a			; offset.
+		add	hl,bc
+		ld	a,e
+		srl	a
+		srl	a
+		srl	a
+		ld	bc,99
+frdl50:		or	a
+		jr	z,frdl51
+		add	hl,bc
+		dec	a
+		jr	frdl50
+frdl51:		ld	bc,33+9
+		add	hl,bc
+		ld	a,e
+		ex	de,hl
+		ld	hl,(fill_nodes)		; Store the node.
+		ld	(hl),8			; Direction.
+		inc	hl
+		ld	(hl),1			; Subframe.
+		inc	hl
+		ld	(hl),a			; board_array2 offset.
+		inc	hl
+		ld	(hl),e			; Screen buffer offset.
+		inc	hl
+		ld	(hl),d
+
+		ld	hl,(fill_animation)	; Wipe the animation
+		ld	bc,FILL_ANIMATION_MAX	; list. There's no
+frdl60:		ld	(hl),0			; initial water unit
+		inc	hl			; for the first node
+		inc	hl			; since it starts in
+		inc	hl			; the middle of the
+		dec	bc			; pipe and would hide
+		ld	a,c			; the "<".
+		or	a
+		jr	nz,frdl60
+		ld	a,b
+		or	a
+		jr	nz,frdl60
+
+		xor	a
+		ld	(fill_animate_leak),a
+
+		ld	a,1
+		ld	(fill_animate_frame),a
+		ld	(fill_animate_subframe),a
+
+		ld	hl,score		; Score the start-pipe.
+		ld	b,50			; +50 points.
+		call	bcd_word_add
+		ld	a,(screen_redraw)	; Flag score for
+		or	64			; redisplaying.
+		ld	(screen_redraw),a
+
+		ld	hl,0			; Prepare to animate
+		ld	(fill_animate_last),hl	; the filling of the
+		ld	a,SUBSTATE_FILLANIM	; pipe network.
+		call	substate_change
+		ret
 
 ; *********************************************************************
 ; Fill Network                                                        *
 ; *********************************************************************
 ; This fills the network at the board array level i.e. by the pipe.
-; It's done instantly non-visually to mark the pipes as visited,
-; unvisited or leaky within the board array copy.
-
-		cond	DEBUG_NODES
-node_highest:	defb	0
-		endc
+; It's done instantly non-visually to mark the pipes as visited and/or
+; leaky within the board array copy.
+; 
+; The comments down the side explain how this is achieved.
 
 fill_network:	ld	hl,(board_array)	; Make a copy of the
 		ld	de,(board_array2)	; board array.
 		ld	bc,8*8
 		ldir
-
-		cond	DEBUG_NODES
-		xor	a
-		ld	(node_highest),a
-		endc
 
 		ld	hl,(fill_nodes)		; Wipe the nodes
 		ld	b,FILL_NODES_MAX	; list.
@@ -1333,7 +1488,7 @@ fnl10:		ld	(hl),a
 		inc	hl
 		djnz	fnl10
 
-		ld	hl,(board_array2)	; Locate start pipe
+		ld	hl,(board_array2)	; Locate start-pipe
 		push	hl			; down the right-hand
 		ld	bc,7			; side of the board.
 		add	hl,bc
@@ -1354,9 +1509,6 @@ fnl21:		or	0x20			; Mark as visited.
 		ld	(hl),8			;    N=1
 		inc	hl			; W=8   E=2
 		ld	(hl),e			;    S=4
-
-		ld	hl,(fill_animation)	; Store it temporarily
-		ld	(hl),e			; here for fill_animate.
 
 fnl30:		ld	hl,(fill_nodes)		; Process nodes.
 		ld	b,FILL_NODES_MAX
@@ -1471,37 +1623,10 @@ fnl130:		ld	a,(hl)
 fnl131:		ld	a,b			; Retrieve exits.
 		and	d			; Isolate direction.
 		jr	z,fnl132
-
-		cond	DEBUG_NODES
-		push	af
-		push	bc
-		push	de
-		push	hl
-		ld	de,(fill_nodes)		; Show the highest
-		and	a			; index into fill_nodes.
-		sbc	hl,de
-		srl	l			; A node is two bytes.
-		ld	a,(node_highest)
-		cp	l			; 21/15h is the highest
-		jr	nc,fn_dnl0		; I've seen so far.
-		ld	a,l
-		ld	(node_highest),a
-fn_dnl0:	ld	e,a
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*9
-		ld	hl,0x0002
-		call	hex_write
-		pop	hl
-		pop	de
-		pop	bc
-		pop	af
-		endc
-
 		ld	(hl),a			; Store new node.
 		inc	hl
 		ld	(hl),e
 		inc	hl
-
 fnl132:		sla	d			; 1,2,4 and finally 8.
 		bit	4,d
 		jr	z,fnl130
@@ -1520,75 +1645,7 @@ fnl200:		pop	bc
 		or	a
 		jp	nz,fnl30
 
-		ld	hl,(fill_nodes)		; Wipe the nodes
-		ld	b,FILL_NODES_MAX	; list in preparation
-		xor	a			; for fill_animate.
-fnl210:		ld	(hl),a
-		inc	hl
-		inc	hl
-		inc	hl
-		inc	hl
-		inc	hl
-		djnz	fnl210
-
-		ld	hl,(fill_animation)	; Create first node
-		ld	e,(hl)			; which was stored
-		ld	hl,0			; earlier temporarily
-		ld	a,e			; in fill_animation.
-		and	7
-		ld	b,a			; The node requires
-		sla	a			; converting from a
-		add	a,b			; board_array2 offset
-		ld	b,0			; into a screen_buffer
-		ld	c,a			; offset.
-		add	hl,bc
-		ld	a,e
-		srl	a
-		srl	a
-		srl	a
-		ld	bc,99
-fnl220:		or	a
-		jr	z,fnl221
-		add	hl,bc
-		dec	a
-		jr	fnl220
-fnl221:		ld	bc,33+9
-		add	hl,bc
-		ld	a,e
-		ex	de,hl
-		ld	hl,(fill_nodes)		; Store the node.
-		ld	(hl),8			; Direction.
-		inc	hl
-		ld	(hl),1			; Subframe.
-		inc	hl
-		ld	(hl),a			; board_array2 offset.
-		inc	hl
-		ld	(hl),e			; Screen buffer offset.
-		inc	hl
-		ld	(hl),d
-
-		ld	hl,(fill_animation)	; Wipe the animation
-		ld	bc,FILL_ANIMATION_MAX	; list. There's no
-fnl230:		ld	(hl),0			; initial water unit
-		inc	hl			; for the first node
-		inc	hl			; since it starts in
-		inc	hl			; the middle of the
-		dec	bc			; pipe and would hide
-		ld	a,c			; the "<".
-		or	a
-		jr	nz,fnl230
-		ld	a,b
-		or	a
-		jr	nz,fnl230
-
-		xor	a
-		ld	(fill_animate_leak),a
-
-		ld	a,1
-		ld	(fill_animate_frame),a
-		ld	(fill_animate_subframe),a
-		
-		ld	hl,(FRAMES)		; Prepare to remove
+		ld	hl,0			; Prepare to remove
 		ld	(fill_remdead_last),hl	; any dead pipes.
 		ld	a,SUBSTATE_REMDEAD	; Set new substate.
 		call	substate_change
@@ -1612,87 +1669,6 @@ pipe_exits_get:	push	bc
 		ld	a,(hl)
 		pop	hl
 		pop	bc
-		ret
-
-; *********************************************************************
-; Fill Remove Dead Pipes                                              *
-; *********************************************************************
-; This removes dead pipes animatedly from board_array, board_array2
-; and the screen.
-
-fill_remdead:	ld	bc,(FRAMES)		; If it's time, remove
-		ld	hl,(fill_remdead_last)	; another dead pipe
-		and	a			; until all are gone.
-		sbc	hl,bc
-		ld	a,(fill_remdead_delay)
-		cp	l
-		ret	nc
-		ld	(fill_remdead_last),bc
-
-		ld	de,0
-frdl0:		ld	hl,(board_array2)
-		add	hl,de
-		ld	a,(hl)
-		cp	4			; Filter out spaces and
-		jr	c,frdl20		; an unvisited end pipe.
-		and	0x20			; Was it visited?
-		jr	nz,frdl20		; Yes, so leave it.
-
-		ld	b,e
-		srl	b
-		srl	b			; Divide board array
-		srl	b			; index by 8.
-		ld	a,e			; Calculate type of
-		bit	0,b			; space to erase with.
-		jr	nz,frdl1
-		inc	a
-frdl1:		and	1
-
-		ld	(hl),a			; Erase the dead pipe
-		ld	hl,(board_array)	; both in the board
-		add	hl,de			; array and the copy.
-		ld	(hl),a
-
-		ld	c,a			; Erase the dead pipe
-		ld	a,e			; within the screen
-		and	7			; buffer too since
-		ld	e,a			; redrawing the entire
-		sla	a			; board for one pipe is
-		add	a,e			; not very efficient.
-		ld	d,0
-		ld	e,a			; Normally I keep all
-		ld	hl,(screen_buffer)	; the related drawing
-		add	hl,de			; routines together
-		ld	de,8			; but I can't put this
-		add	hl,de			; in game_draw as it
-		ld	a,b			; won't know the offset.
-		or	a
-		jr	z,frdl11
-		ld	de,99
-frdl10:		add	hl,de
-		djnz	frdl10
-frdl11:		ld	a,c
-		ld	b,h
-		ld	c,l
-		call	pipe_draw
-
-		ld	hl,score
-		ld	b,10			; -10 points.
-		call	bcd_word_subtract
-		ld	a,(screen_redraw)	; Flag score for
-		or	64			; redisplaying.
-		ld	(screen_redraw),a
-		ret
-		
-frdl20:		inc	e
-		ld	a,e
-		cp	64
-		jr	c,frdl0
-
-		ld	hl,(FRAMES)		; Prepare to animate
-		ld	(fill_animate_last),hl	; the filling of the
-		ld	a,SUBSTATE_FILLANIM	; pipe network.
-		call	substate_change
 		ret
 
 ; *********************************************************************
@@ -2171,7 +2147,7 @@ timer_tick:	ld	hl,(frames_last)
 		push	bc
 		push	hl
 		ld	a,WRITE_TO_SCRBUF	; Shows the number
-		ld	bc,33*1			; of frames consumed.
+		ld	bc,33*0+15		; of frames consumed.
 		ex	de,hl
 		ld	hl,0x0002
 		call	hex_write
@@ -2734,7 +2710,7 @@ gdl91:		ld	a,(hl)
 		ld	d,(hl)
 		ld	hl,(screen_buffer)
 		add	hl,de
-		ld	(hl),0x08
+		ld	(hl),FILL_CHAR
 		pop	hl
 gdl92:		inc	hl
 		inc	hl
@@ -2744,23 +2720,32 @@ gdl92:		inc	hl
 gdl100:		ld	a,(screen_redraw+1)
 		and	4
 		jr	z,gdl110
+		ld	b,0
 		ld	hl,(fill_animation)	; Draw all the units of
 gdl101:		ld	a,(hl)			; water so far.
 		or	a
-		jr	z,gdl110		; End of list reached?
-		push	hl		
+		jr	z,gdl102		; End of list reached?
+		push	hl
 		inc	hl
 		ld	e,(hl)
 		inc	hl
 		ld	d,(hl)
 		ld	hl,(screen_buffer)
 		add	hl,de
-		ld	(hl),0x08
+		ld	(hl),FILL_CHAR
 		pop	hl
 		inc	hl
 		inc	hl
 		inc	hl
+		inc	b
 		jr	gdl101
+gdl102:		cond	DEBUG_ANIMATION
+		ld	e,b			; Dump the number of
+		ld	a,WRITE_TO_SCRBUF	; water units used
+		ld	bc,33*23+5		; (show and exit Help
+		ld	hl,0x0002		; to redraw board).
+		call	hex_write
+		endc
 
 gdl110:		
 		jp	screen_redraw_reset
@@ -3282,7 +3267,7 @@ ddil2:		ld	(movchar_char),a
 
 		cond	DEBUG_STACK
 		ld	a,WRITE_TO_SCRBUF	; Dump SP to calculate
-		ld	bc,33*1+28		; the program's entire
+		ld	bc,33*21+5		; the program's entire
 		ld	hl,0			; memory usage.
 		add	hl,sp
 		ex	de,hl
@@ -3298,8 +3283,8 @@ ddil2:		ld	(movchar_char),a
 		cp	SUBSTATE_REMDEAD
 		jr	nz,ddil35
 		ld	de,(board_array2)	; Show leaky and dead
-		ld	hl,(screen_buffer)	; pipes.
-		ld	bc,33+9
+		ld	hl,(screen_buffer)	; pipes during STATE_GAME
+		ld	bc,33+9			; SUBSTATE_REMDEAD.
 		add	hl,bc
 		ld	b,0
 ddil30:		ld	a,(de)
@@ -3332,6 +3317,41 @@ ddil34:		ld	a,b
 		cp	64
 		jr	c,ddil30
 ddil35:		endc
+
+		cond	DEBUG_FILL
+		ld	a,(state_current)
+		cp	STATE_GAME
+		jr	nz,ddil45
+		ld	a,(substate_current)
+		cp	SUBSTATE_FILLANIM
+		jr	nz,ddil45
+		ld	de,(board_array2)	; Show pipe exits
+		ld	hl,(screen_buffer)	; during STATE_GAME
+		ld	bc,33+9			; SUBSTATE_FILLANIM.
+		add	hl,bc
+		ld	b,0
+ddil40:		ld	a,(de)
+		and	0x1f
+		call	pipe_exits_get
+		and	0x0f
+		add	a,0x9c
+		ld	(hl),a
+		inc	de
+		inc	hl
+		inc	hl
+		inc	hl
+		inc	b
+		ld	a,b
+		and	7
+		jr	nz,ddil41
+		push	bc
+		ld	bc,99-24
+		add	hl,bc
+		pop	bc
+ddil41:		ld	a,b
+		cp	64
+		jr	c,ddil40
+ddil45:		endc
 
 		ret
 		
