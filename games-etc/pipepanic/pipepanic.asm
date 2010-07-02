@@ -251,15 +251,14 @@ DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
 DEBUG_STACK	equ	0
 DEBUG_FILL	equ	0
-DEBUG_ANIMATION	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
 HELP_PAGE_MAX	equ	3
 PIPE_ARRAY_MAX	equ	70
-COUNTDOWN_MAX	equ	0x0180	; BCD
-FILL_ANIMATION_MAX equ	64*5	; I've experienced 214.
-FILL_NODES_MAX	equ	8*3	; I've experienced 21.
+COUNTDOWN_MAX	equ	0x0200	; BCD
+FILL_ANIMATION_MAX equ	64*5	; I've experienced 214. 64*5 must be limit.
+FILL_NODES_MAX	equ	8*3	; I've experienced 21. 8*3 must be limit.
 WRITE_TO_D_FILE	equ	0
 WRITE_TO_SCRBUF	equ	1
 WRITE_TO_MEMBLK	equ	2
@@ -277,15 +276,15 @@ SUBSTATE_GAME	equ	2
 SUBSTATE_FILL	equ	3
 SUBSTATE_REMDEAD equ	4
 SUBSTATE_FILLANIM equ	5
-SUBSTATE_HISCORE equ	6
-SUBSTATE_END	equ	7
+SUBSTATE_END	equ	6
+SUBSTATE_HSEND	equ	7
 
 ONE_SECOND_PAL	equ	50
 ONE_SECOND_NTSC	equ	60
 
 FILL_CHAR	equ	0x08
 
-mem_16514:	jr	start
+mem_16514:	jp	start
 temp_buffer:	defw	0
 screen_buffer:	defw	0
 fade_offsets:	defw	0
@@ -294,6 +293,7 @@ keyb_buffer_old: defw	0
 event_queue:	defw	0
 board_array:	defw	0
 board_array2:	defw	0
+board_arrayhs:	defs	64
 pipe_pieces:	defw	0
 pipe_array:	defw	0
 fill_animation:	defw	0
@@ -348,6 +348,10 @@ fill_animate_last: defw	0
 fill_animate_frame: defb 0
 fill_animate_subframe: defb 0
 fill_animate_leak: defb	0
+hiscore_fill:	defb	0
+hiscore_frame:	defb	0
+hiscore_delay:	defb	0
+hiscore_last:	defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -533,7 +537,7 @@ main_opt_sel_play:
 		ld	(cursor_game_last),hl
 		ld	a,1+8+32+64
 		ld	(screen_redraw),a
-		ld	a,1
+		ld	a,1+16
 		ld	(screen_redraw+1),a
 		call	game_draw
 		jp	main_spll2
@@ -599,7 +603,7 @@ main_hlp_select:
 		ld	(screen_redraw),a
 		ld	a,(substate_current)
 		cp	SUBSTATE_FILLANIM
-		ld	a,1
+		ld	a,1+16
 		jr	c,main_hlp_sell0
 		or	4
 main_hlp_sell0:	ld	(screen_redraw+1),a
@@ -669,7 +673,7 @@ main_gam_pnl_lefrigl1:
 		ld	a,0xff			; Panel cursor is off.
 		ld	(cursor_panel_position),a
 		pop	af
-		jr	main_gam_upl2
+		jp	main_gam_upl2
 main_gam_pnl_lefrigl2:
 		cp	4
 		jr	nz,main_gam_pnl_lefrigl3
@@ -688,12 +692,25 @@ main_gam_pnl_sel:
 		or	a
 		jr	nz,main_gam_pnl_sel_fill
 main_gam_pnl_sel_hifill:
-		; Fill hiscore network here.
-		; Fill hiscore network here.
-		; Fill hiscore network here.
-		; Fill hiscore network here.
-		; Fill hiscore network here.
-		; Fill hiscore network here.
+		ld	bc,(hiscore)		; If hiscore is zero
+		ld	a,b			; then no hiscore
+		or	c			; network exists.
+		jp	z,main_update
+		call	game_new		; Reinitialise the game.
+		ld	hl,board_arrayhs	; Restore hiscore
+		ld	de,(board_array)	; board array
+		ld	bc,64
+		ldir
+		ld	a,1			; Prevent the score
+		ld	(hiscore_fill),a	; from being updated.
+		ld	hl,0			; Dump remaining time.
+		ld	(countdown_time),hl
+		ld	a,1+16+32+64		; Rebuild the screen
+		ld	(screen_redraw),a	; now as fill_prepare
+		ld	a,1+16			; will overwrite
+		ld	(screen_redraw+1),a	; screen_redraw.
+		call	game_draw
+		call	fill_prepare
 		jp	main_update
 main_gam_pnl_sel_fill:
 		cp	1
@@ -706,7 +723,7 @@ main_gam_pnl_sel_new:
 		call	game_new		; Reinitialise the game.
 		ld	a,1+16+32+64
 		ld	(screen_redraw),a
-		ld	a,1
+		ld	a,1+16
 		ld	(screen_redraw+1),a
 		jp	main_update
 main_gam_pnl_sel_help:
@@ -865,19 +882,25 @@ main_upd_game:	cp	STATE_GAME
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
-		jr	main_upd_gal3
+		jr	main_upd_gal4
 main_upd_gal0:	cp	SUBSTATE_FILL
 		jr	nz,main_upd_gal1
 		call	fill_network
-		jr	main_upd_gal3
+		jr	main_upd_gal4
 main_upd_gal1:	cp	SUBSTATE_REMDEAD
 		jr	nz,main_upd_gal2
 		call	fill_remdead
-		jr	main_upd_gal3
+		jr	main_upd_gal4
 main_upd_gal2:	cp	SUBSTATE_FILLANIM
 		jr	nz,main_upd_gal3
 		call	fill_animate
-main_upd_gal3:	call	game_draw
+		jr	main_upd_gal4
+main_upd_gal3:	cp	SUBSTATE_HSEND
+		jr	nz,main_upd_gal4
+		ld	a,(screen_redraw+1)	; The new hiscore
+		or	8			; requires flashing.
+		ld	(screen_redraw+1),a
+main_upd_gal4:	call	game_draw
 
 main_upd_screen:
 		call	dump_debug_info
@@ -961,7 +984,7 @@ fal31:		push	hl
 		call	fa_node_animate
 		call	fa_node_pipe_get
 		and	0x40			; Is it leaky?
-		jr	z,fal190
+		jp	z,fal190
 		call	fa_node_kill		; Yes, it's leaky.
 		ld	a,1			; Prepare to end fill
 		ld	(fill_animate_leak),a	; after current subframe.
@@ -1001,6 +1024,9 @@ fal60:		; ------------------------
 fal62:		ld	a,d			; Retrieve pipe.
 		or	0x80			; Mark pipe as scored.
 		call	fa_node_pipe_set
+		ld	a,(hiscore_fill)	; Is the hiscore network
+		cp	1			; being reanimated?
+		jr	z,fal63
 		push	bc
 		push	hl
 		ld	hl,score
@@ -1011,7 +1037,7 @@ fal62:		ld	a,d			; Retrieve pipe.
 		ld	(screen_redraw),a
 		pop	hl
 		pop	bc
-		ld	a,d			; Retrieve pipe.
+fal63:		ld	a,d			; Retrieve pipe.
 		and	0x1f			; Filter out flags.
 		cp	3			; Is it the end-pipe?
 		jr	z,fal66
@@ -1063,6 +1089,10 @@ fal200:		pop	bc
 		dec	b
 		jp	nz,fal31
 
+		ld	a,(screen_redraw+1)	; Flag frame for
+		or	2			; drawing.
+		ld	(screen_redraw+1),a
+
 		ld	a,c			; End filling if no
 		or	a			; more nodes exist.
 		jr	z,fal210
@@ -1072,18 +1102,33 @@ fal200:		pop	bc
 		jr	nz,fal210
 		ret
 
-fal210:
+fal210:		ld	de,(score)		; Is this a hiscore?
+		ld	a,d
+		cp	0x80			; Don't score negative
+		jr	nc,fal220		; numbers (9999 to 8000).
+		ld	bc,(hiscore)
+		cp	b
+		jr	c,fal220
+		jr	nz,fal211
+		ld	a,e			; Hi bytes are equal,
+		cp	c			; so check lo.
+		jr	c,fal220
+		jr	z,fal220
+fal211:		ld	(hiscore),de		; Update hiscore.
+		ld	hl,(board_array)	; Copy contents
+		ld	de,board_arrayhs	; of board_array to
+		ld	bc,64			; board_arrayhs for
+		ldir				; user reanimating.
 
+		ld	hl,0			; Prepare to flash
+		ld	(hiscore_last),hl	; the new hiscore.
+		xor	a
+		ld	(hiscore_frame),a
+		ld	a,SUBSTATE_HSEND
+		jr	fal221
 
-
-		ld	a,SUBSTATE_END		; Set new substate.
-		call	substate_change
-
-		; or
-
-		;ld	a,SUBSTATE_HISCORE	; Set new substate.
-		;call	substate_change
-
+fal220:		ld	a,SUBSTATE_END
+fal221:		call	substate_change		; Set new substate.
 		ret
 
 ; *********************************************************************
@@ -1176,7 +1221,7 @@ fa_node_pipe_set:
 ;  On exit: a = the node's pipe (including flags) from board_array2
 ;           No registers are modified here.
 
-fa_node_pipe_get:		
+fa_node_pipe_get:
 		push	de
 		push	hl
 		ld	hl,(board_array2)
@@ -1217,9 +1262,6 @@ fa_nal11:	ld	a,(fill_animate_frame)
 		inc	hl			; Store screen buffer
 		ld	(hl),d			; offset.
 		
-		ld	a,(screen_redraw+1)	; Flag frame for
-		or	2			; drawing.
-		ld	(screen_redraw+1),a
 		pop	hl
 		pop	de
 		ret
@@ -1453,6 +1495,9 @@ frdl60:		ld	(hl),0			; initial water unit
 		ld	(fill_animate_frame),a
 		ld	(fill_animate_subframe),a
 
+		ld	a,(hiscore_fill)	; Is the hiscore network
+		cp	1			; being reanimated?
+		jr	z,frdl62
 		ld	hl,score		; Score the start-pipe.
 		ld	b,50			; +50 points.
 		call	bcd_word_add
@@ -1460,7 +1505,7 @@ frdl60:		ld	(hl),0			; initial water unit
 		or	64			; redisplaying.
 		ld	(screen_redraw),a
 
-		ld	hl,0			; Prepare to animate
+frdl62:		ld	hl,0			; Prepare to animate
 		ld	(fill_animate_last),hl	; the filling of the
 		ld	a,SUBSTATE_FILLANIM	; pipe network.
 		call	substate_change
@@ -1732,6 +1777,8 @@ game_new:	call	blink_unregister
 		ld	(preview_bar_slot0),a
 		call	pipe_get
 		ld	(preview_bar_slot1),a
+		xor	a
+		ld	(hiscore_fill),a
 		ld	hl,0
 		ld	(score),hl
 		ld	hl,COUNTDOWN_MAX
@@ -2503,11 +2550,6 @@ game_draw:	ld	a,(screen_redraw)
 		ld	bc,0
 		ld	de,panel_data
 		call	string_write		; Draw the panel.
-		ld	a,WRITE_TO_SCRBUF
-		ld	bc,33*1
-		ld	de,(hiscore)
-		ld	hl,0x0004
-		call	hex_write		; Write the hiscore.
 		call	board_draw		; Draw the board.
 
 gdl10:		ld	a,(screen_redraw)
@@ -2720,11 +2762,10 @@ gdl92:		inc	hl
 gdl100:		ld	a,(screen_redraw+1)
 		and	4
 		jr	z,gdl110
-		ld	b,0
 		ld	hl,(fill_animation)	; Draw all the units of
 gdl101:		ld	a,(hl)			; water so far.
 		or	a
-		jr	z,gdl102		; End of list reached?
+		jr	z,gdl110		; End of list reached?
 		push	hl
 		inc	hl
 		ld	e,(hl)
@@ -2737,17 +2778,46 @@ gdl101:		ld	a,(hl)			; water so far.
 		inc	hl
 		inc	hl
 		inc	hl
-		inc	b
 		jr	gdl101
-gdl102:		cond	DEBUG_ANIMATION
-		ld	e,b			; Dump the number of
-		ld	a,WRITE_TO_SCRBUF	; water units used
-		ld	bc,33*23+5		; (show and exit Help
-		ld	hl,0x0002		; to redraw board).
-		call	hex_write
-		endc
 
-gdl110:		
+gdl110:		ld	a,(screen_redraw+1)
+		and	8
+		jr	z,gdl120
+		ld	bc,(FRAMES)		; If it's time, flash
+		ld	hl,(hiscore_last)	; the new hiscore.
+		and	a
+		sbc	hl,bc
+		ld	a,(hiscore_delay)
+		cp	l
+		jr	nc,gdl120
+		ld	(hiscore_last),bc
+		ld	a,(hiscore_frame)
+		xor	1			; Flip the animation
+		ld	(hiscore_frame),a	; frame.
+		cp	1
+		jr	nz,gdl111
+		ld	a,(screen_redraw+1)	; Write hiscore as
+		or	16			; normal on frame 1.
+		ld	(screen_redraw+1),a
+		jr	gdl120
+gdl111:		ld	hl,(screen_buffer)	; On frame 0, erase the
+		ld	bc,33			; hiscore with spaces.
+		add	hl,bc
+		ld	b,4
+gdl112:		ld	(hl),_SPC
+		inc	hl
+		djnz	gdl112
+
+gdl120:		ld	a,(screen_redraw+1)
+		and	16
+		jr	z,gdl130
+		ld	a,WRITE_TO_SCRBUF	; Write the hiscore.
+		ld	bc,33*1
+		ld	de,(hiscore)
+		ld	hl,0x0004
+		call	hex_write
+
+gdl130:		
 		jp	screen_redraw_reset
 
 ; *********************************************************************
@@ -3097,6 +3167,7 @@ locall1:	ld	(countdown_delay),a		; 1s
 		srl	a
 		ld	(blink_delay),a			; 1/2s
 		ld	(cursor_game_delay),a		; 1/2s
+		ld	(hiscore_delay),a		; 1/2s
 		srl	a
 		ld	(event_repeat_delay_master),a	; 1/4s
 		ld	(fill_remdead_delay),a		; 1/4s
@@ -3185,11 +3256,6 @@ grnl1:		srl	a		; the bit index like this :-
 ; Dump Debug Info                                                     *
 ; *********************************************************************
 
-		cond	DEBUG_TIMING
-movchar_offset:	defw	0
-movchar_char:	defb	0x12
-		endc
-
 dump_debug_info:
 		cond	DEBUG_EVENTS
 		ld	b,EVENTS_MAX
@@ -3250,21 +3316,6 @@ ddil1:		push	bc
 		jr	nz,ddil1
 		endc
 		
-		cond	DEBUG_TIMING
-		ld	hl,(screen_buffer)	; Shows a moving char
-		ld	bc,(movchar_offset)	; to help gauge fluidity.
-		add	hl,bc
-		ld	a,(movchar_char)
-		ld	(hl),a
-		inc	bc
-		bit	5,c
-		jr	z,ddil2
-		ld	bc,0
-		xor	0x80
-ddil2:		ld	(movchar_char),a
-		ld	(movchar_offset),bc
-		endc
-
 		cond	DEBUG_STACK
 		ld	a,WRITE_TO_SCRBUF	; Dump SP to calculate
 		ld	bc,33*21+5		; the program's entire
