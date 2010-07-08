@@ -246,11 +246,12 @@ basic_0001:	defb	0,1		; 1 REM
 ;              +---------+   Back  +---------+
 ; 
 
-DEBUG_TIMING	equ	0
 DEBUG_KEYB	equ	0
 DEBUG_EVENTS	equ	0
 DEBUG_STACK	equ	0
 DEBUG_FILL	equ	0
+DEBUG_ANIMPTR	equ	0
+DEBUG_DEMOREC	equ	0
 
 EVENTS_MAX	equ	16
 TEMP_BUFFER_MAX	equ	6
@@ -269,6 +270,8 @@ STATE_SPLASH	equ	2
 STATE_OPTIONS	equ	3
 STATE_HELP	equ	4
 STATE_GAME	equ	5
+STATE_HSFILL	equ	6
+STATE_DEMO	equ	7
 
 SUBSTATE_NONE	equ	0
 SUBSTATE_SETCTRLS equ	1
@@ -293,7 +296,6 @@ keyb_buffer_old: defw	0
 event_queue:	defw	0
 board_array:	defw	0
 board_array2:	defw	0
-board_arrayhs:	defs	64
 pipe_pieces:	defw	0
 pipe_array:	defw	0
 fill_animation:	defw	0
@@ -348,10 +350,16 @@ fill_animate_last: defw	0
 fill_animate_frame: defb 0
 fill_animate_subframe: defb 0
 fill_animate_leak: defb	0
-hiscore_fill:	defb	0
+fill_animation_ptr: defw 0
 hiscore_frame:	defb	0
 hiscore_delay:	defb	0
 hiscore_last:	defw	0
+board_arrayhs:	defs	64
+demo_start_delay: defw	0
+demo_start_last: defw	0
+demo_event_delay: defb	0
+demo_event_last: defw	0
+demo_actions_ptr: defw	0
 
 start:		ld	(sp_original),sp
 		ld	hl,0
@@ -444,6 +452,8 @@ main_spll1:	ld	a,1+2+4+8
 		call	options_draw
 main_spll2:	call	screen_buffer_fade
 		call	event_queue_flush
+		ld	hl,(FRAMES)
+		ld	(demo_start_last),hl	; Reset demo countdown.
 		jp	main_update
 
 main_not_splash:
@@ -453,8 +463,29 @@ main_not_splash:
 		; STATE_OPTIONS
 		; -----------------------------------------------------
 main_options:	call	event_poll
+		jr	c,main_optl1
+		ld	bc,(FRAMES)		; No event found so
+		ld	hl,(demo_start_last)	; after a short while
+		and	a			; initiate demo mode.
+		sbc	hl,bc
+		ld	bc,(demo_start_delay)
+		ld	a,b
+		cp	h
+		jr	c,main_optl0
+		jp	nz,main_update
+		ld	a,c
+		cp	l
 		jp	nc,main_update
-		jr	z,main_options		; Ignore releases.
+main_optl0:	ld	a,(substate_current)	; But not when setting
+		cp	SUBSTATE_SETCTRLS	; the controls.
+		jp	z,main_update
+		ld	hl,(FRAMES)
+		ld	(demo_event_last),hl
+		ld	a,STATE_DEMO
+		jp	main_opt_sel_plyl0
+main_optl1:	jr	z,main_options		; Ignore releases.
+		ld	hl,(FRAMES)		; Event found so reset
+		ld	(demo_start_last),hl	; demo countdown.
 		ld	b,a
 		ld	a,(substate_current)
 		cp	SUBSTATE_SETCTRLS
@@ -526,6 +557,9 @@ main_opt_select:
 main_opt_sel_play:
 		cp	1
 		jr	nz,main_opt_sel_save
+		ld	a,STATE_GAME
+main_opt_sel_plyl0:
+		call	state_change
 		call	game_new		; Initialise the game.
 		xor	a
 		ld	(cursor_game_frame),a	; Position the cursor
@@ -610,15 +644,25 @@ main_hlp_sell0:	ld	(screen_redraw+1),a
 		call	game_draw
 		jp	main_spll2		; Back to game.
 
-main_not_help:	cp	STATE_GAME
-		jp	nz,main_update
+main_not_help:	cp	STATE_HSFILL
+		jr	z,main_game
+		cp	STATE_GAME
+		jp	nz,main_not_game
 		; -----------------------------------------------------
-		; STATE_GAME
+		; STATE_GAME, STATE_HSFILL and indirectly STATE_DEMO
 		; -----------------------------------------------------
 main_game:	call	event_poll
 		jp	nc,main_update
 		jr	z,main_game		; Ignore releases.
-		ld	b,a
+
+		cond	DEBUG_DEMOREC
+		ld	hl,(demo_actions_ptr)	; Record the keypress
+		ld	(hl),a			; in the actions array.
+		inc	hl
+		ld	(demo_actions_ptr),hl	; Update pointer.
+		endc
+
+main_gaml0:	ld	b,a
 		ld	a,(cursor_panel_position)
 		cp	0xff			; Is panel cursor off?
 		ld	a,b
@@ -696,13 +740,13 @@ main_gam_pnl_sel_hifill:
 		ld	a,b			; then no hiscore
 		or	c			; network exists.
 		jp	z,main_update
+		ld	a,STATE_HSFILL
+		call	state_change
 		call	game_new		; Reinitialise the game.
 		ld	hl,board_arrayhs	; Restore hiscore
 		ld	de,(board_array)	; board array
 		ld	bc,64
 		ldir
-		ld	a,1			; Prevent the score
-		ld	(hiscore_fill),a	; from being updated.
 		ld	hl,0			; Dump remaining time.
 		ld	(countdown_time),hl
 		ld	a,1+16+32+64		; Rebuild the screen
@@ -720,6 +764,8 @@ main_gam_pnl_sel_fill:
 main_gam_pnl_sel_new:
 		cp	2
 		jr	nz,main_gam_pnl_sel_help
+		ld	a,STATE_GAME
+		call	state_change
 		call	game_new		; Reinitialise the game.
 		ld	a,1+16+32+64
 		ld	(screen_redraw),a
@@ -834,9 +880,9 @@ main_gam_sel:	ld	hl,action_select
 		jr	main_gam_sell2
 main_gam_sell0:	jr	nz,main_gam_sell1	; Pipe-in?
 		call	fill_prepare
-		jr	main_update
+		jp	main_update
 main_gam_sell1:	cp	3			; Pipe-out?
-		jr	z,main_update
+		jp	z,main_update
 		ld	b,10			; -10 points.
 		call	bcd_word_subtract
 main_gam_sell2:	ex	de,hl
@@ -851,6 +897,42 @@ main_gam_sell2:	ex	de,hl
 		call	game_draw
 		ld	a,(cursor_game_position)
 		jp	main_gam_upl1
+
+main_not_game:	cp	STATE_DEMO
+		jp	nz,main_update
+		; -----------------------------------------------------
+		; STATE_DEMO
+		; -----------------------------------------------------
+main_demo:	call	event_poll
+		jp	nc,main_dmol0
+		jr	z,main_demo		; Ignore releases.
+		jp	main_spll0
+main_dmol0:	ld	bc,(FRAMES)		; If it's time, read
+		ld	hl,(demo_event_last)	; another action from
+		and	a			; the actions array.
+		sbc	hl,bc
+		ld	a,(demo_event_delay)
+		cp	l
+		jp	nc,main_update
+		ld	(demo_event_last),bc
+		ld	hl,(demo_actions_ptr)
+		ld	a,(hl)			; Read next action.
+		inc	hl
+		ld	(demo_actions_ptr),hl	; Update pointer.
+		or	a			; Do nothing?
+		jr	z,main_update
+		cp	6			; The end?
+		jp	z,main_spll0
+		ld	hl,action_up		; 1 to 5 is doubled
+		dec	hl			; and then used as an
+		dec	hl			; offset into the list
+		sla	a			; of actions.
+		ld	b,0
+		ld	c,a
+		add	hl,bc
+		ld	a,(hl)			; Inject the action
+		jp	main_gaml0		; into the game.
+
 		; -----------------------------------------------------
 		; Update
 		; -----------------------------------------------------
@@ -868,48 +950,55 @@ main_upd_help:	cp	STATE_HELP
 		jr	nz,main_upd_game
 		call	help_draw
 		jr	main_upd_screen
-main_upd_game:	cp	STATE_GAME
+main_upd_game:	cp	STATE_DEMO
+		jr	z,main_upd_gal0
+		cp	STATE_HSFILL
+		jr	z,main_upd_gal0
+		cp	STATE_GAME
 		jr	nz,main_upd_screen
-		ld	a,(substate_current)
+main_upd_gal0:	ld	a,(substate_current)
 		cp	SUBSTATE_GAME
-		jr	nz,main_upd_gal0
+		jr	nz,main_upd_gal1
 		ld	a,(screen_redraw)	; The countdown time
 		or	128			; requires animating.
 		ld	(screen_redraw),a
 		ld	a,(cursor_game_position)
 		cp	0xff			; Is game cursor off?
-		jr	z,main_upd_gal0
+		jr	z,main_upd_gal1
 		ld	a,(screen_redraw)	; The cursor requires
 		or	2			; animating when it's
 		ld	(screen_redraw),a	; on the board.
-		jr	main_upd_gal4
-main_upd_gal0:	cp	SUBSTATE_FILL
-		jr	nz,main_upd_gal1
-		call	fill_network
-		jr	main_upd_gal4
-main_upd_gal1:	cp	SUBSTATE_REMDEAD
+		jr	main_upd_gal5
+main_upd_gal1:	cp	SUBSTATE_FILL
 		jr	nz,main_upd_gal2
-		call	fill_remdead
-		jr	main_upd_gal4
-main_upd_gal2:	cp	SUBSTATE_FILLANIM
+		call	fill_network
+		jr	main_upd_gal5
+main_upd_gal2:	cp	SUBSTATE_REMDEAD
 		jr	nz,main_upd_gal3
-		call	fill_animate
-		jr	main_upd_gal4
-main_upd_gal3:	cp	SUBSTATE_HSEND
+		call	fill_remdead
+		jr	main_upd_gal5
+main_upd_gal3:	cp	SUBSTATE_FILLANIM
 		jr	nz,main_upd_gal4
+		call	fill_animate
+		jr	main_upd_gal5
+main_upd_gal4:	cp	SUBSTATE_HSEND
+		jr	nz,main_upd_gal5
 		ld	a,(screen_redraw+1)	; The new hiscore
 		or	8			; requires flashing.
 		ld	(screen_redraw+1),a
-main_upd_gal4:	call	game_draw
+main_upd_gal5:	call	game_draw
+		jr	main_upd_screen
 
 main_upd_screen:
 		call	dump_debug_info
 		call	blink_apply
 		call	screen_buffer_blit
-		call	timer_tick		; Limit main loop cycles.
 		jp	main_top
 
-main_quit:	ld	sp,(sp_original)
+main_quit:	ld	a,_SPC
+		call	screen_buffer_wipe
+		call	screen_buffer_blit
+		ld	sp,(sp_original)
 		ld	a,(state_current)	; Return program state
 		ld	b,0			; in bc so that SAVE
 		ld	c,a			; can be checked for.
@@ -1024,8 +1113,8 @@ fal60:		; ------------------------
 fal62:		ld	a,d			; Retrieve pipe.
 		or	0x80			; Mark pipe as scored.
 		call	fa_node_pipe_set
-		ld	a,(hiscore_fill)	; Is the hiscore network
-		cp	1			; being reanimated?
+		ld	a,(state_current)	; Is the hiscore network
+		cp	STATE_HSFILL		; being reanimated?
 		jr	z,fal63
 		push	bc
 		push	hl
@@ -1102,7 +1191,11 @@ fal200:		pop	bc
 		jr	nz,fal210
 		ret
 
-fal210:		ld	de,(score)		; Is this a hiscore?
+fal210:		ld	a,(state_current)	; Ignore the demo score
+		cp	STATE_DEMO		; when calculating the
+		jr	z,fal220		; hiscore.
+		
+		ld	de,(score)		; Is this a hiscore?
 		ld	a,d
 		cp	0x80			; Don't score negative
 		jr	nc,fal220		; numbers (9999 to 8000).
@@ -1129,6 +1222,19 @@ fal211:		ld	(hiscore),de		; Update hiscore.
 
 fal220:		ld	a,SUBSTATE_END
 fal221:		call	substate_change		; Set new substate.
+
+		cond	DEBUG_ANIMPTR
+		ld	hl,(fill_animation_ptr)	; Display the end
+		ld	de,(fill_animation)	; of the animation
+		and	a			; array.
+		sbc	hl,de
+		ex	de,hl
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*23+5
+		ld	hl,0x0004
+		call	hex_write
+		endc
+
 		ret
 
 ; *********************************************************************
@@ -1184,12 +1290,13 @@ fa_nadl20:	pop	af			; Store new node.
 ; On entry: hl is pointing to the screen buffer offset.
 ;           No registers are modified here.
 
-fa_node_kill:	push	hl
-		dec	hl
+fa_node_kill:	dec	hl
 		dec	hl
 		dec	hl
 		ld	(hl),0			; Kill node.
-		pop	hl
+		inc	hl
+		inc	hl
+		inc	hl
 		ret
 
 ; *********************************************************************
@@ -1238,7 +1345,7 @@ fa_node_pipe_get:
 ; This is used by fill_animate only.
 ; 
 ; On entry: hl is pointing to the screen buffer offset.
-;           Only register a is modified here.
+;           No registers are modified here.
 
 fa_node_animate:
 		push	de
@@ -1247,21 +1354,17 @@ fa_node_animate:
 		inc	hl			; offset from fill_nodes.
 		ld	d,(hl)
 
-		ld	hl,(fill_animation)	; Locate a free slot.
-fa_nal10:	ld	a,(hl)
-		or	a			; Zero means end of list.
-		jr	z,fa_nal11
-		inc	hl
-		inc	hl
-		inc	hl
-		jr	fa_nal10
-fa_nal11:	ld	a,(fill_animate_frame)
+		ld	hl,(fill_animation_ptr)	; Retrieve pointer.
+		ld	a,(fill_animate_frame)
 		ld	(hl),a			; Store frame.
 		inc	hl
 		ld	(hl),e
 		inc	hl			; Store screen buffer
 		ld	(hl),d			; offset.
-		
+		inc	hl
+		ld	(hl),0			; Current end of list.
+		ld	(fill_animation_ptr),hl	; Update pointer.
+
 		pop	hl
 		pop	de
 		ret
@@ -1410,7 +1513,8 @@ frdl20:		inc	e
 		cp	64
 		jr	c,frdl0
 
-		; The code below initialises fill_animation which follows.
+		; The code below initialises fill_animate which is the
+		; next substate following this.
 
 		ld	hl,(fill_nodes)		; Wipe the nodes
 		ld	b,FILL_NODES_MAX	; list in preparation
@@ -1474,19 +1578,9 @@ frdl51:		ld	bc,33+9
 		inc	hl
 		ld	(hl),d
 
-		ld	hl,(fill_animation)	; Wipe the animation
-		ld	bc,FILL_ANIMATION_MAX	; list. There's no
-frdl60:		ld	(hl),0			; initial water unit
-		inc	hl			; for the first node
-		inc	hl			; since it starts in
-		inc	hl			; the middle of the
-		dec	bc			; pipe and would hide
-		ld	a,c			; the "<".
-		or	a
-		jr	nz,frdl60
-		ld	a,b
-		or	a
-		jr	nz,frdl60
+		ld	hl,(fill_animation)	; Set-up the animation
+		ld	(fill_animation_ptr),hl ; list (there's no
+		ld	(hl),0			; initial animation).
 
 		xor	a
 		ld	(fill_animate_leak),a
@@ -1495,8 +1589,8 @@ frdl60:		ld	(hl),0			; initial water unit
 		ld	(fill_animate_frame),a
 		ld	(fill_animate_subframe),a
 
-		ld	a,(hiscore_fill)	; Is the hiscore network
-		cp	1			; being reanimated?
+		ld	a,(state_current)	; Is the hiscore network
+		cp	STATE_HSFILL		; being reanimated?
 		jr	z,frdl62
 		ld	hl,score		; Score the start-pipe.
 		ld	b,50			; +50 points.
@@ -1764,8 +1858,6 @@ fpl20:		ld	a,16+64			; Show the panel cursor,
 ; This reinitialises everything generally required to start a new game.
 
 game_new:	call	blink_unregister
-		ld	a,STATE_GAME
-		call	state_change
 		ld	a,SUBSTATE_GAME
 		call	substate_change
 		ld	a,(FRAMES)		; Initialise random
@@ -1777,14 +1869,14 @@ game_new:	call	blink_unregister
 		ld	(preview_bar_slot0),a
 		call	pipe_get
 		ld	(preview_bar_slot1),a
-		xor	a
-		ld	(hiscore_fill),a
 		ld	hl,0
 		ld	(score),hl
 		ld	hl,COUNTDOWN_MAX
 		ld	(countdown_time),hl
 		ld	hl,(FRAMES)
 		ld	(countdown_last),hl
+		ld	hl,demo_actions
+		ld	(demo_actions_ptr),hl
 		ret
 
 ; *********************************************************************
@@ -2137,8 +2229,20 @@ barl1:		ld	(hl),a
 
 		ld	a,14
 barl2:		ld	d,a
-		call	get_random_number	; 0 to 255.
-		srl	a
+
+		cond	DEBUG_DEMOREC
+		jr	barl3
+		endc
+
+		ld	a,(state_current)	; For the demo use
+		cp	STATE_DEMO		; predetermined offsets.
+		jr	nz,barl4
+barl3:		ld	a,100
+		add	a,d
+		add	a,d
+		jr	barl5
+barl4:		call	get_random_number	; 0 to 255.
+barl5:		srl	a
 		srl	a		; Now we have the positions
 		and	0x38		; down the board left-hand side.
 		ld	hl,(board_array)
@@ -2147,13 +2251,13 @@ barl2:		ld	d,a
 		add	hl,bc
 		ld	a,d
 		cp	14
-		jr	nz,barl4
+		jr	nz,barl6
 		ld	e,3		; Exit pipe.
-		jr	barl5
-barl4:		ld	bc,7		; Right-hand side positions.
+		jr	barl7
+barl6:		ld	bc,7		; Right-hand side positions.
 		add	hl,bc
 		ld	e,2		; Entry pipe.
-barl5:		ld	(hl),e
+barl7:		ld	(hl),e
 		sub	7
 		jr	nz,barl2
 
@@ -2178,34 +2282,6 @@ state_change:	ld	b,a
 
 substate_change:
 		ld	(substate_current),a
-		ret
-
-; *********************************************************************
-; Timer Tick                                                          *
-; *********************************************************************
-; This will limit the main loop to 25Hz (PAL) or 30Hz (NTSC).
-
-timer_tick:	ld	hl,(frames_last)
-		ld	bc,(FRAMES)
-		and	a			; Clear carry flag.
-		sbc	hl,bc
-
-		cond	DEBUG_TIMING
-		push	bc
-		push	hl
-		ld	a,WRITE_TO_SCRBUF	; Shows the number
-		ld	bc,33*0+15		; of frames consumed.
-		ex	de,hl
-		ld	hl,0x0002
-		call	hex_write
-		pop	hl
-		pop	bc
-		endc
-		
-		ld	a,l
-		cp	2
-		jr	c,timer_tick
-		ld	(frames_last),bc
 		ret
 
 ; *********************************************************************
@@ -2739,13 +2815,22 @@ gdl90:		ld	a,(screen_redraw+1)
 		jr	z,gdl100
 		ld	a,(fill_animate_frame)	; Draw the units of
 		ld	b,a			; water for the
-		ld	hl,(fill_animation)	; current frame only.
-gdl91:		ld	a,(hl)
-		or	a
-		jr	z,gdl100		; End of list reached?
+		ld	hl,(fill_animation_ptr)	; current frame only.
+		ld	de,(fill_animation)
+gdl91:		ld	a,h			; Since the pointer will
+		cp	d			; be positioned following
+		jr	nz,gdl92		; the last entry we
+		ld	a,l			; must backtrack until
+		cp	e			; the frame is older or
+		jr	z,gdl100		; no more entries.
+gdl92:		dec	hl
+		dec	hl
+		dec	hl
+		ld	a,(hl)
 		cp	b
-		jr	nz,gdl92
-		push	hl		
+		jr	nz,gdl100
+		push	de
+		push	hl
 		inc	hl
 		ld	e,(hl)
 		inc	hl
@@ -2754,9 +2839,7 @@ gdl91:		ld	a,(hl)
 		add	hl,de
 		ld	(hl),FILL_CHAR
 		pop	hl
-gdl92:		inc	hl
-		inc	hl
-		inc	hl
+		pop	de
 		jr	gdl91
 
 gdl100:		ld	a,(screen_redraw+1)
@@ -2869,13 +2952,20 @@ pipe_get:	ld	a,(pipe_array_idx)
 		ex	de,hl
 		ld	hl,pipe_array_data
 		ld	bc,PIPE_ARRAY_MAX
-		ld	a,c
 		ldir
+
+		cond	DEBUG_DEMOREC
+		jr	pgl2
+		endc
+
+		ld	a,(state_current)	; During demo mode
+		cp	STATE_DEMO		; don't shuffle.
+		jr	z,pgl2
 
 		ld	hl,(pipe_array)		; Shuffle the pipe_array.
 		ld	d,h
 		ld	e,l
-		ld	b,a
+		ld	b,PIPE_ARRAY_MAX
 pgl0:		push	bc
 		push	hl
 		call	get_random_number	; 0 to 255.
@@ -2896,7 +2986,7 @@ pgl1:		ld	b,0
 		pop	bc
 		inc	de
 		djnz	pgl0
-		xor	a
+pgl2:		xor	a
 
 pgl10:		ld	b,0
 		ld	c,a
@@ -3163,17 +3253,31 @@ localise:	ld	a,(MARGIN)
 		jr	locall1
 locall0:	ld	a,ONE_SECOND_NTSC
 
-locall1:	ld	(countdown_delay),a		; 1s
-		srl	a
-		ld	(blink_delay),a			; 1/2s
-		ld	(cursor_game_delay),a		; 1/2s
-		ld	(hiscore_delay),a		; 1/2s
-		srl	a
-		ld	(event_repeat_delay_master),a	; 1/4s
-		ld	(fill_remdead_delay),a		; 1/4s
-		srl	a
-		ld	(event_repeat_interval_master),a ; 1/8s
-		ld	(fill_animate_delay),a		; 1/8s
+locall1:	ld	b,0
+		ld	c,a
+		sla	c
+		rl	b
+		sla	c
+		rl	b
+		sla	c
+		rl	b
+		sla	c
+		rl	b				; 16s
+		ld	(demo_start_delay),bc
+
+		ld	(countdown_delay),a		; 1s
+		srl	a				; 1/2s
+		ld	(blink_delay),a
+		ld	(cursor_game_delay),a
+		ld	(hiscore_delay),a
+		srl	a				; 1/4s
+		ld	(event_repeat_delay_master),a
+		ld	(fill_remdead_delay),a
+		ld	(demo_event_delay),a
+		srl	a				; 1/8s
+		ld	(event_repeat_interval_master),a
+		ld	(fill_animate_delay),a
+
 		xor	a
 		ld	(event_repeat_interval_master+1),a
 		ld	(event_repeat_delay_master+1),a
@@ -3327,14 +3431,11 @@ ddil1:		push	bc
 		endc
 
 		cond	DEBUG_FILL
-		ld	a,(state_current)
-		cp	STATE_GAME
-		jr	nz,ddil35
 		ld	a,(substate_current)
 		cp	SUBSTATE_REMDEAD
 		jr	nz,ddil35
 		ld	de,(board_array2)	; Show leaky and dead
-		ld	hl,(screen_buffer)	; pipes during STATE_GAME
+		ld	hl,(screen_buffer)	; pipes during 
 		ld	bc,33+9			; SUBSTATE_REMDEAD.
 		add	hl,bc
 		ld	b,0
@@ -3370,14 +3471,11 @@ ddil34:		ld	a,b
 ddil35:		endc
 
 		cond	DEBUG_FILL
-		ld	a,(state_current)
-		cp	STATE_GAME
-		jr	nz,ddil45
 		ld	a,(substate_current)
 		cp	SUBSTATE_FILLANIM
 		jr	nz,ddil45
 		ld	de,(board_array2)	; Show pipe exits
-		ld	hl,(screen_buffer)	; during STATE_GAME
+		ld	hl,(screen_buffer)	; during 
 		ld	bc,33+9			; SUBSTATE_FILLANIM.
 		add	hl,bc
 		ld	b,0
@@ -3404,11 +3502,49 @@ ddil41:		ld	a,b
 		jr	c,ddil40
 ddil45:		endc
 
+		cond	DEBUG_DEMOREC
+		ld	a,WRITE_TO_SCRBUF	; Dump demo_actions
+		ld	bc,33*22+5		; address so that the
+		ld	de,demo_actions		; recorded demo data
+		ld	hl,0x0004		; can be extracted
+		call	hex_write		; post-save.
+		endc
+
 		ret
 		
 ; *********************************************************************
 ; Data                                                                *
 ; *********************************************************************
+
+; hexdump -s 0xnnnn -v -e '16/1 " %02x" "\n"' pipepanic.p
+;  1   0 is nothing
+; 3+4  5 is select
+;  2   6 is end
+
+		cond	DEBUG_DEMOREC
+demo_actions:	defs	512
+		endc
+
+demo_actions:	defb	1,5,4,5,4,5,4,5,2,2,3,5,3,1,5,2
+		defb	3,3,5,2,2,5,3,5,1,1,5,1,5,1,5,4
+		defb	2,5,3,3,2,5,2,2,5,1,4,5,4,4,1,5
+		defb	1,1,1,3,5,4,4,5,1,1,3,5,2,4,5,1
+		defb	4,5,2,5,4,1,5,2,5,2,5,3,5,4,4,1
+		defb	5,2,2,2,3,5,2,2,5,1,5,2,2,2,4,5
+		defb	4,4,5,2,2,2,5,4,1,1,1,5,1,1,4,5
+		defb	4,4,1,5,2,3,5,1,1,4,4,5,1,1,3,3
+		defb	5,2,2,2,1,5,1,1,1,1,4,5,3,3,2,5
+		defb	1,5,2,4,5,1,1,4,4,4,5,3,3,5,2,2
+		defb	3,3,3,5,2,5,1,5,3,3,1,1,1,1,1,5
+		defb	2,2,2,5,3,3,3,1,5,2,5,2,3,3,2,5
+		defb	1,1,4,4,4,1,5,4,4,5,1,5,4,4,1,1
+		defb	1,5,2,2,2,2,5,1,1,1,1,5,1,5,3,1
+		defb	1,3,3,5,5,3,3,5,1,1,1,1,3,5,3,5
+		defb	2,2,2,2,4,4,5,5,5,5,5,4,4,4,1,1
+		defb	5,1,1,4,5,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,6
 
 pipe_exits_data: defb	0,0,8,2,5,10,15,4,8,1,2,12,9,3,6,14,13,11,7
 
