@@ -28,8 +28,12 @@ For Linux (using z80-asm):
 ChangeLog
 =========
 
+2010-07-xx
+* 0.1.0 released
+* Initial stable release
+
 2010-05-11
-* Version 0.0.1
+* 0.0.1
 * Project created
 
 
@@ -38,5 +42,5 @@ Contacting Me
 
 Thunor <thunorsif_at_hotmail.com>
 
-2010-05-11
+2010-07-xx
 
