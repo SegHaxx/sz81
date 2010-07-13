@@ -2493,6 +2493,10 @@ splash_draw:	ld	a,(screen_redraw)
 		ld	bc,1
 		ld	de,pipepanic_data
 		call	string_write
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*12+5
+		ld	de,splash_logo_data
+		call	string_write
 
 sdl10:		ld	a,(screen_redraw)
 		and	2
@@ -2529,6 +2533,10 @@ options_draw:	ld	a,(screen_redraw)
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,1
 		ld	de,pipepanic_data
+		call	string_write
+		ld	a,WRITE_TO_SCRBUF
+		ld	bc,33*9+25
+		ld	de,version_data
 		call	string_write
 		ld	a,WRITE_TO_SCRBUF
 		ld	bc,33*12+6
@@ -3592,56 +3600,6 @@ ddil45:		endc
 ; Data                                                                *
 ; *********************************************************************
 
-; To record a demo:
-; * Delete the default demo_actions data below.
-; * At the top of the program, set DEBUG_DEMOREC to 1.
-; * Recompile and run it again and take note of the demo_actions
-;   address displayed at the bottom left of the screen.
-; * Play a game, go BACK and select SAVE.
-; * Extract the data from the demo_actions address using
-;   whatever program you have that can do this. On GNU/Linux it's
-;   $ hexdump -s 0xnnnn -v -e '16/1 ",%d" "\n"' pipepanic.p
-;   where 0xnnnn is demo_actions-0x4009.
-; * Insert the data below with a demo_actions label.
-; * Tidy-up the end (remove the 2,2,2,5 that was recorded as a result
-;   of moving the panel cursor down, down, down and selecting BACK),
-;   add some zeroes to do nothing whilst the network is being filled
-;   and terminate it with a 6.
-; * Set DEBUG_DEMOREC to 0 and recompile.
-; * Tweak the trailing zeroes so that the user has enough time to
-;   admire your filled network before the demo ends.
-
-; Demo Data Key
-; -------------
-;  1   0 is nothing
-; 3+4  5 is select
-;  2   6 is end
-
-		cond	DEBUG_DEMOREC
-demo_actions:	defs	512
-		endc
-
-demo_actions:	defb	1,5,4,5,4,5,4,5,2,2,3,5,3,1,5,2
-		defb	3,3,5,2,2,5,3,5,1,1,5,1,5,1,5,4
-		defb	2,5,3,3,2,5,2,2,5,1,4,5,4,4,1,5
-		defb	1,1,1,3,5,4,4,5,1,1,3,5,2,4,5,1
-		defb	4,5,2,5,4,1,5,2,5,2,5,3,5,4,4,1
-		defb	5,2,2,2,3,5,2,2,5,1,5,2,2,2,4,5
-		defb	4,4,5,2,2,2,5,4,1,1,1,5,1,1,4,5
-		defb	4,4,1,5,2,3,5,1,1,4,4,5,1,1,3,3
-		defb	5,2,2,2,1,5,1,1,1,1,4,5,3,3,2,5
-		defb	1,5,2,4,5,1,1,4,4,4,5,3,3,5,2,2
-		defb	3,3,3,5,2,5,1,5,3,3,1,1,1,1,1,5
-		defb	2,2,2,5,3,3,3,1,5,2,5,2,3,3,2,5
-		defb	1,1,4,4,4,1,5,4,4,5,1,5,4,4,1,1
-		defb	1,5,2,2,2,2,5,1,1,1,1,5,1,5,3,1
-		defb	1,3,3,5,5,3,3,5,1,1,1,1,3,5,3,5
-		defb	2,2,2,2,4,4,5,5,5,5,5,4,4,4,1,1
-		defb	5,1,1,4,5,0,0,0,0,0,0,0,0,0,0,0
-		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-		defb	0,0,0,6
-
 pipe_exits_data: defb	0,0,8,2,5,10,15,4,8,1,2,12,9,3,6,14,13,11,7
 
 ;11,11,11,11,11,12,12,12,12,12,13,13,13,13,13,14,14,14,14,14
@@ -3708,7 +3666,14 @@ help_pg0_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_1V,_SLSV
 		defb	_F,_I,_L,_L,_E,_D,_SPC,_SPC,_I,_F,_SPC,_A,_SPC
 		defb	_L,_E,_A,_K,_Y,0xf1
 		defb	_P,_I,_P,_E,_SPC,_I,_S,_SPC,_D,_E,_T,_E,_C,_T,_E
-		defb	_D,_FST,0xf1
+		defb	_D,_FST,0xf2
+		defb	_S,_E,_L,_E,_C,_T,_SPC,_H,_I,_S,_C,_O,_R,_E,_SPC
+		defb	_SPC,_F,_R,_O,_M,_SPC,_T,_H,_E,_SPC,_I,_N,_MNS,
+		defb	_G,_A,_M,_E,0xf1
+		defb	_P,_A,_N,_E,_L,_SPC,_T,_O,_SPC,_R,_E,_F,_I,_L,_L
+		defb	_SPC,_T,_H,_E,_SPC,_W,_I,_N,_N,_I,_N,_G,_SPC,_P
+		defb	_I,_P,_E,0xf1
+		defb	_N,_E,_T,_W,_O,_R,_K,_FST
 		defb	0xf0
 
 help_pg1_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_2V,_SLSV
@@ -3733,7 +3698,7 @@ help_pg1_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_2V,_SLSV
 		defb	0xd4,_SPC,_F,_O,_U,_N,_D,_SPC,_W,_H,_E,_N,_SPC
 		defb	_F,_I,_L,_L,_I,_N,_G,_FST,0xf2
 		defb	_PLS,_5,_0,_SPC,_F,_O,_R,_SPC,_E,_A,_C,_H,_SPC
-		defb	_F,_I,_L,_L,_E,_D,_SPC,_P,_I,_P,_E,_FST,0xf1
+		defb	_F,_I,_L,_L,_E,_D,_SPC,_P,_I,_P,_E,_FST
 		defb	0xf0
 
 help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
@@ -3762,7 +3727,6 @@ help_pg2_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_3V,_SLSV
 		defb	_SPC,_ASK,_SPC,_SPC,_8,_SPC,_T,_E,_R,_M,_I,_N,_A
 		defb	_T,_O,_R,_S,0xf1
 		defb	_SPC,_ASK,_SPC,_SPC,_4,_SPC,_C,_R,_O,_S,_S,_E,_S
-		defb	0xf1
 		defb	0xf0
 
 pipe_data:	defb	0xd9,_SPC
@@ -3791,7 +3755,7 @@ options_data:	defb	_S,_E,_T,_SPC,_C,_O,_N,_T,_R,_O,_L,_S,0xf2
 		defb	_D,_O,_W,_N,0xe3,_EQU,0xf1
 		defb	_L,_E,_F,_T,0xe3,_EQU,0xf1
 		defb	_R,_I,_G,_H,_T,0xe2,_EQU,0xf1
-		defb	_S,_E,_L,_E,_C,_T,_SPC,_EQU,0xf1
+		defb	_S,_E,_L,_E,_C,_T,_SPC,_EQU
 		defb	0xf0
 
 options_frame_nofocus_data:
@@ -3803,8 +3767,19 @@ options_frame_nofocus_data:
 		defb	0x01,0xee,0x87,0xf1
 		defb	0x01,0xee,0x87,0xf1
 		defb	0x01,0xee,0x87,0xf1
-		defb	0x86,0xdf,0x87,0xf1
+		defb	0x86,0xdf,0x87
 		defb	0xf0
+
+;		defb	_SPC,0xdf,_SPC,0xf1	; Redundant.
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xee,_SPC,0xf1
+;		defb	_SPC,0xdf,_SPC
+;		defb	0xf0
 
 options_frame_focus_data:
 		defb	0x07,0xde,0x03,0x86,0xf1
@@ -3815,25 +3790,14 @@ options_frame_focus_data:
 		defb	0x05,0xee,0x85,0xf1
 		defb	0x05,0xee,0x85,0xf1
 		defb	0x05,0xee,0x85,0xf1
-		defb	0x86,0xde,0x83,0x81,0xf1
+		defb	0x86,0xde,0x83,0x81
 		defb	0xf0
-
-;		defb	_SPC,0xdf,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xee,_SPC,0xf1
-;		defb	_SPC,0xdf,_SPC,0xf1
-;		defb	0xf0
 
 options_menu_data:
 		defb	_P,_L,_A,_Y,0xf2
 		defb	_S,_A,_V,_E,0xf2
 		defb	_H,_E,_L,_P,0xf2
-		defb	_Q,_U,_I,_T,0xf2
+		defb	_Q,_U,_I,_T
 		defb	0xf0
 
 options_menu_frame_nofocus_data:
@@ -3845,8 +3809,19 @@ options_menu_frame_nofocus_data:
 		defb	0x01,0xe6,0x87,0xf1
 		defb	0x01,0xe6,0x87,0xf1
 		defb	0x01,0xe6,0x87,0xf1
-		defb	0x86,0xd7,0x87,0xf1
+		defb	0x86,0xd7,0x87
 		defb	0xf0
+
+;		defb	_SPC,0xd7,_SPC,0xf1	; Redundant.
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xe6,_SPC,0xf1
+;		defb	_SPC,0xd7,_SPC
+;		defb	0xf0
 
 options_menu_frame_focus_data:
 		defb	0x07,0xd6,0x03,0x86,0xf1
@@ -3857,19 +3832,8 @@ options_menu_frame_focus_data:
 		defb	0x05,0xe6,0x85,0xf1
 		defb	0x05,0xe6,0x85,0xf1
 		defb	0x05,0xe6,0x85,0xf1
-		defb	0x86,0xd6,0x83,0x81,0xf1
+		defb	0x86,0xd6,0x83,0x81
 		defb	0xf0
-
-;		defb	_SPC,0xd7,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xe6,_SPC,0xf1
-;		defb	_SPC,0xd7,_SPC,0xf1
-;		defb	0xf0
 
 options_copyright_data:
 		defb	_OBR,_C,_CBR,_SPC,_2,_0,_1,_0,_SPC,_T,_H
@@ -3901,12 +3865,78 @@ pipepanic_data:	defb	0x00,0xd3,0x83,0x87,0x04,0xd8,0x00,0xd3,0x83,0xe7,0x87,0x04
 		defb	0x85,0x09,0x05,0x00,0x05,0x85,0x00,0x09,0x09,0x05,0x02,0x03,0x86,0x85,0x09,0x05,0x00,0x05,0x87,0x04,0x85,0x09,0x8A,0x09,0x05,0x85,0xd3,0x09,0x05,0xf1
 		defb	0x00,0x03,0xe2,0x02,0x84,0x00,0x07,0x03,0x02,0x03,0x03,0x01,0x00,0x03,0xe2,0x02,0x01,0x02,0x01,0x03,0x00,0x03,0x02,0x01,0xd3,0x03,0xf1
 		defb	0x87,0xd3,0x03,0x04,0x85,0x00,0x05,0x87,0xdf,0x03,0xd5,0x03,0x04,0xf1
-		defb	0x02,0xd3,0x8A,0x01,0x02,0x8A,0x01,0x02,0xdf,0x8A,0xd5,0x8A,0x01,0xf1
+		defb	0x02,0xd3,0x8A,0x01,0x02,0x8A,0x01,0x02,0xdf,0x8A,0xd5,0x8A,0x01
+		defb	0xf0
+
+version_data:	defb	_0,_FST,_1,_FST,_0
+		defb	0xf0
+
+splash_logo_data:
+		defb	0xe4,0x87,0x83,0x83,0x00,0x00,0xd3,0x83,0x00,0x00,0x83,0x83,0x04,0xf1
+		defb	0x00,0x06,0x03,0x03,0x84,0x00,0x85,0x03,0x07,0x87,0x83,0x04,0x84,0x03,0x05,0x00,0x07,0x03,0x03,0x86,0xf1
+		defb	0x85,0x09,0x00,0x00,0x85,0x00,0x85,0x85,0x87,0x01,0x00,0x02,0x04,0x05,0x05,0x00,0x05,0x00,0x00,0x09,0x05,0xf1
+		defb	0x85,0x00,0x0A,0x0A,0x85,0x0A,0xd3,0x85,0x87,0x83,0x04,0xd3,0x05,0x0A,0x05,0x0A,0x0A,0x00,0x05,0xf1
+		defb	0x85,0x0A,0x09,0x09,0x85,0x09,0x85,0x85,0x02,0xd3,0x80,0x01,0x05,0x05,0x09,0x05,0x09,0x09,0x0A,0x05,0xf1
+		defb	0x00,0x86,0x8A,0x8A,0x81,0x08,0x85,0x83,0x82,0x02,0x80,0x01,0x81,0x83,0x05,0x08,0x82,0x8A,0x8A,0x06,0xf1
+		defb	0xe4,0x02,0x03,0x03,0x00,0x00,0x03,0x80,0x03,0x00,0x00,0x03,0x03,0x01,0xf1
+		defb	0xe9,0x83,0x80,0x83,0xf1
+		defb	0xe7,0x87,0xd5,0x80,0x04,0xf1
+		defb	0xe8,0x03,0xd3,0x80,0x03
 		defb	0xf0
 
 txt_press_a_key:
 		defb	_P,_R,_E,_S,_S,_SPC,_A,_SPC,_K,_E,_Y
 		defb	0xf0
+
+; To record a demo:
+; * Delete the default demo_actions data below (not the defs 512).
+; * At the top of the program, set DEBUG_DEMOREC to 1.
+; * Recompile and run it again and take note of the demo_actions
+;   address displayed at the bottom left of the screen.
+; * Play a game, go BACK and select SAVE.
+; * Extract the data from the demo_actions address using
+;   whatever program you have that can do this. On GNU/Linux it's
+;   $ hexdump -s 0xnnnn -v -e '16/1 ",%d" "\n"' pipepanic.p
+;   where 0xnnnn is demo_actions-0x4009.
+; * Insert the data below with a demo_actions label.
+; * Tidy-up the end (remove the 2,2,2,5 that was recorded as a result
+;   of moving the panel cursor down, down, down and selecting BACK),
+;   add some zeroes to do nothing whilst the network is being filled
+;   and terminate it with a 6.
+; * Set DEBUG_DEMOREC to 0 and recompile.
+; * Tweak the trailing zeroes so that the user has enough time to
+;   admire your filled network before the demo ends.
+
+; Demo Data Key
+; -------------
+;  1   0 is nothing
+; 3+4  5 is select
+;  2   6 is end
+
+		cond	DEBUG_DEMOREC
+demo_actions:	defs	512
+		endc
+
+demo_actions:	defb	1,5,4,5,4,5,4,5,2,2,3,5,3,1,5,2
+		defb	3,3,5,2,2,5,3,5,1,1,5,1,5,1,5,4
+		defb	2,5,3,3,2,5,2,2,5,1,4,5,4,4,1,5
+		defb	1,1,1,3,5,4,4,5,1,1,3,5,2,4,5,1
+		defb	4,5,2,5,4,1,5,2,5,2,5,3,5,4,4,1
+		defb	5,2,2,2,3,5,2,2,5,1,5,2,2,2,4,5
+		defb	4,4,5,2,2,2,5,4,1,1,1,5,1,1,4,5
+		defb	4,4,1,5,2,3,5,1,1,4,4,5,1,1,3,3
+		defb	5,2,2,2,1,5,1,1,1,1,4,5,3,3,2,5
+		defb	1,5,2,4,5,1,1,4,4,4,5,3,3,5,2,2
+		defb	3,3,3,5,2,5,1,5,3,3,1,1,1,1,1,5
+		defb	2,2,2,5,3,3,3,1,5,2,5,2,3,3,2,5
+		defb	1,1,4,4,4,1,5,4,4,5,1,5,4,4,1,1
+		defb	1,5,2,2,2,2,5,1,1,1,1,5,1,5,3,1
+		defb	1,3,3,5,5,3,3,5,1,1,1,1,3,5,3,5
+		defb	2,2,2,2,4,4,5,5,5,5,5,4,4,4,1,1
+		defb	5,1,1,4,5,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		defb	0,0,0,6
 
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
