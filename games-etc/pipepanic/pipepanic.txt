@@ -28,6 +28,10 @@ For Linux (using z80-asm):
 ChangeLog
 =========
 
+2010-07-14
+* 0.1.1 released
+* Updated the splash logo
+
 2010-07-13
 * 0.1.0 released
 * Initial stable release
