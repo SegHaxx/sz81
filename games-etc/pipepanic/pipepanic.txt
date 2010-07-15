@@ -28,6 +28,12 @@ For Linux (using z80-asm):
 ChangeLog
 =========
 
+2010-07-15
+* 0.1.2 released
+* Tweaked the splash logo.
+* Commented-out a subroutine that's not used anymore reducing the
+  program size. I think that's it now.
+
 2010-07-14
 * 0.1.1 released
 * Updated the splash logo
