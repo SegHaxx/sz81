@@ -1,5 +1,5 @@
 ; Pipepanic - a Sinclair ZX81 pipe connecting game
-; Copyright (C) 2010 Thunor <thunorsif@hotmail.com>
+; Copyright (C) 2010 Thunor <thunorsif_at_hotmail.com>
 ; 
 ; This program is free software: you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by

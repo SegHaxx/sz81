@@ -1,5 +1,5 @@
 mctemplate - a Sinclair ZX81 machine code template
-Copyright (C) 2010 Thunor <thunorsif@hotmail.com>
+Copyright (C) 2010 Thunor <thunorsif_at_hotmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,12 @@ For Linux (using z80-asm):
 ChangeLog
 =========
 
+2010-07-15
+* 0.1.3
+* Updated from modifications I made to PipePanic.
+
 2010-05-11
-* Version 0.1.2
+* 0.1.2
 * Initial stable release
 
 

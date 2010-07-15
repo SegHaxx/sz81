@@ -1,5 +1,5 @@
 ; mctemplate - a Sinclair ZX81 machine code template
-; Copyright (C) 2010 Thunor <thunorsif@hotmail.com>
+; Copyright (C) 2010 Thunor <thunorsif_at_hotmail.com>
 ; 
 ; This program is free software: you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ; =====================================================================
-; mctemplate 0.1.2
+; mctemplate 0.1.3
 ; 
 ; Tabs are set to 8.
 ; 
@@ -138,13 +138,20 @@ _ZV		equ	_Z+0x80
 
 _NL		equ	0x76
 
+_VAL		equ	0xc5
 _INT		equ	0xcf
 _USR		equ	0xd4
+_NOT		equ	0xd7
 _PWR		equ	0xd8		; **
+_THEN		equ	0xde
+_STOP		equ	0xe3
 _REM		equ	0xea
 _LET		equ	0xf1
+_PRINT		equ	0xf5
 _RUN		equ	0xf7
+_SAVE		equ	0xf8
 _RAND		equ	0xf9
+_IF		equ	0xfa
 
 ; RST routines (a selection of).
 
@@ -182,17 +189,17 @@ BERG:		defb	0
 MEM:		defw	MEMBOT
 SPARE1:		defb	0
 DF_SZ:		defb	2		; Number of lines in lower part of screen.
-S_TOP:		defw	20		; BASIC line number of line at top of screen.
+S_TOP:		defw	10		; BASIC line number of line at top of screen.
 LAST_K:		defw	0xffff
 DB_ST:		defb	0
-MARGIN:		defb	0x37
+MARGIN:		defb	55		; Blank lines above/below TV picture: US = 31, UK = 55.
 NXTLIN:		defw	display_file	; Memory address of next program line to be executed.
 OLDPPC:		defw	0
 FLAGX:		defb	0
 STRLEN:		defw	0
 T_ADDR:		defw	0x0c8d
 SEED:		defw	0
-FRAMES:		defw	0
+FRAMES:		defw	0		; Updated once for every TV frame displayed.
 COORDS:		defw	0
 PR_CC:		defb	0xbc
 S_POSN:		defb	0x21,0x18
@@ -232,15 +239,9 @@ l2:		ld	(hl),a
 ; End of user machine code program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		defb	_NL
-basic_0010:	defb	0,10		; 10 RAND USR 16514
+basic_0010:	defb	0,10		; 10 RAND VAL "USR 16514"
 		defw	basic_0020-basic_0010-4
-		defb	_RAND,_USR,_1,_6,_5,_1,_4
-		defb	0x7e
-		defb	0x8f
-		defb	0x01
-		defb	0x04
-		defb	0x00
-		defb	0x00
+		defb	_RAND,_VAL,_DQT,_USR,_1,_6,_5,_1,_4,_DQT
 		defb	_NL
 basic_0020:	defb	0,20		; 20 REM ** TYPE RUN **
 		defw	basic_end-basic_0020-4
