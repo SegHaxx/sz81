@@ -47,10 +47,16 @@ ChangeLog
 * Project created
 
 
+Project Website
+===============
+
+http://sz81.sourceforge.net/
+
+
 Contacting Me
 =============
 
 Thunor <thunorsif_at_hotmail.com>
 
-2010-07-13
+2010-07-16
 
