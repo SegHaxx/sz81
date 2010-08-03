@@ -15,7 +15,7 @@
 ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ; =====================================================================
-; pipepanic 0.1.2
+; pipepanic 0.1.3
 ; 
 ; Tabs are set to 8.
 ; 
@@ -3846,7 +3846,7 @@ options_menu_frame_focus_data:
 options_copyright_data:
 		defb	_OBR,_C,_CBR,_SPC,_2,_0,_1,_0,_SPC,_T,_H
 		defb	_U,_N,_O,_R,_CMA,_SPC,_G,_N,_U,_SPC,_G,_P,_L,0xf2
-		defb	0xe6,_S,_Z,_8,_1,_FST,_S,_F,_FST,_N,_E,_T
+		defb	0xe3,_A,_N,_G,_L,_I,_A,_S,_O,_F,_T,_FST,_O,_R,_G,_FST,_U,_K
 		defb	0xf0
 
 panel_data:	defb	_H,_I,_S,_C,_O,_R,_E,0xf3
@@ -3876,7 +3876,7 @@ pipepanic_data:	defb	0x00,0xd3,0x83,0x87,0x04,0xd8,0x00,0xd3,0x83,0xe7,0x87,0x04
 		defb	0x02,0xd3,0x8A,0x01,0x02,0x8A,0x01,0x02,0xdf,0x8A,0xd5,0x8A,0x01
 		defb	0xf0
 
-version_data:	defb	_0,_FST,_1,_FST,_2
+version_data:	defb	_0,_FST,_1,_FST,_3
 		defb	0xf0
 
 ; And compressing this splash logo saved 132 bytes.

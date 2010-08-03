@@ -28,6 +28,12 @@ For Linux (using z80-asm):
 ChangeLog
 =========
 
+2010-08-03
+* 0.1.3 released
+* Updated the cassette inlay.
+* Modified the game's URL.
+* Updated the program structure diagram.
+
 2010-07-15
 * 0.1.2 released
 * Tweaked the splash logo.
