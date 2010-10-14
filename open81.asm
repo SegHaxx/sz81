@@ -286,6 +286,7 @@ program		equ 0x407d
 
 ;THE 'START'
 
+org 0x0000
 ;start:
 	out	(nmigen), a
 	ld	bc, 0x7fff
@@ -372,7 +373,7 @@ scan_line:
 
 ;THE 'INCREMENT CH-ADD' SUBROUTINE
 
-ch_add_inc
+ch_add_inc:
 	ld	hl, (ch_add)
 
 cursor_so:
@@ -596,7 +597,7 @@ load_save:
 	pop	hl
 
 ;THE 'DISPLAY' ROUTINES
-org 0x0207
+
 slow_fast:
 	ld	hl, cdflag
 	ld	a, (hl)
@@ -961,7 +962,7 @@ new:
 	dec	bc
 
 ;THE 'RAM-CHECK' ROUTINE
-org 0x03cb
+
 ram_check:
 	ld	h, b
 	ld	l, c
@@ -1224,7 +1225,8 @@ key_sort:
 
 ;CHOOSING K v. L MODE
 
-cursor	ld	hl,  (e_line)
+cursor:
+	ld	hl,  (e_line)
 	bit	5, (iy + _flagx)
 	jr	nz, l_mode
 
@@ -1293,7 +1295,8 @@ ended_1:
 
 ;THE 'RUBOUT' ROUTINE
 
-rubout	call	left_edge
+rubout:
+	call	left_edge
 	call	clear_one
 	jr	ended_1
 
@@ -1432,7 +1435,7 @@ test_null:
 	rst	get_ch
 	cp	0x76
 
-n_l_null
+n_l_null:
 	jp	z, n_l_only
 	ld	(iy + _flags), 0x80
 	ex	de, hl
@@ -2726,7 +2729,7 @@ p_llist:
 	defw	llist
 
 ;THE 'LINE SCANNING' ROUTINE
-org 0x0cba
+
 line_scan:
 	ld	(iy + _flags), 0x01
 	call	e_line_no
@@ -2826,7 +2829,8 @@ report_c2:
 
 ;THE 'COMMAND CLASS 3' ROUTINE
 
-class_3	cp	0x76
+class_3:
+	cp	0x76
 	call	no_to_stk
 
 ;THE 'COMMAND CLASS 0' ROUTINE
@@ -2921,7 +2925,7 @@ class_6:
 	call	scanning
 	bit	6, (iy + _flags)
 	ret	nz
-org 0x0d9a
+
 report_c:
 	rst	error_1
 	defb	no_numeric_value
@@ -3279,7 +3283,7 @@ pause:
 	jr	d_bounce
 
 ;THE 'BREAK-1' SUBROUTINE
-org 0xf46
+
 break_1:
 	ld	a, 0x7f
 	in	a, (0xfe)
@@ -3881,7 +3885,7 @@ sv_slice_query:
 	ret
 
 ;THE 'SLICING' SUBROUTINE
-org 0x1263
+
 slicing:
 	call	syntax_z
 	call	nz, stk_fetch
@@ -3960,7 +3964,7 @@ sl_store:
 
 stk_st_0:
 	xor	a
-org 0x12c3
+
 stk_store:
 	push	bc
 	call	test_5_sp
@@ -4054,7 +4058,7 @@ hl_again:
 	ret
 
 ;THE 'LET' COMMAND ROUTINE
-org 0x1321
+
 let:
 	ld	hl, (dest)
 	bit	1, (iy + _flagx)
@@ -4110,7 +4114,7 @@ l_numeric:
 	and	a
 	sbc	hl, bc
 	jr	l_enter
-org 0x136e
+
 l_exists:
 	bit	6, (iy + _flags)
 	jr	z, l_deletes
@@ -4227,7 +4231,7 @@ l_clear:
 	ret
 
 ;THE 'STK_FETCH' SUBROUTINE
-org 0x13f8
+
 stk_fetch:
 	ld	hl, (stkend)
 	dec	hl
@@ -4344,7 +4348,7 @@ dim_sizes:
 	ret
 
 ;THE 'RESERVE' SUBROUTINE
-org 0x1488
+
 reserve:
 	ld	hl, (stkbot)
 	dec	hl
@@ -5132,7 +5136,7 @@ prep_m_d:
 
 ;THE 'MULTIPLICATION' OPERATION
 
-fp_multiply
+fp_multiply:
 	xor	a
 	call	prep_m_d
 	ret	c
@@ -5505,7 +5509,7 @@ table_adr:
 	defw	fp_get_mem_xx
 
 ;THE 'CALCULATOR ' SUBROUTINE
-org 0x199d
+
 calculate:
 	call	stk_pntrs
 
@@ -5715,7 +5719,7 @@ fp_st_mem_xx:
 	ret
 
 ;THE 'EXCHANGE' SUBROUTINE
-org 0x1a72
+
 fp_exchange:
 	ld	b, 5
 
@@ -5825,7 +5829,7 @@ fp_greater_0:
 	jr	sign_to_c
 
 ;THE 'NOT' FUNCTION
-org 0x1ad5
+
 fp_not:
 	ld	a, (hl)
 	neg
@@ -5980,7 +5984,7 @@ end_tests:
 
 ;THE 'STRING CONCATENATION' OPERATION
 
-fp_strs_add
+fp_strs_add:
 	call	stk_fetch
 	push	de
 	push	bc
@@ -6144,7 +6148,7 @@ new_addr:
 	ret
 
 ;THE 'JUMP ON TRUE' SUBROUTINE
-org 0x1c2f
+
 fp_jump_true:
 	ld	a, (de)
 	and	a
@@ -6499,7 +6503,8 @@ fp_acs:
 
 ;THE 'SQUARE ROOT' FUNCTION
 
-fp_sqr	rst	fp_calc
+fp_sqr:
+	rst	fp_calc
 	defb	duplicate
 	defb	fn_not
 	defb	jump_true, last -$ - 1
