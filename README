@@ -173,9 +173,11 @@ Installation
 ============
 
 To function correctly sz81 expects to find the zx80.rom and zx81.rom
-ROMs which are not included within the source package. You might find
-them at ftp://ftp.nvg.ntnu.no/pub/sinclair/roms, or perhaps through
-searching the internet for "zx80.rom" and "zx81.rom".
+ROMs.  The ZX80 ROM is not included within the source package, however
+a GPL version of the ZX81 ROM is (see README.ROM).  This can be built
+with "make zx81.rom" as long as Pasmo is installed.  The ZX80 ROM you
+might find at ftp://ftp.nvg.ntnu.no/pub/sinclair/roms, or perhaps
+through searching the internet for "zx80.rom".
 
 Extract the sz81 source package, copy the zx80.rom and zx81.rom ROMs
 into the data folder and change into the extracted directory.
@@ -233,6 +235,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-05-06
+2010-10-16
 
 
