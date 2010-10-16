@@ -37,13 +37,16 @@ LDFLAGS=
 LIBS=`$(SDL_CONFIG) --libs` 
 
 # You won't need to alter anything below
-all: $(SOURCES) $(TARGET)
+all: $(SOURCES) $(TARGET) zx81.rom
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+zx81.rom: open81.asm
+	pasmo open81.asm data/zx81.rom
 
 .PHONY: all clean install
 
