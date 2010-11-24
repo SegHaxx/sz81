@@ -1,3 +1,8 @@
+2010-11-24
+* Conventionalised and tweaked the build system a little more.
+* Reorganised the newly added Open81 content in preparation for the
+  soon to be included Open80 content.
+
 2010-07-15 Thunor <thunorsif_at_hotmail.com>
 * Both the mctemplate and PipePanic game are complete.
 

@@ -1,5 +1,0 @@
-open81.asm is the Open81 ROM, a GPL version of the "improved" ZX81 ROM.
-Open81 was written by Steve Vickers and John Grant.
-See https://sites.google.com/site/open81rom/
-
-If Pasmo is installed, this can be built with "make zx81.rom"

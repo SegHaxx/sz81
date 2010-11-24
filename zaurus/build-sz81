@@ -38,7 +38,7 @@ if test -a VERSION ; then
 			cp README ipk/${PREFIX}/share/${TARGET}
 			cp ChangeLog NEWS COPYING ipk/${PREFIX}/share/${TARGET}
 
-			zaurus/_ipkg-build ipk
+			zaurus/ipkg-build ipk
 			
 			rm -rf ipk
 			

@@ -1,21 +1,21 @@
 # Comment/uncomment these to choose an installation destination
 # System wide installation
-#PREFIX=/usr/local
-#BINDIR=$(PREFIX)/bin
-#DOCDIR=$(PREFIX)/share/doc/$(TARGET)
-#PACKAGE_DATA_DIR=$(PREFIX)/share/$(TARGET)
+#PREFIX?=/usr/local
+#BINDIR?=$(PREFIX)/bin
+#DOCDIR?=$(PREFIX)/share/doc/$(TARGET)
+#PACKAGE_DATA_DIR?=$(PREFIX)/share/$(TARGET)
 
 # Local installation within your home folder
-#PREFIX=$(HOME)/Games/$(TARGET)
-#BINDIR=$(PREFIX)
-#DOCDIR=$(PREFIX)/doc
-#PACKAGE_DATA_DIR=$(PREFIX)/data
+#PREFIX?=$(HOME)/Games/$(TARGET)
+#BINDIR?=$(PREFIX)
+#DOCDIR?=$(PREFIX)/doc
+#PACKAGE_DATA_DIR?=$(PREFIX)/data
 
 # Run from current folder i.e. no installation
-PREFIX=.
-BINDIR=$(PREFIX)
-DOCDIR=$(PREFIX)
-PACKAGE_DATA_DIR=$(PREFIX)/data
+PREFIX?=.
+BINDIR?=$(PREFIX)
+DOCDIR?=$(PREFIX)
+PACKAGE_DATA_DIR?=$(PREFIX)/data
 
 # For sz81 OSS_SOUND_SUPPORT is now synonymous with SDL_SOUND_SUPPORT.
 # Comment this out if you don't want sound support.
@@ -28,16 +28,22 @@ SOURCES=smain.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
 
-# These should be ok for most
-SDL_CONFIG=sdl-config
-CFLAGS=-O3 -Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
+# These should be ok for most.
+# For debugging/profiling uncomment the following two lines:
+#CFLAGS=-O0 -g -pg
+#LDFLAGS=-pg
+SDL_CONFIG?=sdl-config
+CFLAGS?=-O3
+CFLAGS+=-Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 
-LINK=$(CC)
 LDFLAGS=
+LINK=$(CC)
 LIBS=`$(SDL_CONFIG) --libs` 
 
 # You won't need to alter anything below
-all: $(SOURCES) $(TARGET) zx81.rom
+.PHONY: all clean install
+
+all: $(SOURCES) $(TARGET) open80 open81
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
@@ -45,16 +51,21 @@ $(TARGET): $(OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-zx81.rom: open81.asm
-	pasmo open81.asm data/zx81.rom
-
-.PHONY: all clean install
+open%:
+	-@if [ -n "`which pasmo`" ]; then \
+		pasmo open8x/$@.asm open8x/$@.rom; \
+		if [ -f open8x/$@.rom -a ! -e data/zx$*.rom ]; then \
+			cp open8x/$@.rom data/zx$*.rom; \
+		fi \
+	else \
+		echo "The pasmo cross-assembler was not found: skipping $@"; \
+	fi
 
 clean:
 	rm -f *.o
 
 install:
-	@if [[ "$(PREFIX)" == .* ]] ; then \
+	@if [ "$(PREFIX)" = . ] ; then \
 		echo "Installing into the current folder is not allowed."; \
 		exit 2; \
 	fi
