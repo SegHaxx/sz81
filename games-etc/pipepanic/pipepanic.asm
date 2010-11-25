@@ -19,7 +19,7 @@
 ; 
 ; Tabs are set to 8.
 ; 
-; See pipepanic.txt for compilation instructions and information.
+; See pipepanic.txt for assembling instructions and information.
 ; =====================================================================
 
 ; Sinclair character codes.
@@ -3560,7 +3560,8 @@ ddil33:		inc	de
 ddil34:		ld	a,b
 		cp	64
 		jr	c,ddil30
-ddil35:		endc
+ddil35:
+		endc
 
 		cond	DEBUG_FILL
 		ld	a,(substate_current)
@@ -3592,7 +3593,8 @@ ddil40:		ld	a,(de)
 ddil41:		ld	a,b
 		cp	64
 		jr	c,ddil40
-ddil45:		endc
+ddil45:
+		endc
 
 		cond	DEBUG_DEMOREC
 		ld	a,WRITE_TO_SCRBUF	; Dump demo_actions
@@ -3676,7 +3678,7 @@ help_pg0_data:	defb	0xde,0x80,_HV,_EV,_LV,_PV,0xda,0x80,_1V,_SLSV
 		defb	_P,_I,_P,_E,_SPC,_I,_S,_SPC,_D,_E,_T,_E,_C,_T,_E
 		defb	_D,_FST,0xf2
 		defb	_S,_E,_L,_E,_C,_T,_SPC,_H,_I,_S,_C,_O,_R,_E,_SPC
-		defb	_SPC,_F,_R,_O,_M,_SPC,_T,_H,_E,_SPC,_I,_N,_MNS,
+		defb	_SPC,_F,_R,_O,_M,_SPC,_T,_H,_E,_SPC,_I,_N,_MNS
 		defb	_G,_A,_M,_E,0xf1
 		defb	_P,_A,_N,_E,_L,_SPC,_T,_O,_SPC,_R,_E,_F,_I,_L,_L
 		defb	_SPC,_T,_H,_E,_SPC,_W,_I,_N,_N,_I,_N,_G,_SPC,_P

@@ -19,7 +19,7 @@
 ; 
 ; Tabs are set to 8.
 ; 
-; See mctemplate.txt for compilation instructions and information.
+; See mctemplate.txt for assembling instructions and information.
 ; =====================================================================
 
 ; Sinclair character codes.

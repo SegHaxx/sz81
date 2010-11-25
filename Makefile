@@ -36,13 +36,11 @@ SDL_CONFIG?=sdl-config
 CFLAGS?=-O3
 CFLAGS+=-Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 
-LDFLAGS=
 LINK=$(CC)
+LDFLAGS=
 LIBS=`$(SDL_CONFIG) --libs` 
 
 # You won't need to alter anything below
-.PHONY: all clean install
-
 all: $(SOURCES) $(TARGET) open80 open81
 
 $(TARGET): $(OBJECTS)
@@ -51,14 +49,16 @@ $(TARGET): $(OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+.PHONY: all clean install
+
 open%:
-	-@if [ -n "`which pasmo`" ]; then \
-		pasmo open8x/$@.asm open8x/$@.rom; \
+	-@if [ -n "`which pasmo 2> /dev/null`" ]; then \
+		pasmo -v open8x/$@.asm open8x/$@.rom; \
 		if [ -f open8x/$@.rom -a ! -e data/zx$*.rom ]; then \
 			cp open8x/$@.rom data/zx$*.rom; \
 		fi \
 	else \
-		echo "The pasmo cross-assembler was not found: skipping $@"; \
+		echo "The Pasmo cross-assembler was not found: skipping $@"; \
 	fi
 
 clean:

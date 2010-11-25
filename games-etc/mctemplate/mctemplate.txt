@@ -15,10 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-Compiling
-=========
+Assembling
+==========
 
-For Linux (using z80-asm):
+The source code was written for the Z80-ASM cross-assembler, and the
+Makefile adds support for Pasmo; whichever is found first will be used.
+ * Z80-ASM: http://wwwhomes.uni-bielefeld.de/achim/z80-asm.html
+ * Pasmo: http://www.arrakis.es/~ninsesabe/pasmo/
+
+For Linux:
 
     make
 
