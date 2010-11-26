@@ -15,6 +15,7 @@
 ;along with this program; if not, write to the Free Software
 ;Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+
 ; z80dasm 1.1.2
 ; command line: z80dasm -g 0x0000 -l -b blockfile -o open80.asm zx80.rom
 ; If you'd like to repeat this disassembly then here's the blockfile data:
@@ -35,6 +36,8 @@
 ; l0d1f: start 0x0d1f end 0x0d39 type bytedata
 ; l0d43: start 0x0d43 end 0x0d44 type bytedata
 ; l0e00: start 0x0e00 end 0x1000 type bytedata
+; 
+; md5: e03bd725f98be45aac39c85f7fd41ce4  open80.rom
 
 	org	00000h
 
@@ -1298,7 +1301,11 @@ l0723h:
 	jr c,l073ah
 l0725h:
 	rst 8	
+
+; BLOCK 'l0726' (start 0x0726 end 0x0727)
+l0726_start:
 	defb 004h
+l0726_end:
 	call sub_06e0h
 	set 0,(iy+001h)
 l072eh:
@@ -1654,14 +1661,22 @@ l08eah:
 	jr l0934h
 l0921h:
 	rst 8	
+
+; BLOCK 'l0922' (start 0x0922 end 0x0923)
+l0922_start:
 	defb 000h
+l0922_end:
 	jr nz,l0929h
 	ld bc,(0401eh)
 l0929h:
 	ld (0401ch),bc
 	ret	
 	rst 8	
+
+; BLOCK 'l092f' (start 0x092f end 0x0930)
+l092f_start:
 	defb 008h
+l092f_end:
 	ld bc,(04017h)
 l0934h:
 	ld (04002h),bc
@@ -1691,7 +1706,11 @@ sub_0958h:
 	sbc hl,sp
 	ret c	
 	rst 8	
+
+; BLOCK 'l0964' (start 0x0964 end 0x0965)
+l0964_start:
 	defb 003h
+l0964_end:
 	pop hl	
 	pop bc	
 	push hl	
@@ -1702,7 +1721,11 @@ sub_0958h:
 	push bc	
 	push hl	
 	rst 8	
+
+; BLOCK 'l0971' (start 0x0971 end 0x0972)
+l0971_start:
 	defb 006h
+l0971_end:
 	ld a,(hl)	
 	cp 076h
 	jp z,l071bh
@@ -1757,7 +1780,11 @@ l09c2h:
 	jp l02f7h
 l09cfh:
 	rst 8	
+
+; BLOCK 'l09d0' (start 0x09d0 end 0x09d1)
+l09d0_start:
 	defb 007h
+l09d0_end:
 	push bc	
 	rst 28h	
 	pop de	
@@ -2091,7 +2118,11 @@ l0bbah:
 	ret	
 l0bbeh:
 	rst 8	
+
+; BLOCK 'l0bbf' (start 0x0bbf end 0x0bc0)
+l0bbf_start:
 	defb 002h
+l0bbf_end:
 
 ; BLOCK 'l0bc0' (start 0x0bc0 end 0x0bed)
 l0bc0_start:
@@ -2296,7 +2327,11 @@ sub_0cb9h:
 l0cd0h:
 	pop hl	
 	rst 8	
+
+; BLOCK 'l0cd2' (start 0x0cd2 end 0x0cd3)
+l0cd2_start:
 	defb 001h
+l0cd2_end:
 	and b	
 	jp nz,l0bbeh
 	push bc	
@@ -2390,7 +2425,11 @@ l0d41h:
 	ret po	
 l0d42h:
 	rst 8	
+
+; BLOCK 'l0d43' (start 0x0d43 end 0x0d44)
+l0d43_start:
 	defb 005h
+l0d43_end:
 	call sub_0dedh
 	push bc	
 	ex af,af'	
