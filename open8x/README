@@ -1,25 +1,16 @@
-Open81 - A free firmware for the Timex TS1000 / Sinclair ZX81
-Copyright (C) 1981 Nine Tiles Networks Ltd.
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+open80.asm
+==========
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+open80.asm is the Open80 ROM, a GNU GPL version of the ZX80 ROM.
+Since no original source code exists, this was recreated for the sz81
+project by disassembling the binary to satisfy the GNU GPL.
 
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+open81.asm
+==========
 
-Open81 was written by Steve Vickers and John Grant.
-
-
-open81.asm is the Open81 ROM, a GPL version of the "improved" ZX81 ROM.
-See https://sites.google.com/site/open81rom/
+open81.asm is the Open81 ROM, a GNU GPL version of the "improved" ZX81
+ROM. For more details visit https://sites.google.com/site/open81rom/
 
 
 Assembling
@@ -29,10 +20,19 @@ Firstly you'll need to install the Pasmo Z80 cross-assembler.
 
     http://www.arrakis.es/~ninsesabe/pasmo/
 
-Then execute "make" or "make open81" from the root of the source package
-to initiate the following:
+Then execute "make" from the root of the source package to initiate the
+following:
 
+ * open8x/open80.asm is assembled to open8x/open80.rom
+ * open8x/open80.rom is copied to data/zx80.rom IF data/zx80.rom is
+   not found to exist.
  * open8x/open81.asm is assembled to open8x/open81.rom
- * If data/zx81.rom is not found to exist then open8x/open81.rom is
-   copied to data/zx81.rom.
+ * open8x/open81.rom is copied to data/zx81.rom IF data/zx81.rom is
+   not found to exist.
+ 
+The ROMs need to be maintained in the data folder for the emulator to
+function, but they won't be overwritten if they're already there.
+
+It is also possible to type "make open80" or "make open81" if you want
+to build the ROMs independently.
 

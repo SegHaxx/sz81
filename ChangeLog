@@ -1,5 +1,6 @@
 2010-11-25
 * Added support for assembling pipepanic and mctemplate using Pasmo.
+* Added ZX80 ROM source code recreated from disassembling the binary.
 
 2010-11-24
 * Conventionalised and tweaked the build system a little more.
