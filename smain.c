@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 /*#include <vga.h>
-#include <vgakeyboard.h> */
+#include <vgakeyboard.h>	Thunor: redundant */
 #include <SDL/SDL_main.h>	/* Added by Thunor */
 #include "sdl.h"			/* Added by Thunor */
 #include "common.h"
@@ -198,43 +198,79 @@ for(y=0;y<8;y++)		/* 8 half-rows */
 }
 
 
+/* Originally z81 was set-up via the command-line interface (CLI) and
+ * sz81 managed what it could around z81, but now sz81 is going to
+ * manage everything and therefore needs to initialise first */
 
-#ifdef __cplusplus	/* Added by Thunor */
-extern "C"			/* Added by Thunor */
-#endif				/* Added by Thunor */
-int main(int argc,char *argv[])
-{
-#ifdef __amigaos4__
-amiga_open_libs();
+#ifdef __cplusplus
+	extern "C"
 #endif
+int main(int argc,char *argv[]) {
+	int retval = 0;
+	
+	#ifdef __amigaos4__
+		amiga_open_libs();
+	#endif
 
-/*vga_init();*/
-sdl_init();	/* Added by Thunor */
+	/* Initialise sz81 variables, SDL, WM icon, local data dir */
+	retval = sdl_init();
+	if (!retval) {
 
-parseoptions(argc,argv);
+		/* sz81 supports just the necessary options via the CLI, such
+		 * as an initial video resolution and window/fullscreen */
+		retval = sdl_com_line_process(argc, argv);
+		if (!retval) {
 
-sdl_com_line_process(argc, argv);	/* Added by Thunor */
+			/* I personally like to dump this about here so that if
+			 * something goes wrong then it's clear to the user where
+			 * everything is supposed to be */
+			fprintf(stdout, "PACKAGE_DATA_DIR is %s\n", PACKAGE_DATA_DIR);
 
-initmem();
-loadhelp();
-zxpopen();
+			/* Set the video mode, set-up component screen offsets,
+			 * initialise fonts, icons, vkeyb and control bar */ 
+			retval = sdl_video_setmode();
+			if (!retval) {
 
-/*vga_setmode(G320x200x256);*/
-sdl_video_setmode();	/* Added by Thunor */
-vptr=vga_getgraphmem();
-refresh_screen=1;
-keyboard_init();
-/*keyboard_translatekeys(DONT_CATCH_CTRLC);	Thunor: redundant */
-sdl_rcfile_read();	/* Added by Thunor */
-#ifdef OSS_SOUND_SUPPORT
-if(sound)
-  sound_init();
-#endif
-/*startsigsandtimer();	Thunor: redundant since I now use an SDL timer */
-sdl_timer_init();	/* Added by Thunor */
-mainloop();
+				/* This is a reminder that sz81 is still emulating
+				 * the SVGAlib API ;) */
+				vptr = vga_getgraphmem();
 
-/* not reached, but just in case */
-exit_program();
-return(0);	/* make -Wall happy */
+				/* Initialise the keyboard buffer, open a joystick,
+				 * set-up control remappings and initialise hotspots */
+				keyboard_init();
+
+				/* Read the project's rcfile if it exists and update
+				 * variables that are defined within it */
+				sdl_rcfile_read();
+
+				#ifdef OSS_SOUND_SUPPORT
+					if (sound) sound_init();
+				#endif
+
+				/* I copied this here from loadhelp() as it's needed to
+				 * properly display the load selector.
+				 * Once the load selector has been replaced this code
+				 * should be removed. I'll mark it temp temp */
+				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
+				fakedispy=ZX_VID_MARGIN;
+
+				/* Load and set-up the required ROM and then
+				 * initialise the RAM */
+				initmem();
+
+				/* Initialise and open the printer file */
+				sdl_zxprinter_init();
+				zxpopen();
+
+				/* Initialise the emulator timer */
+				sdl_timer_init();
+
+				/* And off we go...
+				 * Note that this function never returns */
+				mainloop();
+			}
+		}
+	}
+	return retval;
 }
+

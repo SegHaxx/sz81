@@ -29,10 +29,11 @@ void clean_up_before_exit(void);
 /***************************************************************************
  * SDL Initialise                                                          *
  ***************************************************************************/
-/* Since this is the first function the emulator calls prior to parseoptions
- * (which could exit) many things are done here. Firstly some variables are
- * initialised with defaults, SDL is initialised and then a window manager
- * icon is loaded and a title set if the platform requires it.
+/* Since this is the first function the emulator calls prior to
+ * sdl_com_line_process (which could exit) many things are done here.
+ * Firstly some variables are initialised with defaults, SDL is initialised
+ * and then a window manager icon is loaded and a title set if the platform
+ * requires it.
  * 
  * On exit: returns TRUE on error
  *          else FALSE */
@@ -98,11 +99,11 @@ int sdl_init(void) {
 	colours.hs_options_selected = 0x00ff00;
 	colours.hs_options_pressed = 0xffc000;
 	current_input_id = UNDEFINED;
-	sdl_com_line.show_input_id = FALSE;
 	sdl_com_line.fullscreen = UNDEFINED;
 	sdl_com_line.scale = UNDEFINED;
 	sdl_com_line.xres = UNDEFINED;
 	sdl_com_line.yres = UNDEFINED;
+	sdl_com_line.filename[0] = 0;
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_sound.state = FALSE;
@@ -115,6 +116,7 @@ int sdl_init(void) {
 	ctrl_remapper.state = FALSE;
 	joy_cfg.state = FALSE;
 	rcfile.rewrite = FALSE;
+	show_input_id = FALSE;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -124,8 +126,6 @@ int sdl_init(void) {
 	}
 
 	atexit(clean_up_before_exit);
-
-	fprintf(stdout, "PACKAGE_DATA_DIR is %s\n", PACKAGE_DATA_DIR);
 
 	/* Set WM icon and title if required for platform before
 	 * setting a video mode as per SDL docs instructions */
@@ -147,38 +147,62 @@ int sdl_init(void) {
 		SDL_WM_SetCaption("sz81", "sz81");
 	#endif
 
+	/* Record the current working directory.
+	 * Once the load selector has been replaced this code
+	 * should be reviewed. I'll mark it temp temp */
+	strcpy(workdir, "");
+	getcwd(workdir, 256);
+
+	/* Set-up the local data directory */
+	local_data_dir_init();
+				
 	return FALSE;
 }
 
 /***************************************************************************
  * Process the Command Line Options                                        *
  ***************************************************************************/
-/* Eventually I'd like to call this instead of z81's parseoptions and move
- * all the runtime modifiable options to runtime options since I want to
- * present what's left graphically at start-up. For the moment, this is good */
+/* On exit: returns TRUE on error
+ *          else FALSE */
 
-void sdl_com_line_process(int argc, char *argv[]) {
-	#ifdef SDL_DEBUG_COM_LINE
-		int count;
-	#endif
+int sdl_com_line_process(int argc, char *argv[]) {
+	int count;
 
-	/* Validate sz81's command line options */
-	if (sdl_com_line.xres != UNDEFINED && sdl_com_line.xres < 240) {
-		fprintf(stderr, "sz81: horizontal resolution must be >= 240.\n");
-		exit(1);
-	} else if (sdl_com_line.xres != UNDEFINED && sdl_com_line.yres == UNDEFINED) {
-		fprintf(stderr, "sz81: missing vertical resolution.\n");
-		exit(1);
-	} else if (sdl_com_line.yres != UNDEFINED && sdl_com_line.yres < 240) {
-		fprintf(stderr, "sz81: vertical resolution must be >= 240.\n");
-		exit(1);
-	} else if (sdl_com_line.yres != UNDEFINED && sdl_com_line.xres == UNDEFINED) {
-		fprintf(stderr, "sz81: missing horizontal resolution.\n");
-		exit(1);
+	if (argc > 1) {
+		for (count = 1; count < argc; count++) {
+			if (!strcmp (argv[count], "-f")) {
+				sdl_com_line.fullscreen = TRUE;
+			} else if (!strcmp (argv[count], "-w")) {
+				sdl_com_line.fullscreen = FALSE;
+			} else if (sscanf (argv[count], "-%ix%i", 
+				&sdl_com_line.xres, &sdl_com_line.yres) == 2) {
+				if (sdl_com_line.xres < 240 || sdl_com_line.yres < 240) {
+					fprintf (stdout, "Invalid resolution: a minimum of 240x240 is required.\n");
+					return TRUE;
+				}
+			} else if (strstr(argv[count], ".o") != NULL ||
+				strstr(argv[count], ".p") != NULL ||
+				strstr(argv[count], ".80") != NULL ||
+				strstr(argv[count], ".81") != NULL) {
+				strcpy(sdl_com_line.filename, argv[count]);
+			} else {
+				/*   1234567890123456789012345678901234567890 <- Formatting for small terminal. */
+				fprintf (stdout,
+					"z81 2.1 - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n"
+					"sz81 " VERSION " - copyright (C) 2007-2010 Thunor and Chris Young.\n\n"
+					"usage: sz81 [-fhw] [-XRESxYRES] [filename.p]\n\n"
+					"  -f  run the program fullscreen\n"
+					"  -h  this usage help\n"
+					"  -w  run the program in a window\n"
+					"  -XRESxYRES e.g. -800x480\n\n");
+				return TRUE;
+			}
+		}
 	}
 
 	/* Process sz81's command line options */
-	if (sdl_com_line.fullscreen != UNDEFINED) video.fullscreen = SDL_FULLSCREEN;
+	if (sdl_com_line.fullscreen != UNDEFINED && sdl_com_line.fullscreen)
+		video.fullscreen = SDL_FULLSCREEN;
 	if (sdl_com_line.xres != UNDEFINED) {
 		/* Calculate the scale for the requested resolution */
 		if (sdl_com_line.xres / 240 > sdl_com_line.yres / 240) {
@@ -193,15 +217,18 @@ void sdl_com_line_process(int argc, char *argv[]) {
 
 	#ifdef SDL_DEBUG_COM_LINE
 		printf("%s:\n", __func__);
+		printf("  argc=%i\n", argc);
 		for (count = 0; count < argc; count++) {
 			printf("  %i: %s\n", count, argv[count]);
 		}
-		printf("  sdl_com_line.show_input_id=%i\n", sdl_com_line.show_input_id);
 		printf("  sdl_com_line.fullscreen=%i\n", sdl_com_line.fullscreen);
 		printf("  sdl_com_line.scale=%i\n", sdl_com_line.scale);
 		printf("  sdl_com_line.xres=%i\n", sdl_com_line.xres);
 		printf("  sdl_com_line.yres=%i\n", sdl_com_line.yres);
+		printf("  sdl_com_line.filename=%s\n", sdl_com_line.filename);
 	#endif
+
+	return FALSE;
 }
 
 /***************************************************************************

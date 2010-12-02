@@ -148,11 +148,9 @@ void runopts_transit(int state);
  ***************************************************************************/
 /* This initialises the keyboard buffer, opens joystick 0 if available,
  * sets up the control remappings and initialises the hotspots.
- * It's only called once.
- * 
- * On exit: returns 0 on success or -1 on failure */
+ * It's only called once */
 
-int keyboard_init(void) {
+void keyboard_init(void) {
 	int count, index;
 	SDL_Event event;
 	
@@ -713,8 +711,6 @@ int keyboard_init(void) {
 
 	/* Initialise the control remapper */
 	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
-
-	return 0;
 }
 
 /***************************************************************************
@@ -953,9 +949,9 @@ int keyboard_update(void) {
 					break;
 			}
 
-			/* If the user has passed the -d option then record the
+			/* If the user wants to see the input ids then record the
 			 * currently pressed id for later displaying on-screen */
-			if (sdl_com_line.show_input_id && device != UNDEFINED) {
+			if (show_input_id && device != UNDEFINED) {
 				if (state == SDL_PRESSED) {
 					current_input_id = id;
 				} else {
@@ -1619,7 +1615,9 @@ void manage_all_input(void) {
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state &&
 					!runtime_options0.state && !runtime_options1.state) {
-					if (!ignore_esc) reset81();
+					if (!ignore_esc) {
+						reset81();
+					}
 				}
 			}
 		} else if (id == SDLK_ESCAPE) {

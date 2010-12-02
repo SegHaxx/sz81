@@ -17,19 +17,24 @@
 
 /* Includes */
 #include "sdl_engine.h"
-#ifdef __amigaos4__
-#include "amiga.h" /* Amiga-specifics */
-#endif
 
 /* Defines */
 #if defined(PLATFORM_GP2X)
+	#define LOCAL_DATA_DIR ""
 	#define RESOURCE_FILE "sz81rc"
+	#define ZXPRINTER_FILE "zxprinter.pbm"
 #elif defined(PLATFORM_ZAURUS)
+	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"
+	#define ZXPRINTER_FILE "zxprinter.pbm"
 #elif defined(__amigaos4__)
+	#define LOCAL_DATA_DIR /* ???amiga??? */
 	#define RESOURCE_FILE amiga_resource_file
+	#define ZXPRINTER_FILE /* ???amiga??? */
 #else
+	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"
+	#define ZXPRINTER_FILE "zxprinter.pbm"
 #endif
 
 /* Icon bitmap offsets that must be multiplied by video.scale */
@@ -57,16 +62,71 @@
 #define ICON_RUNOPTS_Y 0
 
 /* Variables */
+struct {
+	char filename[256];
+} zxprinter;
 
 /* Function prototypes */
 
+
+/***************************************************************************
+ * ZX Printer Initialise                                                   *
+ ***************************************************************************/
+
+void sdl_zxprinter_init(void) {
+
+	#if defined(PLATFORM_GP2X)
+		/* If used, the load selector can change the working directory
+		 * and this affects relatively referenced files.
+		 * Once the load selector has been replaced this code
+		 * should be reviewed. I'll mark it temp temp */
+		strcpy(zxprinter.filename, workdir);
+		strcat(zxprinter.filename, "/");
+	#elif defined(PLATFORM_ZAURUS)
+		strcpy(zxprinter.filename, getenv ("HOME"));
+		strcat(zxprinter.filename, "/" LOCAL_DATA_DIR "/");
+	#elif defined(__amigaos4__)
+		/* ???amiga??? */
+	#else
+		strcpy(zxprinter.filename, getenv ("HOME"));
+		strcat(zxprinter.filename, "/" LOCAL_DATA_DIR "/");
+	#endif
+	strcat(zxprinter.filename, ZXPRINTER_FILE);
+
+	/* Update z81's filename pointer */
+	zxpfilename = zxprinter.filename;
+}
+
+/***************************************************************************
+ * Local Data Dir Initialise                                               *
+ ***************************************************************************/
+/* This sets-up the local data directory which will
+ * accommodate the various sz81-created files */
+
+void local_data_dir_init(void) {
+	char foldername[256];
+
+	/* Create local data directory [structure] whilst ignoring errors */
+	#if defined(PLATFORM_GP2X)
+	#elif defined(PLATFORM_ZAURUS)
+		strcpy(foldername, getenv ("HOME"));
+		strcat(foldername, "/" LOCAL_DATA_DIR);
+		mkdir(foldername, 0755);
+	#elif defined(__amigaos4__)
+		/* ???amiga??? */
+	#else
+		strcpy(foldername, getenv ("HOME"));
+		strcat(foldername, "/" LOCAL_DATA_DIR);
+		mkdir(foldername, 0755);
+	#endif
+}
 
 /***************************************************************************
  * Read Resource File                                                      *
  ***************************************************************************/
 
 void sdl_rcfile_read(void) {
-	char filename[256], line[256], key[64], value[192];
+	char line[256], key[64], value[192];
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
@@ -79,27 +139,25 @@ void sdl_rcfile_read(void) {
 	
 	#if defined(PLATFORM_GP2X)
 		/* If used, the load selector can change the working directory
-		 * and this affects the relatively referenced GP2X rcfile. In
-		 * fact any platform that uses the built-in load selector and
-		 * references the rcfile relatively should be aware of this issue */
-		strcpy(rcfile.workdir, "");
-		getcwd(rcfile.workdir, 256);
-		strcpy(filename, rcfile.workdir);
-		strcat(filename, "/");
+		 * and this affects relatively referenced files.
+		 * Once the load selector has been replaced this code
+		 * should be reviewed. I'll mark it temp temp */
+		strcpy(rcfile.filename, workdir);
+		strcat(rcfile.filename, "/");
 	#elif defined(PLATFORM_ZAURUS)
-		strcpy(filename, getenv ("HOME"));
-		strcat(filename, "/");
+		strcpy(rcfile.filename, getenv ("HOME"));
+		strcat(rcfile.filename, "/");
 	#elif defined(__amigaos4__)
-		filename[0] = '\0';
+		rcfile.filename[0] = '\0';
 	#else
-		strcpy(filename, getenv ("HOME"));
-		strcat(filename, "/");
+		strcpy(rcfile.filename, getenv ("HOME"));
+		strcat(rcfile.filename, "/");
 	#endif
-	strcat(filename, RESOURCE_FILE);
+	strcat(rcfile.filename, RESOURCE_FILE);
 
-	fprintf(stdout, "Reading from %s\n", filename);
-	if ((fp = fopen(filename, "r")) == NULL) {
-		fprintf(stderr, "Cannot read from %s\n", filename);
+	fprintf(stdout, "Reading from %s\n", rcfile.filename);
+	if ((fp = fopen(rcfile.filename, "r")) == NULL) {
+		fprintf(stderr, "Cannot read from %s\n", rcfile.filename);
 		/* Schedule a new rcfile */
 		rcfile.rewrite = TRUE;
 		return;
@@ -465,31 +523,13 @@ void sdl_rcfile_read(void) {
  ***************************************************************************/
 
 void rcfile_write(void) {
-	char filename[256], key[64], value[192];
+	char key[64], value[192];
 	int count, found;
 	FILE *fp;
 
-	#if defined(PLATFORM_GP2X)
-		/* If used, the load selector can change the working directory
-		 * and this affects the relatively referenced GP2X rcfile. In
-		 * fact any platform that uses the built-in load selector and
-		 * references the rcfile relatively should be aware of this issue */
-		strcpy(filename, rcfile.workdir);
-		strcat(filename, "/");
-	#elif defined(PLATFORM_ZAURUS)
-		strcpy(filename, getenv ("HOME"));
-		strcat(filename, "/");
-	#elif defined(__amigaos4__)
-		filename[0] = '\0';
-	#else
-		strcpy(filename, getenv ("HOME"));
-		strcat(filename, "/");
-	#endif
-	strcat(filename, RESOURCE_FILE);
-
-	fprintf(stdout, "Writing to %s\n", filename);
-	if ((fp = fopen(filename, "w")) == NULL) {
-		fprintf(stderr, "Cannot write to %s\n", filename);
+	fprintf(stdout, "Writing to %s\n", rcfile.filename);
+	if ((fp = fopen(rcfile.filename, "w")) == NULL) {
+		fprintf(stderr, "Cannot write to %s\n", rcfile.filename);
 		return;
 	}
 

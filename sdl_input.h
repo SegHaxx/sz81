@@ -40,6 +40,7 @@
 char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
 int joystick_dead_zone;
+int show_input_id;	/* temp temp This should be in runtime options somewhere */
 int current_input_id;
 
 struct ctrlremap {

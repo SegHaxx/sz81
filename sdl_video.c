@@ -468,9 +468,9 @@ void sdl_video_update(void) {
 	/* Render any existing message box */
 	message_box_manager(MSG_BOX_SHOW, NULL);
 
-	/* If the user has passed the -d option then show
+	/* If the user wants to see the input ids then show
 	 * the currently pressed control id on-screen */
-	if (sdl_com_line.show_input_id && current_input_id != UNDEFINED) {
+	if (show_input_id && current_input_id != UNDEFINED) {
 		if (invert_screen) {
 			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 		} else {

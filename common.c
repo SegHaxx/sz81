@@ -80,6 +80,7 @@ static unsigned char zxpline[256];
 
 #ifdef SZ81	/* Added by Thunor */
 int load_selector_state = 0;
+int memory_size = 16;	/* z81 defaults to 16K */
 #endif
 
 int refresh_screen=1;
@@ -287,6 +288,9 @@ for(f=0;f<16;f++)
 ramsize=16;
 if(unexpanded)
   ramsize=1;
+#ifdef SZ81	/* Added by Thunor */
+ramsize=memory_size;
+#endif
 count=0;
 for(f=16;f<32;f++)
   {
@@ -305,16 +309,14 @@ else
 
 void loadhelp(void)
 {
-#ifndef SZ81	/* Added by Thunor */
 FILE *in;
 char buf[128];
-#endif
 
 /* but first, set up location of help/selector */
 fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 fakedispy=ZX_VID_MARGIN;
 
-#ifndef SZ81	/* Added by Thunor. Note that helpscrn below is never freed */
+/* Thunor: Note that helpscrn below is never freed */
 if((in=fopen(libdir(zx80?"zx80kybd.pbm":"zx81kybd.pbm"),"rb"))!=NULL)
   {
   /* ditch header lines */
@@ -333,7 +335,6 @@ else
   fprintf(stderr,"z81: couldn't load help screen.\n");
   exit(1);
   }
-#endif
 }
 
 
@@ -911,21 +912,11 @@ if(sound_ay)
 
 void usage_help(char *cmd)
 {
-#ifdef SZ81	/* Added by Thunor */
-printf("z81 " Z81_VER
-	" - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n");
-printf("sz81 " VERSION
-	" - copyright (C) 2007-2010 Thunor and Chris Young.\n\n");
-printf("usage: %s [-hilLosSTuVdf] [-a sound_addon_type] [-p printout.pbm]\n"
-       "\t\t[-r refresh_rate] [-x horiz_res] [-y vert_res] [filename.p]\n",
-       cmd);
-#else
 printf("z81 " Z81_VER
 	" - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n\n");
 printf("usage: %s [-hilLosSTuV] [-a sound_addon_type] [-p printout.pbm]\n"
        "\t\t[-r refresh_rate] [filename.p]\n",
        cmd);
-#endif
 puts("\n"
 "	-a	emulate AY-chip-based sound addon chip, with\n"
 "		`sound_addon_type' specifying the addon from the types\n"
@@ -955,12 +946,6 @@ puts("\n"
 "		get when typing in a program line. (This tends to be a bit\n"
 "		annoying when typing in a program with the default frame-skip,\n"
 "		so it's disabled by default.)\n"
-#ifdef SZ81	/* Added by Thunor */
-"	-d	show input device control IDs on-screen (for configuring).\n"
-"	-f	run the program fullscreen instead of in a window.\n"
-"	-x	set the screen's horizontal resolution.\n"
-"	-y	set the screen's vertical resolution.\n"
-#endif
 "\n"
 "	filename.p\n"
 "		load the specified program instantly on startup;\n"
@@ -972,7 +957,7 @@ void parseoptions(int argc,char *argv[])
 {
 int done=0;
 
-#ifdef __amigaos4__
+#ifdef __amigaos4__	/* ???amiga??? */
 if(argc == 0)
 {
   amiga_read_tooltypes((struct WBStartup *)argv);
@@ -983,11 +968,7 @@ if(argc == 0)
 opterr=0;
 
 do
-#ifdef SZ81	/* Added by Thunor */
-  switch(getopt(argc,argv,"a:hilLop:r:sSTuVdfx:y:"))
-#else
   switch(getopt(argc,argv,"a:hilLop:r:sSTuV"))
-#endif
     {
     #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
     case 'a':
@@ -1050,20 +1031,6 @@ do
     case 'V':	/* emulate VSYNC visuals */
       vsync_visuals=1;
       break;
-#ifdef SZ81	/* Added by Thunor */
-    case 'd':	/* Show input device control IDs on-screen */
-      sdl_com_line.show_input_id=1;
-      break;
-    case 'f':	/* Set video fullscreen */
-      sdl_com_line.fullscreen=1;
-      break;
-    case 'x':	/* Set video xres */
-      sscanf(optarg, "%i", &sdl_com_line.xres);
-      break;
-    case 'y':	/* Set video yres */
-      sscanf(optarg, "%i", &sdl_com_line.yres);
-      break;
-#endif
     case '?':
       switch(optopt)
         {
@@ -1080,18 +1047,6 @@ do
           fprintf(stderr,"z81: "
                   "the -r option needs a refresh rate as argument.\n");
           break;
-#ifdef SZ81	/* Added by Thunor */
-        /* I'll add this here but it doesn't really work: passing -x -y will
-         * not catch the errors, but my own sdl_com_line_process does later */
-        case 'x':
-          fprintf(stderr,"sz81: "
-                  "the -x option needs a horizontal resolution as argument.\n");
-          break;
-        case 'y':
-          fprintf(stderr,"sz81: "
-                  "the -y option needs a vertical resolution as argument.\n");
-          break;
-#endif
         default:
           fprintf(stderr,"z81: option `%c' not recognised.\n",optopt);
         }
@@ -1402,6 +1357,7 @@ do
   quit=got_one=0;
   /* vvvvvvvvvvvv Added by Thunor */
   parent_found=0;
+  strcpy(workdir, "");
   getcwd(workdir, 256);
   /* ^^^^^^^^^^^^ Added by Thunor */
 

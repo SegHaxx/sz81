@@ -16,6 +16,7 @@
  */
 
 /* Includes */
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +26,9 @@
 #include "sdl_resources.h"
 #include "sdl_sound.h"
 #include "sdl_video.h"
+#ifdef __amigaos4__
+	#include "amiga.h" /* Amiga-specifics */
+#endif
 
 /* Defines */
 /* Uncomment all of these to view the inner workings. Then monitor
@@ -54,12 +58,15 @@
 #define COMP_ALL ((COMP_RUNOPTS1 - 1) | COMP_RUNOPTS1)
 
 /* Emulator variables I require access to */
-extern int scrn_freq, invert_screen, zx80;
+extern int scrn_freq, invert_screen, zx80, memory_size;
 extern int load_selector_state, refresh_screen, ignore_esc;
 extern int sound, sixteenbit;
 extern volatile int signal_int_flag;
+extern char *zxpfilename;
 
 /* Variables */
+char workdir[256];
+
 struct {
 	int state;
 	int xoffset;
@@ -75,8 +82,9 @@ struct {
 /* Emulator functions I require access to */
 extern void exit_program(void);
 extern void reset81(void);
+extern void initmem(void);
 #ifdef OSS_SOUND_SUPPORT
-extern void sound_ay_setvol(void);
+	extern void sound_ay_setvol(void);
 #endif
 
 /* Function prototypes */

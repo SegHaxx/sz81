@@ -35,9 +35,7 @@
 SDL_Surface *wm_icon;
 
 struct {
-	#ifdef PLATFORM_GP2X
-		char workdir[256];
-	#endif
+	char filename[256];
 	int rewrite;
 } rcfile;
 
@@ -92,6 +90,7 @@ struct {
 } control_bar;
 
 /* Function prototypes */
+void local_data_dir_init(void);
 void rcfile_write(void);
 int fonts_init(void);
 int vkeyb_init(void);

@@ -41,7 +41,7 @@ LDFLAGS=
 LIBS=`$(SDL_CONFIG) --libs` 
 
 # You won't need to alter anything below
-all: $(SOURCES) $(TARGET) open80 open81
+all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@

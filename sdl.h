@@ -105,11 +105,11 @@
 
 /* Variables */
 struct {
-	int show_input_id;
 	int fullscreen;
 	int scale;
 	int xres;
 	int yres;
+	char filename[256];
 } sdl_com_line;
 
 struct {
@@ -136,11 +136,12 @@ struct keyrepeat sdl_key_repeat;
 
 /* Function prototypes */
 int sdl_init(void);
-void sdl_com_line_process(int argc, char *argv[]);
+int sdl_com_line_process(int argc, char *argv[]);
 int sdl_video_setmode(void);
 unsigned char *vga_getgraphmem(void);
-int keyboard_init(void);
+void keyboard_init(void);
 void sdl_rcfile_read(void);
+void sdl_zxprinter_init(void);
 void sdl_timer_init(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);

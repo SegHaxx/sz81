@@ -1,3 +1,12 @@
+2010-12-02
+* Removed most of the command-line interface leaving only the video
+  options. sz81 now manages the CLI which makes parseoptions redundant.
+* Added support for a platform dependent local data directory which is
+  currently used to locate the permanently operational ZX printer file.
+* Completely reorganised main in smain.c. Since configuring sz81 via
+  the CLI is now redundant, sz81 is initialised before the emulator so
+  that the emulator will now initialise using rcfile data.
+
 2010-11-25
 * Added support for assembling pipepanic and mctemplate using Pasmo.
 * Added ZX80 ROM source code recreated from disassembling the binary.
