@@ -957,14 +957,6 @@ void parseoptions(int argc,char *argv[])
 {
 int done=0;
 
-#ifdef __amigaos4__	/* ???amiga??? */
-if(argc == 0)
-{
-  amiga_read_tooltypes((struct WBStartup *)argv);
-  return;
-}
-#endif
-
 opterr=0;
 
 do

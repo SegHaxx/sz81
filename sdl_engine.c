@@ -168,6 +168,10 @@ int sdl_init(void) {
 int sdl_com_line_process(int argc, char *argv[]) {
 	int count;
 
+#ifdef __amigaos4__
+	if(argc == 0) amiga_read_tooltypes((struct WBStartup *)argv);
+#endif
+
 	if (argc > 1) {
 		for (count = 1; count < argc; count++) {
 			if (!strcmp (argv[count], "-f")) {

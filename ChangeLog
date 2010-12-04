@@ -1,3 +1,6 @@
+2010-12-04
+* Updated Amiga sections to reflect recent changes.
+
 2010-12-02
 * Removed most of the command-line interface leaving only the video
   options. sz81 now manages the CLI which makes parseoptions redundant.

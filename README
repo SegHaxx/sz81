@@ -106,29 +106,17 @@ For the Amiga:
     Tooltypes
     ---------
 
-    sz81 can be configured using tooltypes, which correspond directly
-    to command-line options.  Full details of options can be obtained
-    with "sz81 -h".  A list of tooltype equivalents follows:
+    sz81 can be configured using tooltypes:
 
-    -a AYSOUND=QUICKSILVA|ZONX|STEREO
-    -d SHOWDEVIDS
-    -f FULLSCREEN
-    -i INVERT
-    -l AUTOLIST
-    -L NOLOADHOOK
-    -o ZX80
-    -p ZXPRINTER=<pbm ouput file>
-    -r REFRESH=<1-50>
-    -s SOUND
-    -S NOSAVEHOOK
-    -T TAGULA
-    -u UNEXPANDED
-    -V VSYNC
-    -x XRES=<240+>
-    -y YRES=<240+>
+    FULLSCREEN
+    XRES=<240+>
+    YRES=<240+>
 
-    Additional tooltypes:
-       RESOURCEFILE=<sz81rc file>
+    RESOURCEFILE=<sz81rc file> (default: ENVARC:sz81.config)
+    USERDATA=<dir to save user data> (default: PROGDIR:save)
+
+    The below must be filename only and will be saved in the USERDATA dir:
+    ZXPRINTER=<pbm ouput file> (default: zxprinter.pbm)
 
     File Selector
     -------------
@@ -227,6 +215,6 @@ Contacting Us
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2010-11-24
+2010-12-04
 
 

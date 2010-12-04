@@ -28,9 +28,9 @@
 	#define RESOURCE_FILE ".sz81rc"
 	#define ZXPRINTER_FILE "zxprinter.pbm"
 #elif defined(__amigaos4__)
-	#define LOCAL_DATA_DIR /* ???amiga??? */
+	#define LOCAL_DATA_DIR amiga_data_dir
 	#define RESOURCE_FILE amiga_resource_file
-	#define ZXPRINTER_FILE /* ???amiga??? */
+	#define ZXPRINTER_FILE amiga_printer_file
 #else
 	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"
@@ -86,7 +86,10 @@ void sdl_zxprinter_init(void) {
 		strcpy(zxprinter.filename, getenv ("HOME"));
 		strcat(zxprinter.filename, "/" LOCAL_DATA_DIR "/");
 	#elif defined(__amigaos4__)
-		/* ???amiga??? */
+		strcpy(zxprinter.filename, LOCAL_DATA_DIR);
+		if((zxprinter.filename[strlen(zxprinter.filename)-1] != '/') &&
+			(zxprinter.filename[strlen(zxprinter.filename)-1] != ':'))
+			strcat(zxprinter.filename, "/");
 	#else
 		strcpy(zxprinter.filename, getenv ("HOME"));
 		strcat(zxprinter.filename, "/" LOCAL_DATA_DIR "/");
@@ -113,7 +116,8 @@ void local_data_dir_init(void) {
 		strcat(foldername, "/" LOCAL_DATA_DIR);
 		mkdir(foldername, 0755);
 	#elif defined(__amigaos4__)
-		/* ???amiga??? */
+		strcpy(foldername, LOCAL_DATA_DIR);
+		mkdir(foldername, 0755);
 	#else
 		strcpy(foldername, getenv ("HOME"));
 		strcat(foldername, "/" LOCAL_DATA_DIR);

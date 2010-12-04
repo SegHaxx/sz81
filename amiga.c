@@ -26,8 +26,6 @@ extern int unexpanded, autolist, load_hook, save_hook, sound_stereo, sound_stere
 extern char *zxpfilename;
 static char USED ver[] = "\0$VER:sz81 " VERSION " (" DATE ")\0";
 
-extern void autoload_setup(char *filename);
-
 int amiga_open_libs(void)
 {
 	int ret=1;
@@ -50,7 +48,9 @@ int amiga_open_libs(void)
 		ret=0;
 	}
 
-	strcpy(amiga_resource_file, "PROGDIR:.sz81rc");
+	strcpy(amiga_resource_file, "ENVARC:sz81.config");
+	strcpy(amiga_printer_file, "zxprinter.pbm");
+	strcpy(amiga_data_dir, "PROGDIR:save");
 
 	return(ret);
 }
@@ -89,63 +89,6 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 		{
 			toolarray = dobj->do_ToolTypes;
 
-			if((s = IIcon->FindToolType(toolarray,"ZX80")))
-			{
-			 	zx80=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"ZXPRINTER")))
-			{
-			 	zxpfilename = strdup(s);
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"INVERT")))
-			{
-				invert_screen=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"AUTOLIST")))
-			{
-			 	autolist=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"NOLOADHOOK")))
-			{
-			 	load_hook=0;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"NOSAVEHOOK")))
-			{
-			 	save_hook=0;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"REFRESH")))
-			{
-			 	scrn_freq = atoi(s);
-				if(scrn_freq<1) scrn_freq=1;
-				if(scrn_freq>50) scrn_freq=50;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"TAGULA")))
-			{
-			 	taguladisp=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"UNEXPANDED")))
-			{
-			 	unexpanded=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"VSYNC")))
-			{
-			 	vsync_visuals=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"SHOWDEVIDS")))
-			{
-				sdl_com_line.show_input_id=1;
-			}
-
 			if((s = IIcon->FindToolType(toolarray,"FULLSCREEN")))
 			{
 				sdl_com_line.fullscreen=1;
@@ -161,39 +104,19 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 				sdl_com_line.yres=atoi(s);
 			}
 
-			if((s = IIcon->FindToolType(toolarray,"SOUND")))
-			{
-				sound=1;
-				sound_vsync=1;
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"AYSOUND")))
-			{
-				sound=1;
-				sound_ay=1;
-
-				/* If the value is unknown, choose Quicksilva,
- 				 * if somebody has specified QUCKSILVA|ZONX
- 				 * then Zonx takes precendence. */
-
-				sound_ay_type=AY_TYPE_QUICKSILVA;
-
-				if(IIcon->MatchToolValue(s, "QUICKSILVA"))
-					sound_ay_type=AY_TYPE_QUICKSILVA;
-
-				if(IIcon->MatchToolValue(s, "ZONX"))
-					sound_ay_type=AY_TYPE_ZONX;
-
-				if(IIcon->MatchToolValue(s, "STEREO"))
-				{
-					sound_stereo=1;
-					sound_stereo_acb=1;
-				}
-			}
-
 			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
 			{
 			 	strcpy(amiga_resource_file, s);
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"USERDATA")))
+			{
+			 	strcpy(amiga_data_dir, s);
+			}
+
+			if((s = IIcon->FindToolType(toolarray,"ZXPRINTER")))
+			{
+			 	strcpy(amiga_printer_file, s);
 			}
 
 			IIcon->FreeDiskObject(dobj);
@@ -205,11 +128,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 	if(WBenchMsg->sm_NumArgs > 1)
 	{
 		wbarg--;
-		autoload_setup(wbarg->wa_Name);
-	}
-	else
-	{
-		if(autolist) autoload_setup(NULL);
+		strcpy(sdl_com_line.filename, wbarg->wa_Name);
 	}
 }
 

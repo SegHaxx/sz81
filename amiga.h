@@ -8,6 +8,8 @@
 #include <workbench/startup.h>
 
 char amiga_resource_file[256];
+char amiga_printer_file[256];
+char amiga_data_dir[256];
 
 int amiga_open_libs(void);
 void amiga_close_libs(void);
