@@ -260,7 +260,6 @@ int main(int argc,char *argv[]) {
 
 				/* Initialise and open the printer file */
 				sdl_zxprinter_init();
-				zxpopen();
 
 				/* Initialise the emulator timer */
 				sdl_timer_init();

@@ -421,7 +421,12 @@ void zxpout(void)
 {
 int i,j,d;
 
-if(!zxpfile) return;
+if(!zxpfile) 
+#ifdef SZ81	/* Added by Chris */
+	zxpopen();
+#else
+	return;
+#endif
 
 zxpheight++;
 for(i=0;i<32;i++)

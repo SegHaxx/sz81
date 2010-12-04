@@ -1,5 +1,7 @@
 2010-12-04
 * Updated Amiga sections to reflect recent changes.
+* Modified ZX printer so the output file is not opened until something
+  is printed.
 
 2010-12-02
 * Removed most of the command-line interface leaving only the video
