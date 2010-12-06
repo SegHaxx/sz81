@@ -1,9 +1,13 @@
-2010-12-04
+2010-12-05 Thunor <thunorsif_at_hotmail.com>
+* Added two runtime options pages and moved the original two.
+* Modified the ZX printer filename to include the date and time.
+
+2010-12-04 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
 * Updated Amiga sections to reflect recent changes.
 * Modified ZX printer so the output file is not opened until something
   is printed.
 
-2010-12-02
+2010-12-02 Thunor <thunorsif_at_hotmail.com>
 * Removed most of the command-line interface leaving only the video
   options. sz81 now manages the CLI which makes parseoptions redundant.
 * Added support for a platform dependent local data directory which is
@@ -12,11 +16,11 @@
   the CLI is now redundant, sz81 is initialised before the emulator so
   that the emulator will now initialise using rcfile data.
 
-2010-11-25
+2010-11-25 Thunor <thunorsif_at_hotmail.com>
 * Added support for assembling pipepanic and mctemplate using Pasmo.
 * Added ZX80 ROM source code recreated from disassembling the binary.
 
-2010-11-24
+2010-11-24 Thunor <thunorsif_at_hotmail.com>
 * Conventionalised and tweaked the build system a little more.
 * Reorganised the newly added Open81 content in preparation for the
   soon to be included Open80 content.

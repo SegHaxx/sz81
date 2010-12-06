@@ -26,8 +26,62 @@ unsigned char vga_graphmemory[64 * 1024];
 /* \x1 means that a value needs to be placed here.
  * \x2 means to invert the colours.
  * \x80 to \x95 are Sinclair graphics characters */
-char *runtime_options0_text[24] = {
-	"\x2 Runtime Options                \x2",
+char *runtime_options_text0[24] = {
+	"\x2 Runtime Options            1/4 \x2",
+	"",
+	"Machine Type:",
+	"",
+	"  (O) ZX80  (\x2O\x2) ZX81",
+	"",
+	"Memory\x90\x2<\x2\x85\x1  K\x90\x2>\x2\x85",
+	"",
+	"Emulation Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
+	"",
+	"Frameskip\x90\x2<\x2\x85\x1 \x90\x2>\x2\x85",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"          Save    Exit   Next\x90\x2>\x2\x85"
+};
+
+char *runtime_options_text1[24] = {
+	"\x2 Runtime Options            2/4 \x2",
+	"",
+	"Volume\x90\x2<\x2\x85\x1   \x90\x2>\x2\x85",
+	"",
+	"Sound Type:",
+	"",
+	"  (\x2O\x2) None",
+	"",
+	"  (O) Quicksilva Sound Board",
+	"",
+	"      (\x2X\x2) ACB Stereo",
+	"",
+	"  (O) BI-PAK ZON X-81",
+	"",
+	"      (X) ACB Stereo",
+	"",
+	"  (O) VSYNC",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
+};
+
+char *runtime_options_text2[24] = {
+	"\x2 Runtime Options            3/4 \x2",
 	"",
 	"Volume\x90\x2<\x2\x85\x1   \x90\x2>\x2\x85",
 	"",
@@ -50,11 +104,11 @@ char *runtime_options0_text[24] = {
 	"",
 	"",
 	"",
-	"          Save    Exit   Next\x90\x2>\x2\x85"
+	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
 };
 
-char *runtime_options1_text[24] = {
-	"\x2 Runtime Options                \x2",
+char *runtime_options_text3[24] = {
+	"\x2 Runtime Options            4/4 \x2",
 	"",
 	"Joy Axis Dead Zone\x90\x2<\x2\x85\x1  \%\x90\x2>\x2\x85",
 	"",
@@ -96,6 +150,7 @@ void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 
 int sdl_video_setmode(void) {
 	int original_xres = video.xres;
+	int count;
 	
 	/* Try the requested video resolution and if it's unavailable
 	 * try the next one down and continue until one is accepted.
@@ -138,17 +193,13 @@ int sdl_video_setmode(void) {
 	#endif
 
 	/* Set-up runtime options' screen offset */
-	runtime_options0.xoffset = (video.xres - 256 * video.scale) / 2;
-	if (runtime_options0.xoffset < 0) runtime_options0.xoffset = 0;
-	runtime_options0.yoffset = (video.yres - 192 * video.scale) / 2;
-	if (runtime_options0.yoffset < 0) runtime_options0.yoffset = 0;
+	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
+		runtime_options[count].xoffset = (video.xres - 256 * video.scale) / 2;
+		if (runtime_options[count].xoffset < 0) runtime_options[count].xoffset = 0;
+		runtime_options[count].yoffset = (video.yres - 192 * video.scale) / 2;
+		if (runtime_options[count].yoffset < 0) runtime_options[count].yoffset = 0;
+	}
 
-	/* Set-up runtime options' screen offset */
-	runtime_options1.xoffset = (video.xres - 256 * video.scale) / 2;
-	if (runtime_options1.xoffset < 0) runtime_options1.xoffset = 0;
-	runtime_options1.yoffset = (video.yres - 192 * video.scale) / 2;
-	if (runtime_options1.yoffset < 0) runtime_options1.yoffset = 0;
-	
 	/* Set-up the fonts */
 	if (fonts_init()) exit(1);
 
@@ -340,12 +391,9 @@ void sdl_video_update(void) {
 	}
 
 	/* Are the runtime options being rendered? */
-	if (runtime_options0.state || runtime_options1.state) {
-		if (runtime_options0.state) {
-			srcx = runtime_options0.xoffset; srcy = runtime_options0.yoffset;
-		} else {
-			srcx = runtime_options1.xoffset; srcy = runtime_options1.yoffset;
-		}
+	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
+		srcx = runtime_options[runtime_options_which()].xoffset;
+		srcy = runtime_options[runtime_options_which()].yoffset;
 		if (!invert_screen) {
 			colour = bg_colour;
 		} else {
@@ -369,11 +417,7 @@ void sdl_video_update(void) {
 			dstrect.x = srcx; desx = 0;
 			for (;;) {
 				do {
-					if (runtime_options0.state) {
-						text[0] = runtime_options0_text[desy][desx++];
-					} else if (runtime_options1.state) {
-						text[0] = runtime_options1_text[desy][desx++];
-					}
+					text[0] = runtime_options[runtime_options_which()].text[desy][desx++];
 					/* Invert the colours */
 					if (text[0] == 2) {
 						colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
@@ -401,18 +445,16 @@ void sdl_video_update(void) {
 			dstrect.x = srcx; desx = 0;
 			for (;;) {
 				do {
-					if (runtime_options0.state) {
-						text[0] = runtime_options0_text[desy][desx++];
-					} else if (runtime_options1.state) {
-						text[0] = runtime_options1_text[desy][desx++];
-					}
+					text[0] = runtime_options[runtime_options_which()].text[desy][desx++];
 					/* Invert the colours */
 					if (text[0] == 2) {
 						colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
 					}
 				} while (text[0] == 2);
 				if (text[0] == 1) {
-					if (runtime_options0.state) {
+					if (runtime_options[0].state) {
+					} else if (runtime_options[1].state) {
+					} else if (runtime_options[2].state) {
 						if (count == 0) {
 							sprintf(text, "%3i", sdl_sound.volume);
 						} else if (count == 1) {		
@@ -434,7 +476,7 @@ void sdl_video_update(void) {
 						} else {		
 							sprintf(text, "%s", "???");
 						}
-					} else if (runtime_options1.state) {
+					} else if (runtime_options[3].state) {
 						if (count == 0) {
 							sprintf(text, "%2i", joystick_dead_zone);
 						} else if (count >= 1 && count <= 3) {		
@@ -1035,8 +1077,8 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 /***************************************************************************
  * Set Joystick Configurator Text                                          *
  ***************************************************************************/
-/* This sets the text shown underneath the joypad in runopts1. It does all
- * the checking for joystick present, runopts1 visible etc. so just call it.
+/* This sets the text shown underneath the joypad in runopts3. It does all
+ * the checking for joystick present, runopts3 visible etc. so just call it.
  * 
  * On entry: textid = JOY_CFG_TEXT_DEFAULT_SETTINGS
  *           textid = JOY_CFG_TEXT_PRESS_SOMETHING
@@ -1045,41 +1087,41 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
  */
 
 void set_joy_cfg_text(int textid) {
-	int hs_runopts1_selected;
+	int hs_selected;
 	
-	if (runtime_options1.state) {	/* No point if you can't see it */
+	if (runtime_options[3].state) {	/* No point if you can't see it */
 		if (joystick) {
-			/* Locate currently selected hotspot for group RUNOPTS1 */
-			hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+			/* Locate currently selected hotspot for group RUNOPTS3 */
+			hs_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
 			/* Is one of the joycfg hotspots selected? */
-			if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
-				hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+			if (hs_selected >= HS_RUNOPTS3_JOY_CFG_LTRIG &&
+				hs_selected <= HS_RUNOPTS3_JOY_CFG_X) {
 				if (textid == JOY_CFG_TEXT_DEFAULT_SETTINGS) {
 					strcpy(joy_cfg.text[0], "This control defaults to");
 					strcpy(joy_cfg.text[2], "");
-					if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
+					if (hs_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
 						strcpy(joy_cfg.text[1], "Shift/Page Up");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
 						strcpy(joy_cfg.text[1], "Page Down");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
 						strcpy(joy_cfg.text[1], "O/Selector Left");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
 						strcpy(joy_cfg.text[1], "P/Selector Right");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_UP) {
 						strcpy(joy_cfg.text[1], "Q/Selector Up");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
 						strcpy(joy_cfg.text[1], "A/Selector Down");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
 						strcpy(joy_cfg.text[1], "Options/Control Remapper");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_START) {
 						strcpy(joy_cfg.text[1], "Toggle Virtual Keyboard");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_A) {
 						strcpy(joy_cfg.text[1], "Newline/Selector Hit");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						strcpy(joy_cfg.text[1], "Newline");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_Y) {
 						strcpy(joy_cfg.text[1], "Rubout");
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
+					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						strcpy(joy_cfg.text[1], "Space");
 					}
 				} else if (textid == JOY_CFG_TEXT_PRESS_SOMETHING) {

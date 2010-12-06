@@ -111,8 +111,14 @@ int sdl_init(void) {
 	emulator.speed = 50;	/* 50Hz is the default */
 	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
-	runtime_options0.state = FALSE;
-	runtime_options1.state = FALSE;
+	runtime_options[0].state = FALSE;
+	runtime_options[0].text = runtime_options_text0;
+	runtime_options[1].state = FALSE;
+	runtime_options[1].text = runtime_options_text1;
+	runtime_options[2].state = FALSE;
+	runtime_options[2].text = runtime_options_text2;
+	runtime_options[3].state = FALSE;
+	runtime_options[3].text = runtime_options_text3;
 	ctrl_remapper.state = FALSE;
 	joy_cfg.state = FALSE;
 	rcfile.rewrite = FALSE;
@@ -246,6 +252,7 @@ void component_executive(void) {
 	static int active_components = COMP_EMU;
 	static int ctrl_remapper_state = FALSE;
 	int found = FALSE;
+	int count;
 	
 	/* Monitor emulator's state */
 	if ((active_components & COMP_EMU) != (emulator.state * COMP_EMU)) {
@@ -260,13 +267,17 @@ void component_executive(void) {
 	}
 
 	/* Monitor runtime options' state */
-	if (((active_components & COMP_RUNOPTS0) != (runtime_options0.state * COMP_RUNOPTS0)) ||
-		((active_components & COMP_RUNOPTS1) != (runtime_options1.state * COMP_RUNOPTS1))) {
-		if ((runtime_options0.state || runtime_options1.state) && vkeyb.state) vkeyb.state = FALSE;
-		/* Update the joycfg text */
-		set_joy_cfg_text(0);
-		video.redraw = TRUE;
-		found = TRUE;
+	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
+		if ((active_components & (COMP_RUNOPTS0 << count)) !=
+			(runtime_options[count].state * (COMP_RUNOPTS0 << count))) {
+			if ((runtime_options_which() < MAX_RUNTIME_OPTIONS) && vkeyb.state)
+				vkeyb.state = FALSE;
+			/* Update the joycfg text */
+			set_joy_cfg_text(0);
+			video.redraw = TRUE;
+			found = TRUE;
+			break;
+		}
 	}
 
 	/* Monitor virtual keyboard's state */
@@ -308,15 +319,12 @@ void component_executive(void) {
 	} else {
 		active_components &= ~COMP_VKEYB;
 	}
-	if (runtime_options0.state) {
-		active_components |= COMP_RUNOPTS0;
-	} else {
-		active_components &= ~COMP_RUNOPTS0;
-	}
-	if (runtime_options1.state) {
-		active_components |= COMP_RUNOPTS1;
-	} else {
-		active_components &= ~COMP_RUNOPTS1;
+	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
+		if (runtime_options[count].state) {
+			active_components |= (COMP_RUNOPTS0 << count);
+		} else {
+			active_components &= ~(COMP_RUNOPTS0 << count);
+		}
 	}
 }
 
@@ -328,10 +336,8 @@ void component_executive(void) {
 int get_active_component(void) {
 	int retval;
 	
-	if (runtime_options0.state) {
-		retval = COMP_RUNOPTS0;
-	} else if (runtime_options1.state) {
-		retval = COMP_RUNOPTS1;
+	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
+		retval = COMP_RUNOPTS0 << runtime_options_which();
 	} else if (vkeyb.state) {
 		retval = COMP_VKEYB;
 	} else if (load_selector_state) {
@@ -341,6 +347,22 @@ int get_active_component(void) {
 	}
 	
 	return retval;
+}
+
+/***************************************************************************
+ * Runtime Options Which                                                   *
+ ***************************************************************************/
+/*  On exit: returns 0 to MAX_RUNTIME_OPTIONS-1 if one of the
+ *               COMP_RUNOPTSx is active
+ *           returns MAX_RUNTIME_OPTIONS if none of them are active */
+
+int runtime_options_which(void) {
+	int count;
+	
+	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++)
+		if (runtime_options[count].state) break;
+	
+	return count;
 }
 
 /***************************************************************************

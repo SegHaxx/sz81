@@ -22,11 +22,9 @@
 #if defined(PLATFORM_GP2X)
 	#define LOCAL_DATA_DIR ""
 	#define RESOURCE_FILE "sz81rc"
-	#define ZXPRINTER_FILE "zxprinter.pbm"
 #elif defined(PLATFORM_ZAURUS)
 	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"
-	#define ZXPRINTER_FILE "zxprinter.pbm"
 #elif defined(__amigaos4__)
 	#define LOCAL_DATA_DIR amiga_data_dir
 	#define RESOURCE_FILE amiga_resource_file
@@ -34,7 +32,6 @@
 #else
 	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"
-	#define ZXPRINTER_FILE "zxprinter.pbm"
 #endif
 
 /* Icon bitmap offsets that must be multiplied by video.scale */
@@ -74,6 +71,9 @@ struct {
  ***************************************************************************/
 
 void sdl_zxprinter_init(void) {
+	struct tm *timestruct;
+	time_t rightnow;
+	char unique[96];
 
 	#if defined(PLATFORM_GP2X)
 		/* If used, the load selector can change the working directory
@@ -94,7 +94,12 @@ void sdl_zxprinter_init(void) {
 		strcpy(zxprinter.filename, getenv ("HOME"));
 		strcat(zxprinter.filename, "/" LOCAL_DATA_DIR "/");
 	#endif
-	strcat(zxprinter.filename, ZXPRINTER_FILE);
+
+	/* Create a unique filename using the date and time */
+	rightnow = time(NULL);
+	timestruct = localtime(&rightnow);
+	strftime(unique, sizeof(unique), "zxprinter-%Y%m%d-%H%M%S.pbm", timestruct);
+	strcat(zxprinter.filename, unique);
 
 	/* Update z81's filename pointer */
 	zxpfilename = zxprinter.filename;
@@ -312,6 +317,10 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_RUNOPTS0;
 				if (strstr(value, "COMP_RUNOPTS1") != NULL)
 					read_ctrl_remaps[index].components |= COMP_RUNOPTS1;
+				if (strstr(value, "COMP_RUNOPTS2") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPTS2;
+				if (strstr(value, "COMP_RUNOPTS3") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPTS3;
 			}
 			strcpy(key, "ctrl_remap.protected=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -592,6 +601,14 @@ void rcfile_write(void) {
 				if (ctrl_remaps[count].components & COMP_RUNOPTS1) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_RUNOPTS1"); found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_RUNOPTS2) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_RUNOPTS2"); found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_RUNOPTS3) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_RUNOPTS3"); found = TRUE;
 				}				
 			}				
 			fprintf(fp, "%s=%s\n", key, value);

@@ -72,8 +72,28 @@ int taguladisp=0;
 int fakedispx=0,fakedispy=0;	/* set by main.c/xmain.c */
 
 /* for the printer */
+#ifdef SZ81	/* Added by Thunor */
+/* This solves an issue for us with zxpopen. Originally the printer file
+ * (if requested via -p on the CLI) is created right at the start and
+ * it could also remain empty if nothing was printed to it, but we want
+ * to create a uniquely named file only when it is printed to. The issue
+ * with the default behaviour is that zxpopen initialises some variables
+ * that are used within printer_inout which is always called regardless
+ * of an open file, so they need to be initialised here from the outset.
+ * zxpopen is now called from within zxpout (for sz81) and therefore
+ * printer_inout gets called first.
+ * 
+ * I don't know why static is being used here as it is protecting the
+ * variables from being modified from outside this file, but they're
+ * not being accessed from outside this file anyway. I think this code
+ * may have been copied from xz80. Also zxpframes and zxpcycles aren't
+ * being initialised so I'm setting them to zero too */
+static int zxpframes=0,zxpcycles=0,zxpspeed=0,zxpnewspeed=0;
+static int zxpheight=0,zxppixel=-1,zxpstylus=0;
+#else
 static int zxpframes,zxpcycles,zxpspeed,zxpnewspeed;
 static int zxpheight,zxppixel,zxpstylus;
+#endif
 static FILE *zxpfile=NULL;
 char *zxpfilename=NULL;
 static unsigned char zxpline[256];

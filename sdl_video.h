@@ -32,6 +32,11 @@
 #define JOY_CFG_TEXT_CANCELLED 3
 
 /* Variables */
+char *runtime_options_text0[24];
+char *runtime_options_text1[24];
+char *runtime_options_text2[24];
+char *runtime_options_text3[24];
+
 struct {
 	SDL_Surface *screen;
 	int fullscreen;		/* 0 or SDL_FULLSCREEN */

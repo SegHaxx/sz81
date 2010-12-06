@@ -258,7 +258,7 @@ int main(int argc,char *argv[]) {
 				 * initialise the RAM */
 				initmem();
 
-				/* Initialise and open the printer file */
+				/* Initialise the printer file */
 				sdl_zxprinter_init();
 
 				/* Initialise the emulator timer */

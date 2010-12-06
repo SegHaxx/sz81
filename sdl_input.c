@@ -66,6 +66,7 @@ int device, id, mod_id, state;
 int last_runopts_comp = COMP_RUNOPTS0;
 int hs_load_selected, hs_vkeyb_ctb_selected;
 int hs_runopts0_selected, hs_runopts1_selected;
+int hs_runopts2_selected, hs_runopts3_selected;
 SDL_Event event, virtualevent;
 struct MSG_Box msg_box;
 struct keyrepeat runopts_key_repeat;
@@ -256,35 +257,35 @@ void keyboard_init(void) {
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 	/* Active within runopts only */
-	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_N;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_DOWN;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_S;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_W;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_E;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RETURN;
@@ -409,35 +410,35 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 			/* Active within load/vkeyb/ctb/runopts */
-			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_SELECT;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
-			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_N;
 
-			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_S;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_W;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
@@ -459,7 +460,7 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
@@ -481,14 +482,14 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
 			/* Active within runopts only */
-			ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_LTRIG;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_PAGEUP;
 
-			ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+			ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_RTRIG;
@@ -613,35 +614,35 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
 					/* Active within load/vkeyb/ctb/runopts */
-					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 2;	/* C */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
-					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 12;	/* Up */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_N;
 
-					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 13;	/* Down */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_S;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 10;	/* Left */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_W;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 11;	/* Right */
@@ -663,7 +664,7 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 3;	/* X */
@@ -685,14 +686,14 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
 					/* Active within runopts only */
-					ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 6;	/* LTrig */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_PAGEUP;
 
-					ctrl_remaps[++index].components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+					ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 7;	/* RTrig */
@@ -1016,9 +1017,9 @@ int keyboard_update(void) {
 					if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 				}
 
-				/* Manage COMP_RUNOPTS0 and COMP_RUNOPTS1 input */
-				if (get_active_component() == COMP_RUNOPTS0 ||
-					get_active_component() == COMP_RUNOPTS1) manage_runopts_input();
+				/* Manage COMP_RUNOPTSx input */
+				if (get_active_component() & COMP_RUNOPTS_ALL)
+					manage_runopts_input();
 				
 				/* Manage COMP_VKEYB and COMP_CTB input */
 				if (get_active_component() == COMP_VKEYB ||
@@ -1119,17 +1120,17 @@ int keyboard_update(void) {
 							}
 							msg_box.timeout = MSG_BOX_TIMEOUT_CONTROL_REMAPPER;
 							message_box_manager(MSG_BOX_SHOW, &msg_box);
-						} else if (runtime_options1.state) {
-							/* Locate currently selected hotspot for group RUNOPTS1 */
-							hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
+						} else if (runtime_options[3].state) {
+							/* Locate currently selected hotspot for group RUNOPTS3 */
+							hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
 							if (device == DEVICE_JOYSTICK) {
 								/* Store id for later use within runopts-transit when saving */
-								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = id;
+								runopts_joy_cfg_id[hs_runopts3_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = id;
 								/* Update the joycfg text */
 								set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
 							} else {
 								/* Set id to UNDEFINED */
-								runopts_joy_cfg_id[hs_runopts1_selected - HS_RUNOPTS1_JOY_CFG_LTRIG] = UNDEFINED;
+								runopts_joy_cfg_id[hs_runopts3_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = UNDEFINED;
 								/* Update the joycfg text */
 								set_joy_cfg_text(JOY_CFG_TEXT_CANCELLED);
 							}
@@ -1170,6 +1171,12 @@ void manage_cursor_input(void) {
 		/* Locate currently selected hotspot for group RUNOPTS1 */
 		hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
 
+		/* Locate currently selected hotspot for group RUNOPTS2 */
+		hs_runopts2_selected = get_selected_hotspot(HS_GRP_RUNOPT2);
+
+		/* Locate currently selected hotspot for group RUNOPTS3 */
+		hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
+
 		/* Process the events */
 		if (state == SDL_PRESSED) {
 			if (id == CURSOR_HIT) {
@@ -1192,17 +1199,17 @@ void manage_cursor_input(void) {
 					virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y +
 						hotspots[hs_vkeyb_ctb_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} else if (runtime_options0.state) {
-					virtualevent.button.x = hotspots[hs_runopts0_selected].hit_x +
-						hotspots[hs_runopts0_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_runopts0_selected].hit_y +
-						hotspots[hs_runopts0_selected].hit_h / 2;
+				} else if (runtime_options[2].state) {
+					virtualevent.button.x = hotspots[hs_runopts2_selected].hit_x +
+						hotspots[hs_runopts2_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_runopts2_selected].hit_y +
+						hotspots[hs_runopts2_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} else if (runtime_options1.state) {
-					virtualevent.button.x = hotspots[hs_runopts1_selected].hit_x +
-						hotspots[hs_runopts1_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_runopts1_selected].hit_y +
-						hotspots[hs_runopts1_selected].hit_h / 2;
+				} else if (runtime_options[3].state) {
+					virtualevent.button.x = hotspots[hs_runopts3_selected].hit_x +
+						hotspots[hs_runopts3_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_runopts3_selected].hit_y +
+						hotspots[hs_runopts3_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
 				}
 			} else if (id == CURSOR_REMAP) {
@@ -1210,9 +1217,9 @@ void manage_cursor_input(void) {
 				if (joystick) {
 					if (vkeyb.state) {
 						ctrl_remapper.state = TRUE;
-					} else if (runtime_options1.state) {
-						if (hs_runopts1_selected >= HS_RUNOPTS1_JOY_CFG_LTRIG &&
-							hs_runopts1_selected <= HS_RUNOPTS1_JOY_CFG_X) {
+					} else if (runtime_options[3].state) {
+						if (hs_runopts3_selected >= HS_RUNOPTS3_JOY_CFG_LTRIG &&
+							hs_runopts3_selected <= HS_RUNOPTS3_JOY_CFG_X) {
 							/* Activate the control remapper and joycfg */
 							ctrl_remapper.state = joy_cfg.state = TRUE;
 							/* Update the joycfg text */
@@ -1244,61 +1251,61 @@ void manage_cursor_input(void) {
 					} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_Q) {
 						hotspots[hs_vkeyb_ctb_selected - 10].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options0.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_N);
-					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_DN) {
-						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_UP) {
-						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_KRDELAY_DN &&
-						hs_runopts0_selected <= HS_RUNOPTS0_FGC_R_DN) {
-						hotspots[hs_runopts0_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_UP &&
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_R_DN) {
-						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_SAVE) {
-						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_BGC_R_UP &&
-						hs_runopts0_selected <= HS_RUNOPTS0_EXIT) {
-						hotspots[hs_runopts0_selected - 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
-						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[2].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
+					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_DN) {
+						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_UP) {
+						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_KRDELAY_DN &&
+						hs_runopts2_selected <= HS_RUNOPTS2_FGC_R_DN) {
+						hotspots[hs_runopts2_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_R_UP &&
+						hs_runopts2_selected <= HS_RUNOPTS2_BGC_R_DN) {
+						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_SAVE) {
+						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_BGC_R_UP &&
+						hs_runopts2_selected <= HS_RUNOPTS2_EXIT) {
+						hotspots[hs_runopts2_selected - 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
+						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options1.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_N);
-					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
-						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
-						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_SAVE) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
-						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
-						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[3].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_N);
+					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_BACK) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_SAVE) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_S) {
@@ -1325,61 +1332,61 @@ void manage_cursor_input(void) {
 					} else if (hs_vkeyb_ctb_selected <= HS_VKEYB_A + 9) {
 						hotspots[hs_vkeyb_ctb_selected + 10].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options0.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_S);
-					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected == HS_RUNOPTS0_SAVE ||
-						hs_runopts0_selected == HS_RUNOPTS0_EXIT) {
-						hotspots[HS_RUNOPTS0_VOLUME_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
-						hotspots[HS_RUNOPTS0_VOLUME_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_BGC_B_DN &&
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_B_UP) {
-						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_B_DN && 
-						hs_runopts0_selected <= HS_RUNOPTS0_FGC_B_UP) {
-						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_FGC_R_DN && 
-						hs_runopts0_selected <= HS_RUNOPTS0_BGC_G_UP) {
-						hotspots[hs_runopts0_selected + 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_KRINTERVAL_UP) {
-						hotspots[hs_runopts0_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected >= HS_RUNOPTS0_VOLUME_DN && 
-						hs_runopts0_selected <= HS_RUNOPTS0_KRINTERVAL_DN) {
-						hotspots[hs_runopts0_selected + 2].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[2].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_S);
+					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts2_selected == HS_RUNOPTS2_SAVE ||
+						hs_runopts2_selected == HS_RUNOPTS2_EXIT) {
+						hotspots[HS_RUNOPTS2_VOLUME_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
+						hotspots[HS_RUNOPTS2_VOLUME_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_BGC_B_DN &&
+						hs_runopts2_selected <= HS_RUNOPTS2_BGC_B_UP) {
+						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_B_DN && 
+						hs_runopts2_selected <= HS_RUNOPTS2_FGC_B_UP) {
+						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_R_DN && 
+						hs_runopts2_selected <= HS_RUNOPTS2_BGC_G_UP) {
+						hotspots[hs_runopts2_selected + 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
+						hotspots[hs_runopts2_selected + 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected >= HS_RUNOPTS2_VOLUME_DN && 
+						hs_runopts2_selected <= HS_RUNOPTS2_KRINTERVAL_DN) {
+						hotspots[hs_runopts2_selected + 2].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options1.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_S);
-					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_BACK ||
-						hs_runopts1_selected == HS_RUNOPTS1_SAVE) {
-						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
-						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
-						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[3].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_S);
+					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts3_selected == HS_RUNOPTS3_BACK ||
+						hs_runopts3_selected == HS_RUNOPTS3_SAVE) {
+						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_W) {
@@ -1406,51 +1413,51 @@ void manage_cursor_input(void) {
 							hotspots[--hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
 						}
 					}
-				} else if (runtime_options0.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_W);
-					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_DN || 
-						hs_runopts0_selected == HS_RUNOPTS0_KRDELAY_DN ||
-						hs_runopts0_selected == HS_RUNOPTS0_KRINTERVAL_DN) {
-						hotspots[hs_runopts0_selected + 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_FGC_R_DN || 
-						hs_runopts0_selected == HS_RUNOPTS0_FGC_G_DN ||
-						hs_runopts0_selected == HS_RUNOPTS0_FGC_B_DN) {
-						hotspots[hs_runopts0_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_SAVE) {
-						hotspots[hs_runopts0_selected + 2].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[2].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_W);
+					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_DN || 
+						hs_runopts2_selected == HS_RUNOPTS2_KRDELAY_DN ||
+						hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_DN) {
+						hotspots[hs_runopts2_selected + 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_FGC_R_DN || 
+						hs_runopts2_selected == HS_RUNOPTS2_FGC_G_DN ||
+						hs_runopts2_selected == HS_RUNOPTS2_FGC_B_DN) {
+						hotspots[hs_runopts2_selected + 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_SAVE) {
+						hotspots[hs_runopts2_selected + 2].flags |= HS_PROP_SELECTED;
 					} else { 
-						hotspots[--hs_runopts0_selected].flags |= HS_PROP_SELECTED;
+						hotspots[--hs_runopts2_selected].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options1.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
-					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_DN) {
-						hotspots[HS_RUNOPTS1_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LTRIG) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_BACK) {
-						hotspots[HS_RUNOPTS1_EXIT].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[3].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_W);
+					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_BACK) {
+						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[--hs_runopts1_selected].flags |= HS_PROP_SELECTED;
+						hotspots[--hs_runopts3_selected].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_E) {
@@ -1477,51 +1484,51 @@ void manage_cursor_input(void) {
 							hotspots[++hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
 						}
 					}
-				} else if (runtime_options0.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_E);
-					hotspots[hs_runopts0_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts0_selected == HS_RUNOPTS0_VOLUME_UP || 
-						hs_runopts0_selected == HS_RUNOPTS0_KRDELAY_UP ||
-						hs_runopts0_selected == HS_RUNOPTS0_KRINTERVAL_UP) {
-						hotspots[hs_runopts0_selected - 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_BGC_R_UP || 
-						hs_runopts0_selected == HS_RUNOPTS0_BGC_G_UP ||
-						hs_runopts0_selected == HS_RUNOPTS0_BGC_B_UP) {
-						hotspots[hs_runopts0_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts0_selected == HS_RUNOPTS0_NEXT) {
-						hotspots[hs_runopts0_selected - 2].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[2].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_E);
+					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_UP || 
+						hs_runopts2_selected == HS_RUNOPTS2_KRDELAY_UP ||
+						hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
+						hotspots[hs_runopts2_selected - 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_BGC_R_UP || 
+						hs_runopts2_selected == HS_RUNOPTS2_BGC_G_UP ||
+						hs_runopts2_selected == HS_RUNOPTS2_BGC_B_UP) {
+						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
+						hotspots[hs_runopts2_selected - 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_runopts0_selected].flags |= HS_PROP_SELECTED;
+						hotspots[++hs_runopts2_selected].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options1.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
-					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts1_selected == HS_RUNOPTS1_JDEADZ_UP) {
-						hotspots[HS_RUNOPTS1_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RTRIG) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_UP ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_DOWN) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_Y ||
-						hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_X) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_LEFT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_RIGHT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_SELECT) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_START) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_A) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_JOY_CFG_B) {
-						hotspots[HS_RUNOPTS1_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts1_selected == HS_RUNOPTS1_EXIT) {
-						hotspots[HS_RUNOPTS1_BACK].flags |= HS_PROP_SELECTED;
+				} else if (runtime_options[3].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_E);
+					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y ||
+						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_runopts1_selected].flags |= HS_PROP_SELECTED;
+						hotspots[++hs_runopts3_selected].flags |= HS_PROP_SELECTED;
 					}
 				}
 			}
@@ -1554,14 +1561,15 @@ void manage_cursor_input(void) {
 
 void manage_all_input(void) {
 	static int last_vkeyb_state = FALSE;
+	int count;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_F1) {
 			/* Toggle the virtual keyboard */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state && 
-					!runtime_options0.state && !runtime_options1.state) {
+				if (!load_selector_state &&
+					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					vkeyb.state = !vkeyb.state;
 				}
 			}
@@ -1598,7 +1606,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
 			if (state == SDL_PRESSED) {
-				if (runtime_options0.state || runtime_options1.state) 
+				if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
 					runopts_transit(TRANSIT_OUT);	/* Restore variables */
 				exit_program();
 			}
@@ -1614,8 +1622,27 @@ void manage_all_input(void) {
 			/* Reset the emulator */
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state &&
-					!runtime_options0.state && !runtime_options1.state) {
+					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {
+
+						/*switch (memory_size) {	 temp temp $/
+							case 1:
+							case 2:
+							case 4:
+							case 8:
+							case 16:
+								memory_size *= 2;
+								break;
+							case 32:
+								memory_size = 48;
+								break;
+							case 48:
+								memory_size = 1;
+								break;
+						}
+						printf("%s: memory_size=%i\n", __func__, memory_size);
+						initmem();	/$ temp temp */
+						
 						reset81();
 					}
 				}
@@ -1624,17 +1651,19 @@ void manage_all_input(void) {
 			/* Toggle runtime options */
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state) {
-					if (!runtime_options0.state && !runtime_options1.state) {
-						if (last_runopts_comp == COMP_RUNOPTS0) {
-							runtime_options0.state = TRUE;
-						} else {
-							runtime_options1.state = TRUE;
+					if (runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
+							if (last_runopts_comp == (COMP_RUNOPTS0 << count)) {
+								runtime_options[count].state = TRUE;
+								break;
+							}
 						}
 						emulator.state = FALSE;
 						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
 						runopts_transit(TRANSIT_IN);
 					} else {
-						runtime_options0.state = runtime_options1.state = FALSE;
+						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++)
+							runtime_options[count].state = FALSE;
 						emulator.state = TRUE;
 						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 						runopts_transit(TRANSIT_OUT);
@@ -1644,7 +1673,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
 			/* Adjust the volume */
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 				if (id == SDLK_MINUS) {
 					if (sdl_sound.volume > 0) {
 						sdl_sound.volume -= 2;
@@ -1729,9 +1758,11 @@ void manage_vkeyb_input(void) {
 /***************************************************************************
  * Manage Runtime Options Input                                            *
  ***************************************************************************/
+/* A check was done before calling this function so it is certain that one
+ * of the runtime options pages is currently active */
 
 void manage_runopts_input(void) {
-	int amount;
+	int amount, index;
 	
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -1743,25 +1774,25 @@ void manage_runopts_input(void) {
 		} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
 			/* < Back and Next > */
 			if (state == SDL_PRESSED) {
-				if (runtime_options0.state) {
-					if (id == SDLK_PAGEDOWN) {
-						runtime_options0.state = FALSE;
-						runtime_options1.state = TRUE;
-						last_runopts_comp = COMP_RUNOPTS1;
+				if (id == SDLK_PAGEUP) {
+					if ((index = runtime_options_which()) > 0) {
+						runtime_options[index].state = FALSE;
+						runtime_options[index - 1].state = TRUE;
+						last_runopts_comp = get_active_component();
 					}
-				} else if (runtime_options1.state) {
-					if (id == SDLK_PAGEUP) {
-						runtime_options1.state = FALSE;
-						runtime_options0.state = TRUE;
-						last_runopts_comp = COMP_RUNOPTS0;
+				} else if (id == SDLK_PAGEDOWN) {
+					if ((index = runtime_options_which()) < MAX_RUNTIME_OPTIONS - 1) {
+						runtime_options[index].state = FALSE;
+						runtime_options[index + 1].state = TRUE;
+						last_runopts_comp = get_active_component();
 					}
 				}
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Key repeat delay < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					if (id == SDLK_HOME) {
 						if (sdl_key_repeat.delay > 80) sdl_key_repeat.delay -= 10;
 					} else {
@@ -1770,10 +1801,10 @@ void manage_runopts_input(void) {
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
-			} else if (runtime_options1.state) {
+			} else if (runtime_options[3].state) {
 				/* Joy Dead Zone < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * id);
 					if (id == SDLK_HOME) {
 						if (joystick_dead_zone > 2) joystick_dead_zone -= 2;
 					} else {
@@ -1784,10 +1815,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Key repeat interval < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					if (id == SDLK_INSERT) {
 						if (sdl_key_repeat.interval > 80) sdl_key_repeat.interval -= 10;
 					} else {
@@ -1798,10 +1829,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_1 || id == SDLK_2) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_1) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
@@ -1810,10 +1841,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_3 || id == SDLK_4) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Foreground colour green < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_3) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
@@ -1822,10 +1853,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_5 || id == SDLK_6) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Foreground colour blue < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_5) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
@@ -1834,10 +1865,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_7 || id == SDLK_8) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Background colour red < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_7) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
@@ -1846,10 +1877,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_9 || id == SDLK_0) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Background colour green < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_9) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
@@ -1858,10 +1889,10 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_LEFTBRACKET || id == SDLK_RIGHTBRACKET) {
-			if (runtime_options0.state) {
+			if (runtime_options[2].state) {
 				/* Background colour blue < and > */
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * id);
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
 					amount = 8; if (id == SDLK_LEFTBRACKET) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
@@ -1870,16 +1901,16 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id >= SDLK_a && id <= SDLK_l) {
-			if (runtime_options1.state && joystick) {
+			if (runtime_options[3].state && joystick) {
 				if (state == SDL_PRESSED) {
 					/* Because the control remapper is being activated with hit,
 					 * the user could be hitting a hotspot with the mouse or
 					 * (unlikely) pressing a to l, so the selector is moved to
 					 * the hit hotspot */
-					/* Locate currently selected hotspot for group RUNOPTS1 */
-					hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
-					hotspots[hs_runopts1_selected].flags &= ~HS_PROP_SELECTED;
-					hotspots[HS_RUNOPTS1_JOY_CFG_LTRIG + id - SDLK_a].flags |= HS_PROP_SELECTED;
+					/* Locate currently selected hotspot for group RUNOPTS3 */
+					hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
+					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG + id - SDLK_a].flags |= HS_PROP_SELECTED;
 					/* Simulate a control remapper press */
 					device = DEVICE_CURSOR; id = CURSOR_REMAP;
 					manage_cursor_input();
@@ -1979,7 +2010,7 @@ void runopts_transit(int state) {
 								components = COMP_VKEYB;
 								remap_id = SDLK_LSHIFT;
 							} else if (count == 3) {
-								components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_RUNOPTS_ALL;
 								remap_id = SDLK_PAGEUP;
 							} else {
 								break;
@@ -1991,7 +2022,7 @@ void runopts_transit(int state) {
 								remap_id = SDLK_a;
 								remap_mod_id = SDLK_LSHIFT;
 							} else if (count == 1) {
-								components = COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_RUNOPTS_ALL;
 								remap_id = SDLK_PAGEDOWN;
 							} else {
 								break;
@@ -2003,7 +2034,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_o;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_W;
 							} else {
@@ -2016,7 +2047,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_p;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_E;
 							} else {
@@ -2032,7 +2063,7 @@ void runopts_transit(int state) {
 								components = COMP_LOAD;
 								remap_id = SDLK_q;
 							} else if (count == 2) {
-								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_N;
 							} else {
@@ -2048,7 +2079,7 @@ void runopts_transit(int state) {
 								components = COMP_LOAD;
 								remap_id = SDLK_a;
 							} else if (count == 2) {
-								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_S;
 							} else {
@@ -2060,7 +2091,7 @@ void runopts_transit(int state) {
 								components = COMP_EMU;
 								remap_id = SDLK_ESCAPE;
 							} else if (count == 1) {
-								components = COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_REMAP;
 							} else {
@@ -2081,7 +2112,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_RETURN;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS0 | COMP_RUNOPTS1;
+								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_HIT;
 							} else {

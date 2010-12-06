@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "sdl.h"
 #include "sdl_hotspots.h"
 #include "sdl_input.h"
@@ -41,8 +42,8 @@
 #define SDL_DEBUG_FONTS
 #define SDL_DEBUG_SOUND
 #define SDL_DEBUG_JOYSTICK
-#define SDL_DEBUG_COM_LINE
 */
+#define SDL_DEBUG_COM_LINE
 
 #define TRUE 1
 #define FALSE 0
@@ -55,7 +56,12 @@
 #define COMP_CTB 8
 #define COMP_RUNOPTS0 16
 #define COMP_RUNOPTS1 32
-#define COMP_ALL ((COMP_RUNOPTS1 - 1) | COMP_RUNOPTS1)
+#define COMP_RUNOPTS2 64
+#define COMP_RUNOPTS3 128
+#define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
+#define COMP_ALL ((COMP_RUNOPTS3 - 1) | COMP_RUNOPTS3)
+
+#define MAX_RUNTIME_OPTIONS 4
 
 /* Emulator variables I require access to */
 extern int scrn_freq, invert_screen, zx80, memory_size;
@@ -67,17 +73,13 @@ extern char *zxpfilename;
 /* Variables */
 char workdir[256];
 
-struct {
+struct runtimeoptions {
 	int state;
 	int xoffset;
 	int yoffset;
-} runtime_options0;
-
-struct {
-	int state;
-	int xoffset;
-	int yoffset;
-} runtime_options1;
+	char **text;
+};
+struct runtimeoptions runtime_options[MAX_RUNTIME_OPTIONS];
 
 /* Emulator functions I require access to */
 extern void exit_program(void);
@@ -90,6 +92,7 @@ extern void initmem(void);
 /* Function prototypes */
 void component_executive(void);
 int get_active_component(void);
+int runtime_options_which(void);
 Uint32 emulator_timer (Uint32 interval, void *param);
 
 
