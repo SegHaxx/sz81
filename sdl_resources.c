@@ -116,6 +116,7 @@ void local_data_dir_init(void) {
 
 	/* Create local data directory [structure] whilst ignoring errors */
 	#if defined(PLATFORM_GP2X)
+		strcpy(foldername, "");	/* Avoids warnings */
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(foldername, getenv ("HOME"));
 		strcat(foldername, "/" LOCAL_DATA_DIR);
@@ -313,14 +314,8 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_VKEYB;
 				if (strstr(value, "COMP_CTB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_CTB;
-				if (strstr(value, "COMP_RUNOPTS0") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPTS0;
-				if (strstr(value, "COMP_RUNOPTS1") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPTS1;
-				if (strstr(value, "COMP_RUNOPTS2") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPTS2;
-				if (strstr(value, "COMP_RUNOPTS3") != NULL)
-					read_ctrl_remaps[index].components |= COMP_RUNOPTS3;
+				if (strstr(value, "COMP_RUNOPTS_ALL") != NULL)
+					read_ctrl_remaps[index].components |= COMP_RUNOPTS_ALL;
 			}
 			strcpy(key, "ctrl_remap.protected=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -594,21 +589,11 @@ void rcfile_write(void) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_CTB"); found = TRUE;
 				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPTS0) {
+				/* COMP_RUNOPTS_ALL isn't required to broken down as there
+				 * aren't currently any controls specific to just one page */
+				if ((ctrl_remaps[count].components & COMP_RUNOPTS_ALL) == COMP_RUNOPTS_ALL) {
 					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPTS0"); found = TRUE;
-				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPTS1) {
-					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPTS1"); found = TRUE;
-				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPTS2) {
-					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPTS2"); found = TRUE;
-				}				
-				if (ctrl_remaps[count].components & COMP_RUNOPTS3) {
-					if (found) strcat(value, " | ");
-					strcat(value, "COMP_RUNOPTS3"); found = TRUE;
+					strcat(value, "COMP_RUNOPTS_ALL"); found = TRUE;
 				}				
 			}				
 			fprintf(fp, "%s=%s\n", key, value);
@@ -1031,9 +1016,47 @@ int control_bar_init(void) {
 	/* Set-up the control bar's screen offset */
 	control_bar.xoffset = (video.xres - control_bar.scaled->w) / 2;
 	if (control_bar.xoffset < 0) control_bar.xoffset = 0;
-	control_bar.yoffset = emulator.yoffset - 19 * video.scale;
+	control_bar.yoffset = sdl_emulator.yoffset - 19 * video.scale;
 	if (control_bar.yoffset < 0) control_bar.yoffset = 0;
 
 	return FALSE;
 }
+
+/***************************************************************************
+ * ZX ROMs Initialise                                                      *
+ ***************************************************************************/
+/* This loads the ROMs if they haven't already been loaded.
+ * 
+ * On exit: returns TRUE on error
+ *          else FALSE */
+
+int sdl_zxroms_init(void) {
+	int retval = FALSE;
+	char filename[256];
+	int count;
+	FILE *fp;
+
+	for (count = 0; count < 2; count++) {
+		if ((count == 0 && !sdl_zx80rom.state) || (count == 1 && !sdl_zx81rom.state)) {
+			if (count == 0) strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX80);
+			if (count == 1) strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX81);
+			if ((fp = fopen(filename, "rb")) == NULL) {
+				fprintf(stderr, "Cannot read from %s\n", filename);
+				retval = TRUE;
+			} else {
+				if (count == 0) {
+					fread(sdl_zx80rom.data, 1, 4 * 1024, fp);
+					sdl_zx80rom.state = TRUE;
+				} else {
+					fread(sdl_zx81rom.data, 1, 8 * 1024, fp);
+					sdl_zx81rom.state = TRUE;
+				}
+				fclose(fp);
+			}
+		}
+	}
+
+	return retval;
+}
+
 

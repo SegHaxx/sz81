@@ -211,20 +211,20 @@ void hotspots_resize(void) {
 
 	/* Resize the ZX81's file selector hotspots */
 	if (!zx80) {
-		hotspots[HS_LOAD_Q].hit_x = emulator.xoffset + 36 * video.scale;
-		hotspots[HS_LOAD_Q].hit_y = emulator.yoffset + 176 * video.scale;
+		hotspots[HS_LOAD_Q].hit_x = sdl_emulator.xoffset + 36 * video.scale;
+		hotspots[HS_LOAD_Q].hit_y = sdl_emulator.yoffset + 176 * video.scale;
 		hotspots[HS_LOAD_Q].hit_w = 40 * video.scale;
 		hotspots[HS_LOAD_Q].hit_h = 16 * video.scale;
-		hotspots[HS_LOAD_A].hit_x = emulator.xoffset + 76 * video.scale;
-		hotspots[HS_LOAD_A].hit_y = emulator.yoffset + 176 * video.scale;
+		hotspots[HS_LOAD_A].hit_x = sdl_emulator.xoffset + 76 * video.scale;
+		hotspots[HS_LOAD_A].hit_y = sdl_emulator.yoffset + 176 * video.scale;
 		hotspots[HS_LOAD_A].hit_w = 40 * video.scale;
 		hotspots[HS_LOAD_A].hit_h = 16 * video.scale;
-		hotspots[HS_LOAD_ENTER].hit_x = emulator.xoffset + 116 * video.scale;
-		hotspots[HS_LOAD_ENTER].hit_y = emulator.yoffset + 176 * video.scale;
+		hotspots[HS_LOAD_ENTER].hit_x = sdl_emulator.xoffset + 116 * video.scale;
+		hotspots[HS_LOAD_ENTER].hit_y = sdl_emulator.yoffset + 176 * video.scale;
 		hotspots[HS_LOAD_ENTER].hit_w = 88 * video.scale;
 		hotspots[HS_LOAD_ENTER].hit_h = 16 * video.scale;
-		hotspots[HS_LOAD_SPACE].hit_x = emulator.xoffset + 204 * video.scale;
-		hotspots[HS_LOAD_SPACE].hit_y = emulator.yoffset + 176 * video.scale;
+		hotspots[HS_LOAD_SPACE].hit_x = sdl_emulator.xoffset + 204 * video.scale;
+		hotspots[HS_LOAD_SPACE].hit_y = sdl_emulator.yoffset + 176 * video.scale;
 		hotspots[HS_LOAD_SPACE].hit_w = 80 * video.scale;
 		hotspots[HS_LOAD_SPACE].hit_h = 16 * video.scale;
 		/* Set-up hl_x/y/w/h */

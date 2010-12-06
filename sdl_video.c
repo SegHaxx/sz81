@@ -181,15 +181,15 @@ int sdl_video_setmode(void) {
 	
 	/* Set-up the emulator's screen offset */
 	if (video.xres <= 256 * video.scale) {
-		emulator.xoffset = 0 - 32 * video.scale;
+		sdl_emulator.xoffset = 0 - 32 * video.scale;
 	} else {
-		emulator.xoffset = (video.xres - 320 *  video.scale) / 2;
+		sdl_emulator.xoffset = (video.xres - 320 *  video.scale) / 2;
 	}
-	emulator.yoffset = (video.yres - 200 *  video.scale) / 2;
+	sdl_emulator.yoffset = (video.yres - 200 *  video.scale) / 2;
 
 	#ifdef SDL_DEBUG_VIDEO
-		printf("%s: emulator.xoffset=%i emulator.yoffset=%i\n", __func__,
-			emulator.xoffset, emulator.yoffset);
+		printf("%s: sdl_emulator.xoffset=%i sdl_emulator.yoffset=%i\n", 
+			__func__, sdl_emulator.xoffset, sdl_emulator.yoffset);
 	#endif
 
 	/* Set-up runtime options' screen offset */
@@ -297,26 +297,26 @@ void sdl_video_update(void) {
 	}
 
 	/* Is the emulator's output being rendered? */
-	if (emulator.state) {
+	if (sdl_emulator.state) {
 		if (SDL_MUSTLOCK(video.screen)) SDL_LockSurface(video.screen);
 
 		screen_pixels_16 = video.screen->pixels;
 		screen_pixels_32 = video.screen->pixels;
 
 		/* Set-up destination y coordinates */
-		desy = emulator.yoffset;
+		desy = sdl_emulator.yoffset;
 
 		for (srcy = 0; srcy < 200; srcy++) {
 			
 			/* [Re]set-up x coordinates and src width */
 			if (video.xres < 320 * video.scale) {
-				srcx = abs(emulator.xoffset / video.scale);
+				srcx = abs(sdl_emulator.xoffset / video.scale);
 				if (zx80 && video.xres < 256 * video.scale)
 					srcx += 8 * 2;	/* The emulator shifts it right 2 chars! */
 				srcw = video.xres / video.scale + srcx; desx = 0;
 			} else {
 				srcx = 0;
-				srcw = 320; desx = emulator.xoffset;
+				srcw = 320; desx = sdl_emulator.xoffset;
 			}
 			
 			for (;srcx < srcw; srcx++) {

@@ -132,8 +132,8 @@ char *libdir(char *file)
 {
 static char buf[1024];
 
-#ifdef SZ81	/* Added by Thunor: LIBDIR is only referenced here */
-#define LIBDIR PACKAGE_DATA_DIR
+#ifdef SZ81	/* Added by Thunor: LIBDIR isn't used but it must be defined */
+#define LIBDIR ""
 #endif
 if(strlen(LIBDIR)+strlen(file)+2>sizeof(buf))
   strcpy(buf,file);	/* we know file is a short constant */
@@ -218,6 +218,18 @@ setitimer(ITIMER_REAL,&itv,NULL);
 
 void loadrom(void)
 {
+#ifdef SZ81	/* Added by Thunor */
+/* sz81 has already preloaded the ROMs so now this function
+ * is simply copying the data into the ROM area afresh */
+if(zx80)
+  {
+    memcpy(mem,sdl_zx80rom.data,4096);
+  }
+else
+  {
+    memcpy(mem,sdl_zx81rom.data,8192);
+  }
+#else
 FILE *in;
 char *fname=libdir(zx80?"zx80.rom":"zx81.rom");
 
@@ -245,6 +257,7 @@ else
           fname);
   exit(1);
   }
+#endif
 }
 
 
@@ -1307,8 +1320,8 @@ int quit,got_one,isdir;
 char *filearr;
 char *ptr;
 #ifdef SZ81	/* Added by Thunor */
-int krwait = sdl_key_repeat.delay / (1000 / emulator.speed);
-int krwrep = sdl_key_repeat.interval / 1.5 / (1000 / emulator.speed);
+int krwait = sdl_key_repeat.delay / (1000 / sdl_emulator.speed);
+int krwrep = sdl_key_repeat.interval / 1.5 / (1000 / sdl_emulator.speed);
 #else
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
 #endif

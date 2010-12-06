@@ -31,6 +31,9 @@
 #define IMG_ZX82_FONT "zx82font.bmp"
 #define IMG_SZ81_ICONS "sz81icons.bmp"
 
+#define ROM_ZX80 "zx80.rom"
+#define ROM_ZX81 "zx81.rom"
+
 /* Variables */
 SDL_Surface *wm_icon;
 

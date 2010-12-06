@@ -42,8 +42,8 @@
 #define SDL_DEBUG_FONTS
 #define SDL_DEBUG_SOUND
 #define SDL_DEBUG_JOYSTICK
-*/
 #define SDL_DEBUG_COM_LINE
+*/
 
 #define TRUE 1
 #define FALSE 0

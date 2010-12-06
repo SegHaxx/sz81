@@ -118,7 +118,7 @@ if(keyboard_keypressed(SCANCODE_F1))
 
 /* XXX ideally want to support DEL etc. */
 
-if (emulator.state)	/* Added by Thunor: this can prevent the emulator from receiving user input */
+if (sdl_emulator.state)	/* Added by Thunor: this can prevent the emulator from receiving user input */
   {
 
 for(y=0;y<8;y++)		/* 8 half-rows */
@@ -254,12 +254,14 @@ int main(int argc,char *argv[]) {
 				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 				fakedispy=ZX_VID_MARGIN;
 
-				/* Load and set-up the required ROM and then
-				 * initialise the RAM */
-				initmem();
-
 				/* Initialise the printer file */
 				sdl_zxprinter_init();
+
+				/* Load both the ZX80 and ZX81 ROMs */
+				sdl_zxroms_init();
+
+				/* Initialise the required ROM and RAM */
+				initmem();
 
 				/* Initialise the emulator timer */
 				sdl_timer_init();

@@ -61,7 +61,7 @@ int sdl_init(void) {
 	/* All SDL pointers are initialised to NULL here since we could
 	 * exit prematurely and we don't want to cause seg faults by
 	 * freeing nothing. As long as they are NULL everything is fine */
-	emulator.timer_id = NULL;
+	sdl_emulator.timer_id = NULL;
 	control_bar.scaled = NULL;
 	vkeyb.original = vkeyb.scaled = NULL;
 	sz81icons.original = sz81icons.scaled = NULL;
@@ -106,9 +106,11 @@ int sdl_init(void) {
 	sdl_com_line.filename[0] = 0;
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
+	sdl_emulator.state = TRUE;
+	sdl_emulator.speed = 50;	/* 50Hz is the default */
 	sdl_sound.state = FALSE;
-	emulator.state = TRUE;
-	emulator.speed = 50;	/* 50Hz is the default */
+	sdl_zx80rom.state = FALSE;
+	sdl_zx81rom.state = FALSE;
 	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	runtime_options[0].state = FALSE;
@@ -200,7 +202,7 @@ int sdl_com_line_process(int argc, char *argv[]) {
 				fprintf (stdout,
 					"z81 2.1 - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n"
 					"sz81 " VERSION " - copyright (C) 2007-2010 Thunor and Chris Young.\n\n"
-					"usage: sz81 [-fhw] [-XRESxYRES] [filename.p]\n\n"
+					"usage: sz81 [-fhw] [-XRESxYRES] [filename.{o|p|80|81}]\n\n"
 					"  -f  run the program fullscreen\n"
 					"  -h  this usage help\n"
 					"  -w  run the program in a window\n"
@@ -255,8 +257,8 @@ void component_executive(void) {
 	int count;
 	
 	/* Monitor emulator's state */
-	if ((active_components & COMP_EMU) != (emulator.state * COMP_EMU)) {
-		if (!emulator.state && load_selector_state) load_selector_state = FALSE;
+	if ((active_components & COMP_EMU) != (sdl_emulator.state * COMP_EMU)) {
+		if (!sdl_emulator.state && load_selector_state) load_selector_state = FALSE;
 		found = TRUE;
 	}
 
@@ -304,7 +306,7 @@ void component_executive(void) {
 	/* Maintain a copy of current program component states  */
 	ctrl_remapper_state = ctrl_remapper.state;
 	active_components = 0;
-	if (emulator.state) {
+	if (sdl_emulator.state) {
 		active_components |= COMP_EMU;
 	} else {
 		active_components &= ~COMP_EMU;
@@ -371,7 +373,7 @@ int runtime_options_which(void) {
 
 void sdl_timer_init(void) {
 	/* Create a 10ms timer */
-	emulator.timer_id = SDL_AddTimer (10, emulator_timer, NULL);
+	sdl_emulator.timer_id = SDL_AddTimer (10, emulator_timer, NULL);
 }
 
 /***************************************************************************
@@ -382,7 +384,7 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
-	if (intervals >= 100 / emulator.speed) {
+	if (intervals >= 100 / sdl_emulator.speed) {
 		signal_int_flag = TRUE;
 		intervals = 0;
 	}
@@ -399,7 +401,7 @@ void clean_up_before_exit(void) {
 
 	sdl_sound_end();
 
-	if (emulator.timer_id) SDL_RemoveTimer (emulator.timer_id);
+	if (sdl_emulator.timer_id) SDL_RemoveTimer (sdl_emulator.timer_id);
 
 	if (rcfile.rewrite) rcfile_write();
 

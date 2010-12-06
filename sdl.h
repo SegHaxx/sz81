@@ -118,7 +118,7 @@ struct {
 	int yoffset;
 	SDL_TimerID timer_id;
 	int speed;
-} emulator;
+} sdl_emulator;
 
 struct {
 	int state;
@@ -127,6 +127,16 @@ struct {
 	int buffer_start;
 	int buffer_end;
 } sdl_sound;
+
+struct {
+	unsigned char data[4 * 1024];
+	int state;
+} sdl_zx80rom;
+
+struct {
+	unsigned char data[8 * 1024];
+	int state;
+} sdl_zx81rom;
 
 struct keyrepeat {
 	int delay;
@@ -142,6 +152,7 @@ unsigned char *vga_getgraphmem(void);
 void keyboard_init(void);
 void sdl_rcfile_read(void);
 void sdl_zxprinter_init(void);
+int sdl_zxroms_init(void);
 void sdl_timer_init(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);

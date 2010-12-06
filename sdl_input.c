@@ -711,7 +711,8 @@ void keyboard_init(void) {
 	hotspots_init();
 
 	/* Initialise the control remapper */
-	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / (emulator.speed / scrn_freq));
+	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / 
+		(sdl_emulator.speed / scrn_freq));
 }
 
 /***************************************************************************
@@ -1625,7 +1626,7 @@ void manage_all_input(void) {
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {
 
-						/*switch (memory_size) {	 temp temp $/
+						/*switch (memory_size) {	 temp temp /
 							case 1:
 							case 2:
 							case 4:
@@ -1641,7 +1642,7 @@ void manage_all_input(void) {
 								break;
 						}
 						printf("%s: memory_size=%i\n", __func__, memory_size);
-						initmem();	/$ temp temp */
+						initmem();	/ temp temp */
 						
 						reset81();
 					}
@@ -1658,13 +1659,13 @@ void manage_all_input(void) {
 								break;
 							}
 						}
-						emulator.state = FALSE;
+						sdl_emulator.state = FALSE;
 						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
 						runopts_transit(TRANSIT_IN);
 					} else {
 						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++)
 							runtime_options[count].state = FALSE;
-						emulator.state = TRUE;
+						sdl_emulator.state = TRUE;
 						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 						runopts_transit(TRANSIT_OUT);
 					}
@@ -2238,7 +2239,7 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay (* 2 as this is currently running at half the emulation Hz) */
-		interval = sdl_key_repeat.delay / (1000 / emulator.speed * 2);
+		interval = sdl_key_repeat.delay / (1000 / sdl_emulator.speed * 2);
 		/* When interval is 1 there can be some odd behaviour, presumably
 		 * because the event queue is being flooded with presses and so
 		 * I'm limiting it to 2 which stops this happening. At the default
@@ -2249,7 +2250,7 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset the interval (* 2 as this is currently running at half the emulator Hz) */
-				interval = sdl_key_repeat.interval / (1000 / emulator.speed * 2);
+				interval = sdl_key_repeat.interval / (1000 / sdl_emulator.speed * 2);
 				if (interval < 2) interval = 2;	/* See note above about this */
 				SDL_PushEvent(&repeatevent);
 			}
