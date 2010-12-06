@@ -129,13 +129,13 @@ struct {
 } sdl_sound;
 
 struct {
-	unsigned char data[4 * 1024];
 	int state;
+	unsigned char data[4 * 1024];
 } sdl_zx80rom;
 
 struct {
-	unsigned char data[8 * 1024];
 	int state;
+	unsigned char data[8 * 1024];
 } sdl_zx81rom;
 
 struct keyrepeat {

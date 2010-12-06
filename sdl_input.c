@@ -1642,6 +1642,8 @@ void manage_all_input(void) {
 								break;
 						}
 						printf("%s: memory_size=%i\n", __func__, memory_size);
+						zx80 ^= 1;
+						vkeyb_init();
 						initmem();	/ temp temp */
 						
 						reset81();

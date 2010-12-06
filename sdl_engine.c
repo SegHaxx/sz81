@@ -63,7 +63,7 @@ int sdl_init(void) {
 	 * freeing nothing. As long as they are NULL everything is fine */
 	sdl_emulator.timer_id = NULL;
 	control_bar.scaled = NULL;
-	vkeyb.original = vkeyb.scaled = NULL;
+	vkeyb.zx80original = vkeyb.zx81original = vkeyb.scaled = NULL;
 	sz81icons.original = sz81icons.scaled = NULL;
 	zx80font.original = zx81font.original = zx82font.original = NULL;
 	for (count = 0; count < MAX_FONTS; count++)
@@ -406,7 +406,8 @@ void clean_up_before_exit(void) {
 	if (rcfile.rewrite) rcfile_write();
 
 	if (control_bar.scaled) SDL_FreeSurface(control_bar.scaled);
-	if (vkeyb.original) SDL_FreeSurface(vkeyb.original);
+	if (vkeyb.zx80original) SDL_FreeSurface(vkeyb.zx80original);
+	if (vkeyb.zx81original) SDL_FreeSurface(vkeyb.zx81original);
 	if (vkeyb.scaled) SDL_FreeSurface(vkeyb.scaled);
 	if (sz81icons.original) SDL_FreeSurface(sz81icons.original);
 	if (sz81icons.scaled) SDL_FreeSurface(sz81icons.scaled);

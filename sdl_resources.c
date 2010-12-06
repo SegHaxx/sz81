@@ -779,45 +779,65 @@ int fonts_init(void) {
  * Virtual Keyboard Initialise                                             *
  ***************************************************************************/
 /* This can be called multiple times and it is if the resolution is switched.
+ * It now loads both vkeybs if they haven't already been loaded and then
+ * creates the relevant scaled-up version depending on which machine is
+ * currently being emulated.
  * 
  * On exit: returns TRUE on error
  *          else FALSE */
 
 int vkeyb_init(void) {
-	SDL_Surface *unconverted;
+	SDL_Surface *unconverted, *original;
 	char filename[256];
+	int count;
 
 	/* Free any existing scaled surface first */
 	if (vkeyb.scaled) SDL_FreeSurface(vkeyb.scaled);
 
-	/* Load the appropriate original scale keyboard image once */
-	if (vkeyb.original == NULL) {
-		strcpy(filename, PACKAGE_DATA_DIR "/");
-		if (zx80) {
-			strcat(filename, IMG_ZX80_KYBD);
-		} else {
-			strcat(filename, IMG_ZX81_KYBD);
-		}
-		/* Load the bitmap */
-		if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
-			fprintf(stderr, "%s: Cannot load keyboard image %s: %s\n", __func__,
-				filename, SDL_GetError ());
-			return TRUE;
-		}
-		/* Convert the keyboard surface to the same pixel
-		 * format as the screen for fast blitting */
-		vkeyb.original = SDL_DisplayFormat (unconverted);
-		SDL_FreeSurface(unconverted);	/* Free the redundant surface */
-		if (vkeyb.original == NULL) {
-			fprintf(stderr, "%s: Cannot create surface: %s\n", __func__,
-				SDL_GetError ());
-			return TRUE;
+	for (count = 0; count < 2; count++) {
+		if ((count == 0 && vkeyb.zx80original == NULL) || 
+			(count == 1 && vkeyb.zx81original == NULL)) {
+			/* Prepare the relevant filename */
+			if (count == 0) {
+				strcpy(filename, PACKAGE_DATA_DIR "/" IMG_ZX80_KYBD);
+			} else {
+				strcpy(filename, PACKAGE_DATA_DIR "/" IMG_ZX81_KYBD);
+			}
+			/* Load the bitmap */
+			if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
+				fprintf(stderr, "%s: Cannot load keyboard image %s: %s\n", 
+					__func__, filename, SDL_GetError ());
+				return TRUE;
+			}
+			/* Convert the keyboard surface to the same pixel
+			 * format as the screen for fast blitting */
+			if (count == 0) {
+				vkeyb.zx80original = SDL_DisplayFormat(unconverted);
+			} else {
+				vkeyb.zx81original = SDL_DisplayFormat(unconverted);
+			}
+			SDL_FreeSurface(unconverted);	/* Free the redundant surface */
+			/* Check the result of SDL_DisplayFormat */
+			if ((count == 0 && vkeyb.zx80original == NULL) || 
+				(count == 1 && vkeyb.zx81original == NULL)) {
+				fprintf(stderr, "%s: Cannot create surface: %s\n", __func__,
+					SDL_GetError ());
+				return TRUE;
+			}
 		}
 	}
-	
+
+	/* Initialise a pointer to the relevant original surface */
+	if (zx80) {
+		original = vkeyb.zx80original;
+	} else {
+		original = vkeyb.zx81original;
+	}
+
 	/* Create an RGB surface to accommodate the scaled keyboard */
-	vkeyb.scaled = SDL_CreateRGBSurface(SDL_SWSURFACE, vkeyb.original->w * video.scale,
-		vkeyb.original->h * video.scale, video.screen->format->BitsPerPixel,
+	vkeyb.scaled = SDL_CreateRGBSurface(SDL_SWSURFACE, 
+		original->w * video.scale, original->h * video.scale, 
+		video.screen->format->BitsPerPixel,
 		video.screen->format->Rmask, video.screen->format->Gmask,
 		video.screen->format->Bmask, video.screen->format->Amask);
 	if (vkeyb.scaled == NULL) {
@@ -827,7 +847,7 @@ int vkeyb_init(void) {
 	}
 
 	/* Now scale the keyboard into the new surface */
-	scale_surface(vkeyb.original, vkeyb.scaled);
+	scale_surface(original, vkeyb.scaled);
 
 	/* Apply some alpha to the entire surface if required */
 	if (vkeyb.alpha < SDL_ALPHA_OPAQUE) {
@@ -1037,13 +1057,20 @@ int sdl_zxroms_init(void) {
 	FILE *fp;
 
 	for (count = 0; count < 2; count++) {
-		if ((count == 0 && !sdl_zx80rom.state) || (count == 1 && !sdl_zx81rom.state)) {
-			if (count == 0) strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX80);
-			if (count == 1) strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX81);
+		if ((count == 0 && !sdl_zx80rom.state) || 
+			(count == 1 && !sdl_zx81rom.state)) {
+			/* Prepare the relevant filename */
+			if (count == 0) {
+				strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX80);
+			} else {
+				strcpy(filename, PACKAGE_DATA_DIR "/" ROM_ZX81);
+			}
+			/* Open the ROM */
 			if ((fp = fopen(filename, "rb")) == NULL) {
 				fprintf(stderr, "Cannot read from %s\n", filename);
 				retval = TRUE;
 			} else {
+				/* Read in the data */
 				if (count == 0) {
 					fread(sdl_zx80rom.data, 1, 4 * 1024, fp);
 					sdl_zx80rom.state = TRUE;

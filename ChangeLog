@@ -1,6 +1,7 @@
 2010-12-06 Thunor <thunorsif_at_hotmail.com>
 * Added a function to preload the ROMs which will enable the emulator
   to switch between them at runtime without repeatedly loading them.
+* Modified vkeyb_init to load both keyboard images on initialisation.
 
 2010-12-05 Thunor <thunorsif_at_hotmail.com>
 * Added two runtime options pages and moved the original two.

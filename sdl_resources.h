@@ -76,7 +76,8 @@ struct {
 } sz81icons;
 
 struct {
-	SDL_Surface *original;
+	SDL_Surface *zx80original;
+	SDL_Surface *zx81original;
 	SDL_Surface *scaled;
 	int state;
 	int xoffset;
