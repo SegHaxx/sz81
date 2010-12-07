@@ -779,6 +779,7 @@ int fonts_init(void) {
  * Virtual Keyboard Initialise                                             *
  ***************************************************************************/
 /* This can be called multiple times and it is if the resolution is switched.
+ * 
  * It now loads both vkeybs if they haven't already been loaded and then
  * creates the relevant scaled-up version depending on which machine is
  * currently being emulated.

@@ -32,6 +32,9 @@ extern int ay_reg;
 extern void vsync_raise(void);
 extern void vsync_lower(void);
 extern void mainloop();
+#ifdef SZ81	/* Added by Thunor */
+extern void z80_init(void);
+#endif
 
 #define fetch(x) (memptr[(unsigned short)(x)>>10][(x)&1023])
 #define fetch2(x) ((fetch((x)+1)<<8)|fetch(x))

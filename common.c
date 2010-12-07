@@ -1590,3 +1590,53 @@ if(got_one && isdir) return(NULL);
 
 return(returned_filename);
 }
+
+#ifdef SZ81	/* Added by Thunor */
+void common_init(void) {
+	/* Reinitialise variables at the top of common.c
+	* that aren't settings being managed by sz81 */
+
+	/*help=0;	Thunor: redundant.
+	sound=0;
+	sound_vsync=sound_ay=0;
+	sound_ay_type=AY_TYPE_NONE;
+	load_hook=save_hook=1;
+	vsync_visuals=0;
+	invert_screen=0; */
+
+	signal_int_flag=0;
+	exit_program_flag=0;
+	interrupted=0;
+	nmigen=hsyncgen=vsync=0;
+
+	/*scrn_freq=2;	Thunor: redundant.
+	unexpanded=0;
+	taguladisp=0;
+	fakedispx=fakedispy=0;	/ set by main.c/xmain.c */
+
+	zxpframes=zxpcycles=zxpspeed=zxpnewspeed=0;
+	zxpheight=0;
+	zxppixel=-1;
+	zxpstylus=0;
+
+	/*static FILE *zxpfile=NULL;	Thunor: redundant.
+	char *zxpfilename=NULL;
+	static unsigned char zxpline[256];
+	load_selector_state = 0;
+	memory_size = 16;	/ z81 defaults to 16K */
+
+	refresh_screen=1;
+
+	/*zx80=0;	Thunor: redundant. */
+
+	ignore_esc=0;
+
+	/*autolist=0;	Thunor: redundant.
+	autoload=0;
+	char autoload_filename[1024]; */
+}
+#endif
+
+
+
+

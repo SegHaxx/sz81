@@ -161,7 +161,7 @@ int sdl_sound_init(int freq, int *stereo, int *sixteenbit);
 void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
 void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
-
+void sdl_reset(void);
 
 
 

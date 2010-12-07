@@ -1625,28 +1625,9 @@ void manage_all_input(void) {
 				if (!load_selector_state &&
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {
-
-						/*switch (memory_size) {	 temp temp /
-							case 1:
-							case 2:
-							case 4:
-							case 8:
-							case 16:
-								memory_size *= 2;
-								break;
-							case 32:
-								memory_size = 48;
-								break;
-							case 48:
-								memory_size = 1;
-								break;
-						}
-						printf("%s: memory_size=%i\n", __func__, memory_size);
-						zx80 ^= 1;
-						vkeyb_init();
-						initmem();	/ temp temp */
-						
 						reset81();
+
+						//interrupted = 3;	// temp temp
 					}
 				}
 			}
@@ -2267,16 +2248,23 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 /***************************************************************************
  * Keyboard Buffer Reset                                                   *
  ***************************************************************************/
-/* This unpresses any pressed controls within the keyboard buffer except
- * SHIFT. It's used when changing the states of program components to make
- * sure that any controls that the user still has pressed don't remain
- * unreleased which can happen if the controls are component specific */
+/* This unpresses any pressed controls within the keyboard buffer.
+ * It's used when changing the states of program components to make sure
+ * that any controls that the user still has pressed don't remain unreleased
+ * which can happen if the controls are component specific.
+ * Resetting SHIFT is optional and is required when performing a thorough
+ * emulator reset, otherwise it needn't/shouldn't be reset.
+ * 
+ * On entry: shift_reset = TRUE to additionally reset SHIFT */
 
-void keyboard_buffer_reset(void) {
+void keyboard_buffer_reset(int shift_reset) {
 	int scancode;
 	
 	for (scancode = 0; scancode < MAX_SCANCODES; scancode++) {
-		if (scancode != SCANCODE_LEFTSHIFT) keyboard_buffer[scancode] = KEY_NOTPRESSED;
+		if ((scancode != SCANCODE_LEFTSHIFT) ||
+			(scancode == SCANCODE_LEFTSHIFT && shift_reset)) {
+			keyboard_buffer[scancode] = KEY_NOTPRESSED;
+		}
 	}
 }
 

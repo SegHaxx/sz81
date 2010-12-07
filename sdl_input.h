@@ -67,7 +67,7 @@ struct {
 
 /* Function prototypes */
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
-void keyboard_buffer_reset(void);
+void keyboard_buffer_reset(int shift_reset);
 int keysym_to_scancode(int reverse, int value);
 int keysym_to_keycode(char *keysym);
 char *keycode_to_keysym(int keycode);

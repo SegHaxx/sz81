@@ -66,7 +66,7 @@
 /* Emulator variables I require access to */
 extern int scrn_freq, invert_screen, zx80, memory_size;
 extern int load_selector_state, refresh_screen, ignore_esc;
-extern int sound, sixteenbit;
+extern int sound, sixteenbit, interrupted;
 extern volatile int signal_int_flag;
 extern char *zxpfilename;
 

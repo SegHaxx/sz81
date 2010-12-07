@@ -103,3 +103,9 @@ extern void do_interrupt();
 extern void reset81();
 extern void parseoptions(int argc,char *argv[]);
 extern void frame_pause(void);
+#ifdef SZ81	/* Added by Thunor */
+extern void common_init(void);
+#endif
+
+
+

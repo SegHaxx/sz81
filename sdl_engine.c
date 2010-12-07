@@ -289,7 +289,7 @@ void component_executive(void) {
 	}
 
 	if (found) {
-		keyboard_buffer_reset();
+		keyboard_buffer_reset(FALSE);
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 		/* Update hotspot states */
 		hotspots_update();
@@ -433,7 +433,37 @@ void clean_up_before_exit(void) {
 	SDL_Quit();
 }
 
+/***************************************************************************
+ * Reset                                                                   *
+ ***************************************************************************/
+/* This resets and reinitialises the few parts of sz81 that require this
+ * to support peripheral and machine type changes */
 
+void sdl_reset(void) {
 
+	//zx80 ^= 1;	// temp temp
+
+	/*switch (memory_size) {	 temp temp /
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		case 16:
+			memory_size *= 2;
+			break;
+		case 32:
+			memory_size = 48;
+			break;
+		case 48:
+			memory_size = 1;
+			break;
+	}
+	printf("%s: memory_size=%i\n", __func__, memory_size);	/ temp temp */
+
+	keyboard_buffer_reset(TRUE);
+	key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+	vkeyb_init();
+	hotspots_init();
+}
 
 

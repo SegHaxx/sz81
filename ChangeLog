@@ -1,3 +1,7 @@
+2010-12-07 Thunor <thunorsif_at_hotmail.com>
+* Added support for a thorough runtime reinitialisation of z81 (sz81
+  was tweaked a little). RAM and ROM changes have been tested to work.
+
 2010-12-06 Thunor <thunorsif_at_hotmail.com>
 * Added a function to preload the ROMs which will enable the emulator
   to switch between them at runtime without repeatedly loading them.

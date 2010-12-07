@@ -243,6 +243,9 @@ int main(int argc,char *argv[]) {
 				 * variables that are defined within it */
 				sdl_rcfile_read();
 
+				/* Load both the ZX80 and ZX81 ROMs */
+				sdl_zxroms_init();
+
 				#ifdef OSS_SOUND_SUPPORT
 					if (sound) sound_init();
 				#endif
@@ -254,21 +257,19 @@ int main(int argc,char *argv[]) {
 				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 				fakedispy=ZX_VID_MARGIN;
 
-				/* Initialise the printer file */
-				sdl_zxprinter_init();
-
-				/* Load both the ZX80 and ZX81 ROMs */
-				sdl_zxroms_init();
-
-				/* Initialise the required ROM and RAM */
-				initmem();
-
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 
-				/* And off we go...
-				 * Note that this function never returns */
-				mainloop();
+				while (1) {
+					/* Initialise the printer file */
+					sdl_zxprinter_init();
+
+					/* Initialise the required ROM and RAM */
+					initmem();
+
+					/* And off we go... */
+					mainloop();
+				}
 			}
 		}
 	}
