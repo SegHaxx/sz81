@@ -47,7 +47,6 @@ int amiga_open_libs(void)
 	}
 
 	strcpy(amiga_resource_file, "ENVARC:sz81.config");
-	strcpy(amiga_printer_file, "zxprinter.pbm");
 	strcpy(amiga_data_dir, "PROGDIR:save");
 
 	return(ret);
