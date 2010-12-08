@@ -115,9 +115,6 @@ For the Amiga:
     RESOURCEFILE=<sz81rc file> (default: ENVARC:sz81.config)
     USERDATA=<dir to save user data> (default: PROGDIR:save)
 
-    The below must be filename only and will be saved in the USERDATA dir:
-    ZXPRINTER=<pbm ouput file> (default: zxprinter.pbm)
-
     File Selector
     -------------
 

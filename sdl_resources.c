@@ -28,7 +28,6 @@
 #elif defined(__amigaos4__)
 	#define LOCAL_DATA_DIR amiga_data_dir
 	#define RESOURCE_FILE amiga_resource_file
-	#define ZXPRINTER_FILE amiga_printer_file
 #else
 	#define LOCAL_DATA_DIR ".sz81"
 	#define RESOURCE_FILE ".sz81rc"

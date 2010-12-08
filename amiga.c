@@ -112,11 +112,6 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 			 	strcpy(amiga_data_dir, s);
 			}
 
-			if((s = IIcon->FindToolType(toolarray,"ZXPRINTER")))
-			{
-			 	strcpy(amiga_printer_file, s);
-			}
-
 			IIcon->FreeDiskObject(dobj);
 		}
 
