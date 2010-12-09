@@ -223,11 +223,11 @@ void loadrom(void)
  * is simply copying the data into the ROM area afresh */
 if(zx80)
   {
-    memcpy(mem,sdl_zx80rom.data,4096);
+  memcpy(mem,sdl_zx80rom.data,4096);
   }
 else
   {
-    memcpy(mem,sdl_zx81rom.data,8192);
+  memcpy(mem,sdl_zx81rom.data,8192);
   }
 #else
 FILE *in;
@@ -318,11 +318,12 @@ for(f=0;f<16;f++)
   }
 
 /* RAM setup */
+#ifdef SZ81	/* Added by Thunor */
+ramsize=memory_size;
+#else
 ramsize=16;
 if(unexpanded)
   ramsize=1;
-#ifdef SZ81	/* Added by Thunor */
-ramsize=memory_size;
 #endif
 count=0;
 for(f=16;f<32;f++)
@@ -332,6 +333,74 @@ for(f=16;f<32;f++)
   count++;
   if(count>=ramsize) count=0;
   }
+
+#ifdef SZ81	/* Added by Thunor */
+/* z81's ROM and RAM initialisation code is OK for <= 16K RAM but beyond
+ * that it requires a little tweaking.
+ * 
+ * The following diagram shows the ZX81 + 8K ROM. The ZX80 version is
+ * the same except that each 8K ROM region will contain two copies of
+ * the 4K ROM.
+ * 
+ * RAM less than 16K is mirrored throughout the 16K region.
+ * 
+ * The ROM will only detect up to 8000h when setting RAMTOP, therefore
+ * having more than 16K RAM will require RAMTOP to be set by the user
+ * (or user program) to either 49152 for 32K or 65535 for 48/56K.
+ * 
+ *           1K to 16K       32K           48K           56K      Extra Info.
+ * 
+ *  65535  +----------+  +----------+  +----------+  +----------+ 
+ * (FFFFh) | 16K RAM  |  | 16K RAM  |  | 16K RAM  |  | 16K RAM  | DFILE can be
+ *         | mirrored |  | mirrored |  |          |  |          | wholly here.
+ *         |          |  |          |  |          |  |          | 
+ *         |          |  |          |  |          |  |          | BASIC variables
+ *         |          |  |          |  |          |  |          | can go here.
+ *  49152  +----------+  +----------+  +----------+  +----------+ 
+ * (C000h) | 8K ROM   |  | 16K RAM  |  | 16K RAM  |  | 16K RAM  | BASIC program
+ *         | mirrored |  |          |  |          |  |          | is restricted
+ *  40960  +----------+  |          |  |          |  |          | to here.
+ * (A000h) | 8K ROM   |  |          |  |          |  |          | 
+ *         | mirrored |  |          |  |          |  |          | 
+ *  32768  +----------+  +----------+  +----------+  +----------+ 
+ * (8000h) | 16K RAM  |  | 16K RAM  |  | 16K RAM  |  | 16K RAM  | No machine code
+ *         |          |  |          |  |          |  |          | beyond here.
+ *         |          |  |          |  |          |  |          | 
+ *         |          |  |          |  |          |  |          | DFILE can be
+ *         |          |  |          |  |          |  |          | wholly here.
+ *  16384  +----------+  +----------+  +----------+  +----------+ 
+ * (4000h) | 8K ROM   |  | 8K ROM   |  | 8K ROM   |  | 8K RAM   | 
+ *         | mirrored |  | mirrored |  | mirrored |  |          | 
+ *   8192  +----------+  +----------+  +----------+  +----------+ 
+ * (2000h) | 8K ROM   |  | 8K ROM   |  | 8K ROM   |  | 8K ROM   | 
+ *         |          |  |          |  |          |  |          | 
+ *      0  +----------+  +----------+  +----------+  +----------+ 
+ */
+
+switch(memory_size)
+  {
+  case 56:
+    memset(mem+0x2000,0,0x2000);	/* It wasn't wiped earlier */
+    for(f=8;f<16;f++)
+      {
+      memattr[f]=1;					/* It's now writable */
+      memptr[f]=mem+1024*f;
+      }
+  case 48:
+    for(f=48;f<64;f++)
+      {
+      memattr[f]=1;
+      memptr[f]=mem+1024*f;
+      }
+  case 32:
+    for(f=32;f<48;f++)
+      {
+      memattr[f]=1;
+      memptr[f]=mem+1024*f;
+      }
+    break;
+  }
+#endif
 
 if(zx80)
   zx80hacks();
@@ -882,7 +951,18 @@ if((in=fopen(fname,"rb"))==NULL)
 autoload=0;
 
 /* just read it all */
+#ifdef SZ81	/* Added by Thunor */
+if(zx80)
+  {
+  fread(mem+0x4000,1,0xC000,in);	/* Up to 48K */
+  }
+else
+  {
+  fread(mem+0x4009,1,0xC000-9,in);	/* Up to 48K */
+  }
+#else
 fread(mem+(zx80?0x4000:0x4009),1,16384,in);
+#endif
 
 fclose(in);
 
@@ -1592,48 +1672,20 @@ return(returned_filename);
 }
 
 #ifdef SZ81	/* Added by Thunor */
-void common_init(void) {
-	/* Reinitialise variables at the top of common.c
-	* that aren't settings being managed by sz81 */
-
-	/*help=0;	Thunor: redundant.
-	sound=0;
-	sound_vsync=sound_ay=0;
-	sound_ay_type=AY_TYPE_NONE;
-	load_hook=save_hook=1;
-	vsync_visuals=0;
-	invert_screen=0; */
-
-	signal_int_flag=0;
-	exit_program_flag=0;
-	interrupted=0;
-	nmigen=hsyncgen=vsync=0;
-
-	/*scrn_freq=2;	Thunor: redundant.
-	unexpanded=0;
-	taguladisp=0;
-	fakedispx=fakedispy=0;	/ set by main.c/xmain.c */
-
-	zxpframes=zxpcycles=zxpspeed=zxpnewspeed=0;
-	zxpheight=0;
-	zxppixel=-1;
-	zxpstylus=0;
-
-	/*static FILE *zxpfile=NULL;	Thunor: redundant.
-	char *zxpfilename=NULL;
-	static unsigned char zxpline[256];
-	load_selector_state = 0;
-	memory_size = 16;	/ z81 defaults to 16K */
-
-	refresh_screen=1;
-
-	/*zx80=0;	Thunor: redundant. */
-
-	ignore_esc=0;
-
-	/*autolist=0;	Thunor: redundant.
-	autoload=0;
-	char autoload_filename[1024]; */
+void common_init(void)
+{
+/* Reinitialise variables at the top of common.c
+ * that aren't being managed by sz81 */
+signal_int_flag=0;
+exit_program_flag=0;
+interrupted=0;
+nmigen=hsyncgen=vsync=0;
+zxpframes=zxpcycles=zxpspeed=zxpnewspeed=0;
+zxpheight=0;
+zxppixel=-1;
+zxpstylus=0;
+refresh_screen=1;
+ignore_esc=0;
 }
 #endif
 

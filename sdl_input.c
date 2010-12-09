@@ -1627,7 +1627,9 @@ void manage_all_input(void) {
 					if (!ignore_esc) {
 						reset81();
 
-						//interrupted = 3;	// temp temp
+						//zx80 ^= 1;		//temp temp
+						//memory_size = 56;	//temp temp
+						//interrupted = 3;	//temp temp This restarts mainloop().
 					}
 				}
 			}

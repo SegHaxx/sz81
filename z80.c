@@ -392,7 +392,6 @@ while(1)
     else if(interrupted==3)
       {
       zxpclose();		/* Close any open printer file */
-      sdl_reset();		/* Reset and reinitialise a few parts of sz81 */
       z80_init();		/* Reinitialise variables at the top of z80.c */
       common_init();	/* Reinitialise variables at the top of common.c */
       return;			/* Return to smain.c and do it all again */
@@ -415,16 +414,17 @@ while(1)
 }
 
 #ifdef SZ81	/* Added by Thunor */
-void z80_init(void) {
-	/* Reinitialise variables at the top of z80.c */
-	tstates=0;
-	frames=0;
-	liney=0;
-	vsy=0;
-	linestart=0;
-	vsync_toggle=0;
-	vsync_lasttoggle=0;
-	ay_reg=0;
+void z80_init(void)
+{
+/* Reinitialise variables at the top of z80.c */
+tstates=0;
+frames=0;
+liney=0;
+vsy=0;
+linestart=0;
+vsync_toggle=0;
+vsync_lasttoggle=0;
+ay_reg=0;
 }
 #endif
 

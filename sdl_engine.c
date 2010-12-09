@@ -253,6 +253,7 @@ int sdl_com_line_process(int argc, char *argv[]) {
 void component_executive(void) {
 	static int active_components = COMP_EMU;
 	static int ctrl_remapper_state = FALSE;
+	static int machine_type = FALSE;
 	int found = FALSE;
 	int count;
 	
@@ -303,8 +304,19 @@ void component_executive(void) {
 	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
 		ctrl_remapper.interval = ctrl_remapper.master_interval;
 
+	/* Monitor machine's type i.e. ZX80/ZX81 switching */
+	if (machine_type != zx80) {
+		keyboard_buffer_reset(TRUE);	/* This resets SHIFT too */
+		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+		/* Switch vkeybs: both are now preloaded, just requires scaling-up */
+		vkeyb_init();	
+		/* Initialise, resize and update the new hotspots */
+		hotspots_init();
+	}
+
 	/* Maintain a copy of current program component states  */
 	ctrl_remapper_state = ctrl_remapper.state;
+	machine_type = zx80;
 	active_components = 0;
 	if (sdl_emulator.state) {
 		active_components |= COMP_EMU;
@@ -432,38 +444,4 @@ void clean_up_before_exit(void) {
 
 	SDL_Quit();
 }
-
-/***************************************************************************
- * Reset                                                                   *
- ***************************************************************************/
-/* This resets and reinitialises the few parts of sz81 that require this
- * to support peripheral and machine type changes */
-
-void sdl_reset(void) {
-
-	//zx80 ^= 1;	// temp temp
-
-	/*switch (memory_size) {	 temp temp /
-		case 1:
-		case 2:
-		case 4:
-		case 8:
-		case 16:
-			memory_size *= 2;
-			break;
-		case 32:
-			memory_size = 48;
-			break;
-		case 48:
-			memory_size = 1;
-			break;
-	}
-	printf("%s: memory_size=%i\n", __func__, memory_size);	/ temp temp */
-
-	keyboard_buffer_reset(TRUE);
-	key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-	vkeyb_init();
-	hotspots_init();
-}
-
 

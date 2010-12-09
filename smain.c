@@ -207,7 +207,7 @@ for(y=0;y<8;y++)		/* 8 half-rows */
 #endif
 int main(int argc,char *argv[]) {
 	int retval = 0;
-	
+
 	#ifdef __amigaos4__
 		amiga_open_libs();
 	#endif

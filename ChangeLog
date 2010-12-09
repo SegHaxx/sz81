@@ -1,3 +1,7 @@
+2010-12-08 Thunor <thunorsif_at_hotmail.com>
+* Added support for (in addition to z81's 1K to 16K) 32K, 48K and 56K of
+  RAM. load_p now loads up to 48K instead of z81's 16K limit.
+
 2010-12-07 Thunor <thunorsif_at_hotmail.com>
 * Added support for a thorough runtime reinitialisation of z81 (sz81
   was tweaked a little). RAM and ROM changes have been tested to work.
