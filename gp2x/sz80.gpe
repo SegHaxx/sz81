@@ -1,9 +1,0 @@
-#!/bin/sh
-
-# This script executes the GP2X/Wiz binary emulating the ZX80.
-# 
-
-./sz81 -o 2>&1 > sz81log.txt
-sync
-cd /usr/gp2x
-exec ./gp2xmenu

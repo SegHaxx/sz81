@@ -31,7 +31,7 @@ char *runtime_options_text0[24] = {
 	"",
 	"Machine Type:",
 	"",
-	"  (\x1 ) ZX80  (\x1 ) ZX81",
+	"  (\x1 \x1) ZX80  (\x1 \x1) ZX81",
 	"",
 	"Memory\x90\x2<\x2\x85\x1  K\x90\x2>\x2\x85",
 	"",
@@ -47,7 +47,7 @@ char *runtime_options_text0[24] = {
 	"",
 	"",
 	"",
-	"",
+	"\x1 ",
 	"",
 	"",
 	"          Save    Exit   Next\x90\x2>\x2\x85"
@@ -56,21 +56,21 @@ char *runtime_options_text0[24] = {
 char *runtime_options_text1[24] = {
 	"\x2 Runtime Options            2/4 \x2",
 	"",
-	"Volume\x90\x2<\x2\x85\x1   \x90\x2>\x2\x85",
-	"",
 	"Sound Type:",
 	"",
-	"  (\x1 ) None",
+	"  (\x1 \x1) None",
 	"",
-	"  (\x1 ) Quicksilva Sound Board",
+	"  (\x1 \x1) AY Chip",
 	"",
-	"      (\x1 ) ACB Stereo",
+	"     (\x1 \x1) Quicksilva Sound Board",
 	"",
-	"  (\x1 ) BI-PAK ZON X-81",
+	"     (\x1 \x1) BI-PAK ZON X-81",
 	"",
-	"      (\x1 ) ACB Stereo",
+	"     (\x1 \x1) ACB Stereo",
 	"",
-	"  (\x1 ) VSYNC",
+	"  (\x1 \x1) VSYNC (TV Speaker)",
+	"",
+	"     (\x1 \x1) Stereo",
 	"",
 	"",
 	"",
@@ -216,7 +216,7 @@ int sdl_video_setmode(void) {
 	 * The hotspots will not have yet been initialised the very first
 	 * time here, but they will have been on subsequent visits and so a
 	 * check needs to be performed which will skip it on the first visit */
-	if (hotspots[HS_VKEYB_VKEYB].gid == HS_GRP_VKEYB) hotspots_resize();
+	if (hotspots[HS_VKEYB_VKEYB].gid == HS_GRP_VKEYB) hotspots_resize(HS_GRP_ALL);
 
 	/* Prepare to redraw everything */
 	video.redraw = TRUE;
@@ -452,7 +452,24 @@ void sdl_video_update(void) {
 					}
 				} while (text[0] == 2);
 				if (text[0] == 1) {
+					text[0] = 0;	/* Erase it as we might put a value in it */
 					if (runtime_options[0].state) {
+						/* The colour inversion here is conditional and so there are
+						 * two \x1's embedded within the text. The first \x1 will
+						 * always draw a char which may be colour inverted, and the
+						 * second \x1 will revert the colour if it was inverted */
+						if (count >= 0 && count <= 3) {
+							if (count == 0 || count == 2) strcpy(text, "O");
+							if ((count <= 1 && runopts_zx80) || 
+								(count >= 2 && !runopts_zx80)) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count == 7) {		
+							if (runopts_reset_scheduled)
+								strcpy(text, "A reset is scheduled on save.");
+						}
 					} else if (runtime_options[1].state) {
 					} else if (runtime_options[2].state) {
 						if (count == 0) {
@@ -1092,7 +1109,7 @@ void set_joy_cfg_text(int textid) {
 	if (runtime_options[3].state) {	/* No point if you can't see it */
 		if (joystick) {
 			/* Locate currently selected hotspot for group RUNOPTS3 */
-			hs_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
+			hs_selected = get_selected_hotspot(HS_GRP_RUNOPTS3);
 			/* Is one of the joycfg hotspots selected? */
 			if (hs_selected >= HS_RUNOPTS3_JOY_CFG_LTRIG &&
 				hs_selected <= HS_RUNOPTS3_JOY_CFG_X) {

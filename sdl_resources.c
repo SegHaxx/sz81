@@ -139,13 +139,14 @@ void sdl_rcfile_read(void) {
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
-	int read_joystick_dead_zone;
-	int read_sound_volume;
-	char read_version[16];
 	int count, index, line_count;
+	int read_joystick_dead_zone;
+	char read_version[16];
+	int read_sound_volume;
+	int read_zx80;
 	int found;
 	FILE *fp;
-	
+
 	#if defined(PLATFORM_GP2X)
 		/* If used, the load selector can change the working directory
 		 * and this affects relatively referenced files.
@@ -177,7 +178,8 @@ void sdl_rcfile_read(void) {
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
 	read_sound_volume = UNDEFINED;
-	
+	read_zx80 = UNDEFINED;
+
 	/* Undefine everything within read_colours */
 	read_colours.emu_fg = UNDEFINED;
 	read_colours.emu_bg = UNDEFINED;
@@ -235,6 +237,10 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "sound.volume=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_sound_volume);
+			}
+			strcpy(key, "zx80=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_zx80);
 			}
 			/* Colours */
 			strcpy(key, "colour.emu_fg=");
@@ -379,6 +385,7 @@ void sdl_rcfile_read(void) {
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
 		printf("read_sound_volume=%i\n", read_sound_volume);
+		printf("read_zx80=%i\n", read_zx80);
 		printf("read_colours.emu_fg=%06x\n", read_colours.emu_fg);
 		printf("read_colours.emu_bg=%06x\n", read_colours.emu_bg);
 		printf("read_colours.hs_load_selected=%06x\n", read_colours.hs_load_selected);
@@ -447,6 +454,15 @@ void sdl_rcfile_read(void) {
 				sdl_sound.volume = read_sound_volume;
 			} else {
 				fprintf(stderr, "%s: sound.volume within rcfile is invalid: try 0 to 128\n",
+					__func__);
+			}
+		}
+		/* Machine type (zx80) */
+		if (read_zx80 != UNDEFINED) {
+			if (read_zx80 >= 0 && read_zx80 <= 1) {
+				zx80 = read_zx80;
+			} else {
+				fprintf(stderr, "%s: zx80 within rcfile is invalid: try 0 to 1\n",
 					__func__);
 			}
 		}
@@ -546,6 +562,7 @@ void rcfile_write(void) {
 	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
 	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
+	fprintf(fp, "zx80=%i\n", zx80);
 	fprintf(fp, "\n");
 
 	fprintf(fp, "colour.emu_fg=%06x\n", colours.emu_fg);

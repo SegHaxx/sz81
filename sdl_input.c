@@ -64,15 +64,8 @@
 /* Variables */
 int device, id, mod_id, state;
 int last_runopts_comp = COMP_RUNOPTS0;
-int hs_load_selected, hs_vkeyb_ctb_selected;
-int hs_runopts0_selected, hs_runopts1_selected;
-int hs_runopts2_selected, hs_runopts3_selected;
 SDL_Event event, virtualevent;
 struct MSG_Box msg_box;
-struct keyrepeat runopts_key_repeat;
-Uint32 runopts_colours_emu_fg;
-Uint32 runopts_colours_emu_bg;
-int runopts_joystick_dead_zone;
 int runopts_joy_cfg_id[12];
 
 char *keysyms[] = {
@@ -177,6 +170,11 @@ void keyboard_init(void) {
 		fprintf(stdout, "Joystick opened: 0:%s\n", SDL_JoystickName(0));
 		/* Flush events as opening a joystick releases all the buttons */
 		while (SDL_PollEvent (&event));
+		#ifdef SDL_DEBUG_JOYSTICK
+			printf("%s: SDL_JoystickNumAxes=%i SDL_JoystickNumButtons=%i\n",
+				__func__, SDL_JoystickNumAxes(joystick),
+				SDL_JoystickNumButtons(joystick));
+		#endif
 	}
 
 	/* Set some default controls for platform */
@@ -753,6 +751,8 @@ int keyboard_update(void) {
 	static int skip_update = TRUE, last_hs_pressed[2];
 	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
 	int eventfound = FALSE, count, found;
+	int hs_vkeyb_ctb_selected;
+	int hs_runopts_selected;
 	int axis_end = 0;
 	SDLMod modstate;
 	#ifdef SDL_DEBUG_TIMING
@@ -894,6 +894,10 @@ int keyboard_update(void) {
 					 *   SDL_JOYBUTTONDOWN - one axis end to another axis end with the
 					 *   opposite end generating SDL_JOYBUTTONUP
 					 *   SDL_JOYBUTTONUP - any axis end to the middle */
+					#ifdef SDL_DEBUG_JOYSTICK
+						printf("%s: axis=%i value=%i\n", __func__,
+							event.jaxis.axis, event.jaxis.value);
+					#endif
 					if (abs(event.jaxis.value) >= JOYDEADZONE) {
 						/* Identify which end of the axis we are operating upon:
 						 * 0 for -32768 to JOYDEADZONE, 1 for JOYDEADZONE to +32767 */
@@ -1123,15 +1127,15 @@ int keyboard_update(void) {
 							message_box_manager(MSG_BOX_SHOW, &msg_box);
 						} else if (runtime_options[3].state) {
 							/* Locate currently selected hotspot for group RUNOPTS3 */
-							hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
+							hs_runopts_selected = get_selected_hotspot(HS_GRP_RUNOPTS3);
 							if (device == DEVICE_JOYSTICK) {
 								/* Store id for later use within runopts-transit when saving */
-								runopts_joy_cfg_id[hs_runopts3_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = id;
+								runopts_joy_cfg_id[hs_runopts_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = id;
 								/* Update the joycfg text */
 								set_joy_cfg_text(JOY_CFG_TEXT_ACCEPTED);
 							} else {
 								/* Set id to UNDEFINED */
-								runopts_joy_cfg_id[hs_runopts3_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = UNDEFINED;
+								runopts_joy_cfg_id[hs_runopts_selected - HS_RUNOPTS3_JOY_CFG_LTRIG] = UNDEFINED;
 								/* Update the joycfg text */
 								set_joy_cfg_text(JOY_CFG_TEXT_CANCELLED);
 							}
@@ -1158,25 +1162,32 @@ int keyboard_update(void) {
  * joypad buttons doesn't relate to the array indices */
 
 void manage_cursor_input(void) {
+	int hs_currently_selected = 0;
+	
 	if (device == DEVICE_CURSOR) {
-		/* Locate currently selected hotspot for group LOAD */
+
+		/* Locate currently selected hotspot for active component (there can be only one) */
+		if (get_active_component() == COMP_LOAD) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
+		} else if (get_active_component() == COMP_VKEYB ||
+			get_active_component() == COMP_CTB) {
+			if ((hs_currently_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
+				hs_currently_selected = get_selected_hotspot(HS_GRP_CTB);
+		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
+		}
+
+		/* Locate currently selected hotspot for group LOAD / Redundant.
 		hs_load_selected = get_selected_hotspot(HS_GRP_LOAD);
 
-		/* Locate currently selected hotspot for group VKEYB + CTB */
+		/ Locate currently selected hotspot for group VKEYB + CTB /
 		if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
 			hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
 
-		/* Locate currently selected hotspot for group RUNOPTS0 */
-		hs_runopts0_selected = get_selected_hotspot(HS_GRP_RUNOPT0);
-
-		/* Locate currently selected hotspot for group RUNOPTS1 */
-		hs_runopts1_selected = get_selected_hotspot(HS_GRP_RUNOPT1);
-
-		/* Locate currently selected hotspot for group RUNOPTS2 */
-		hs_runopts2_selected = get_selected_hotspot(HS_GRP_RUNOPT2);
-
-		/* Locate currently selected hotspot for group RUNOPTS3 */
-		hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
+		/ Locate currently selected hotspot for group RUNOPTSx /
+		if (runtime_options_which() < MAX_RUNTIME_OPTIONS)
+			hs_runopts_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 + runtime_options_which());
+		*/
 
 		/* Process the events */
 		if (state == SDL_PRESSED) {
@@ -1188,39 +1199,34 @@ void manage_cursor_input(void) {
 				virtualevent.type = SDL_MOUSEBUTTONDOWN;
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
-				if (load_selector_state) {
-					virtualevent.button.x = hotspots[hs_load_selected].hit_x +
-						hotspots[hs_load_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_load_selected].hit_y +
-						hotspots[hs_load_selected].hit_h / 2;
+				if (load_selector_state || vkeyb.state ||
+					(runtime_options_which() < MAX_RUNTIME_OPTIONS)) {
+					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
+						hotspots[hs_currently_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
+						hotspots[hs_currently_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} else if (vkeyb.state) {
-					virtualevent.button.x = hotspots[hs_vkeyb_ctb_selected].hit_x +
-						hotspots[hs_vkeyb_ctb_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_vkeyb_ctb_selected].hit_y +
-						hotspots[hs_vkeyb_ctb_selected].hit_h / 2;
+				} /*else if (vkeyb.state) {	Redundant: duplicated.
+					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
+						hotspots[hs_currently_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
+						hotspots[hs_currently_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} else if (runtime_options[2].state) {
-					virtualevent.button.x = hotspots[hs_runopts2_selected].hit_x +
-						hotspots[hs_runopts2_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_runopts2_selected].hit_y +
-						hotspots[hs_runopts2_selected].hit_h / 2;
+				} else if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
+					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
+						hotspots[hs_currently_selected].hit_w / 2;
+					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
+						hotspots[hs_currently_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} else if (runtime_options[3].state) {
-					virtualevent.button.x = hotspots[hs_runopts3_selected].hit_x +
-						hotspots[hs_runopts3_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_runopts3_selected].hit_y +
-						hotspots[hs_runopts3_selected].hit_h / 2;
-					SDL_PushEvent(&virtualevent);
-				}
+				}*/
 			} else if (id == CURSOR_REMAP) {
 				/* Initiate joystick control remapping if a joystick is present */
 				if (joystick) {
 					if (vkeyb.state) {
 						ctrl_remapper.state = TRUE;
 					} else if (runtime_options[3].state) {
-						if (hs_runopts3_selected >= HS_RUNOPTS3_JOY_CFG_LTRIG &&
-							hs_runopts3_selected <= HS_RUNOPTS3_JOY_CFG_X) {
+						if (hs_currently_selected >= HS_RUNOPTS3_JOY_CFG_LTRIG &&
+							hs_currently_selected <= HS_RUNOPTS3_JOY_CFG_X) {
 							/* Activate the control remapper and joycfg */
 							ctrl_remapper.state = joy_cfg.state = TRUE;
 							/* Update the joycfg text */
@@ -1232,80 +1238,94 @@ void manage_cursor_input(void) {
 				/* Move the selector up */
 				if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
-					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
-						hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
-						hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected >= HS_CTB_EXIT && 
+						hs_currently_selected <= HS_CTB_ALPHA_UP) {
+						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected == HS_CTB_RUNOPTS) {
+					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
 						hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 &&
-						hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 6) {
-						hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
+					} else if (hs_currently_selected >= HS_VKEYB_1 &&
+						hs_currently_selected <= HS_VKEYB_1 + 6) {
+						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_1 + 7 &&
-						hs_vkeyb_ctb_selected <= HS_VKEYB_1 + 8) {
-						hotspots[HS_VKEYB_SHIFT + hs_vkeyb_ctb_selected -
+					} else if (hs_currently_selected >= HS_VKEYB_1 + 7 &&
+						hs_currently_selected <= HS_VKEYB_1 + 8) {
+						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
 							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9) {
+					} else if (hs_currently_selected == HS_VKEYB_1 + 9) {
 						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_Q) {
-						hotspots[hs_vkeyb_ctb_selected - 10].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_VKEYB_Q) {
+						hotspots[hs_currently_selected - 10].flags |= HS_PROP_SELECTED;
+					}
+				} else if (runtime_options[0].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_N);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
+						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
+						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_EXIT) {
+						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
-					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_DN) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_DN) {
 						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_UP) {
+					} else if (hs_currently_selected == HS_RUNOPTS2_VOLUME_UP) {
 						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_KRDELAY_DN &&
-						hs_runopts2_selected <= HS_RUNOPTS2_FGC_R_DN) {
-						hotspots[hs_runopts2_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_R_UP &&
-						hs_runopts2_selected <= HS_RUNOPTS2_BGC_R_DN) {
-						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_SAVE) {
-						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_BGC_R_UP &&
-						hs_runopts2_selected <= HS_RUNOPTS2_EXIT) {
-						hotspots[hs_runopts2_selected - 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
-						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_KRDELAY_DN &&
+						hs_currently_selected <= HS_RUNOPTS2_FGC_R_DN) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_R_UP &&
+						hs_currently_selected <= HS_RUNOPTS2_BGC_R_DN) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_SAVE) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_BGC_R_UP &&
+						hs_currently_selected <= HS_RUNOPTS2_EXIT) {
+						hotspots[hs_currently_selected - 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_N);
-					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_DN) {
 						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_BACK) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_BACK) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_SAVE) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_SAVE) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_EXIT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_A ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_UP) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_Y) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
 						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
 						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
 					}
 				}
@@ -1313,80 +1333,93 @@ void manage_cursor_input(void) {
 				/* Move the selector down */
 				if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_S);
-					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT &&
-						hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 6) {
-						hotspots[HS_CTB_EXIT + hs_vkeyb_ctb_selected -
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected >= HS_VKEYB_SHIFT &&
+						hs_currently_selected <= HS_VKEYB_SHIFT + 6) {
+						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected >= HS_VKEYB_SHIFT + 7 &&
-						hs_vkeyb_ctb_selected <= HS_VKEYB_SHIFT + 8) {
-						hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
+					} else if (hs_currently_selected >= HS_VKEYB_SHIFT + 7 &&
+						hs_currently_selected <= HS_VKEYB_SHIFT + 8) {
+						hotspots[HS_VKEYB_1 + hs_currently_selected -
 							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
+					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 9) {
 						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected >= HS_CTB_EXIT && 
-						hs_vkeyb_ctb_selected <= HS_CTB_ALPHA_UP) {
-						hotspots[HS_VKEYB_1 + hs_vkeyb_ctb_selected -
+					} else if (hs_currently_selected >= HS_CTB_EXIT && 
+						hs_currently_selected <= HS_CTB_ALPHA_UP) {
+						hotspots[HS_VKEYB_1 + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected == HS_CTB_RUNOPTS) {
+					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
 						hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
-					} else if (hs_vkeyb_ctb_selected <= HS_VKEYB_A + 9) {
-						hotspots[hs_vkeyb_ctb_selected + 10].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected <= HS_VKEYB_A + 9) {
+						hotspots[hs_currently_selected + 10].flags |= HS_PROP_SELECTED;
+					}
+				} else if (runtime_options[0].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_S);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS0_SAVE ||
+						hs_currently_selected == HS_RUNOPTS0_EXIT) {
+						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
+						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_S);
-					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts2_selected == HS_RUNOPTS2_SAVE ||
-						hs_runopts2_selected == HS_RUNOPTS2_EXIT) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS2_SAVE ||
+						hs_currently_selected == HS_RUNOPTS2_EXIT) {
 						hotspots[HS_RUNOPTS2_VOLUME_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
+					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
 						hotspots[HS_RUNOPTS2_VOLUME_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_BGC_B_DN &&
-						hs_runopts2_selected <= HS_RUNOPTS2_BGC_B_UP) {
+					} else if (hs_currently_selected >= HS_RUNOPTS2_BGC_B_DN &&
+						hs_currently_selected <= HS_RUNOPTS2_BGC_B_UP) {
 						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_B_DN && 
-						hs_runopts2_selected <= HS_RUNOPTS2_FGC_B_UP) {
+					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_B_DN && 
+						hs_currently_selected <= HS_RUNOPTS2_FGC_B_UP) {
 						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_FGC_R_DN && 
-						hs_runopts2_selected <= HS_RUNOPTS2_BGC_G_UP) {
-						hotspots[hs_runopts2_selected + 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
-						hotspots[hs_runopts2_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected >= HS_RUNOPTS2_VOLUME_DN && 
-						hs_runopts2_selected <= HS_RUNOPTS2_KRINTERVAL_DN) {
-						hotspots[hs_runopts2_selected + 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_R_DN && 
+						hs_currently_selected <= HS_RUNOPTS2_BGC_G_UP) {
+						hotspots[hs_currently_selected + 4].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_VOLUME_DN && 
+						hs_currently_selected <= HS_RUNOPTS2_KRINTERVAL_DN) {
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_S);
-					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts3_selected == HS_RUNOPTS3_BACK ||
-						hs_runopts3_selected == HS_RUNOPTS3_SAVE) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS3_BACK ||
+						hs_currently_selected == HS_RUNOPTS3_SAVE) {
 						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_EXIT) {
 						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_DN) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_UP) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_Y) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LEFT ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_A ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					}
 				}
@@ -1394,142 +1427,162 @@ void manage_cursor_input(void) {
 				/* Move the selector left */
 				if (load_selector_state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_W);
-					hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
-					if (--hs_load_selected < HS_LOAD_Q) hs_load_selected = HS_LOAD_SPACE;
-					hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (--hs_currently_selected < HS_LOAD_Q) hs_currently_selected = HS_LOAD_SPACE;
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
-					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-					if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
-						if (--hs_vkeyb_ctb_selected < HS_CTB_EXIT)
-							hs_vkeyb_ctb_selected = HS_CTB_RUNOPTS;
-						hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hotspots[hs_currently_selected].gid == HS_GRP_CTB) {
+						if (--hs_currently_selected < HS_CTB_EXIT)
+							hs_currently_selected = HS_CTB_RUNOPTS;
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 					} else {
-						if (hs_vkeyb_ctb_selected == HS_VKEYB_1 ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_Q ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_A ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT) {
-							hotspots[hs_vkeyb_ctb_selected + 9].flags |= HS_PROP_SELECTED;
+						if (hs_currently_selected == HS_VKEYB_1 ||
+							hs_currently_selected == HS_VKEYB_Q ||
+							hs_currently_selected == HS_VKEYB_A ||
+							hs_currently_selected == HS_VKEYB_SHIFT) {
+							hotspots[hs_currently_selected + 9].flags |= HS_PROP_SELECTED;
 						} else {
-							hotspots[--hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+							hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
 						}
+					}
+				} else if (runtime_options[0].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_W);
-					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_DN || 
-						hs_runopts2_selected == HS_RUNOPTS2_KRDELAY_DN ||
-						hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_DN) {
-						hotspots[hs_runopts2_selected + 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_FGC_R_DN || 
-						hs_runopts2_selected == HS_RUNOPTS2_FGC_G_DN ||
-						hs_runopts2_selected == HS_RUNOPTS2_FGC_B_DN) {
-						hotspots[hs_runopts2_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_SAVE) {
-						hotspots[hs_runopts2_selected + 2].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_DN || 
+						hs_currently_selected == HS_RUNOPTS2_KRDELAY_DN ||
+						hs_currently_selected == HS_RUNOPTS2_KRINTERVAL_DN) {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_FGC_R_DN || 
+						hs_currently_selected == HS_RUNOPTS2_FGC_G_DN ||
+						hs_currently_selected == HS_RUNOPTS2_FGC_B_DN) {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_SAVE) {
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else { 
-						hotspots[--hs_runopts2_selected].flags |= HS_PROP_SELECTED;
+						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_W);
-					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_DN) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_DN) {
 						hotspots[HS_RUNOPTS3_JDEADZ_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_UP ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_Y ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_DOWN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_A) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_BACK) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_BACK) {
 						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[--hs_runopts3_selected].flags |= HS_PROP_SELECTED;
+						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_E) {
 				/* Move the selector right */
 				if (load_selector_state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_E);
-					hotspots[hs_load_selected].flags &= ~HS_PROP_SELECTED;
-					if (++hs_load_selected > HS_LOAD_SPACE) hs_load_selected = HS_LOAD_Q;
-					hotspots[hs_load_selected].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (++hs_currently_selected > HS_LOAD_SPACE) hs_currently_selected = HS_LOAD_Q;
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
-					hotspots[hs_vkeyb_ctb_selected].flags &= ~HS_PROP_SELECTED;
-					if (hotspots[hs_vkeyb_ctb_selected].gid == HS_GRP_CTB) {
-						if (++hs_vkeyb_ctb_selected > HS_CTB_RUNOPTS)
-							hs_vkeyb_ctb_selected = HS_CTB_EXIT;
-						hotspots[hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hotspots[hs_currently_selected].gid == HS_GRP_CTB) {
+						if (++hs_currently_selected > HS_CTB_RUNOPTS)
+							hs_currently_selected = HS_CTB_EXIT;
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 					} else {
-						if (hs_vkeyb_ctb_selected == HS_VKEYB_1 + 9 ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_Q + 9 ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_A + 9 ||
-							hs_vkeyb_ctb_selected == HS_VKEYB_SHIFT + 9) {
-							hotspots[hs_vkeyb_ctb_selected - 9].flags |= HS_PROP_SELECTED;
+						if (hs_currently_selected == HS_VKEYB_1 + 9 ||
+							hs_currently_selected == HS_VKEYB_Q + 9 ||
+							hs_currently_selected == HS_VKEYB_A + 9 ||
+							hs_currently_selected == HS_VKEYB_SHIFT + 9) {
+							hotspots[hs_currently_selected - 9].flags |= HS_PROP_SELECTED;
 						} else {
-							hotspots[++hs_vkeyb_ctb_selected].flags |= HS_PROP_SELECTED;
+							hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
 						}
+					}
+				} else if (runtime_options[0].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_E);
-					hotspots[hs_runopts2_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts2_selected == HS_RUNOPTS2_VOLUME_UP || 
-						hs_runopts2_selected == HS_RUNOPTS2_KRDELAY_UP ||
-						hs_runopts2_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
-						hotspots[hs_runopts2_selected - 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_BGC_R_UP || 
-						hs_runopts2_selected == HS_RUNOPTS2_BGC_G_UP ||
-						hs_runopts2_selected == HS_RUNOPTS2_BGC_B_UP) {
-						hotspots[hs_runopts2_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts2_selected == HS_RUNOPTS2_NEXT) {
-						hotspots[hs_runopts2_selected - 2].flags |= HS_PROP_SELECTED;
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_UP || 
+						hs_currently_selected == HS_RUNOPTS2_KRDELAY_UP ||
+						hs_currently_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_BGC_R_UP || 
+						hs_currently_selected == HS_RUNOPTS2_BGC_G_UP ||
+						hs_currently_selected == HS_RUNOPTS2_BGC_B_UP) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_runopts2_selected].flags |= HS_PROP_SELECTED;
+						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_E);
-					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_runopts3_selected == HS_RUNOPTS3_JDEADZ_UP) {
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_UP) {
 						hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_UP ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_UP ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_RIGHT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_Y ||
-						hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_X) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_Y ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_B].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_LEFT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_RIGHT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_SELECT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_START].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_START) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_A].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_A) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_A) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_Y].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_JOY_CFG_B) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_LEFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_runopts3_selected == HS_RUNOPTS3_EXIT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_EXIT) {
 						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_runopts3_selected].flags |= HS_PROP_SELECTED;
+						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
 				}
 			}
@@ -1626,10 +1679,8 @@ void manage_all_input(void) {
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {
 						reset81();
-
-						//zx80 ^= 1;		//temp temp
-						//memory_size = 56;	//temp temp
-						//interrupted = 3;	//temp temp This restarts mainloop().
+						/*memory_size = 56;
+						interrupted = 3;	temp temp */
 					}
 				}
 			}
@@ -1748,6 +1799,7 @@ void manage_vkeyb_input(void) {
  * of the runtime options pages is currently active */
 
 void manage_runopts_input(void) {
+	int hs_currently_selected;
 	int amount, index;
 	
 	/* Note that I'm currently ignoring modifier states */
@@ -1775,7 +1827,24 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
-			if (runtime_options[2].state) {
+			if (runtime_options[0].state) {
+				/* Machine types ZX80 and ZX81 */
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_HOME) {
+						runopts_zx80 = TRUE;
+					} else {
+						runopts_zx80 = FALSE;
+					}
+					/* Flag this as requiring a reset if changed */
+					if (runopts_zx80 != zx80) {
+						runopts_reset_scheduled |= 
+							(1 << (HS_RUNOPTS0_ZX80 - HS_RUNOPTS0_RUNOPTS0));
+					} else {
+						runopts_reset_scheduled &= 
+							~(1 << (HS_RUNOPTS0_ZX80 - HS_RUNOPTS0_RUNOPTS0));
+					}
+				}
+			} else if (runtime_options[2].state) {
 				/* Key repeat delay < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -1894,8 +1963,8 @@ void manage_runopts_input(void) {
 					 * (unlikely) pressing a to l, so the selector is moved to
 					 * the hit hotspot */
 					/* Locate currently selected hotspot for group RUNOPTS3 */
-					hs_runopts3_selected = get_selected_hotspot(HS_GRP_RUNOPT3);
-					hotspots[hs_runopts3_selected].flags &= ~HS_PROP_SELECTED;
+					hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS3);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					hotspots[HS_RUNOPTS3_JOY_CFG_LTRIG + id - SDLK_a].flags |= HS_PROP_SELECTED;
 					/* Simulate a control remapper press */
 					device = DEVICE_CURSOR; id = CURSOR_REMAP;
@@ -1909,15 +1978,29 @@ void manage_runopts_input(void) {
 /***************************************************************************
  * Runtime Options Transit                                                 *
  ***************************************************************************/
-/* This system differs from previous options systems I've written in that the
- * real variables (not copies) are modified but restored on exit if not saved.
- * This enables the user to preview the changes and is especially useful for
- * colour adjustment */
+/* There are two systems in operation here:
+ *   Real variables (not copies) that are being updated live i.e. previewed.
+ *   Copies of real variables that will update the real variables on save.
+ * 
+ * Changing the colours actually changes the real variables live, so when the
+ * user saves there is nothing to do since the real variables have already been
+ * updated, but if save wasn't selected then the original values must be restored
+ * on exit.
+ * 
+ * Changing the machine type changes a copy of the real variable and the real
+ * variable will be updated from the copy on save. If the user doesn't save then
+ * no further action needs to be taken; the copy is simply discarded.
+ * 
+ */
 
 void runopts_transit(int state) {
 	static int last_state = TRANSIT_OUT;
-	int count, index, ctrl, found, components;
+	static struct keyrepeat runopts_key_repeat;
+	static Uint32 runopts_colours_emu_fg;
+	static Uint32 runopts_colours_emu_bg;
+	static int runopts_joystick_dead_zone;
 	int protected, remap_device, remap_id, remap_mod_id;
+	int count, index, ctrl, found, components;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -1933,6 +2016,8 @@ void runopts_transit(int state) {
 		/* Initialise copies of the variables modifiable within runopts.
 		 * Sound volume isn't included because it's always available for 
 		 * adjustment throughout the program i.e. it's live */
+		runopts_reset_scheduled = 0;
+		runopts_zx80 = zx80;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2172,6 +2257,12 @@ void runopts_transit(int state) {
 					}
 				}
 			}
+		}
+		/* Manage changing the machine type */
+		if (runopts_zx80 != zx80) {
+			/* The component_executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			zx80 = runopts_zx80;
 		}
 	}
 

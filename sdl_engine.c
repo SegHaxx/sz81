@@ -253,7 +253,7 @@ int sdl_com_line_process(int argc, char *argv[]) {
 void component_executive(void) {
 	static int active_components = COMP_EMU;
 	static int ctrl_remapper_state = FALSE;
-	static int machine_type = FALSE;
+	static int zx80_state = FALSE;
 	int found = FALSE;
 	int count;
 	
@@ -289,13 +289,6 @@ void component_executive(void) {
 		found = TRUE;
 	}
 
-	if (found) {
-		keyboard_buffer_reset(FALSE);
-		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-		/* Update hotspot states */
-		hotspots_update();
-	}
-
 	/* Monitor control remapper's state */ 
 	if (ctrl_remapper_state != ctrl_remapper.state) {
 		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
@@ -305,18 +298,26 @@ void component_executive(void) {
 		ctrl_remapper.interval = ctrl_remapper.master_interval;
 
 	/* Monitor machine's type i.e. ZX80/ZX81 switching */
-	if (machine_type != zx80) {
-		keyboard_buffer_reset(TRUE);	/* This resets SHIFT too */
+	if (zx80_state != zx80) {
+		/* Change the virtual keyboard */
+		vkeyb_init();
+		/* Resize vkeyb hotspots only */
+		hotspots_resize(HS_GRP_VKEYB);
+		/* Restart mainloop() on return */
+		interrupted = 3;
+		found = TRUE;
+	}
+
+	if (found) {
+		keyboard_buffer_reset(FALSE);
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-		/* Switch vkeybs: both are now preloaded, just requires scaling-up */
-		vkeyb_init();	
-		/* Initialise, resize and update the new hotspots */
-		hotspots_init();
+		/* Update hotspot states */
+		hotspots_update();
 	}
 
 	/* Maintain a copy of current program component states  */
 	ctrl_remapper_state = ctrl_remapper.state;
-	machine_type = zx80;
+	zx80_state = zx80;
 	active_components = 0;
 	if (sdl_emulator.state) {
 		active_components |= COMP_EMU;

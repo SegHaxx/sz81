@@ -20,9 +20,8 @@ if test -a VERSION ; then
 				cp data/* ${TARGET}_${VERSION}_${TOOLCHAIN}/${PACKAGE_DATA_DIR}
 				cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_${TOOLCHAIN}/games
 
-				cp icon-zx80-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/sz80.png
-				cp icon-zx81-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/${TARGET}.png
-				cp ${TARGET} gp2x/*.gpe ${TARGET}_${VERSION}_${TOOLCHAIN}
+				cp icon-${TARGET}-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/${TARGET}.png
+				cp ${TARGET} gp2x/${TARGET}.gpe ${TARGET}_${VERSION}_${TOOLCHAIN}
 
 				# The openwiz build requires libiconv.
 				if [[ "${TOOLCHAIN}" == "openwiz" ]] ; then
