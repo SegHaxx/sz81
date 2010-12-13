@@ -1,6 +1,10 @@
+2010-12-13 Thunor <thunorsif_at_hotmail.com>
+* Added vkeyb autohide, toggle_shift and alpha to the rcfile.
+* Added invert screen to the rcfile.
+
 2010-12-12 Thunor <thunorsif_at_hotmail.com>
-* Added machine type switching to the runtime options.
-* Added machine type to the rcfile.
+* Added machine model switching to the runtime options.
+* Added machine model to the rcfile.
 
 2010-12-08 Thunor <thunorsif_at_hotmail.com>
 * Added support for (in addition to z81's 1K to 16K) 32K, 48K and 56K of

@@ -69,7 +69,8 @@ for(y=0;y<ZX_VID_VGA_HEIGHT;y++)
     
     if(d!=*optr || refresh_screen)
       {
-      if(invert_screen)
+      /*if(invert_screen)	Thunor: Redundant */
+      if(sdl_emulator.invert)	/* Added by Thunor */
         d=~d;
       for(a=0,mask=128;a<8;a++,mask>>=1)
         vptr[y*320+x+a]=((d&mask)?0:15);

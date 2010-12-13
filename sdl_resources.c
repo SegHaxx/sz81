@@ -139,12 +139,12 @@ void sdl_rcfile_read(void) {
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
-	int count, index, line_count;
+	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
+	int read_emulator_invert, read_emulator_model;
+	int count, index, line_count, found;
 	int read_joystick_dead_zone;
 	char read_version[16];
 	int read_sound_volume;
-	int read_zx80;
-	int found;
 	FILE *fp;
 
 	#if defined(PLATFORM_GP2X)
@@ -178,7 +178,11 @@ void sdl_rcfile_read(void) {
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
 	read_sound_volume = UNDEFINED;
-	read_zx80 = UNDEFINED;
+	read_emulator_model = UNDEFINED;
+	read_emulator_invert = UNDEFINED;
+	read_vkeyb_alpha = UNDEFINED;
+	read_vkeyb_autohide = UNDEFINED;
+	read_vkeyb_toggle_shift = UNDEFINED;
 
 	/* Undefine everything within read_colours */
 	read_colours.emu_fg = UNDEFINED;
@@ -238,9 +242,25 @@ void sdl_rcfile_read(void) {
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_sound_volume);
 			}
-			strcpy(key, "zx80=");
+			strcpy(key, "emulator.model=");
 			if (!strncmp(line, key, strlen(key))) {
-				sscanf(&line[strlen(key)], "%i", &read_zx80);
+				sscanf(&line[strlen(key)], "%i", &read_emulator_model);
+			}
+			strcpy(key, "emulator.invert=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_emulator_invert);
+			}
+			strcpy(key, "vkeyb.alpha=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_vkeyb_alpha);
+			}
+			strcpy(key, "vkeyb.autohide=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_vkeyb_autohide);
+			}
+			strcpy(key, "vkeyb.toggle_shift=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_vkeyb_toggle_shift);
 			}
 			/* Colours */
 			strcpy(key, "colour.emu_fg=");
@@ -385,7 +405,11 @@ void sdl_rcfile_read(void) {
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
 		printf("read_sound_volume=%i\n", read_sound_volume);
-		printf("read_zx80=%i\n", read_zx80);
+		printf("read_emulator_model=%i\n", read_emulator_model);
+		printf("read_emulator_invert=%i\n", read_emulator_invert);
+		printf("read_vkeyb_alpha=%i\n", read_vkeyb_alpha);
+		printf("read_vkeyb_autohide=%i\n", read_vkeyb_autohide);
+		printf("read_vkeyb_toggle_shift=%i\n", read_vkeyb_toggle_shift);
 		printf("read_colours.emu_fg=%06x\n", read_colours.emu_fg);
 		printf("read_colours.emu_bg=%06x\n", read_colours.emu_bg);
 		printf("read_colours.hs_load_selected=%06x\n", read_colours.hs_load_selected);
@@ -457,12 +481,48 @@ void sdl_rcfile_read(void) {
 					__func__);
 			}
 		}
-		/* Machine type (zx80) */
-		if (read_zx80 != UNDEFINED) {
-			if (read_zx80 >= 0 && read_zx80 <= 1) {
-				zx80 = read_zx80;
+		/* Machine model */
+		if (read_emulator_model != UNDEFINED) {
+			if (read_emulator_model >= 0 && read_emulator_model <= 1) {
+				*sdl_emulator.model = read_emulator_model;
 			} else {
-				fprintf(stderr, "%s: zx80 within rcfile is invalid: try 0 to 1\n",
+				fprintf(stderr, "%s: emulator.model within rcfile is invalid: try 0 to 1\n",
+					__func__);
+			}
+		}
+		/* Invert screen */
+		if (read_emulator_invert != UNDEFINED) {
+			if (read_emulator_invert >= 0 && read_emulator_invert <= 1) {
+				sdl_emulator.invert = read_emulator_invert;
+			} else {
+				fprintf(stderr, "%s: emulator.invert within rcfile is invalid: try 0 to 1\n",
+					__func__);
+			}
+		}
+		/* Vkeyb alpha */
+		if (read_vkeyb_alpha != UNDEFINED) {
+			if (read_vkeyb_alpha >= 0 && read_vkeyb_alpha <= SDL_ALPHA_OPAQUE) {
+				vkeyb.alpha = read_vkeyb_alpha;
+			} else {
+				fprintf(stderr, "%s: vkeyb.alpha within rcfile is invalid: try 0 to %i\n",
+					__func__, SDL_ALPHA_OPAQUE);
+			}
+		}
+		/* Vkeyb autohide */
+		if (read_vkeyb_autohide != UNDEFINED) {
+			if (read_vkeyb_autohide >= 0 && read_vkeyb_autohide <= 1) {
+				vkeyb.autohide = read_vkeyb_autohide;
+			} else {
+				fprintf(stderr, "%s: vkeyb.autohide within rcfile is invalid: try 0 to 1\n",
+					__func__);
+			}
+		}
+		/* Vkeyb toggle shift */
+		if (read_vkeyb_toggle_shift != UNDEFINED) {
+			if (read_vkeyb_toggle_shift >= 0 && read_vkeyb_toggle_shift <= 1) {
+				vkeyb.toggle_shift = read_vkeyb_toggle_shift;
+			} else {
+				fprintf(stderr, "%s: vkeyb.toggle_shift within rcfile is invalid: try 0 to 1\n",
 					__func__);
 			}
 		}
@@ -562,7 +622,11 @@ void rcfile_write(void) {
 	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
 	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
-	fprintf(fp, "zx80=%i\n", zx80);
+	fprintf(fp, "emulator.model=%i\n", *sdl_emulator.model);
+	fprintf(fp, "emulator.invert=%i\n", sdl_emulator.invert);
+	fprintf(fp, "vkeyb.alpha=%i\n", vkeyb.alpha);
+	fprintf(fp, "vkeyb.autohide=%i\n", vkeyb.autohide);
+	fprintf(fp, "vkeyb.toggle_shift=%i\n", vkeyb.toggle_shift);
 	fprintf(fp, "\n");
 
 	fprintf(fp, "colour.emu_fg=%06x\n", colours.emu_fg);
@@ -605,8 +669,7 @@ void rcfile_write(void) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_CTB"); found = TRUE;
 				}				
-				/* COMP_RUNOPTS_ALL isn't required to broken down as there
-				 * aren't currently any controls specific to just one page */
+				/* COMP_RUNOPTS_ALL isn't required to be broken down */
 				if ((ctrl_remaps[count].components & COMP_RUNOPTS_ALL) == COMP_RUNOPTS_ALL) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_RUNOPTS_ALL"); found = TRUE;
@@ -845,7 +908,7 @@ int vkeyb_init(void) {
 	}
 
 	/* Initialise a pointer to the relevant original surface */
-	if (zx80) {
+	if (*sdl_emulator.model) {
 		original = vkeyb.zx80original;
 	} else {
 		original = vkeyb.zx81original;
@@ -1025,7 +1088,7 @@ int control_bar_init(void) {
 			dstrect.x = video.scale + 17 * 5 * video.scale; 
 		} else if (count == 4) {
 			/* Inverse screen */
-			if (invert_screen) {
+			if (sdl_emulator.invert) {
 				srcrect.x = ICON_INVERSE_X * video.scale; srcrect.y = ICON_INVERSE_Y * video.scale;
 			} else {
 				srcrect.x = ICON_NOTINVERSE_X * video.scale; srcrect.y = ICON_NOTINVERSE_Y * video.scale;

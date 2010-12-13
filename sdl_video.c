@@ -29,15 +29,15 @@ unsigned char vga_graphmemory[64 * 1024];
 char *runtime_options_text0[24] = {
 	"\x2 Runtime Options            1/4 \x2",
 	"",
-	"Machine Type:",
+	"Machine Model:",
 	"",
 	"  (\x1 \x1) ZX80  (\x1 \x1) ZX81",
 	"",
-	"Memory\x90\x2<\x2\x85\x1  K\x90\x2>\x2\x85",
-	"",
-	"Emulation Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
+	"RAM Size\x90\x2<\x2\x85\x1  K\x90\x2>\x2\x85",
 	"",
 	"Frameskip\x90\x2<\x2\x85\x1 \x90\x2>\x2\x85",
+	"",
+	"Emulation Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
 	"",
 	"",
 	"",
@@ -56,11 +56,11 @@ char *runtime_options_text0[24] = {
 char *runtime_options_text1[24] = {
 	"\x2 Runtime Options            2/4 \x2",
 	"",
-	"Sound Type:",
+	"Sound Device:",
 	"",
 	"  (\x1 \x1) None",
 	"",
-	"  (\x1 \x1) AY Chip",
+	"  (\x1 \x1) AY Chip Based",
 	"",
 	"     (\x1 \x1) Quicksilva Sound Board",
 	"",
@@ -151,7 +151,7 @@ void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 int sdl_video_setmode(void) {
 	int original_xres = video.xres;
 	int count;
-	
+
 	/* Try the requested video resolution and if it's unavailable
 	 * try the next one down and continue until one is accepted.
 	 * Note: I first used SDL_VideoModeOK() but it didn't work on
@@ -284,7 +284,7 @@ void sdl_video_update(void) {
 		#ifdef SDL_DEBUG_VIDEO
 			colour = SDL_MapRGB(video.screen->format, 0x0, 0x80, 0xc0);
 		#else
-			if (!invert_screen) {
+			if (!sdl_emulator.invert) {
 				colour = bg_colour;
 			} else {
 				colour = fg_colour;
@@ -311,7 +311,7 @@ void sdl_video_update(void) {
 			/* [Re]set-up x coordinates and src width */
 			if (video.xres < 320 * video.scale) {
 				srcx = abs(sdl_emulator.xoffset / video.scale);
-				if (zx80 && video.xres < 256 * video.scale)
+				if (*sdl_emulator.model && video.xres < 256 * video.scale)
 					srcx += 8 * 2;	/* The emulator shifts it right 2 chars! */
 				srcw = video.xres / video.scale + srcx; desx = 0;
 			} else {
@@ -394,7 +394,7 @@ void sdl_video_update(void) {
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
 		srcx = runtime_options[runtime_options_which()].xoffset;
 		srcy = runtime_options[runtime_options_which()].yoffset;
-		if (!invert_screen) {
+		if (!sdl_emulator.invert) {
 			colour = bg_colour;
 		} else {
 			colour = fg_colour;
@@ -407,7 +407,7 @@ void sdl_video_update(void) {
 			exit(1);
 		}
 		/* Set the font colours we'll be using */
-		if (!invert_screen) {
+		if (!sdl_emulator.invert) {
 			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 		} else {
 			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
@@ -460,15 +460,21 @@ void sdl_video_update(void) {
 						 * second \x1 will revert the colour if it was inverted */
 						if (count >= 0 && count <= 3) {
 							if (count == 0 || count == 2) strcpy(text, "O");
-							if ((count <= 1 && runopts_zx80) || 
-								(count >= 2 && !runopts_zx80)) {
+							if ((count <= 1 && runopts_machine_model) || 
+								(count >= 2 && !runopts_machine_model)) {
 								/* Invert the colours */
 								colour = fg_colour; fg_colour = bg_colour; 
 								bg_colour = colour;
 							}
-						} else if (count == 7) {		
+						} else if (count == 4) {
+							sprintf(text, "%2i", sdl_emulator.ramsize);
+						} else if (count == 5) {
+							sprintf(text, "%1i", scrn_freq - 1);
+						} else if (count == 6) {
+							sprintf(text, "%3i", 100 * sdl_emulator.speed / 50);
+						} else if (count == 7) {
 							if (runopts_reset_scheduled)
-								strcpy(text, "A reset is scheduled on save.");
+								strcpy(text, "* A reset is scheduled on save *");
 						}
 					} else if (runtime_options[1].state) {
 					} else if (runtime_options[2].state) {
@@ -530,13 +536,13 @@ void sdl_video_update(void) {
 	/* If the user wants to see the input ids then show
 	 * the currently pressed control id on-screen */
 	if (show_input_id && current_input_id != UNDEFINED) {
-		if (invert_screen) {
+		if (sdl_emulator.invert) {
 			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 		} else {
 			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		sprintf(text, "%i", current_input_id);
-		if (zx80) {
+		if (*sdl_emulator.model) {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX80, text, fg_colour, bg_colour);
 		} else {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX81, text, fg_colour, bg_colour);
@@ -973,7 +979,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 		/* Show an existing msgbox */
 		if (the_box.timeout > 0) {
 			/* Prepare the colours we shall be using */
-			if (!invert_screen) {
+			if (!sdl_emulator.invert) {
 				fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 			} else {
 				fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;

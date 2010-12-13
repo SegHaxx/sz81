@@ -100,7 +100,6 @@ static unsigned char zxpline[256];
 
 #ifdef SZ81	/* Added by Thunor */
 int load_selector_state = 0;
-int memory_size = 16;	/* z81 defaults to 16K */
 #endif
 
 int refresh_screen=1;
@@ -319,7 +318,7 @@ for(f=0;f<16;f++)
 
 /* RAM setup */
 #ifdef SZ81	/* Added by Thunor */
-ramsize=memory_size;
+ramsize=sdl_emulator.ramsize;
 #else
 ramsize=16;
 if(unexpanded)
@@ -377,7 +376,7 @@ for(f=16;f<32;f++)
  *      0  +----------+  +----------+  +----------+  +----------+ 
  */
 
-switch(memory_size)
+switch(ramsize)
   {
   case 56:
     memset(mem+0x2000,0,0x2000);	/* It wasn't wiped earlier */

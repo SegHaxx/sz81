@@ -58,6 +58,8 @@
 #define HS_RUNOPTS0_RUNOPTS0 96
 #define HS_RUNOPTS0_ZX80 97
 #define HS_RUNOPTS0_ZX81 98
+#define HS_RUNOPTS0_RAM_DN 99
+#define HS_RUNOPTS0_RAM_UP 100
 
 /* ... */
 
@@ -131,6 +133,7 @@ struct hotspot hotspots[MAX_HOTSPOTS];
 
 /* Function prototypes */
 void hotspots_init(void);
+void hotspots_vkeyb_shift_init(void);
 void hotspots_resize(int gid);
 void hotspots_update(void);
 void hotspots_render(void);

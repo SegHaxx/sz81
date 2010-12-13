@@ -1265,12 +1265,16 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
 						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
 						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_EXIT) {
-						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
 						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
+						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_EXIT) {
+						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[HS_RUNOPTS0_RAM_UP].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
@@ -1362,8 +1366,12 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
-						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[HS_RUNOPTS0_RAM_UP].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
+						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
 						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
@@ -1452,6 +1460,8 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
 						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else {
@@ -1532,6 +1542,8 @@ void manage_cursor_input(void) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
@@ -1646,10 +1658,12 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F8) {
 			/* Toggle invert screen */
 			if (state == SDL_PRESSED) {
-				invert_screen = !invert_screen;
-				refresh_screen = 1;
-				control_bar_init();
+				/* The component_executive monitors this variable and
+				 * manages emulator and component reinitialisation */
+				sdl_emulator.invert = !sdl_emulator.invert;
+				rcfile.rewrite = TRUE;
 				video.redraw = TRUE;
+				refresh_screen = 1;
 			}
 		} else if (id == SDLK_F9) {
 			/* Simulate a control remapper press */
@@ -1679,8 +1693,6 @@ void manage_all_input(void) {
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {
 						reset81();
-						/*memory_size = 56;
-						interrupted = 3;	temp temp */
 					}
 				}
 			}
@@ -1748,28 +1760,25 @@ void manage_vkeyb_input(void) {
 		if (id == SDLK_F6) {
 			/* Toggle the vkeyb autohide state */
 			if (state == SDL_PRESSED) {
+				/* The component_executive monitors this variable and
+				 * manages emulator and component reinitialisation */
 				vkeyb.autohide = !vkeyb.autohide;
-				control_bar_init();
-				video.redraw = TRUE;
+				rcfile.rewrite = TRUE;
 			}
 		} else if (id == SDLK_F7) {
 			/* Toggle the vkeyb shift type */
 			if (state == SDL_PRESSED) {
-				if (vkeyb.toggle_shift) {
-					hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_TOGGLE;
-					hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
-				} else {
-					hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_STICKY;
-					hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
-				}
+				/* The component_executive monitors this variable and
+				 * manages emulator and component reinitialisation */
 				vkeyb.toggle_shift = !vkeyb.toggle_shift;
-				control_bar_init();
-				video.redraw = TRUE;
+				rcfile.rewrite = TRUE;
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
 			/* Adjust the vkeyb alpha */
 			if (state == SDL_PRESSED) {
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
+				/* The component_executive monitors this variable and
+				 * manages emulator and component reinitialisation */
 				if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
 					vkeyb.alpha -= 15;
 				} else if (id == SDLK_HOME && vkeyb.alpha >= 16) {
@@ -1784,7 +1793,7 @@ void manage_vkeyb_input(void) {
 						SDL_GetError());
 					exit(1);
 				}
-				video.redraw = TRUE;
+				rcfile.rewrite = TRUE;
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -1828,15 +1837,15 @@ void manage_runopts_input(void) {
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
 			if (runtime_options[0].state) {
-				/* Machine types ZX80 and ZX81 */
+				/* Machine model */
 				if (state == SDL_PRESSED) {
 					if (id == SDLK_HOME) {
-						runopts_zx80 = TRUE;
+						runopts_machine_model = TRUE;
 					} else {
-						runopts_zx80 = FALSE;
+						runopts_machine_model = FALSE;
 					}
 					/* Flag this as requiring a reset if changed */
-					if (runopts_zx80 != zx80) {
+					if (runopts_machine_model != *sdl_emulator.model) {
 						runopts_reset_scheduled |= 
 							(1 << (HS_RUNOPTS0_ZX80 - HS_RUNOPTS0_RUNOPTS0));
 					} else {
@@ -1870,7 +1879,22 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
-			if (runtime_options[2].state) {
+			if (runtime_options[0].state) {
+
+				/* RAM Size < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
+					if (id == SDLK_INSERT) {
+
+					} else {
+
+					}
+
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+				
+			} else if (runtime_options[2].state) {
 				/* Key repeat interval < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -1987,7 +2011,7 @@ void manage_runopts_input(void) {
  * updated, but if save wasn't selected then the original values must be restored
  * on exit.
  * 
- * Changing the machine type changes a copy of the real variable and the real
+ * Changing the machine model changes a copy of the real variable and the real
  * variable will be updated from the copy on save. If the user doesn't save then
  * no further action needs to be taken; the copy is simply discarded.
  * 
@@ -2017,7 +2041,7 @@ void runopts_transit(int state) {
 		 * Sound volume isn't included because it's always available for 
 		 * adjustment throughout the program i.e. it's live */
 		runopts_reset_scheduled = 0;
-		runopts_zx80 = zx80;
+		runopts_machine_model = *sdl_emulator.model;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2258,11 +2282,11 @@ void runopts_transit(int state) {
 				}
 			}
 		}
-		/* Manage changing the machine type */
-		if (runopts_zx80 != zx80) {
+		/* Manage changing the machine model */
+		if (runopts_machine_model != *sdl_emulator.model) {
 			/* The component_executive monitors this variable and
 			 * manages emulator and component reinitialisation */
-			zx80 = runopts_zx80;
+			*sdl_emulator.model = runopts_machine_model;
 		}
 	}
 

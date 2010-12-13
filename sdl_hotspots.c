@@ -83,7 +83,7 @@ void hotspots_init(void) {
 	hotspots[HS_VKEYB_1 + 9].remap_id = SDLK_0;
 	hotspots[HS_VKEYB_Q].remap_id = SDLK_q;
 	hotspots[HS_VKEYB_Q + 1].remap_id = SDLK_w;
-	if (zx80) hotspots[HS_VKEYB_Q + 1].flags |= HS_PROP_SELECTED;	/* Default selected */
+	if (*sdl_emulator.model) hotspots[HS_VKEYB_Q + 1].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_Q + 2].remap_id = SDLK_e;
 	hotspots[HS_VKEYB_Q + 3].remap_id = SDLK_r;
 	hotspots[HS_VKEYB_Q + 4].remap_id = SDLK_t;
@@ -99,16 +99,20 @@ void hotspots_init(void) {
 	hotspots[HS_VKEYB_A + 4].remap_id = SDLK_g;
 	hotspots[HS_VKEYB_A + 5].remap_id = SDLK_h;
 	hotspots[HS_VKEYB_A + 6].remap_id = SDLK_j;
-	if (!zx80) hotspots[HS_VKEYB_A + 6].flags |= HS_PROP_SELECTED;	/* Default selected */
+	if (!*sdl_emulator.model) hotspots[HS_VKEYB_A + 6].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_VKEYB_A + 7].remap_id = SDLK_k;
 	hotspots[HS_VKEYB_A + 8].remap_id = SDLK_l;
 	hotspots[HS_VKEYB_A + 9].remap_id = SDLK_RETURN;
 	hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_ONOFF;
-	if (vkeyb.toggle_shift) {
+
+	hotspots_vkeyb_shift_init();
+
+	/*if (vkeyb.toggle_shift) {	Redundant.
 		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
 	} else {
 		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
-	}
+	}*/
+
 	hotspots[HS_VKEYB_SHIFT].remap_id = SDLK_LSHIFT;
 	hotspots[HS_VKEYB_SHIFT + 1].remap_id = SDLK_z;
 	hotspots[HS_VKEYB_SHIFT + 2].remap_id = SDLK_x;
@@ -142,6 +146,8 @@ void hotspots_init(void) {
 	hotspots[HS_RUNOPTS0_ZX80].remap_id = SDLK_HOME;
 	hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS0_ZX81].remap_id = SDLK_END;
+	hotspots[HS_RUNOPTS0_RAM_DN].remap_id = SDLK_INSERT;
+	hotspots[HS_RUNOPTS0_RAM_UP].remap_id = SDLK_DELETE;
 
 	/* ... */
 
@@ -209,6 +215,21 @@ void hotspots_init(void) {
 }
 
 /***************************************************************************
+ * Hotspots Virtual Keyboard Shift Initialise                              *
+ ***************************************************************************/
+/* This sets the necessary flags on the vkeyb's shift key */
+
+void hotspots_vkeyb_shift_init(void) {
+	if (vkeyb.toggle_shift) {
+		hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_STICKY;
+		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
+	} else {
+		hotspots[HS_VKEYB_SHIFT].flags &= ~HS_PROP_TOGGLE;
+		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
+	}
+}
+
+/***************************************************************************
  * Hotspots Resize                                                         *
  ***************************************************************************/
 /* This repositions and resizes one or all groups of hotspots for the current
@@ -231,7 +252,7 @@ void hotspots_resize(int gid) {
 
 	if (gid & HS_GRP_LOAD) {
 		/* Resize the ZX81's file selector hotspots */
-		if (!zx80) {
+		if (!*sdl_emulator.model) {
 			hotspots[HS_LOAD_Q].hit_x = sdl_emulator.xoffset + 36 * video.scale;
 			hotspots[HS_LOAD_Q].hit_y = sdl_emulator.yoffset + 176 * video.scale;
 			hotspots[HS_LOAD_Q].hit_w = 40 * video.scale;
@@ -264,7 +285,7 @@ void hotspots_resize(int gid) {
 		hotspots[HS_VKEYB_VKEYB].hit_y = vkeyb.yoffset;
 		hotspots[HS_VKEYB_VKEYB].hit_w = vkeyb.scaled->w;
 		hotspots[HS_VKEYB_VKEYB].hit_h = vkeyb.scaled->h;
-		if (zx80) {
+		if (*sdl_emulator.model) {
 			for (count = 0; count < 40; count++) {
 				hotspots[HS_VKEYB_1 + count].hit_x = vkeyb.xoffset + 9 *
 					video.scale + (count % 10) * 24 * video.scale;
@@ -328,6 +349,10 @@ void hotspots_resize(int gid) {
 		hotspots[HS_RUNOPTS0_ZX81].hit_x += 12.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX81].hit_y += 3.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX81].hit_w += 7.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_RAM_DN].hit_x += 8.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_RAM_DN].hit_y += 5.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_RAM_UP].hit_x += 14.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_RAM_UP].hit_y += 5.5 * 8 * video.scale;
 
 		/* ... */
 
@@ -343,8 +368,8 @@ void hotspots_resize(int gid) {
 		/* Set-up hit_w/h */
 		for (count = HS_RUNOPTS0_ZX80; count <= HS_RUNOPTS0_NEXT; count++) {
 			hotspots[count].hit_h = 2 * 8 * video.scale;
-			/*if (count >= HS_RUNOPTS0_ZX80 && count <= HS_RUNOPTS0_ZX81) 
-				hotspots[count].hit_w = 2 * 8 * video.scale; temp temp */
+			if (count >= HS_RUNOPTS0_RAM_DN && count <= HS_RUNOPTS0_RAM_UP) 
+				hotspots[count].hit_w = 2 * 8 * video.scale;
 		}
 		/* Set-up hl_x/y/w/h */
 		for (count = HS_RUNOPTS0_ZX80; count <= HS_RUNOPTS0_NEXT; count++) {
@@ -603,20 +628,20 @@ void hotspots_render(void) {
 					if (hotspots[count].flags & HS_PROP_TOGGLE &&
 						hotspots[count].flags & HS_PROP_STUCK) {
 						/* If it's stuck it must be pressed */
-						if (zx80) {
+						if (*sdl_emulator.model) {
 							colour = colours.hs_vkeyb_zx80_toggle_pressed;
 						} else {
 							colour = colours.hs_vkeyb_zx81_toggle_pressed;
 						}
 					} else {
 						if (pressed) {
-							if (zx80) {
+							if (*sdl_emulator.model) {
 								colour = colours.hs_vkeyb_zx80_pressed;
 							} else {
 								colour = colours.hs_vkeyb_zx81_pressed;
 							}
 						} else {
-							if (zx80) {
+							if (*sdl_emulator.model) {
 								colour = colours.hs_vkeyb_zx80_selected;
 							} else {
 								colour = colours.hs_vkeyb_zx81_selected;
@@ -709,7 +734,7 @@ void hotspots_render(void) {
 				/* For the load selector, add interior left and right
 				 * solid bars using the current background colour */
 				if (hotspots[count].gid == HS_GRP_LOAD) {
-					if (!invert_screen) {
+					if (!sdl_emulator.invert) {
 						colour = colours.emu_bg;
 					} else {
 						colour = colours.emu_fg;

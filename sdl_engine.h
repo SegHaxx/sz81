@@ -64,8 +64,9 @@
 #define MAX_RUNTIME_OPTIONS 4
 
 /* Emulator variables I require access to */
-extern int scrn_freq, invert_screen, zx80, memory_size;
-extern int load_selector_state, refresh_screen, ignore_esc;
+extern int scrn_freq;
+extern int load_selector_state, refresh_screen;
+extern int ignore_esc;	/* Only used within the load selector so it can eventually go temp temp */
 extern int sound, sixteenbit, interrupted;
 extern volatile int signal_int_flag;
 extern char *zxpfilename;

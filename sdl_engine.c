@@ -20,6 +20,9 @@
 
 /* Defines */
 
+/* Emulator variables I require access to */
+extern int zx80, ramsize;
+
 /* Variables */
 
 /* Function prototypes */
@@ -107,7 +110,10 @@ int sdl_init(void) {
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_emulator.state = TRUE;
-	sdl_emulator.speed = 50;	/* 50Hz is the default */
+	sdl_emulator.speed = 50;		/* 50Hz is the default */
+	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.ramsize = 16;		/* 16K is the default */
+	sdl_emulator.invert = 0;		/* Off is the default */
 	sdl_sound.state = FALSE;
 	sdl_zx80rom.state = FALSE;
 	sdl_zx81rom.state = FALSE;
@@ -251,9 +257,12 @@ int sdl_com_line_process(int argc, char *argv[]) {
  * here to keep things organised and to cut down on code duplication */
 
 void component_executive(void) {
-	static int active_components = COMP_EMU;
-	static int ctrl_remapper_state = FALSE;
-	static int zx80_state = FALSE;
+	static int active_components = 0;
+	static int ctrl_remapper_state = UNDEFINED;
+	static int sdl_emulator_model = UNDEFINED;
+	static int sdl_emulator_invert = UNDEFINED;
+	static int vkeyb_autohide = UNDEFINED;
+	static int vkeyb_toggle_shift = UNDEFINED;
 	int found = FALSE;
 	int count;
 	
@@ -289,16 +298,8 @@ void component_executive(void) {
 		found = TRUE;
 	}
 
-	/* Monitor control remapper's state */ 
-	if (ctrl_remapper_state != ctrl_remapper.state) {
-		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
-	}
-	/* Manage control remapper's interval decrementing and resetting from here */
-	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
-		ctrl_remapper.interval = ctrl_remapper.master_interval;
-
-	/* Monitor machine's type i.e. ZX80/ZX81 switching */
-	if (zx80_state != zx80) {
+	/* Monitor machine model i.e. ZX80/ZX81 switching */
+	if (sdl_emulator_model != *sdl_emulator.model) {
 		/* Change the virtual keyboard */
 		vkeyb_init();
 		/* Resize vkeyb hotspots only */
@@ -315,9 +316,28 @@ void component_executive(void) {
 		hotspots_update();
 	}
 
+	/* Monitor control remapper's state */ 
+	if (ctrl_remapper_state != ctrl_remapper.state) {
+		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
+	}
+	/* Manage control remapper's interval decrementing and resetting from here */
+	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
+		ctrl_remapper.interval = ctrl_remapper.master_interval;
+
+	/* Monitor vkeyb.autohide, vkeyb.toggle_shift and sdl_emulator.invert
+	 * i.e. the control bar icons with images that require toggling */
+	if (vkeyb_autohide != vkeyb.autohide || vkeyb_toggle_shift != vkeyb.toggle_shift ||
+		sdl_emulator_invert != sdl_emulator.invert) {
+		hotspots_vkeyb_shift_init();
+		control_bar_init();
+	}
+
 	/* Maintain a copy of current program component states  */
 	ctrl_remapper_state = ctrl_remapper.state;
-	zx80_state = zx80;
+	sdl_emulator_model = *sdl_emulator.model;
+	sdl_emulator_invert = sdl_emulator.invert;
+	vkeyb_autohide = vkeyb.autohide;
+	vkeyb_toggle_shift = vkeyb.toggle_shift;
 	active_components = 0;
 	if (sdl_emulator.state) {
 		active_components |= COMP_EMU;
