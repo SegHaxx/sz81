@@ -250,14 +250,14 @@ int main(int argc,char *argv[]) {
 
 				/* SOUND TEST temp temp vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 				/* -a */
-				sound=1;
-				sound_ay=1;
+				//sound=1;
+				//sound_ay=1;
 				/* q */
 				//sound_ay_type=AY_TYPE_QUICKSILVA;
 				/* z */
-				sound_ay_type=AY_TYPE_ZONX;
+				//sound_ay_type=AY_TYPE_ZONX;
 				/* s */
-				sound_stereo=1; sound_stereo_acb=1;
+				//sound_stereo=1; sound_stereo_acb=1;
 				/* -s */
 				//sound=1;
 				//sound_vsync=1;
