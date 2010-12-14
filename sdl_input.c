@@ -709,8 +709,11 @@ void keyboard_init(void) {
 	hotspots_init();
 
 	/* Initialise the control remapper */
-	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / 
-		(sdl_emulator.speed / scrn_freq));
+	/*ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / 
+		(sdl_emulator.speed / scrn_freq));	Redundant */
+	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / 
+		sdl_emulator.speed / scrn_freq;
+	
 }
 
 /***************************************************************************
@@ -1662,7 +1665,6 @@ void manage_all_input(void) {
 				 * manages emulator and component reinitialisation */
 				sdl_emulator.invert = !sdl_emulator.invert;
 				rcfile.rewrite = TRUE;
-				video.redraw = TRUE;
 				refresh_screen = 1;
 			}
 		} else if (id == SDLK_F9) {
@@ -1776,9 +1778,9 @@ void manage_vkeyb_input(void) {
 		} else if (id == SDLK_HOME || id == SDLK_END) {
 			/* Adjust the vkeyb alpha */
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
 				/* The component_executive monitors this variable and
 				 * manages emulator and component reinitialisation */
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
 				if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
 					vkeyb.alpha -= 15;
 				} else if (id == SDLK_HOME && vkeyb.alpha >= 16) {
@@ -1787,11 +1789,6 @@ void manage_vkeyb_input(void) {
 					vkeyb.alpha += 15;
 				} else if (id == SDLK_END && vkeyb.alpha < 240) {
 					vkeyb.alpha += 16;
-				}
-				if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
-					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
-						SDL_GetError());
-					exit(1);
 				}
 				rcfile.rewrite = TRUE;
 			} else {
@@ -1880,20 +1877,37 @@ void manage_runopts_input(void) {
 			}
 		} else if (id == SDLK_INSERT || id == SDLK_DELETE) {
 			if (runtime_options[0].state) {
-
 				/* RAM Size < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 					if (id == SDLK_INSERT) {
-
+						if (runopts_ramsize == 56) {
+							runopts_ramsize = 48;
+						} else if (runopts_ramsize == 48) {
+							runopts_ramsize = 32;
+						} else if (runopts_ramsize >= 2) {
+							runopts_ramsize /= 2;
+						}
 					} else {
-
+						if (runopts_ramsize <= 16) {
+							runopts_ramsize *= 2;
+						} else if (runopts_ramsize == 32) {
+							runopts_ramsize = 48;
+						} else if (runopts_ramsize == 48) {
+							runopts_ramsize = 56;
+						}
 					}
-
+					/* Flag this as requiring a reset if changed */
+					if (runopts_ramsize != sdl_emulator.ramsize) {
+						runopts_reset_scheduled |= 
+							(1 << (HS_RUNOPTS0_RAM_DN - HS_RUNOPTS0_RUNOPTS0));
+					} else {
+						runopts_reset_scheduled &= 
+							~(1 << (HS_RUNOPTS0_RAM_DN - HS_RUNOPTS0_RUNOPTS0));
+					}
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
-				
 			} else if (runtime_options[2].state) {
 				/* Key repeat interval < and > */
 				if (state == SDL_PRESSED) {
@@ -2042,6 +2056,7 @@ void runopts_transit(int state) {
 		 * adjustment throughout the program i.e. it's live */
 		runopts_reset_scheduled = 0;
 		runopts_machine_model = *sdl_emulator.model;
+		runopts_ramsize = sdl_emulator.ramsize;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2288,6 +2303,12 @@ void runopts_transit(int state) {
 			 * manages emulator and component reinitialisation */
 			*sdl_emulator.model = runopts_machine_model;
 		}
+		/* Manage changing the RAM size */
+		if (runopts_ramsize != sdl_emulator.ramsize) {
+			/* The component_executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			sdl_emulator.ramsize = runopts_ramsize;
+		}
 	}
 
 	last_state = state;
@@ -2339,7 +2360,8 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay (* 2 as this is currently running at half the emulation Hz) */
-		interval = sdl_key_repeat.delay / (1000 / sdl_emulator.speed * 2);
+		/*interval = sdl_key_repeat.delay / (1000 / sdl_emulator.speed * 2);	Redundant */
+		interval = sdl_key_repeat.delay / sdl_emulator.speed / 2;
 		/* When interval is 1 there can be some odd behaviour, presumably
 		 * because the event queue is being flooded with presses and so
 		 * I'm limiting it to 2 which stops this happening. At the default
@@ -2350,7 +2372,8 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset the interval (* 2 as this is currently running at half the emulator Hz) */
-				interval = sdl_key_repeat.interval / (1000 / sdl_emulator.speed * 2);
+				/*interval = sdl_key_repeat.interval / (1000 / sdl_emulator.speed * 2);	Redundant */
+				interval = sdl_key_repeat.interval / sdl_emulator.speed / 2;
 				if (interval < 2) interval = 2;	/* See note above about this */
 				SDL_PushEvent(&repeatevent);
 			}
@@ -2369,8 +2392,8 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
  * It's used when changing the states of program components to make sure
  * that any controls that the user still has pressed don't remain unreleased
  * which can happen if the controls are component specific.
- * Resetting SHIFT is optional and is required when performing a thorough
- * emulator reset, otherwise it needn't/shouldn't be reset.
+ * 
+ * Resetting SHIFT is optional and is not required under normal operation.
  * 
  * On entry: shift_reset = TRUE to additionally reset SHIFT */
 

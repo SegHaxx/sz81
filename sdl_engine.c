@@ -85,6 +85,11 @@ int sdl_init(void) {
 	#else
 		sdl_sound.volume = 128;
 	#endif
+	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.invert = 0;		/* Off is the default */
+	vkeyb.alpha = SDL_ALPHA_OPAQUE;
+	vkeyb.autohide = FALSE;
+	vkeyb.toggle_shift = FALSE;
 	colours.colour_key = 0xff0080;
 	colours.bmf_fg_default = 0xffffff;
 	colours.emu_fg = 0x202018;
@@ -101,7 +106,6 @@ int sdl_init(void) {
 	colours.hs_ctb_pressed = 0xffc000;
 	colours.hs_options_selected = 0x00ff00;
 	colours.hs_options_pressed = 0xffc000;
-	current_input_id = UNDEFINED;
 	sdl_com_line.fullscreen = UNDEFINED;
 	sdl_com_line.scale = UNDEFINED;
 	sdl_com_line.xres = UNDEFINED;
@@ -110,15 +114,16 @@ int sdl_init(void) {
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_emulator.state = TRUE;
-	sdl_emulator.speed = 50;		/* 50Hz is the default */
-	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.speed = 20;		/* 1000ms/50Hz=20ms is the default */
 	sdl_emulator.ramsize = 16;		/* 16K is the default */
-	sdl_emulator.invert = 0;		/* Off is the default */
 	sdl_sound.state = FALSE;
+	video.redraw = TRUE;
+	vkeyb.state = FALSE;
+	ctrl_remapper.state = FALSE;
+	joy_cfg.state = FALSE;
+	rcfile.rewrite = FALSE;
 	sdl_zx80rom.state = FALSE;
 	sdl_zx81rom.state = FALSE;
-	vkeyb.state = vkeyb.autohide = vkeyb.toggle_shift = FALSE;
-	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	runtime_options[0].state = FALSE;
 	runtime_options[0].text = runtime_options_text0;
 	runtime_options[1].state = FALSE;
@@ -127,10 +132,8 @@ int sdl_init(void) {
 	runtime_options[2].text = runtime_options_text2;
 	runtime_options[3].state = FALSE;
 	runtime_options[3].text = runtime_options_text3;
-	ctrl_remapper.state = FALSE;
-	joy_cfg.state = FALSE;
-	rcfile.rewrite = FALSE;
 	show_input_id = FALSE;
+	current_input_id = UNDEFINED;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -258,11 +261,13 @@ int sdl_com_line_process(int argc, char *argv[]) {
 
 void component_executive(void) {
 	static int active_components = 0;
-	static int ctrl_remapper_state = UNDEFINED;
-	static int sdl_emulator_model = UNDEFINED;
-	static int sdl_emulator_invert = UNDEFINED;
-	static int vkeyb_autohide = UNDEFINED;
-	static int vkeyb_toggle_shift = UNDEFINED;
+	static int ctrl_remapper_state = FALSE;
+	static int sdl_emulator_model = 0;
+	static int sdl_emulator_ramsize = 16;
+	static int sdl_emulator_invert = 0;
+	static int vkeyb_alpha = SDL_ALPHA_OPAQUE;
+	static int vkeyb_autohide = FALSE;
+	static int vkeyb_toggle_shift = FALSE;
 	int found = FALSE;
 	int count;
 	
@@ -300,10 +305,19 @@ void component_executive(void) {
 
 	/* Monitor machine model i.e. ZX80/ZX81 switching */
 	if (sdl_emulator_model != *sdl_emulator.model) {
+		sdl_emulator_model = *sdl_emulator.model;
 		/* Change the virtual keyboard */
 		vkeyb_init();
 		/* Resize vkeyb hotspots only */
 		hotspots_resize(HS_GRP_VKEYB);
+		/* Restart mainloop() on return */
+		interrupted = 3;
+		found = TRUE;
+	}
+
+	/* Monitor RAM size changes */
+	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
+		sdl_emulator_ramsize = sdl_emulator.ramsize;
 		/* Restart mainloop() on return */
 		interrupted = 3;
 		found = TRUE;
@@ -318,9 +332,10 @@ void component_executive(void) {
 
 	/* Monitor control remapper's state */ 
 	if (ctrl_remapper_state != ctrl_remapper.state) {
+		ctrl_remapper_state = ctrl_remapper.state;
 		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
 	}
-	/* Manage control remapper's interval decrementing and resetting from here */
+	/* Manage control remapper's interval decrementing and resetting */
 	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
 		ctrl_remapper.interval = ctrl_remapper.master_interval;
 
@@ -328,16 +343,24 @@ void component_executive(void) {
 	 * i.e. the control bar icons with images that require toggling */
 	if (vkeyb_autohide != vkeyb.autohide || vkeyb_toggle_shift != vkeyb.toggle_shift ||
 		sdl_emulator_invert != sdl_emulator.invert) {
-		hotspots_vkeyb_shift_init();
+		vkeyb_autohide = vkeyb.autohide;
+		sdl_emulator_invert = sdl_emulator.invert;
+		if (vkeyb_toggle_shift != vkeyb.toggle_shift) {
+			vkeyb_toggle_shift = vkeyb.toggle_shift;
+			hotspots_vkeyb_shift_init();
+		}
 		control_bar_init();
+		video.redraw = TRUE;
+	}
+
+	/* Monitor vkeyb.alpha */
+	if (vkeyb_alpha != vkeyb.alpha) {
+		vkeyb_alpha = vkeyb.alpha;
+		vkeyb_alpha_apply();
+		video.redraw = TRUE;
 	}
 
 	/* Maintain a copy of current program component states  */
-	ctrl_remapper_state = ctrl_remapper.state;
-	sdl_emulator_model = *sdl_emulator.model;
-	sdl_emulator_invert = sdl_emulator.invert;
-	vkeyb_autohide = vkeyb.autohide;
-	vkeyb_toggle_shift = vkeyb.toggle_shift;
 	active_components = 0;
 	if (sdl_emulator.state) {
 		active_components |= COMP_EMU;
@@ -417,7 +440,8 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
-	if (intervals >= 100 / sdl_emulator.speed) {
+	/*if (intervals >= 100 / sdl_emulator.speed) {	Redundant */
+	if (intervals >= sdl_emulator.speed / 10) {
 		signal_int_flag = TRUE;
 		intervals = 0;
 	}

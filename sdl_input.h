@@ -44,6 +44,7 @@ int show_input_id;	/* temp temp This should be in runtime options somewhere */
 int current_input_id;
 int runopts_reset_scheduled;
 int runopts_machine_model;
+int runopts_ramsize;
 
 struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ IDs */

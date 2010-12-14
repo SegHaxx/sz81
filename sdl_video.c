@@ -467,11 +467,11 @@ void sdl_video_update(void) {
 								bg_colour = colour;
 							}
 						} else if (count == 4) {
-							sprintf(text, "%2i", sdl_emulator.ramsize);
+							sprintf(text, "%2i", runopts_ramsize);
 						} else if (count == 5) {
 							sprintf(text, "%1i", scrn_freq - 1);
 						} else if (count == 6) {
-							sprintf(text, "%3i", 100 * sdl_emulator.speed / 50);
+							sprintf(text, "%3i", 2000 / sdl_emulator.speed);
 						} else if (count == 7) {
 							if (runopts_reset_scheduled)
 								strcpy(text, "* A reset is scheduled on save *");

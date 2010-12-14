@@ -139,8 +139,8 @@ void sdl_rcfile_read(void) {
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
+	int read_emulator_model, read_emulator_ramsize, read_emulator_invert;
 	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
-	int read_emulator_invert, read_emulator_model;
 	int count, index, line_count, found;
 	int read_joystick_dead_zone;
 	char read_version[16];
@@ -179,6 +179,7 @@ void sdl_rcfile_read(void) {
 	read_key_repeat.interval = UNDEFINED;
 	read_sound_volume = UNDEFINED;
 	read_emulator_model = UNDEFINED;
+	read_emulator_ramsize = UNDEFINED;
 	read_emulator_invert = UNDEFINED;
 	read_vkeyb_alpha = UNDEFINED;
 	read_vkeyb_autohide = UNDEFINED;
@@ -245,6 +246,10 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "emulator.model=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_emulator_model);
+			}
+			strcpy(key, "emulator.ramsize=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_emulator_ramsize);
 			}
 			strcpy(key, "emulator.invert=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -406,6 +411,7 @@ void sdl_rcfile_read(void) {
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
 		printf("read_sound_volume=%i\n", read_sound_volume);
 		printf("read_emulator_model=%i\n", read_emulator_model);
+		printf("read_emulator_ramsize=%i\n", read_emulator_ramsize);
 		printf("read_emulator_invert=%i\n", read_emulator_invert);
 		printf("read_vkeyb_alpha=%i\n", read_vkeyb_alpha);
 		printf("read_vkeyb_autohide=%i\n", read_vkeyb_autohide);
@@ -487,6 +493,18 @@ void sdl_rcfile_read(void) {
 				*sdl_emulator.model = read_emulator_model;
 			} else {
 				fprintf(stderr, "%s: emulator.model within rcfile is invalid: try 0 to 1\n",
+					__func__);
+			}
+		}
+		/* RAM size */
+		if (read_emulator_ramsize != UNDEFINED) {
+			if (read_emulator_ramsize == 1 || read_emulator_ramsize == 2 ||
+				read_emulator_ramsize == 4 || read_emulator_ramsize == 8 ||
+				read_emulator_ramsize == 16 || read_emulator_ramsize == 32 ||
+				read_emulator_ramsize == 48 || read_emulator_ramsize == 56) {
+				sdl_emulator.ramsize = read_emulator_ramsize;
+			} else {
+				fprintf(stderr, "%s: emulator.ramsize within rcfile is invalid: try 1, 2, 4, 8, 16, 32, 48 or 56\n",
 					__func__);
 			}
 		}
@@ -623,6 +641,7 @@ void rcfile_write(void) {
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
 	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
 	fprintf(fp, "emulator.model=%i\n", *sdl_emulator.model);
+	fprintf(fp, "emulator.ramsize=%i\n", sdl_emulator.ramsize);
 	fprintf(fp, "emulator.invert=%i\n", sdl_emulator.invert);
 	fprintf(fp, "vkeyb.alpha=%i\n", vkeyb.alpha);
 	fprintf(fp, "vkeyb.autohide=%i\n", vkeyb.autohide);
@@ -930,19 +949,32 @@ int vkeyb_init(void) {
 	scale_surface(original, vkeyb.scaled);
 
 	/* Apply some alpha to the entire surface if required */
-	if (vkeyb.alpha < SDL_ALPHA_OPAQUE) {
-		if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
-			fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__, 
-				SDL_GetError());
-			return TRUE;
-		}
-	}
+	if (vkeyb.alpha < SDL_ALPHA_OPAQUE)
+		if (vkeyb_alpha_apply()) return TRUE;
 
 	/* Set-up the virtual keyboard's screen offset */
 	vkeyb.xoffset = (video.xres - vkeyb.scaled->w) / 2;
 	vkeyb.yoffset = (video.yres - vkeyb.scaled->h) / 2;
 
 	return FALSE;
+}
+
+/***************************************************************************
+ * Virtual Keyboard Alpha Apply                                            *
+ ***************************************************************************/
+/* On exit: returns TRUE on error
+ *          else FALSE */
+
+int vkeyb_alpha_apply(void) {
+	int retval = FALSE;
+	
+	if ((SDL_SetAlpha(vkeyb.scaled, SDL_SRCALPHA, vkeyb.alpha)) < 0) {
+		fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__, 
+			SDL_GetError());
+		retval = TRUE;
+	}
+
+	return retval;
 }
 
 /***************************************************************************

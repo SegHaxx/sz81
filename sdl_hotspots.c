@@ -345,10 +345,10 @@ void hotspots_resize(int gid) {
 		hotspots[HS_RUNOPTS0_RUNOPTS0].hit_h = 192 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX80].hit_x += 2.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX80].hit_y += 3.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_ZX80].hit_w += 7.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_ZX80].hit_w = 7.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX81].hit_x += 12.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_ZX81].hit_y += 3.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_ZX81].hit_w += 7.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_ZX81].hit_w = 7.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_DN].hit_x += 8.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_DN].hit_y += 5.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_UP].hit_x += 14.5 * 8 * video.scale;

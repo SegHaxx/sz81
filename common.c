@@ -1399,8 +1399,10 @@ int quit,got_one,isdir;
 char *filearr;
 char *ptr;
 #ifdef SZ81	/* Added by Thunor */
-int krwait = sdl_key_repeat.delay / (1000 / sdl_emulator.speed);
-int krwrep = sdl_key_repeat.interval / 1.5 / (1000 / sdl_emulator.speed);
+/*int krwait = sdl_key_repeat.delay / (1000 / sdl_emulator.speed);	Redundant */
+int krwait = sdl_key_repeat.delay / sdl_emulator.speed;
+/*int krwrep = sdl_key_repeat.interval / 1.5 / (1000 / sdl_emulator.speed);	Redundant */
+int krwrep = sdl_key_repeat.interval / sdl_emulator.speed / 2;
 #else
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
 #endif

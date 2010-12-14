@@ -98,6 +98,7 @@ void local_data_dir_init(void);
 void rcfile_write(void);
 int fonts_init(void);
 int vkeyb_init(void);
+int vkeyb_alpha_apply(void);
 int sz81icons_init(void);
 int control_bar_init(void);
 

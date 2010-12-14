@@ -352,7 +352,8 @@ if(!sound_stereo)
 sound_enabled=1;
 
 #ifdef SZ81	/* Added by Thunor */
-sound_framesiz=sound_freq/sdl_emulator.speed;
+/*sound_framesiz=sound_freq/sdl_emulator.speed;	Redundant */
+sound_framesiz=sound_freq/(1000/sdl_emulator.speed);
 #else
 sound_framesiz=sound_freq/50;
 #endif

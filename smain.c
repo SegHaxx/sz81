@@ -247,6 +247,23 @@ int main(int argc,char *argv[]) {
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
 
+
+				/* SOUND TEST temp temp vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+				/* -a */
+				sound=1;
+				sound_ay=1;
+				/* q */
+				//sound_ay_type=AY_TYPE_QUICKSILVA;
+				/* z */
+				sound_ay_type=AY_TYPE_ZONX;
+				/* s */
+				sound_stereo=1; sound_stereo_acb=1;
+				/* -s */
+				//sound=1;
+				//sound_vsync=1;
+				/* SOUND TEST ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+
 				#ifdef OSS_SOUND_SUPPORT
 					if (sound) sound_init();
 				#endif
