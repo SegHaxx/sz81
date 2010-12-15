@@ -248,19 +248,35 @@ int main(int argc,char *argv[]) {
 				sdl_zxroms_init();
 
 
-				/* SOUND TEST temp temp vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
-				/* -a */
-				//sound=1;
-				//sound_ay=1;
-				/* q */
-				//sound_ay_type=AY_TYPE_QUICKSILVA;
-				/* z */
-				//sound_ay_type=AY_TYPE_ZONX;
-				/* s */
-				//sound_stereo=1; sound_stereo_acb=1;
-				/* -s */
-				//sound=1;
-				//sound_vsync=1;
+				/* SOUND TEST temp temp vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+				 * z81's CLI says that if stereo then stereo_acb else
+				 * they're both false so I'll go with that.
+				 * 
+				 * Sound is set-up according to the emulator's speed so
+				 * adjusting the speed is going to require the sound to
+				 * be shutdown and restarted.
+				 * 
+				 * The variable 'sound' appears to be used to indicate
+				 * that it was requested, because once it's initialised
+				 * another variable sound_enabled is set depending on
+				 * the outcome */
+
+				/* Enable sound
+				sound=1; */
+
+				/* -a q[s]
+				sound_ay=1;
+				sound_ay_type=AY_TYPE_QUICKSILVA;
+				sound_stereo=sound_stereo_acb=0; */
+
+				/* -a z[s]
+				sound_ay=1;
+				sound_ay_type=AY_TYPE_ZONX;
+				sound_stereo=sound_stereo_acb=0; */
+
+				/* -s
+				sound_vsync=1; */
+
 				/* SOUND TEST ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 

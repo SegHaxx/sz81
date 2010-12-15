@@ -118,9 +118,10 @@ struct {
 	int yoffset;
 	SDL_TimerID timer_id;
 	int speed;		/* 10ms=200%, 20ms=100%, 30ms=66%, 40ms=50% */
-	int *model;		/* Points to z81's zx80: 0=ZX81 or 1=ZX80 */
+	int frameskip;	/* 0fs, 1fs etc. */
+	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
 	int ramsize;	/* 1, 2, 4, 8, 16, 32, 48 or 56K */
-	int invert;		/* 0=off, 1=on (should be in video but it's currently easier to put it here) */
+	int invert;		/* This should really be in video but it's easier to put it here */
 } sdl_emulator;
 
 struct {

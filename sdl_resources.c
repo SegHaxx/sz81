@@ -139,8 +139,9 @@ void sdl_rcfile_read(void) {
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
-	int read_emulator_model, read_emulator_ramsize, read_emulator_invert;
 	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
+	int read_emulator_frameskip, read_emulator_model;
+	int read_emulator_ramsize, read_emulator_invert;
 	int count, index, line_count, found;
 	int read_joystick_dead_zone;
 	char read_version[16];
@@ -178,6 +179,7 @@ void sdl_rcfile_read(void) {
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
 	read_sound_volume = UNDEFINED;
+	read_emulator_frameskip = UNDEFINED;
 	read_emulator_model = UNDEFINED;
 	read_emulator_ramsize = UNDEFINED;
 	read_emulator_invert = UNDEFINED;
@@ -242,6 +244,10 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "sound.volume=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_sound_volume);
+			}
+			strcpy(key, "emulator.frameskip=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_emulator_frameskip);
 			}
 			strcpy(key, "emulator.model=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -410,6 +416,7 @@ void sdl_rcfile_read(void) {
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
 		printf("read_sound_volume=%i\n", read_sound_volume);
+		printf("read_emulator_frameskip=%i\n", read_emulator_frameskip);
 		printf("read_emulator_model=%i\n", read_emulator_model);
 		printf("read_emulator_ramsize=%i\n", read_emulator_ramsize);
 		printf("read_emulator_invert=%i\n", read_emulator_invert);
@@ -485,6 +492,15 @@ void sdl_rcfile_read(void) {
 			} else {
 				fprintf(stderr, "%s: sound.volume within rcfile is invalid: try 0 to 128\n",
 					__func__);
+			}
+		}
+		/* Frameskip*/
+		if (read_emulator_frameskip != UNDEFINED) {
+			if (read_emulator_frameskip >= 0 && read_emulator_frameskip <= MAX_FRAMESKIP) {
+				sdl_emulator.frameskip = read_emulator_frameskip;
+			} else {
+				fprintf(stderr, "%s: emulator.frameskip within rcfile is invalid: try 0 to %i\n",
+					__func__, MAX_FRAMESKIP);
 			}
 		}
 		/* Machine model */
@@ -640,6 +656,7 @@ void rcfile_write(void) {
 	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
 	fprintf(fp, "sound.volume=%i\n", sdl_sound.volume);
+	fprintf(fp, "emulator.frameskip=%i\n", sdl_emulator.frameskip);
 	fprintf(fp, "emulator.model=%i\n", *sdl_emulator.model);
 	fprintf(fp, "emulator.ramsize=%i\n", sdl_emulator.ramsize);
 	fprintf(fp, "emulator.invert=%i\n", sdl_emulator.invert);

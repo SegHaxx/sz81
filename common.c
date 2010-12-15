@@ -1004,7 +1004,11 @@ if(interrupted==1)
 
 /* only do screen update every 1/Nth */
 count++;
+#ifdef SZ81	/* Added by Thunor */
+if(count>sdl_emulator.frameskip)
+#else
 if(count>=scrn_freq)
+#endif
   {
   count=0;
   if(help) overlay_help();

@@ -710,9 +710,7 @@ void keyboard_init(void) {
 
 	/* Initialise the control remapper */
 	/*ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / 
-		(sdl_emulator.speed / scrn_freq));	Redundant */
-	ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / 
-		sdl_emulator.speed / scrn_freq;
+		(sdl_emulator.speed / scrn_freq));	Redundant: now managed by the component_executive */
 	
 }
 
@@ -1264,20 +1262,16 @@ void manage_cursor_input(void) {
 				} else if (runtime_options[0].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
-						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
-						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
-						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
-						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
-						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_EXIT) {
-						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
+						hs_currently_selected == HS_RUNOPTS0_ZX81) {
+						hotspots[hs_currently_selected + 9].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE ||
+						hs_currently_selected == HS_RUNOPTS0_EXIT) {
+						hotspots[HS_RUNOPTS0_SPEED_DN].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
-						hotspots[HS_RUNOPTS0_RAM_UP].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS0_SPEED_UP].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
@@ -1368,14 +1362,11 @@ void manage_cursor_input(void) {
 						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
-						hotspots[HS_RUNOPTS0_RAM_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
-						hotspots[HS_RUNOPTS0_RAM_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
-						hotspots[HS_RUNOPTS0_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
-						hotspots[HS_RUNOPTS0_NEXT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS0_ZX80 &&
+						hs_currently_selected <= HS_RUNOPTS0_FRAMESKIP_UP) {
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_S);
@@ -1461,14 +1452,15 @@ void manage_cursor_input(void) {
 				} else if (runtime_options[0].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS0_ZX80) {
-						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_DN) {
+					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
+						hs_currently_selected == HS_RUNOPTS0_RAM_DN ||
+						hs_currently_selected == HS_RUNOPTS0_FRAMESKIP_DN ||
+						hs_currently_selected == HS_RUNOPTS0_SPEED_DN) {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
 						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_W);
@@ -1484,7 +1476,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS2_SAVE) {
 						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else { 
-						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_W);
@@ -1514,7 +1506,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS3_BACK) {
 						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
 				}
 			} else if (id == CURSOR_E) {
@@ -1538,20 +1530,21 @@ void manage_cursor_input(void) {
 							hs_currently_selected == HS_VKEYB_SHIFT + 9) {
 							hotspots[hs_currently_selected - 9].flags |= HS_PROP_SELECTED;
 						} else {
-							hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
+							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 						}
 					}
 				} else if (runtime_options[0].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS0_ZX81) {
-						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_RAM_UP) {
+					if (hs_currently_selected == HS_RUNOPTS0_ZX81 ||
+						hs_currently_selected == HS_RUNOPTS0_RAM_UP ||
+						hs_currently_selected == HS_RUNOPTS0_FRAMESKIP_UP ||
+						hs_currently_selected == HS_RUNOPTS0_SPEED_UP) {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_E);
@@ -1567,7 +1560,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_E);
@@ -1597,7 +1590,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS3_EXIT) {
 						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[++hs_currently_selected].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
 				}
 			}
@@ -1922,7 +1915,22 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_1 || id == SDLK_2) {
-			if (runtime_options[2].state) {
+			if (runtime_options[0].state) {
+
+				/* Emulation Speed < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
+					if (id == SDLK_1) {
+
+					} else {
+
+					}
+
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+
+			} else if (runtime_options[2].state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -1982,7 +1990,19 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_LEFTBRACKET || id == SDLK_RIGHTBRACKET) {
-			if (runtime_options[2].state) {
+			if (runtime_options[0].state) {
+				/* Frameskip < and > */
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
+					if (id == SDLK_LEFTBRACKET) {
+						if (sdl_emulator.frameskip > 0) sdl_emulator.frameskip--;
+					} else {
+						if (sdl_emulator.frameskip < MAX_FRAMESKIP) sdl_emulator.frameskip++;
+					}
+				} else {
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				}
+			} else if (runtime_options[2].state) {
 				/* Background colour blue < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -2037,12 +2057,14 @@ void runopts_transit(int state) {
 	static Uint32 runopts_colours_emu_fg;
 	static Uint32 runopts_colours_emu_bg;
 	static int runopts_joystick_dead_zone;
+	static int runopts_frameskip;
 	int protected, remap_device, remap_id, remap_mod_id;
 	int count, index, ctrl, found, components;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
 			/* Restore the original contents of these variables */
+			sdl_emulator.frameskip = runopts_frameskip;
 			sdl_key_repeat.delay = runopts_key_repeat.delay;
 			sdl_key_repeat.interval = runopts_key_repeat.interval;
 			colours.emu_fg = runopts_colours_emu_fg;
@@ -2057,6 +2079,7 @@ void runopts_transit(int state) {
 		runopts_reset_scheduled = 0;
 		runopts_machine_model = *sdl_emulator.model;
 		runopts_ramsize = sdl_emulator.ramsize;
+		runopts_frameskip = sdl_emulator.frameskip;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2297,13 +2320,13 @@ void runopts_transit(int state) {
 				}
 			}
 		}
-		/* Manage changing the machine model */
+		/* Update the machine model */
 		if (runopts_machine_model != *sdl_emulator.model) {
 			/* The component_executive monitors this variable and
 			 * manages emulator and component reinitialisation */
 			*sdl_emulator.model = runopts_machine_model;
 		}
-		/* Manage changing the RAM size */
+		/* Update the RAM size */
 		if (runopts_ramsize != sdl_emulator.ramsize) {
 			/* The component_executive monitors this variable and
 			 * manages emulator and component reinitialisation */

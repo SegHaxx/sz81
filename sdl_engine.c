@@ -86,6 +86,8 @@ int sdl_init(void) {
 		sdl_sound.volume = 128;
 	#endif
 	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.frameskip = 1;		/* Equivalent to z81's scrn_freq=2 */
+	sdl_emulator.ramsize = 16;		/* 16K is the default */
 	sdl_emulator.invert = 0;		/* Off is the default */
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	vkeyb.autohide = FALSE;
@@ -115,7 +117,6 @@ int sdl_init(void) {
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_emulator.state = TRUE;
 	sdl_emulator.speed = 20;		/* 1000ms/50Hz=20ms is the default */
-	sdl_emulator.ramsize = 16;		/* 16K is the default */
 	sdl_sound.state = FALSE;
 	video.redraw = TRUE;
 	vkeyb.state = FALSE;
@@ -333,7 +334,11 @@ void component_executive(void) {
 	/* Monitor control remapper's state */ 
 	if (ctrl_remapper_state != ctrl_remapper.state) {
 		ctrl_remapper_state = ctrl_remapper.state;
-		if (ctrl_remapper.state) ctrl_remapper.interval = 0;
+		if (ctrl_remapper.state) {
+			ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / 
+				sdl_emulator.speed / (sdl_emulator.frameskip + 1);
+			ctrl_remapper.interval = 0;
+		}
 	}
 	/* Manage control remapper's interval decrementing and resetting */
 	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)

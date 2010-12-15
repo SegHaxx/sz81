@@ -61,11 +61,9 @@
 #define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
 #define COMP_ALL ((COMP_RUNOPTS3 - 1) | COMP_RUNOPTS3)
 
-#define MAX_RUNTIME_OPTIONS 4
-
 /* Emulator variables I require access to */
-extern int scrn_freq;
-extern int load_selector_state, refresh_screen;
+extern int refresh_screen;
+extern int load_selector_state;
 extern int ignore_esc;	/* Only used within the load selector so it can eventually go temp temp */
 extern int sound, sixteenbit, interrupted;
 extern volatile int signal_int_flag;

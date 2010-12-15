@@ -1,3 +1,7 @@
+2010-12-15 Thunor <thunorsif_at_hotmail.com>
+* Added frameskip adjustment to the runtime options.
+* Added frameskip to the rcfile.
+
 2010-12-14 Thunor <thunorsif_at_hotmail.com>
 * Added RAM size changing to the runtime options.
 * Added RAM size to the rcfile.

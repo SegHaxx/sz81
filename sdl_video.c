@@ -70,7 +70,7 @@ char *runtime_options_text1[24] = {
 	"",
 	"  (\x1 \x1) VSYNC (TV Speaker)",
 	"",
-	"     (\x1 \x1) Stereo",
+	"",
 	"",
 	"",
 	"",
@@ -469,7 +469,7 @@ void sdl_video_update(void) {
 						} else if (count == 4) {
 							sprintf(text, "%2i", runopts_ramsize);
 						} else if (count == 5) {
-							sprintf(text, "%1i", scrn_freq - 1);
+							sprintf(text, "%1i", sdl_emulator.frameskip);
 						} else if (count == 6) {
 							sprintf(text, "%3i", 2000 / sdl_emulator.speed);
 						} else if (count == 7) {

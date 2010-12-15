@@ -31,10 +31,9 @@ if test -a VERSION ; then
 			echo "Source: http://${TARGET}.sourceforge.net/" >> zaurus/control
 
 			cp zaurus/control ipk/CONTROL
-			cp zaurus/*.desktop ipk/${PREFIX}/apps/Games
-			cp icon-zx80-32.png ipk/${PREFIX}/pics/sz80.png
-			cp icon-zx81-32.png ipk/${PREFIX}/pics/${TARGET}.png
-			cp ${TARGET} zaurus/run* ipk/${PREFIX}/bin
+			cp zaurus/${TARGET}.desktop ipk/${PREFIX}/apps/Games
+			cp icon-${TARGET}-32.png ipk/${PREFIX}/pics/${TARGET}.png
+			cp ${TARGET} zaurus/run${TARGET} ipk/${PREFIX}/bin
 			cp README ipk/${PREFIX}/share/${TARGET}
 			cp ChangeLog NEWS COPYING ipk/${PREFIX}/share/${TARGET}
 

@@ -16,6 +16,9 @@
  */
 
 /* Defines */
+#define MAX_RUNTIME_OPTIONS 4
+#define MAX_FRAMESKIP 5
+
 /* Message box manager function IDs */
 #define MSG_BOX_SHOW 1
 #define MSG_BOX_KILL 2
