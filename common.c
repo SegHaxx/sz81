@@ -1677,10 +1677,14 @@ return(returned_filename);
 }
 
 #ifdef SZ81	/* Added by Thunor */
-void common_init(void)
+void common_reset(void)
 {
-/* Reinitialise variables at the top of common.c
- * that aren't being managed by sz81 */
+int count;
+
+/* Reinitialise variables at the top of common.c that aren't unused
+ * options, being managed by sz81 or in init functions elsewhere */
+for(count=0;count<9;count++)
+  keyports[count]=0xff;
 signal_int_flag=0;
 exit_program_flag=0;
 interrupted=0;

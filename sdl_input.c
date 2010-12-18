@@ -1264,20 +1264,28 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
 						hs_currently_selected == HS_RUNOPTS0_ZX81) {
-						hotspots[hs_currently_selected + 9].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_SAVE ||
-						hs_currently_selected == HS_RUNOPTS0_EXIT) {
-						hotspots[HS_RUNOPTS0_SPEED_DN].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected + 8].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
-						hotspots[HS_RUNOPTS0_SPEED_UP].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					}
+				} else if (runtime_options[1].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_N);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS1_DEVICE_NONE) {
+						hotspots[HS_RUNOPTS1_SAVE].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS1_BACK &&
+						hs_currently_selected <= HS_RUNOPTS1_NEXT) {
+						hotspots[HS_RUNOPTS1_DEVICE_VSYNC].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_DN) {
-						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
+						hotspots[HS_RUNOPTS2_SAVE].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS2_VOLUME_UP) {
 						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_RUNOPTS2_KRDELAY_DN &&
@@ -1286,13 +1294,9 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_R_UP &&
 						hs_currently_selected <= HS_RUNOPTS2_BGC_R_DN) {
 						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS2_SAVE) {
-						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_RUNOPTS2_BGC_R_UP &&
-						hs_currently_selected <= HS_RUNOPTS2_EXIT) {
+						hs_currently_selected <= HS_RUNOPTS2_NEXT) {
 						hotspots[hs_currently_selected - 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
-						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_N);
@@ -1357,39 +1361,42 @@ void manage_cursor_input(void) {
 				} else if (runtime_options[0].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS0_SAVE ||
-						hs_currently_selected == HS_RUNOPTS0_EXIT) {
+					if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
 						hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+					} else if (hs_currently_selected == HS_RUNOPTS0_EXIT ||
+						hs_currently_selected == HS_RUNOPTS0_NEXT) {
 						hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_RUNOPTS0_ZX80 &&
-						hs_currently_selected <= HS_RUNOPTS0_FRAMESKIP_UP) {
-						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else {
-						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+					}
+				} else if (runtime_options[1].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_S);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected >= HS_RUNOPTS1_BACK &&
+						hs_currently_selected <= HS_RUNOPTS1_NEXT) {
+						hotspots[HS_RUNOPTS1_DEVICE_NONE].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS1_DEVICE_VSYNC) {
+						hotspots[HS_RUNOPTS1_SAVE].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS2_SAVE ||
-						hs_currently_selected == HS_RUNOPTS2_EXIT) {
+					if (hs_currently_selected == HS_RUNOPTS2_BACK ||
+						hs_currently_selected == HS_RUNOPTS2_SAVE) {
 						hotspots[HS_RUNOPTS2_VOLUME_DN].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
+					} else if (hs_currently_selected == HS_RUNOPTS2_EXIT ||
+						hs_currently_selected == HS_RUNOPTS2_NEXT) {
 						hotspots[HS_RUNOPTS2_VOLUME_UP].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_RUNOPTS2_BGC_B_DN &&
-						hs_currently_selected <= HS_RUNOPTS2_BGC_B_UP) {
-						hotspots[HS_RUNOPTS2_NEXT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_B_DN && 
-						hs_currently_selected <= HS_RUNOPTS2_FGC_B_UP) {
-						hotspots[HS_RUNOPTS2_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_R_DN && 
-						hs_currently_selected <= HS_RUNOPTS2_BGC_G_UP) {
-						hotspots[hs_currently_selected + 4].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
-						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_RUNOPTS2_VOLUME_DN && 
 						hs_currently_selected <= HS_RUNOPTS2_KRINTERVAL_DN) {
 						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS2_KRINTERVAL_UP) {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_RUNOPTS2_FGC_R_DN && 
+						hs_currently_selected <= HS_RUNOPTS2_BGC_B_UP) {
+						hotspots[hs_currently_selected + 4].flags |= HS_PROP_SELECTED;
 					}
 				} else if (runtime_options[3].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_S);
@@ -1417,11 +1424,12 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_A ||
 						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_B) {
 						hotspots[HS_RUNOPTS3_JOY_CFG_X].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN ||
-						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_DOWN) {
 						hotspots[HS_RUNOPTS3_BACK].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START ||
-						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_SELECT ||
+						hs_currently_selected == HS_RUNOPTS3_JOY_CFG_START) {
+						hotspots[HS_RUNOPTS3_SAVE].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS3_JOY_CFG_X) {
 						hotspots[HS_RUNOPTS3_EXIT].flags |= HS_PROP_SELECTED;
 					}
 				}
@@ -1462,6 +1470,14 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
+				} else if (runtime_options[1].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS1_BACK) {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1471,10 +1487,9 @@ void manage_cursor_input(void) {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS2_FGC_R_DN || 
 						hs_currently_selected == HS_RUNOPTS2_FGC_G_DN ||
-						hs_currently_selected == HS_RUNOPTS2_FGC_B_DN) {
+						hs_currently_selected == HS_RUNOPTS2_FGC_B_DN ||
+						hs_currently_selected == HS_RUNOPTS2_BACK) {
 						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_RUNOPTS2_SAVE) {
-						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					} else { 
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
@@ -1546,6 +1561,14 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
+				} else if (runtime_options[1].state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_RUNOPTS1_NEXT) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					}
 				} else if (runtime_options[2].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1558,7 +1581,7 @@ void manage_cursor_input(void) {
 						hs_currently_selected == HS_RUNOPTS2_BGC_B_UP) {
 						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_RUNOPTS2_NEXT) {
-						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
@@ -1654,7 +1677,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F8) {
 			/* Toggle invert screen */
 			if (state == SDL_PRESSED) {
-				/* The component_executive monitors this variable and
+				/* The component executive monitors this variable and
 				 * manages emulator and component reinitialisation */
 				sdl_emulator.invert = !sdl_emulator.invert;
 				rcfile.rewrite = TRUE;
@@ -1722,14 +1745,20 @@ void manage_all_input(void) {
 					if (sdl_sound.volume > 0) {
 						sdl_sound.volume -= 2;
 						#ifdef OSS_SOUND_SUPPORT
-							sound_ay_setvol();
+							if (sdl_sound.state && 
+								(sdl_sound.device == DEVICE_QUICKSILVA ||
+								sdl_sound.device == DEVICE_ZONX)) 
+								sound_ay_setvol();
 						#endif
 					}
 				} else {
 					if (sdl_sound.volume < 128) {
 						sdl_sound.volume += 2;
 						#ifdef OSS_SOUND_SUPPORT
-							sound_ay_setvol();
+							if (sdl_sound.state && 
+								(sdl_sound.device == DEVICE_QUICKSILVA ||
+								sdl_sound.device == DEVICE_ZONX)) 
+								sound_ay_setvol();
 						#endif
 					}
 				}
@@ -1755,7 +1784,7 @@ void manage_vkeyb_input(void) {
 		if (id == SDLK_F6) {
 			/* Toggle the vkeyb autohide state */
 			if (state == SDL_PRESSED) {
-				/* The component_executive monitors this variable and
+				/* The component executive monitors this variable and
 				 * manages emulator and component reinitialisation */
 				vkeyb.autohide = !vkeyb.autohide;
 				rcfile.rewrite = TRUE;
@@ -1763,7 +1792,7 @@ void manage_vkeyb_input(void) {
 		} else if (id == SDLK_F7) {
 			/* Toggle the vkeyb shift type */
 			if (state == SDL_PRESSED) {
-				/* The component_executive monitors this variable and
+				/* The component executive monitors this variable and
 				 * manages emulator and component reinitialisation */
 				vkeyb.toggle_shift = !vkeyb.toggle_shift;
 				rcfile.rewrite = TRUE;
@@ -1771,7 +1800,7 @@ void manage_vkeyb_input(void) {
 		} else if (id == SDLK_HOME || id == SDLK_END) {
 			/* Adjust the vkeyb alpha */
 			if (state == SDL_PRESSED) {
-				/* The component_executive monitors this variable and
+				/* The component executive monitors this variable and
 				 * manages emulator and component reinitialisation */
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_CTB * id);
 				if (id == SDLK_HOME && vkeyb.alpha == SDL_ALPHA_OPAQUE) {
@@ -1830,17 +1859,9 @@ void manage_runopts_input(void) {
 				/* Machine model */
 				if (state == SDL_PRESSED) {
 					if (id == SDLK_HOME) {
-						runopts_machine_model = TRUE;
+						runopts_emulator_model = TRUE;
 					} else {
-						runopts_machine_model = FALSE;
-					}
-					/* Flag this as requiring a reset if changed */
-					if (runopts_machine_model != *sdl_emulator.model) {
-						runopts_reset_scheduled |= 
-							(1 << (HS_RUNOPTS0_ZX80 - HS_RUNOPTS0_RUNOPTS0));
-					} else {
-						runopts_reset_scheduled &= 
-							~(1 << (HS_RUNOPTS0_ZX80 - HS_RUNOPTS0_RUNOPTS0));
+						runopts_emulator_model = FALSE;
 					}
 				}
 			} else if (runtime_options[2].state) {
@@ -1874,29 +1895,21 @@ void manage_runopts_input(void) {
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 					if (id == SDLK_INSERT) {
-						if (runopts_ramsize == 56) {
-							runopts_ramsize = 48;
-						} else if (runopts_ramsize == 48) {
-							runopts_ramsize = 32;
-						} else if (runopts_ramsize >= 2) {
-							runopts_ramsize /= 2;
+						if (runopts_emulator_ramsize == 56) {
+							runopts_emulator_ramsize = 48;
+						} else if (runopts_emulator_ramsize == 48) {
+							runopts_emulator_ramsize = 32;
+						} else if (runopts_emulator_ramsize >= 2) {
+							runopts_emulator_ramsize /= 2;
 						}
 					} else {
-						if (runopts_ramsize <= 16) {
-							runopts_ramsize *= 2;
-						} else if (runopts_ramsize == 32) {
-							runopts_ramsize = 48;
-						} else if (runopts_ramsize == 48) {
-							runopts_ramsize = 56;
+						if (runopts_emulator_ramsize <= 16) {
+							runopts_emulator_ramsize *= 2;
+						} else if (runopts_emulator_ramsize == 32) {
+							runopts_emulator_ramsize = 48;
+						} else if (runopts_emulator_ramsize == 48) {
+							runopts_emulator_ramsize = 56;
 						}
-					}
-					/* Flag this as requiring a reset if changed */
-					if (runopts_ramsize != sdl_emulator.ramsize) {
-						runopts_reset_scheduled |= 
-							(1 << (HS_RUNOPTS0_RAM_DN - HS_RUNOPTS0_RUNOPTS0));
-					} else {
-						runopts_reset_scheduled &= 
-							~(1 << (HS_RUNOPTS0_RAM_DN - HS_RUNOPTS0_RUNOPTS0));
 					}
 				} else {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -1917,6 +1930,7 @@ void manage_runopts_input(void) {
 		} else if (id == SDLK_1 || id == SDLK_2) {
 			if (runtime_options[0].state) {
 
+
 				/* Emulation Speed < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
@@ -1930,6 +1944,18 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 
+
+			} else if (runtime_options[1].state) {
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_1) {
+						/* Sound Device: None */
+						runopts_sound_device = DEVICE_NONE;
+					} else {
+						/* AY Chip Based */
+						if (runopts_sound_device != DEVICE_ZONX)
+							runopts_sound_device = DEVICE_QUICKSILVA;
+					}
+				}
 			} else if (runtime_options[2].state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
@@ -1942,7 +1968,17 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_3 || id == SDLK_4) {
-			if (runtime_options[2].state) {
+			if (runtime_options[1].state) {
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_3) {
+						/* Sound Device: Quicksilva Sound Board */
+						runopts_sound_device = DEVICE_QUICKSILVA;
+					} else {
+						/* Sound Device: BI-PAK ZON X81 */
+						runopts_sound_device = DEVICE_ZONX;
+					}
+				}
+			} else if (runtime_options[2].state) {
 				/* Foreground colour green < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -1954,7 +1990,19 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_5 || id == SDLK_6) {
-			if (runtime_options[2].state) {
+			if (runtime_options[1].state) {
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_5) {
+						/* ACB Stereo */
+						if (runopts_sound_device == DEVICE_QUICKSILVA ||
+							runopts_sound_device == DEVICE_ZONX)
+							runopts_sound_stereo = !runopts_sound_stereo;
+					} else {
+						/* Sound Device: VSYNC */
+						runopts_sound_device = DEVICE_VSYNC;
+					}
+				}
+			} else if (runtime_options[2].state) {
 				/* Foreground colour blue < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
@@ -2034,6 +2082,31 @@ void manage_runopts_input(void) {
 }
 
 /***************************************************************************
+ * Runtime Options Is A Reset Scheduled?                                   *
+ ***************************************************************************/
+/* This is used to show the warning message at the bottom of selected runopts
+ * pages when a reset is scheduled as a result of something being modified.
+ * 
+ * On exit: returns TRUE if an option change requires a reset
+ *          else FALSE */
+
+int runopts_is_a_reset_scheduled(void) {
+	int retval = FALSE;
+
+	if (runopts_emulator_model != *sdl_emulator.model || 
+		runopts_emulator_ramsize != sdl_emulator.ramsize ||
+		runopts_sound_device != sdl_sound.device) {
+		retval = TRUE;
+	} else if (runopts_sound_stereo != sdl_sound.stereo &&
+		runopts_sound_device != DEVICE_NONE && 
+		runopts_sound_device != DEVICE_VSYNC) {
+		retval = TRUE;
+	}
+
+	return retval;
+}
+
+/***************************************************************************
  * Runtime Options Transit                                                 *
  ***************************************************************************/
 /* There are two systems in operation here:
@@ -2057,14 +2130,14 @@ void runopts_transit(int state) {
 	static Uint32 runopts_colours_emu_fg;
 	static Uint32 runopts_colours_emu_bg;
 	static int runopts_joystick_dead_zone;
-	static int runopts_frameskip;
+	static int runopts_emulator_frameskip;
 	int protected, remap_device, remap_id, remap_mod_id;
 	int count, index, ctrl, found, components;
 	
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
 			/* Restore the original contents of these variables */
-			sdl_emulator.frameskip = runopts_frameskip;
+			sdl_emulator.frameskip = runopts_emulator_frameskip;
 			sdl_key_repeat.delay = runopts_key_repeat.delay;
 			sdl_key_repeat.interval = runopts_key_repeat.interval;
 			colours.emu_fg = runopts_colours_emu_fg;
@@ -2076,10 +2149,11 @@ void runopts_transit(int state) {
 		/* Initialise copies of the variables modifiable within runopts.
 		 * Sound volume isn't included because it's always available for 
 		 * adjustment throughout the program i.e. it's live */
-		runopts_reset_scheduled = 0;
-		runopts_machine_model = *sdl_emulator.model;
-		runopts_ramsize = sdl_emulator.ramsize;
-		runopts_frameskip = sdl_emulator.frameskip;
+		runopts_emulator_model = *sdl_emulator.model;
+		runopts_emulator_ramsize = sdl_emulator.ramsize;
+		runopts_emulator_frameskip = sdl_emulator.frameskip;
+		runopts_sound_device = sdl_sound.device;
+		runopts_sound_stereo = sdl_sound.stereo;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2092,6 +2166,30 @@ void runopts_transit(int state) {
 		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
+		/* Update the machine model */
+		if (runopts_emulator_model != *sdl_emulator.model) {
+			/* The component executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			*sdl_emulator.model = runopts_emulator_model;
+		}
+		/* Update the RAM size */
+		if (runopts_emulator_ramsize != sdl_emulator.ramsize) {
+			/* The component executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			sdl_emulator.ramsize = runopts_emulator_ramsize;
+		}
+		/* Update the sound device */
+		if (runopts_sound_device != sdl_sound.device) {
+			/* The component executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			sdl_sound.device = runopts_sound_device;
+		}
+		/* Update the sound stereo */
+		if (runopts_sound_stereo != sdl_sound.stereo) {
+			/* The component executive monitors this variable and
+			 * manages emulator and component reinitialisation */
+			sdl_sound.stereo = runopts_sound_stereo;
+		}
 		/* If the joycfg was used then update/insert the controls that
 		 * were remapped. Note that this needs to be kept in sync with
 		 * any joystick controls hard-coded within keyboard_update */
@@ -2319,18 +2417,6 @@ void runopts_transit(int state) {
 					}
 				}
 			}
-		}
-		/* Update the machine model */
-		if (runopts_machine_model != *sdl_emulator.model) {
-			/* The component_executive monitors this variable and
-			 * manages emulator and component reinitialisation */
-			*sdl_emulator.model = runopts_machine_model;
-		}
-		/* Update the RAM size */
-		if (runopts_ramsize != sdl_emulator.ramsize) {
-			/* The component_executive monitors this variable and
-			 * manages emulator and component reinitialisation */
-			sdl_emulator.ramsize = runopts_ramsize;
 		}
 	}
 

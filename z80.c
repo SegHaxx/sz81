@@ -391,9 +391,8 @@ while(1)
 #ifdef SZ81	/* Added by Thunor to support a thorough emulator reset */
     else if(interrupted==3)
       {
-      zxpclose();		/* Close any open printer file */
-      z80_init();		/* Reinitialise variables at the top of z80.c */
-      common_init();	/* Reinitialise variables at the top of common.c */
+      z80_reset();		/* Reinitialise variables at the top of z80.c */
+      common_reset();	/* Reinitialise variables at the top of common.c */
       return;			/* Return to smain.c and do it all again */
       }
 #endif
@@ -414,7 +413,7 @@ while(1)
 }
 
 #ifdef SZ81	/* Added by Thunor */
-void z80_init(void)
+void z80_reset(void)
 {
 /* Reinitialise variables at the top of z80.c */
 tstates=0;

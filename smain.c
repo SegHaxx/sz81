@@ -247,43 +247,6 @@ int main(int argc,char *argv[]) {
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
 
-
-				/* SOUND TEST temp temp vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-				 * z81's CLI says that if stereo then stereo_acb else
-				 * they're both false so I'll go with that.
-				 * 
-				 * Sound is set-up according to the emulator's speed so
-				 * adjusting the speed is going to require the sound to
-				 * be shutdown and restarted.
-				 * 
-				 * The variable 'sound' appears to be used to indicate
-				 * that it was requested, because once it's initialised
-				 * another variable sound_enabled is set depending on
-				 * the outcome */
-
-				/* Enable sound
-				sound=1; */
-
-				/* -a q[s]
-				sound_ay=1;
-				sound_ay_type=AY_TYPE_QUICKSILVA;
-				sound_stereo=sound_stereo_acb=0; */
-
-				/* -a z[s]
-				sound_ay=1;
-				sound_ay_type=AY_TYPE_ZONX;
-				sound_stereo=sound_stereo_acb=0; */
-
-				/* -s
-				sound_vsync=1; */
-
-				/* SOUND TEST ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-
-
-				#ifdef OSS_SOUND_SUPPORT
-					if (sound) sound_init();
-				#endif
-
 				/* I copied this here from loadhelp() as it's needed to
 				 * properly display the load selector.
 				 * Once the load selector has been replaced this code
@@ -291,6 +254,9 @@ int main(int argc,char *argv[]) {
 				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 				fakedispy=ZX_VID_MARGIN;
 
+				/* Synchronise */
+				sdl_component_executive();
+				
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 
@@ -301,8 +267,29 @@ int main(int argc,char *argv[]) {
 					/* Initialise the required ROM and RAM */
 					initmem();
 
+					#ifdef OSS_SOUND_SUPPORT
+						/* z81 has a variable 'sound' that is set to true
+						 * if the user requests sound else false. At this
+						 * point if 'sound' is true then the sound system is
+						 * initialised which should result in sound_enabled=1.
+						 * Henceforth the 'sound' variable is ignored and
+						 * sound_enabled is used to check the sound state */
+						if (sound) sound_init();
+					#endif
+
 					/* And off we go... */
 					mainloop();
+
+					#ifdef OSS_SOUND_SUPPORT
+						/* If sound_enabled=1 then sound is operational */
+						if (sound_enabled) {
+							sound_end();
+							sound_reset();
+						}
+					#endif
+
+					/* Close any open printer file */
+					zxpclose();
 				}
 			}
 		}

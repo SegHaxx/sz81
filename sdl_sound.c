@@ -15,6 +15,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifdef OSS_SOUND_SUPPORT
+
 /* Includes */
 #include "sdl_engine.h"
 
@@ -162,6 +164,6 @@ void sdl_sound_end(void) {
 	}
 }
 
-
+#endif	/* OSS_SOUND_SUPPORT */
 
 

@@ -756,4 +756,59 @@ sound_fillpos=newpos+1;
 sound_oldval=sound_oldval_orig=val;
 }
 
+#ifdef SZ81	/* Added by Thunor */
+void sound_reset(void)
+{
+int count;
+
+/* These few are actually declared in common.c but need to be
+ * reinitialised right here right now
+sound=0;
+sound_vsync=0;
+sound_ay=0;
+sound_ay_type=AY_TYPE_NONE;	Redundant: now managed by sz81 */
+
+/* Reinitialise all variables at the top of sound.c */
+sound_enabled=0;
+sound_freq=32000;
+/*sound_stereo=0;
+sound_stereo_acb=0;	Redundant: now managed by sz81 */
+sound_framesiz=0;
+for(count=0;count<16;count++)
+  ay_tone_levels[count]=0;
+sound_buf=NULL;
+sound_ptr=NULL;
+sound_oldpos=0;
+sound_fillpos=0;
+sound_oldval=0;
+sound_oldval_orig=0;
+beeper_tick=0;
+beeper_tick_incr=0;
+for(count=0;count<3;count++)
+  ay_tone_tick[count]=0;
+ay_noise_tick=0;
+ay_env_tick=0;
+ay_env_subcycles=0;
+ay_tick_incr=0;
+for(count=0;count<3;count++)
+  ay_tone_period[count]=0;
+ay_noise_period=0;
+ay_env_period=0;
+env_held=0;
+env_alternating=0;
+beeper_last_subpos=0;
+for(count=0;count<16;count++)
+  sound_ay_registers[count]=0;
+for(count=0;count<AY_CHANGE_MAX;count++)
+  {
+  ay_change[count].tstates=0;
+  ay_change[count].ofs=0;
+  ay_change[count].reg=0;
+  ay_change[count].val=0;
+  }
+ay_change_count=0;
+sixteenbit=0;
+}
+#endif
+
 #endif	/* OSS_SOUND_SUPPORT */

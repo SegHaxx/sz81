@@ -33,11 +33,11 @@ char *runtime_options_text0[24] = {
 	"",
 	"  (\x1 \x1) ZX80  (\x1 \x1) ZX81",
 	"",
-	"RAM Size\x90\x2<\x2\x85\x1  K\x90\x2>\x2\x85",
+	"RAM Size \x90\x2<\x2\x85 \x1  K\x90\x2>\x2\x85",
 	"",
-	"Frameskip\x90\x2<\x2\x85\x1 \x90\x2>\x2\x85",
+	"Frameskip\x90\x2<\x2\x85   \x1 \x90\x2>\x2\x85",
 	"",
-	"Emulation Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
+	"Emu Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
 	"",
 	"",
 	"",
@@ -74,7 +74,7 @@ char *runtime_options_text1[24] = {
 	"",
 	"",
 	"",
-	"",
+	"\x1 ",
 	"",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
@@ -83,11 +83,11 @@ char *runtime_options_text1[24] = {
 char *runtime_options_text2[24] = {
 	"\x2 Runtime Options            3/4 \x2",
 	"",
-	"Volume\x90\x2<\x2\x85\x1   \x90\x2>\x2\x85",
+	"Volume    \x90\x2<\x2\x85  \x1   \x90\x2>\x2\x85",
 	"",
 	"Key Repeat:",
 	"",
-	"  Delay\x90\x2<\x2\x85\x1   ms\x90\x2>\x2\x85",
+	"  Delay   \x90\x2<\x2\x85\x1   ms\x90\x2>\x2\x85",
 	"",
 	"  Interval\x90\x2<\x2\x85\x1   ms\x90\x2>\x2\x85",
 	"",
@@ -101,7 +101,7 @@ char *runtime_options_text2[24] = {
 	"",
 	"", 
 	"",
-	"",
+	"\x1 ",
 	"",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
@@ -110,7 +110,7 @@ char *runtime_options_text2[24] = {
 char *runtime_options_text3[24] = {
 	"\x2 Runtime Options            4/4 \x2",
 	"",
-	"Joy Axis Dead Zone\x90\x2<\x2\x85\x1  \%\x90\x2>\x2\x85",
+	"Axis Dead Zone\x90\x2<\x2\x85\x1  \%\x90\x2>\x2\x85",
 	"",
 	"Joystick Configurator:",
 	"",
@@ -238,7 +238,7 @@ unsigned char *vga_getgraphmem(void) {
  ***************************************************************************/
 /* This does the following things :-
  * 
- * Firstly the component_executive is called to check everything is up-to-date.
+ * Firstly the component executive is called to check everything is up-to-date.
  * It'll redraw the entire screen if video.redraw is TRUE.
  * The emulator's 8 bit 320x200 VGA memory is scaled-up into the SDL screen surface.
  * Possibly the load selector, vkeyb, control bar, runtime options and associated
@@ -269,7 +269,7 @@ void sdl_video_update(void) {
 	#endif
 
 	/* Monitor and manage component states */
-	component_executive();
+	sdl_component_executive();
 
 	/* Prepare the colours we shall be using */
 	fg_colour = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
@@ -460,23 +460,74 @@ void sdl_video_update(void) {
 						 * second \x1 will revert the colour if it was inverted */
 						if (count >= 0 && count <= 3) {
 							if (count == 0 || count == 2) strcpy(text, "O");
-							if ((count <= 1 && runopts_machine_model) || 
-								(count >= 2 && !runopts_machine_model)) {
+							if ((count <= 1 && runopts_emulator_model) || 
+								(count >= 2 && !runopts_emulator_model)) {
 								/* Invert the colours */
 								colour = fg_colour; fg_colour = bg_colour; 
 								bg_colour = colour;
 							}
 						} else if (count == 4) {
-							sprintf(text, "%2i", runopts_ramsize);
+							sprintf(text, "%2i", runopts_emulator_ramsize);
 						} else if (count == 5) {
 							sprintf(text, "%1i", sdl_emulator.frameskip);
 						} else if (count == 6) {
 							sprintf(text, "%3i", 2000 / sdl_emulator.speed);
 						} else if (count == 7) {
-							if (runopts_reset_scheduled)
+							if (runopts_is_a_reset_scheduled())
 								strcpy(text, "* A reset is scheduled on save *");
 						}
 					} else if (runtime_options[1].state) {
+						/* The colour inversion here is conditional and so there are
+						 * two \x1's embedded within the text. The first \x1 will
+						 * always draw a char which may be colour inverted, and the
+						 * second \x1 will revert the colour if it was inverted */
+						if (count >= 0 && count <= 1) {
+							if (!(count % 2)) strcpy(text, "O");
+							if (runopts_sound_device == DEVICE_NONE) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count >= 2 && count <= 3) {
+							if (!(count % 2)) strcpy(text, "O");
+							if (runopts_sound_device == DEVICE_QUICKSILVA ||
+								runopts_sound_device == DEVICE_ZONX) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count >= 4 && count <= 5) {
+							if (!(count % 2)) strcpy(text, "O");
+							if (runopts_sound_device == DEVICE_QUICKSILVA) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count >= 6 && count <= 7) {
+							if (!(count % 2)) strcpy(text, "O");
+							if (runopts_sound_device == DEVICE_ZONX) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count >= 8 && count <= 9) {
+							if (!(count % 2)) strcpy(text, "X");
+							if (runopts_sound_stereo) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count >= 10 && count <= 11) {
+							if (!(count % 2)) strcpy(text, "O");
+							if (runopts_sound_device == DEVICE_VSYNC) {
+								/* Invert the colours */
+								colour = fg_colour; fg_colour = bg_colour; 
+								bg_colour = colour;
+							}
+						} else if (count == 12) {
+							if (runopts_is_a_reset_scheduled())
+								strcpy(text, "* A reset is scheduled on save *");
+						}
 					} else if (runtime_options[2].state) {
 						if (count == 0) {
 							sprintf(text, "%3i", sdl_sound.volume);
@@ -496,16 +547,15 @@ void sdl_video_update(void) {
 							sprintf(text, "%02x", colours.emu_fg & 0xff);
 						} else if (count == 8) {		
 							sprintf(text, "%02x", colours.emu_bg & 0xff);
-						} else {		
-							sprintf(text, "%s", "???");
+						} else if (count == 9) {
+							if (runopts_is_a_reset_scheduled())
+								strcpy(text, "* A reset is scheduled on save *");
 						}
 					} else if (runtime_options[3].state) {
 						if (count == 0) {
 							sprintf(text, "%2i", joystick_dead_zone);
 						} else if (count >= 1 && count <= 3) {		
 							sprintf(text, "%s", joy_cfg.text[count - 1]);
-						} else {		
-							sprintf(text, "%s", "???");
 						}
 					}
 					if (text[0]) {	/* Let's not go to that place - again ;) */

@@ -118,7 +118,7 @@ struct {
 	int yoffset;
 	SDL_TimerID timer_id;
 	int speed;		/* 10ms=200%, 20ms=100%, 30ms=66%, 40ms=50% */
-	int frameskip;	/* 0fs, 1fs etc. */
+	int frameskip;	/* 0 to MAX_FRAMESKIP */
 	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
 	int ramsize;	/* 1, 2, 4, 8, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
@@ -127,6 +127,8 @@ struct {
 struct {
 	int state;
 	int volume;
+	int device;		/* See DEVICE* defines in sdl_sound.h */
+	int stereo;
 	Uint8 buffer[SOUND_BUFFER_SIZE];
 	int buffer_start;
 	int buffer_end;
@@ -155,9 +157,10 @@ int sdl_video_setmode(void);
 unsigned char *vga_getgraphmem(void);
 void keyboard_init(void);
 void sdl_rcfile_read(void);
-void sdl_zxprinter_init(void);
 int sdl_zxroms_init(void);
+void sdl_component_executive(void);
 void sdl_timer_init(void);
+void sdl_zxprinter_init(void);
 char *keyboard_getstate(void);
 int keyboard_update(void);
 void sdl_video_update(void);

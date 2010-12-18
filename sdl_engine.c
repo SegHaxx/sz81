@@ -80,15 +80,17 @@ int sdl_init(void) {
 	joystick_dead_zone = JOYSTICK_DEAD_ZONE;
 	sdl_key_repeat.delay = KEY_REPEAT_DELAY;
 	sdl_key_repeat.interval = KEY_REPEAT_INTERVAL;
+	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.frameskip = 1;		/* Equivalent to z81's scrn_freq=2 */
+	sdl_emulator.ramsize = 16;		/* 16K is the default */
+	sdl_emulator.invert = 0;		/* Off is the default */
 	#if defined(PLATFORM_GP2X)
 		sdl_sound.volume = 30;
 	#else
 		sdl_sound.volume = 128;
 	#endif
-	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
-	sdl_emulator.frameskip = 1;		/* Equivalent to z81's scrn_freq=2 */
-	sdl_emulator.ramsize = 16;		/* 16K is the default */
-	sdl_emulator.invert = 0;		/* Off is the default */
+	sdl_sound.device = DEVICE_NONE;
+	sdl_sound.stereo = FALSE;
 	vkeyb.alpha = SDL_ALPHA_OPAQUE;
 	vkeyb.autohide = FALSE;
 	vkeyb.toggle_shift = FALSE;
@@ -260,18 +262,118 @@ int sdl_com_line_process(int argc, char *argv[]) {
  * needs to be done as a result of a state change then it is managed from
  * here to keep things organised and to cut down on code duplication */
 
-void component_executive(void) {
+void sdl_component_executive(void) {
 	static int active_components = 0;
 	static int ctrl_remapper_state = FALSE;
 	static int sdl_emulator_model = 0;
 	static int sdl_emulator_ramsize = 16;
 	static int sdl_emulator_invert = 0;
+	static int sdl_sound_device = 0;
+	static int sdl_sound_stereo = 0;
 	static int vkeyb_alpha = SDL_ALPHA_OPAQUE;
 	static int vkeyb_autohide = FALSE;
 	static int vkeyb_toggle_shift = FALSE;
+	static int synchronise = TRUE;
 	int found = FALSE;
 	int count;
 	
+	/* Monitor control remapper's state */ 
+	if (ctrl_remapper_state != ctrl_remapper.state) {
+		ctrl_remapper_state = ctrl_remapper.state;
+		if (ctrl_remapper.state) {
+			ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / 
+				sdl_emulator.speed / (sdl_emulator.frameskip + 1);
+			ctrl_remapper.interval = 0;
+		}
+	}
+	/* Manage control remapper's interval decrementing and resetting */
+	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
+		ctrl_remapper.interval = ctrl_remapper.master_interval;
+
+	/* Monitor vkeyb autohide, toggle_shift and invert changes
+	 * i.e. the control bar icons with images that require toggling */
+	if (vkeyb_autohide != vkeyb.autohide || vkeyb_toggle_shift != vkeyb.toggle_shift ||
+		sdl_emulator_invert != sdl_emulator.invert) {
+		vkeyb_autohide = vkeyb.autohide;
+		sdl_emulator_invert = sdl_emulator.invert;
+		if (vkeyb_toggle_shift != vkeyb.toggle_shift) {
+			vkeyb_toggle_shift = vkeyb.toggle_shift;
+			hotspots_vkeyb_shift_init();
+		}
+		control_bar_init();
+		video.redraw = TRUE;
+	}
+
+	/* Monitor vkeyb alpha changes */
+	if (vkeyb_alpha != vkeyb.alpha) {
+		vkeyb_alpha = vkeyb.alpha;
+		vkeyb_alpha_apply();
+		video.redraw = TRUE;
+	}
+
+	/* Monitor machine model changes i.e. ZX80/ZX81 switching */
+	if (sdl_emulator_model != *sdl_emulator.model) {
+		sdl_emulator_model = *sdl_emulator.model;
+		/* Change the virtual keyboard */
+		vkeyb_init();
+		/* Resize vkeyb hotspots only */
+		hotspots_resize(HS_GRP_VKEYB);
+		/* Restart mainloop on return */
+		interrupted = 3;
+	}
+
+	/* Monitor RAM size changes */
+	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
+		sdl_emulator_ramsize = sdl_emulator.ramsize;
+		/* Restart mainloop on return */
+		interrupted = 3;
+	}
+
+	/* Monitor sound device and stereo changes */
+	if (sdl_sound_device != sdl_sound.device || sdl_sound_stereo != sdl_sound.stereo) {
+		/* Update stereo regardless */
+		sdl_sound_stereo = sdl_sound.stereo;
+		/* Only restart the mainloop if either the sound device 
+		 * has changed or stereo has changed for an AY device */
+		if (sdl_sound_device != sdl_sound.device ||
+			(sdl_sound_device == sdl_sound.device && 
+			(sdl_sound_device == DEVICE_QUICKSILVA || sdl_sound_device == DEVICE_ZONX))) {
+			sdl_sound_device = sdl_sound.device;
+			switch (sdl_sound.device) {
+				case DEVICE_NONE:
+					sound = 0; sound_ay = 0; sound_vsync = 0;
+					sound_ay_type = DEVICE_NONE;
+					sound_stereo = sound_stereo_acb = 0;
+					break;
+				case DEVICE_QUICKSILVA:
+					sound = 1; sound_ay = 1; sound_vsync = 0;
+					sound_ay_type = DEVICE_QUICKSILVA;
+					if (sdl_sound.stereo) {
+						sound_stereo = sound_stereo_acb = 1;
+					} else {
+						sound_stereo = sound_stereo_acb = 0;
+					}
+					break;
+				case DEVICE_ZONX:
+					sound = 1; sound_ay = 1; sound_vsync = 0;
+					sound_ay_type = DEVICE_ZONX;
+					if (sdl_sound.stereo) {
+						sound_stereo = sound_stereo_acb = 1;
+					} else {
+						sound_stereo = sound_stereo_acb = 0;
+					}
+					break;
+				case DEVICE_VSYNC:
+					sound = 1; sound_ay = 0; sound_vsync = 1;
+					sound_ay_type = DEVICE_NONE;
+					sound_stereo = sound_stereo_acb = 0;
+					break;
+			}
+			/* Restart mainloop on return */
+			interrupted = 3;
+		}
+	}
+
 	/* Monitor emulator's state */
 	if ((active_components & COMP_EMU) != (sdl_emulator.state * COMP_EMU)) {
 		if (!sdl_emulator.state && load_selector_state) load_selector_state = FALSE;
@@ -304,65 +406,11 @@ void component_executive(void) {
 		found = TRUE;
 	}
 
-	/* Monitor machine model i.e. ZX80/ZX81 switching */
-	if (sdl_emulator_model != *sdl_emulator.model) {
-		sdl_emulator_model = *sdl_emulator.model;
-		/* Change the virtual keyboard */
-		vkeyb_init();
-		/* Resize vkeyb hotspots only */
-		hotspots_resize(HS_GRP_VKEYB);
-		/* Restart mainloop() on return */
-		interrupted = 3;
-		found = TRUE;
-	}
-
-	/* Monitor RAM size changes */
-	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
-		sdl_emulator_ramsize = sdl_emulator.ramsize;
-		/* Restart mainloop() on return */
-		interrupted = 3;
-		found = TRUE;
-	}
-
 	if (found) {
 		keyboard_buffer_reset(FALSE);
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 		/* Update hotspot states */
 		hotspots_update();
-	}
-
-	/* Monitor control remapper's state */ 
-	if (ctrl_remapper_state != ctrl_remapper.state) {
-		ctrl_remapper_state = ctrl_remapper.state;
-		if (ctrl_remapper.state) {
-			ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / 
-				sdl_emulator.speed / (sdl_emulator.frameskip + 1);
-			ctrl_remapper.interval = 0;
-		}
-	}
-	/* Manage control remapper's interval decrementing and resetting */
-	if (ctrl_remapper.state && --ctrl_remapper.interval <= 0)
-		ctrl_remapper.interval = ctrl_remapper.master_interval;
-
-	/* Monitor vkeyb.autohide, vkeyb.toggle_shift and sdl_emulator.invert
-	 * i.e. the control bar icons with images that require toggling */
-	if (vkeyb_autohide != vkeyb.autohide || vkeyb_toggle_shift != vkeyb.toggle_shift ||
-		sdl_emulator_invert != sdl_emulator.invert) {
-		vkeyb_autohide = vkeyb.autohide;
-		sdl_emulator_invert = sdl_emulator.invert;
-		if (vkeyb_toggle_shift != vkeyb.toggle_shift) {
-			vkeyb_toggle_shift = vkeyb.toggle_shift;
-			hotspots_vkeyb_shift_init();
-		}
-		control_bar_init();
-		video.redraw = TRUE;
-	}
-
-	/* Monitor vkeyb.alpha */
-	if (vkeyb_alpha != vkeyb.alpha) {
-		vkeyb_alpha = vkeyb.alpha;
-		vkeyb_alpha_apply();
-		video.redraw = TRUE;
 	}
 
 	/* Maintain a copy of current program component states  */
@@ -388,6 +436,13 @@ void component_executive(void) {
 		} else {
 			active_components &= ~(COMP_RUNOPTS0 << count);
 		}
+	}
+
+	/* The first time in, this function may need to synchronise with any
+	 * updates from the rcfile, so full emulator resets are unnecessary */
+	if (synchronise) {
+		synchronise = FALSE;
+		interrupted = 0;
 	}
 }
 

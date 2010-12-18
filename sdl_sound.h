@@ -16,6 +16,10 @@
  */
 
 /* Defines */
+#define DEVICE_NONE 0
+#define DEVICE_QUICKSILVA 1
+#define DEVICE_ZONX 2
+#define DEVICE_VSYNC 3
 
 /* Variables */
 

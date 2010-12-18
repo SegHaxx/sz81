@@ -42,9 +42,11 @@ SDL_Joystick *joystick;
 int joystick_dead_zone;
 int show_input_id;	/* temp temp This should be in runtime options somewhere */
 int current_input_id;
-int runopts_reset_scheduled;
-int runopts_machine_model;
-int runopts_ramsize;
+/*int runopts_reset_scheduled;	Redundant */
+int runopts_emulator_model;
+int runopts_emulator_ramsize;
+int runopts_sound_device;
+int runopts_sound_stereo;
 
 struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ IDs */
@@ -69,6 +71,7 @@ struct {
 } joy_cfg;
 
 /* Function prototypes */
+int runopts_is_a_reset_scheduled(void);
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(int shift_reset);
 int keysym_to_scancode(int reverse, int value);

@@ -61,13 +61,20 @@
 #define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
 #define COMP_ALL ((COMP_RUNOPTS3 - 1) | COMP_RUNOPTS3)
 
+/* Machine models */
+#define MODEL_ZX81 0
+#define MODEL_ZX80 1
+
 /* Emulator variables I require access to */
 extern int refresh_screen;
 extern int load_selector_state;
 extern int ignore_esc;	/* Only used within the load selector so it can eventually go temp temp */
-extern int sound, sixteenbit, interrupted;
+extern int interrupted;
 extern volatile int signal_int_flag;
 extern char *zxpfilename;
+extern int sound, sound_vsync;
+extern int sound_ay, sound_ay_type;
+extern int sound_stereo, sound_stereo_acb;
 
 /* Variables */
 char workdir[256];
@@ -89,7 +96,6 @@ extern void initmem(void);
 #endif
 
 /* Function prototypes */
-void component_executive(void);
 int get_active_component(void);
 int runtime_options_which(void);
 Uint32 emulator_timer (Uint32 interval, void *param);
