@@ -28,6 +28,7 @@ extern int sound_stereo_acb;
 
 #ifdef SZ81	/* Added by Thunor */
 extern void sound_ay_setvol(void);
+extern int sound_framesiz_init(void);
 extern void sound_reset(void);
 #endif
 extern void sound_init(void);

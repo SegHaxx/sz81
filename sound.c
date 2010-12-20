@@ -291,6 +291,7 @@ ay_tone_levels[0]=0;
 }
 #endif
 
+
 void sound_ay_init(void)
 {
 int f,clock;
@@ -331,6 +332,24 @@ ay_change_count=0;
 }
 
 
+#ifdef SZ81	/* Added by Thunor */
+int sound_framesiz_init(void)
+{
+if(sound_buf)
+  free(sound_buf);
+
+sound_framesiz=sound_freq/(1000/sdl_emulator.speed);
+
+if((sound_buf=malloc(sound_framesiz*(sound_stereo+1)))==NULL)
+  return 1;
+
+sound_ptr=sound_buf;	/* sound_ptr isn't used anyway */
+
+return 0;
+}
+#endif
+
+
 void sound_init(void)
 {
 #ifdef SZ81	/* Added by Thunor */
@@ -352,17 +371,20 @@ if(!sound_stereo)
 sound_enabled=1;
 
 #ifdef SZ81	/* Added by Thunor */
-/*sound_framesiz=sound_freq/sdl_emulator.speed;	Redundant */
-sound_framesiz=sound_freq/(1000/sdl_emulator.speed);
+if(sound_framesiz_init())
+  {
+  sound_end();
+  return;
+  }
 #else
 sound_framesiz=sound_freq/50;
-#endif
 
 if((sound_buf=malloc(sound_framesiz*(sound_stereo+1)))==NULL)
   {
   sound_end();
   return;
   }
+#endif
 
 sound_oldval=sound_oldval_orig=128;
 sound_oldpos=-1;
@@ -755,6 +777,7 @@ sound_oldpos=newpos;
 sound_fillpos=newpos+1;
 sound_oldval=sound_oldval_orig=val;
 }
+
 
 #ifdef SZ81	/* Added by Thunor */
 void sound_reset(void)

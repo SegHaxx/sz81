@@ -139,12 +139,13 @@ void sdl_rcfile_read(void) {
 	struct ctrlremap read_ctrl_remaps[MAX_CTRL_REMAPS];
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
+	int read_emulator_speed, read_emulator_frameskip, read_emulator_model;
 	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
 	int read_sound_volume, read_sound_device, read_sound_stereo;
-	int read_emulator_frameskip, read_emulator_model;
 	int read_emulator_ramsize, read_emulator_invert;
 	int count, index, line_count, found;
 	int read_joystick_dead_zone;
+	int read_show_input_id;
 	char read_version[16];
 	FILE *fp;
 
@@ -175,9 +176,11 @@ void sdl_rcfile_read(void) {
 	}
 
 	strcpy(read_version, "");
+	read_show_input_id = UNDEFINED;
 	read_joystick_dead_zone = UNDEFINED;
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
+	read_emulator_speed = UNDEFINED;
 	read_emulator_frameskip = UNDEFINED;
 	read_emulator_model = UNDEFINED;
 	read_emulator_ramsize = UNDEFINED;
@@ -231,6 +234,15 @@ void sdl_rcfile_read(void) {
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%s", read_version);
 			}
+			strcpy(key, "show_input_id=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (strcmp(value, "TRUE") == 0 || strcmp(value, "1") == 0) {
+					read_show_input_id = TRUE;
+				} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
+					read_show_input_id = FALSE;
+				}
+			}
 			strcpy(key, "joystick_dead_zone=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_joystick_dead_zone);
@@ -242,6 +254,19 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "key_repeat.interval=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_key_repeat.interval);
+			}
+			strcpy(key, "emulator.speed=");
+			if (!strncmp(line, key, strlen(key))) {
+				strcpy(value, &line[strlen(key)]);
+				if (strcmp(value, "200") == 0) {
+					read_emulator_speed = 10;
+				} else if (strcmp(value, "100") == 0) {
+					read_emulator_speed = 20;
+				} else if (strcmp(value, "66") == 0) {
+					read_emulator_speed = 30;
+				} else if (strcmp(value, "50") == 0) {
+					read_emulator_speed = 40;
+				}
 			}
 			strcpy(key, "emulator.frameskip=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -269,32 +294,34 @@ void sdl_rcfile_read(void) {
 					read_emulator_invert = FALSE;
 				}
 			}
-			strcpy(key, "sound.volume=");
-			if (!strncmp(line, key, strlen(key))) {
-				sscanf(&line[strlen(key)], "%i", &read_sound_volume);
-			}
-			strcpy(key, "sound.device=");
-			if (!strncmp(line, key, strlen(key))) {
-				strcpy(value, &line[strlen(key)]);
-				if (strcmp(value, "DEVICE_NONE") == 0) {
-					read_sound_device = DEVICE_NONE;
-				} else if (strcmp(value, "DEVICE_QUICKSILVA") == 0) {
-					read_sound_device = DEVICE_QUICKSILVA;
-				} else if (strcmp(value, "DEVICE_ZONX") == 0) {
-					read_sound_device = DEVICE_ZONX;
-				} else if (strcmp(value, "DEVICE_VSYNC") == 0) {
-					read_sound_device = DEVICE_VSYNC;
+			#ifdef OSS_SOUND_SUPPORT
+				strcpy(key, "sound.volume=");
+				if (!strncmp(line, key, strlen(key))) {
+					sscanf(&line[strlen(key)], "%i", &read_sound_volume);
 				}
-			}
-			strcpy(key, "sound.stereo=");
-			if (!strncmp(line, key, strlen(key))) {
-				strcpy(value, &line[strlen(key)]);
-				if (strcmp(value, "TRUE") == 0 || strcmp(value, "1") == 0) {
-					read_sound_stereo = TRUE;
-				} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
-					read_sound_stereo = FALSE;
+				strcpy(key, "sound.device=");
+				if (!strncmp(line, key, strlen(key))) {
+					strcpy(value, &line[strlen(key)]);
+					if (strcmp(value, "DEVICE_NONE") == 0) {
+						read_sound_device = DEVICE_NONE;
+					} else if (strcmp(value, "DEVICE_QUICKSILVA") == 0) {
+						read_sound_device = DEVICE_QUICKSILVA;
+					} else if (strcmp(value, "DEVICE_ZONX") == 0) {
+						read_sound_device = DEVICE_ZONX;
+					} else if (strcmp(value, "DEVICE_VSYNC") == 0) {
+						read_sound_device = DEVICE_VSYNC;
+					}
 				}
-			}
+				strcpy(key, "sound.stereo=");
+				if (!strncmp(line, key, strlen(key))) {
+					strcpy(value, &line[strlen(key)]);
+					if (strcmp(value, "TRUE") == 0 || strcmp(value, "1") == 0) {
+						read_sound_stereo = TRUE;
+					} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
+						read_sound_stereo = FALSE;
+					}
+				}
+			#endif
 			strcpy(key, "vkeyb.alpha=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_vkeyb_alpha);
@@ -456,9 +483,11 @@ void sdl_rcfile_read(void) {
 
 	#ifdef SDL_DEBUG_RCFILE
 		printf("read_version=%s\n", read_version);
+		printf("read_show_input_id=%i\n", read_show_input_id);
 		printf("read_joystick_dead_zone=%i\n", read_joystick_dead_zone);
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
+		printf("read_emulator_speed=%i\n", read_emulator_speed);
 		printf("read_emulator_frameskip=%i\n", read_emulator_frameskip);
 		printf("read_emulator_model=%i\n", read_emulator_model);
 		printf("read_emulator_ramsize=%i\n", read_emulator_ramsize);
@@ -504,6 +533,10 @@ void sdl_rcfile_read(void) {
 		rcfile.rewrite = TRUE;
 	} else {
 		/* Store settings after first checking their validity */
+
+		/* Show input id (it's vetted) */
+		if (read_show_input_id != UNDEFINED) show_input_id = read_show_input_id;
+
 		/* Joystick dead zone */
 		if (read_joystick_dead_zone != UNDEFINED) {
 			if (read_joystick_dead_zone >= 1 && read_joystick_dead_zone <= 99) {
@@ -531,6 +564,12 @@ void sdl_rcfile_read(void) {
 					"try 80 to 520\n", __func__);
 			}
 		}
+
+		#ifdef ENABLE_EMULATION_SPEED_ADJUST
+			/* Emulation speed (it's vetted) */
+			if (read_emulator_speed != UNDEFINED) sdl_emulator.speed = read_emulator_speed;
+		#endif
+		
 		/* Frameskip*/
 		if (read_emulator_frameskip != UNDEFINED) {
 			if (read_emulator_frameskip >= 0 && read_emulator_frameskip <= MAX_FRAMESKIP) {
@@ -540,15 +579,10 @@ void sdl_rcfile_read(void) {
 					"try 0 to %i\n", __func__, MAX_FRAMESKIP);
 			}
 		}
-		/* Machine model */
-		if (read_emulator_model != UNDEFINED) {
-			if (read_emulator_model >= 0 && read_emulator_model <= 1) {
-				*sdl_emulator.model = read_emulator_model;
-			} else {
-				fprintf(stderr, "%s: emulator.model within rcfile is invalid: "
-					"try MODEL_ZX80 or MODEL_ZX81\n", __func__);
-			}
-		}
+
+		/* Machine model (it's vetted) */
+		if (read_emulator_model != UNDEFINED) *sdl_emulator.model = read_emulator_model;
+
 		/* RAM size */
 		if (read_emulator_ramsize != UNDEFINED) {
 			if (read_emulator_ramsize == 1 || read_emulator_ramsize == 2 ||
@@ -561,50 +595,28 @@ void sdl_rcfile_read(void) {
 					"try 1, 2, 4, 8, 16, 32, 48 or 56\n", __func__);
 			}
 		}
-		/* Invert screen */
-		if (read_emulator_invert != UNDEFINED) {
-			if (read_emulator_invert >= 0 && read_emulator_invert <= 1) {
-				sdl_emulator.invert = read_emulator_invert;
-			} else {
-				fprintf(stderr, "%s: emulator.invert within rcfile is invalid: "
-					"try TRUE or FALSE\n", __func__);
+
+		/* Invert screen (it's vetted) */
+		if (read_emulator_invert != UNDEFINED) sdl_emulator.invert = read_emulator_invert;
+
+		#ifdef OSS_SOUND_SUPPORT
+			/* Sound volume */
+			if (read_sound_volume != UNDEFINED) {
+				if (read_sound_volume >= 0 && read_sound_volume <= 128) {
+					sdl_sound.volume = read_sound_volume;
+				} else {
+					fprintf(stderr, "%s: sound.volume within rcfile is invalid: "
+						"try 0 to 128\n", __func__);
+				}
 			}
-		}
-		/* Sound volume */
-		if (read_sound_volume != UNDEFINED) {
-			if (read_sound_volume >= 0 && read_sound_volume <= 128) {
-				sdl_sound.volume = read_sound_volume;
-			} else {
-				fprintf(stderr, "%s: sound.volume within rcfile is invalid: "
-					"try 0 to 128\n", __func__);
-			}
-		}
-		/* Sound device */
-		if (read_sound_device != UNDEFINED) {
-			if (read_sound_device >= DEVICE_NONE && read_sound_device <= DEVICE_VSYNC) {
-				sdl_sound.device = read_sound_device;
-			} else {
-				fprintf(stderr, "%s: sound.device within rcfile is invalid: "
-					"try DEVICE_NONE, DEVICE_QUICKSILVA, DEVICE_ZONX or "
-					"DEVICE_VSYNC\n", __func__);
-			}
-		}
-		/* Sound stereo */
-		if (read_sound_stereo != UNDEFINED) {
-			if (read_sound_stereo >= 0 && read_sound_stereo <= 1) {
-				/*if (read_sound_stereo && 
-					(read_sound_device == DEVICE_NONE ||
-					read_sound_device == DEVICE_VSYNC)) {
-					fprintf(stderr, "%s: sound.stereo within rcfile is invalid for "
-						"DEVICE_NONE and DEVICE_VSYNC\n", __func__);
-				} else {	Redundant */
-					sdl_sound.stereo = read_sound_stereo;
-				/*}	Redundant */
-			} else {
-				fprintf(stderr, "%s: sound.stereo within rcfile is invalid: "
-					"try TRUE or FALSE\n", __func__);
-			}
-		}
+
+			/* Sound device (it's vetted) */
+			if (read_sound_device != UNDEFINED) sdl_sound.device = read_sound_device;
+
+			/* Sound stereo (it's vetted) */
+			if (read_sound_stereo != UNDEFINED) sdl_sound.stereo = read_sound_stereo;
+		#endif
+
 		/* Vkeyb alpha */
 		if (read_vkeyb_alpha != UNDEFINED) {
 			if (read_vkeyb_alpha >= 0 && read_vkeyb_alpha <= SDL_ALPHA_OPAQUE) {
@@ -614,24 +626,13 @@ void sdl_rcfile_read(void) {
 					"try 0 to %i\n", __func__, SDL_ALPHA_OPAQUE);
 			}
 		}
-		/* Vkeyb autohide */
-		if (read_vkeyb_autohide != UNDEFINED) {
-			if (read_vkeyb_autohide >= 0 && read_vkeyb_autohide <= 1) {
-				vkeyb.autohide = read_vkeyb_autohide;
-			} else {
-				fprintf(stderr, "%s: vkeyb.autohide within rcfile is invalid: "
-					"try TRUE or FALSE\n", __func__);
-			}
-		}
-		/* Vkeyb toggle shift */
-		if (read_vkeyb_toggle_shift != UNDEFINED) {
-			if (read_vkeyb_toggle_shift >= 0 && read_vkeyb_toggle_shift <= 1) {
-				vkeyb.toggle_shift = read_vkeyb_toggle_shift;
-			} else {
-				fprintf(stderr, "%s: vkeyb.toggle_shift within rcfile is invalid: "
-					"try TRUE or FALSE\n", __func__);
-			}
-		}
+
+		/* Vkeyb autohide (it's vetted) */
+		if (read_vkeyb_autohide != UNDEFINED) vkeyb.autohide = read_vkeyb_autohide;
+
+		/* Vkeyb toggle shift (it's vetted) */
+		if (read_vkeyb_toggle_shift != UNDEFINED) vkeyb.toggle_shift = read_vkeyb_toggle_shift;
+
 		/* Colours */
 		if (read_colours.emu_fg != UNDEFINED) colours.emu_fg = read_colours.emu_fg;
 		if (read_colours.emu_bg != UNDEFINED) colours.emu_bg = read_colours.emu_bg;
@@ -724,9 +725,33 @@ void rcfile_write(void) {
 
 	fprintf(fp, "\n");
 	fprintf(fp, "version=%s\n", VERSION);
+
+	/* show_input_id */
+	strcpy(key, "show_input_id"); strcpy(value, "");
+	if (show_input_id) {
+		strcat(value, "TRUE");
+	} else {
+		strcat(value, "FALSE");
+	}
+	fprintf(fp, "%s=%s\n", key, value);
+
 	fprintf(fp, "joystick_dead_zone=%i\n", joystick_dead_zone);
 	fprintf(fp, "key_repeat.delay=%i\n", sdl_key_repeat.delay);
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
+
+	/* sdl_emulator.speed */
+	strcpy(key, "emulator.speed"); strcpy(value, "");
+	if (sdl_emulator.speed == 10) {
+		strcat(value, "200");
+	} else if (sdl_emulator.speed == 20) {
+		strcat(value, "100");
+	} else if (sdl_emulator.speed == 30) {
+		strcat(value, "66");
+	} else if (sdl_emulator.speed == 40) {
+		strcat(value, "50");
+	}
+	fprintf(fp, "%s=%s\n", key, value);
+
 	fprintf(fp, "emulator.frameskip=%i\n", sdl_emulator.frameskip);
 
 	/* sdl_emulator.model */

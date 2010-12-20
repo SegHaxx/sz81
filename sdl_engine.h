@@ -93,6 +93,7 @@ extern void reset81(void);
 extern void initmem(void);
 #ifdef OSS_SOUND_SUPPORT
 	extern void sound_ay_setvol(void);
+	extern void sound_framesiz_init(void);
 #endif
 
 /* Function prototypes */

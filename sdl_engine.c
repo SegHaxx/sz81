@@ -268,8 +268,10 @@ void sdl_component_executive(void) {
 	static int sdl_emulator_model = 0;
 	static int sdl_emulator_ramsize = 16;
 	static int sdl_emulator_invert = 0;
-	static int sdl_sound_device = 0;
-	static int sdl_sound_stereo = 0;
+	#ifdef OSS_SOUND_SUPPORT
+		static int sdl_sound_device = 0;
+		static int sdl_sound_stereo = 0;
+	#endif
 	static int vkeyb_alpha = SDL_ALPHA_OPAQUE;
 	static int vkeyb_autohide = FALSE;
 	static int vkeyb_toggle_shift = FALSE;
@@ -329,50 +331,51 @@ void sdl_component_executive(void) {
 		interrupted = 3;
 	}
 
-	/* Monitor sound device and stereo changes */
-	if (sdl_sound_device != sdl_sound.device || sdl_sound_stereo != sdl_sound.stereo) {
-		/* Update stereo regardless */
-		sdl_sound_stereo = sdl_sound.stereo;
-		/* Only restart the mainloop if either the sound device 
-		 * has changed or stereo has changed for an AY device */
-		if (sdl_sound_device != sdl_sound.device ||
-			(sdl_sound_device == sdl_sound.device && 
-			(sdl_sound_device == DEVICE_QUICKSILVA || sdl_sound_device == DEVICE_ZONX))) {
-			sdl_sound_device = sdl_sound.device;
-			switch (sdl_sound.device) {
-				case DEVICE_NONE:
-					sound = 0; sound_ay = 0; sound_vsync = 0;
-					sound_ay_type = DEVICE_NONE;
-					sound_stereo = sound_stereo_acb = 0;
-					break;
-				case DEVICE_QUICKSILVA:
-					sound = 1; sound_ay = 1; sound_vsync = 0;
-					sound_ay_type = DEVICE_QUICKSILVA;
-					if (sdl_sound.stereo) {
-						sound_stereo = sound_stereo_acb = 1;
-					} else {
+	#ifdef OSS_SOUND_SUPPORT
+		/* Monitor sound device and stereo changes */
+		if (sdl_sound_device != sdl_sound.device || sdl_sound_stereo != sdl_sound.stereo) {
+			/* Update stereo regardless */
+			sdl_sound_stereo = sdl_sound.stereo;
+			/* Only restart the mainloop if either the sound device 
+			 * has changed or stereo has changed for an AY device */
+			if (sdl_sound_device != sdl_sound.device ||
+				(sdl_sound_device == DEVICE_QUICKSILVA || sdl_sound_device == DEVICE_ZONX)) {
+				sdl_sound_device = sdl_sound.device;
+				switch (sdl_sound.device) {
+					case DEVICE_NONE:
+						sound = 0; sound_ay = 0; sound_vsync = 0;
+						sound_ay_type = DEVICE_NONE;
 						sound_stereo = sound_stereo_acb = 0;
-					}
-					break;
-				case DEVICE_ZONX:
-					sound = 1; sound_ay = 1; sound_vsync = 0;
-					sound_ay_type = DEVICE_ZONX;
-					if (sdl_sound.stereo) {
-						sound_stereo = sound_stereo_acb = 1;
-					} else {
+						break;
+					case DEVICE_QUICKSILVA:
+						sound = 1; sound_ay = 1; sound_vsync = 0;
+						sound_ay_type = DEVICE_QUICKSILVA;
+						if (sdl_sound.stereo) {
+							sound_stereo = sound_stereo_acb = 1;
+						} else {
+							sound_stereo = sound_stereo_acb = 0;
+						}
+						break;
+					case DEVICE_ZONX:
+						sound = 1; sound_ay = 1; sound_vsync = 0;
+						sound_ay_type = DEVICE_ZONX;
+						if (sdl_sound.stereo) {
+							sound_stereo = sound_stereo_acb = 1;
+						} else {
+							sound_stereo = sound_stereo_acb = 0;
+						}
+						break;
+					case DEVICE_VSYNC:
+						sound = 1; sound_ay = 0; sound_vsync = 1;
+						sound_ay_type = DEVICE_NONE;
 						sound_stereo = sound_stereo_acb = 0;
-					}
-					break;
-				case DEVICE_VSYNC:
-					sound = 1; sound_ay = 0; sound_vsync = 1;
-					sound_ay_type = DEVICE_NONE;
-					sound_stereo = sound_stereo_acb = 0;
-					break;
+						break;
+				}
+				/* Restart mainloop on return */
+				interrupted = 3;
 			}
-			/* Restart mainloop on return */
-			interrupted = 3;
 		}
-	}
+	#endif
 
 	/* Monitor emulator's state */
 	if ((active_components & COMP_EMU) != (sdl_emulator.state * COMP_EMU)) {
@@ -516,7 +519,9 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 void clean_up_before_exit(void) {
 	int count;
 
-	sdl_sound_end();
+	#ifdef OSS_SOUND_SUPPORT
+		sdl_sound_end();
+	#endif
 
 	if (sdl_emulator.timer_id) SDL_RemoveTimer (sdl_emulator.timer_id);
 

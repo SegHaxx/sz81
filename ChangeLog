@@ -1,3 +1,9 @@
+2010-12-20 Thunor <thunorsif_at_hotmail.com>
+* Added show_input_id to the rcfile (was a CLI option).
+* Implemented variable emulation speed but I haven't yet managed to
+  iron out the problems with slowing down and speeding up the sound
+  (if at all I can) so I've disabled the code for the time being.
+
 2010-12-18 Thunor <thunorsif_at_hotmail.com>
 * Added sound device selection to the runtime options.
 * Added sound device to the rcfile.

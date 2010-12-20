@@ -1270,6 +1270,14 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					}
+					#ifndef ENABLE_EMULATION_SPEED_ADJUST
+						hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
+						if (hs_currently_selected == HS_RUNOPTS0_SPEED_DN ||
+							hs_currently_selected == HS_RUNOPTS0_SPEED_UP) {
+							hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+							hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+						}
+					#endif
 				} else if (runtime_options[1].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1369,6 +1377,14 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 					}
+					#ifndef ENABLE_EMULATION_SPEED_ADJUST
+						hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
+						if (hs_currently_selected == HS_RUNOPTS0_SPEED_DN ||
+							hs_currently_selected == HS_RUNOPTS0_SPEED_UP) {
+							hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+						}
+					#endif
 				} else if (runtime_options[1].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1473,7 +1489,9 @@ void manage_cursor_input(void) {
 				} else if (runtime_options[1].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS1_BACK) {
+					if (hs_currently_selected < HS_RUNOPTS1_BACK) {
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS1_BACK) {
 						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
@@ -1564,7 +1582,9 @@ void manage_cursor_input(void) {
 				} else if (runtime_options[1].state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_RUNOPTS1_NEXT) {
+					if (hs_currently_selected < HS_RUNOPTS1_BACK) {
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS1_NEXT) {
 						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
@@ -1739,37 +1759,35 @@ void manage_all_input(void) {
 			}
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
 			/* Adjust the volume */
-			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
-				if (id == SDLK_MINUS) {
-					if (sdl_sound.volume > 0) {
-						sdl_sound.volume -= 2;
-						#ifdef OSS_SOUND_SUPPORT
+			#ifdef OSS_SOUND_SUPPORT
+				if (state == SDL_PRESSED) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
+					if (id == SDLK_MINUS) {
+						if (sdl_sound.volume > 0) {
+							sdl_sound.volume -= 2;
 							if (sdl_sound.state && 
 								(sdl_sound.device == DEVICE_QUICKSILVA ||
 								sdl_sound.device == DEVICE_ZONX)) 
 								sound_ay_setvol();
-						#endif
+						}
+					} else {
+						if (sdl_sound.volume < 128) {
+							sdl_sound.volume += 2;
+							if (sdl_sound.state && 
+								(sdl_sound.device == DEVICE_QUICKSILVA ||
+								sdl_sound.device == DEVICE_ZONX)) 
+								sound_ay_setvol();
+						}
 					}
+					strcpy(msg_box.title, "Sound");
+					sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
+					msg_box.timeout = MSG_BOX_TIMEOUT_SOUND_VOLUME;
+					message_box_manager(MSG_BOX_SHOW, &msg_box);
+					rcfile.rewrite = TRUE;
 				} else {
-					if (sdl_sound.volume < 128) {
-						sdl_sound.volume += 2;
-						#ifdef OSS_SOUND_SUPPORT
-							if (sdl_sound.state && 
-								(sdl_sound.device == DEVICE_QUICKSILVA ||
-								sdl_sound.device == DEVICE_ZONX)) 
-								sound_ay_setvol();
-						#endif
-					}
+					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
-				strcpy(msg_box.title, "Sound");
-				sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
-				msg_box.timeout = MSG_BOX_TIMEOUT_SOUND_VOLUME;
-				message_box_manager(MSG_BOX_SHOW, &msg_box);
-				rcfile.rewrite = TRUE;
-			} else {
-				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-			}
+			#endif
 		}
 	}
 }
@@ -1929,33 +1947,32 @@ void manage_runopts_input(void) {
 			}
 		} else if (id == SDLK_1 || id == SDLK_2) {
 			if (runtime_options[0].state) {
-
-
-				/* Emulation Speed < and > */
-				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
-					if (id == SDLK_1) {
-
+				#ifdef ENABLE_EMULATION_SPEED_ADJUST
+					/* Emulation Speed < and > */
+					if (state == SDL_PRESSED) {
+						key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
+						if (id == SDLK_1) {
+							if (runopts_emulator_speed < 40) runopts_emulator_speed += 10;
+						} else {
+							if (runopts_emulator_speed > 10) runopts_emulator_speed -= 10;
+						}
 					} else {
-
+						key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 					}
-
-				} else {
-					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-				}
-
-
+				#endif
 			} else if (runtime_options[1].state) {
-				if (state == SDL_PRESSED) {
-					if (id == SDLK_1) {
-						/* Sound Device: None */
-						runopts_sound_device = DEVICE_NONE;
-					} else {
-						/* AY Chip Based */
-						if (runopts_sound_device != DEVICE_ZONX)
-							runopts_sound_device = DEVICE_QUICKSILVA;
+				#ifdef OSS_SOUND_SUPPORT
+					if (state == SDL_PRESSED) {
+						if (id == SDLK_1) {
+							/* Sound Device: None */
+							runopts_sound_device = DEVICE_NONE;
+						} else {
+							/* AY Chip Based */
+							if (runopts_sound_device != DEVICE_ZONX)
+								runopts_sound_device = DEVICE_QUICKSILVA;
+						}
 					}
-				}
+				#endif
 			} else if (runtime_options[2].state) {
 				/* Foreground colour red < and > */
 				if (state == SDL_PRESSED) {
@@ -1969,15 +1986,17 @@ void manage_runopts_input(void) {
 			}
 		} else if (id == SDLK_3 || id == SDLK_4) {
 			if (runtime_options[1].state) {
-				if (state == SDL_PRESSED) {
-					if (id == SDLK_3) {
-						/* Sound Device: Quicksilva Sound Board */
-						runopts_sound_device = DEVICE_QUICKSILVA;
-					} else {
-						/* Sound Device: BI-PAK ZON X81 */
-						runopts_sound_device = DEVICE_ZONX;
+				#ifdef OSS_SOUND_SUPPORT
+					if (state == SDL_PRESSED) {
+						if (id == SDLK_3) {
+							/* Sound Device: Quicksilva Sound Board */
+							runopts_sound_device = DEVICE_QUICKSILVA;
+						} else {
+							/* Sound Device: BI-PAK ZON X81 */
+							runopts_sound_device = DEVICE_ZONX;
+						}
 					}
-				}
+				#endif
 			} else if (runtime_options[2].state) {
 				/* Foreground colour green < and > */
 				if (state == SDL_PRESSED) {
@@ -1991,17 +2010,19 @@ void manage_runopts_input(void) {
 			}
 		} else if (id == SDLK_5 || id == SDLK_6) {
 			if (runtime_options[1].state) {
-				if (state == SDL_PRESSED) {
-					if (id == SDLK_5) {
-						/* ACB Stereo */
-						if (runopts_sound_device == DEVICE_QUICKSILVA ||
-							runopts_sound_device == DEVICE_ZONX)
-							runopts_sound_stereo = !runopts_sound_stereo;
-					} else {
-						/* Sound Device: VSYNC */
-						runopts_sound_device = DEVICE_VSYNC;
+				#ifdef OSS_SOUND_SUPPORT
+					if (state == SDL_PRESSED) {
+						if (id == SDLK_5) {
+							/* ACB Stereo */
+							if (runopts_sound_device == DEVICE_QUICKSILVA ||
+								runopts_sound_device == DEVICE_ZONX)
+								runopts_sound_stereo = !runopts_sound_stereo;
+						} else {
+							/* Sound Device: VSYNC */
+							runopts_sound_device = DEVICE_VSYNC;
+						}
 					}
-				}
+				#endif
 			} else if (runtime_options[2].state) {
 				/* Foreground colour blue < and > */
 				if (state == SDL_PRESSED) {
@@ -2094,13 +2115,16 @@ int runopts_is_a_reset_scheduled(void) {
 	int retval = FALSE;
 
 	if (runopts_emulator_model != *sdl_emulator.model || 
-		runopts_emulator_ramsize != sdl_emulator.ramsize ||
-		runopts_sound_device != sdl_sound.device) {
+		runopts_emulator_ramsize != sdl_emulator.ramsize) {
+		retval = TRUE;
+#ifdef OSS_SOUND_SUPPORT
+	} else if (runopts_sound_device != sdl_sound.device) {
 		retval = TRUE;
 	} else if (runopts_sound_stereo != sdl_sound.stereo &&
 		runopts_sound_device != DEVICE_NONE && 
 		runopts_sound_device != DEVICE_VSYNC) {
 		retval = TRUE;
+#endif
 	}
 
 	return retval;
@@ -2149,6 +2173,7 @@ void runopts_transit(int state) {
 		/* Initialise copies of the variables modifiable within runopts.
 		 * Sound volume isn't included because it's always available for 
 		 * adjustment throughout the program i.e. it's live */
+		runopts_emulator_speed = sdl_emulator.speed;
 		runopts_emulator_model = *sdl_emulator.model;
 		runopts_emulator_ramsize = sdl_emulator.ramsize;
 		runopts_emulator_frameskip = sdl_emulator.frameskip;
@@ -2166,6 +2191,15 @@ void runopts_transit(int state) {
 		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
+		#ifdef ENABLE_EMULATION_SPEED_ADJUST
+			/* Update the emulation speed */
+			if (runopts_emulator_speed != sdl_emulator.speed) {
+				sdl_emulator.speed = runopts_emulator_speed;
+				#ifdef OSS_SOUND_SUPPORT
+					if (sdl_sound.state) sound_framesiz_init();
+				#endif
+			}
+		#endif
 		/* Update the machine model */
 		if (runopts_emulator_model != *sdl_emulator.model) {
 			/* The component executive monitors this variable and
@@ -2178,18 +2212,20 @@ void runopts_transit(int state) {
 			 * manages emulator and component reinitialisation */
 			sdl_emulator.ramsize = runopts_emulator_ramsize;
 		}
-		/* Update the sound device */
-		if (runopts_sound_device != sdl_sound.device) {
-			/* The component executive monitors this variable and
-			 * manages emulator and component reinitialisation */
-			sdl_sound.device = runopts_sound_device;
-		}
-		/* Update the sound stereo */
-		if (runopts_sound_stereo != sdl_sound.stereo) {
-			/* The component executive monitors this variable and
-			 * manages emulator and component reinitialisation */
-			sdl_sound.stereo = runopts_sound_stereo;
-		}
+		#ifdef OSS_SOUND_SUPPORT
+			/* Update the sound device */
+			if (runopts_sound_device != sdl_sound.device) {
+				/* The component executive monitors this variable and
+				 * manages emulator and component reinitialisation */
+				sdl_sound.device = runopts_sound_device;
+			}
+			/* Update the sound stereo */
+			if (runopts_sound_stereo != sdl_sound.stereo) {
+				/* The component executive monitors this variable and
+				 * manages emulator and component reinitialisation */
+				sdl_sound.stereo = runopts_sound_stereo;
+			}
+		#endif
 		/* If the joycfg was used then update/insert the controls that
 		 * were remapped. Note that this needs to be kept in sync with
 		 * any joystick controls hard-coded within keyboard_update */

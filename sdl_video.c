@@ -37,7 +37,12 @@ char *runtime_options_text0[24] = {
 	"",
 	"Frameskip\x90\x2<\x2\x85   \x1 \x90\x2>\x2\x85",
 	"",
+#ifdef ENABLE_EMULATION_SPEED_ADJUST
 	"Emu Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
+#else
+	"",
+#endif
+	"",
 	"",
 	"",
 	"",
@@ -48,7 +53,6 @@ char *runtime_options_text0[24] = {
 	"",
 	"",
 	"\x1 ",
-	"",
 	"",
 	"          Save    Exit   Next\x90\x2>\x2\x85"
 };
@@ -74,8 +78,8 @@ char *runtime_options_text1[24] = {
 	"",
 	"",
 	"",
-	"\x1 ",
 	"",
+	"\x1 ",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
 };
@@ -101,8 +105,8 @@ char *runtime_options_text2[24] = {
 	"",
 	"", 
 	"",
-	"\x1 ",
 	"",
+	"\x1 ",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit   Next\x90\x2>\x2\x85"
 };
@@ -128,8 +132,8 @@ char *runtime_options_text3[24] = {
 	"   \x82\x83\x83\x83\x81      \x82\x83\x83\x83\x81",
 	"  \x1 ",
 	"  \x1 ",
-	"  \x1 ",
 	"",
+	"\x1 ",
 	"",
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
 };
@@ -470,11 +474,15 @@ void sdl_video_update(void) {
 							sprintf(text, "%2i", runopts_emulator_ramsize);
 						} else if (count == 5) {
 							sprintf(text, "%1i", sdl_emulator.frameskip);
+					#ifdef ENABLE_EMULATION_SPEED_ADJUST
 						} else if (count == 6) {
-							sprintf(text, "%3i", 2000 / sdl_emulator.speed);
+							sprintf(text, "%3i", 2000 / runopts_emulator_speed);
 						} else if (count == 7) {
+					#else
+						} else if (count == 6) {
 							if (runopts_is_a_reset_scheduled())
 								strcpy(text, "* A reset is scheduled on save *");
+					#endif
 						}
 					} else if (runtime_options[1].state) {
 						/* The colour inversion here is conditional and so there are
@@ -525,8 +533,12 @@ void sdl_video_update(void) {
 								bg_colour = colour;
 							}
 						} else if (count == 12) {
-							if (runopts_is_a_reset_scheduled())
-								strcpy(text, "* A reset is scheduled on save *");
+							#ifdef OSS_SOUND_SUPPORT
+								if (runopts_is_a_reset_scheduled())
+									strcpy(text, "* A reset is scheduled on save *");
+							#else
+								strcpy(text, "* Sound support isn't built in *");
+							#endif
 						}
 					} else if (runtime_options[2].state) {
 						if (count == 0) {
@@ -554,8 +566,14 @@ void sdl_video_update(void) {
 					} else if (runtime_options[3].state) {
 						if (count == 0) {
 							sprintf(text, "%2i", joystick_dead_zone);
-						} else if (count >= 1 && count <= 3) {		
+						} else if (count >= 1 && count <= 2) {		
 							sprintf(text, "%s", joy_cfg.text[count - 1]);
+						} else if (count == 3) {
+							if (!joystick) {
+								strcpy(text, "* A joystick is not plugged in *");
+							} else if (runopts_is_a_reset_scheduled()) {
+								strcpy(text, "* A reset is scheduled on save *");
+							}
 						}
 					}
 					if (text[0]) {	/* Let's not go to that place - again ;) */
@@ -1171,7 +1189,6 @@ void set_joy_cfg_text(int textid) {
 				hs_selected <= HS_RUNOPTS3_JOY_CFG_X) {
 				if (textid == JOY_CFG_TEXT_DEFAULT_SETTINGS) {
 					strcpy(joy_cfg.text[0], "This control defaults to");
-					strcpy(joy_cfg.text[2], "");
 					if (hs_selected == HS_RUNOPTS3_JOY_CFG_LTRIG) {
 						strcpy(joy_cfg.text[1], "Shift/Page Up");
 					} else if (hs_selected == HS_RUNOPTS3_JOY_CFG_RTRIG) {
@@ -1203,21 +1220,17 @@ void set_joy_cfg_text(int textid) {
 				} else if (textid == JOY_CFG_TEXT_ACCEPTED) {
 					strcpy(joy_cfg.text[0], "Accepted. Commit changes with");
 					strcpy(joy_cfg.text[1], "Save when you have finished.");
-					strcpy(joy_cfg.text[2], "");
 				} else if (textid == JOY_CFG_TEXT_CANCELLED) {
 					strcpy(joy_cfg.text[0], "Cancelled. A joystick control");
 					strcpy(joy_cfg.text[1], "was expected but not found.");
-					strcpy(joy_cfg.text[2], "");
 				}
 			} else {
 				strcpy(joy_cfg.text[0], "");
 				strcpy(joy_cfg.text[1], "");
-				strcpy(joy_cfg.text[2], "");
 			}
 		} else {
 			strcpy(joy_cfg.text[0], "");
-			strcpy(joy_cfg.text[1], "*** No joystick found ***");
-			strcpy(joy_cfg.text[2], "");
+			strcpy(joy_cfg.text[1], "");
 		}
 	}
 }

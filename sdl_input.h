@@ -40,9 +40,10 @@
 char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
 int joystick_dead_zone;
-int show_input_id;	/* temp temp This should be in runtime options somewhere */
+int show_input_id;
 int current_input_id;
 /*int runopts_reset_scheduled;	Redundant */
+int runopts_emulator_speed;
 int runopts_emulator_model;
 int runopts_emulator_ramsize;
 int runopts_sound_device;
@@ -67,7 +68,7 @@ struct {
 
 struct {
 	int state;
-	char text[3][33];
+	char text[2][33];
 } joy_cfg;
 
 /* Function prototypes */
