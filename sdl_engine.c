@@ -167,11 +167,10 @@ int sdl_init(void) {
 		SDL_WM_SetCaption("sz81", "sz81");
 	#endif
 
-	/* Record the current working directory.
-	 * Once the load selector has been replaced this code
-	 * should be reviewed. I'll mark it temp temp */
-	strcpy(workdir, "");
-	getcwd(workdir, 256);
+	/* Record the current working directory (required for builds
+	 * that run from the current working directory e.g. GP2X) */
+	strcpy(startdir, "");
+	getcwd(startdir, 256);
 
 	/* Set-up the local data directory */
 	local_data_dir_init();
@@ -503,7 +502,6 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
-	/*if (intervals >= 100 / sdl_emulator.speed) {	Redundant */
 	if (intervals >= sdl_emulator.speed / 10) {
 		signal_int_flag = TRUE;
 		intervals = 0;

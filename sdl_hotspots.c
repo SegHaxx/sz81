@@ -107,12 +107,6 @@ void hotspots_init(void) {
 
 	hotspots_vkeyb_shift_init();
 
-	/*if (vkeyb.toggle_shift) {	Redundant.
-		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_TOGGLE;
-	} else {
-		hotspots[HS_VKEYB_SHIFT].flags |= HS_PROP_STICKY;
-	}*/
-
 	hotspots[HS_VKEYB_SHIFT].remap_id = SDLK_LSHIFT;
 	hotspots[HS_VKEYB_SHIFT + 1].remap_id = SDLK_z;
 	hotspots[HS_VKEYB_SHIFT + 2].remap_id = SDLK_x;

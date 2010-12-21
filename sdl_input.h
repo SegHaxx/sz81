@@ -42,7 +42,6 @@ SDL_Joystick *joystick;
 int joystick_dead_zone;
 int show_input_id;
 int current_input_id;
-/*int runopts_reset_scheduled;	Redundant */
 int runopts_emulator_speed;
 int runopts_emulator_model;
 int runopts_emulator_ramsize;

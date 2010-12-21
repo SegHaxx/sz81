@@ -22,6 +22,7 @@
 #include <string.h>
 #include <time.h>
 #include "sdl.h"
+#include "sdl_dialogs.h"
 #include "sdl_hotspots.h"
 #include "sdl_input.h"
 #include "sdl_resources.h"
@@ -77,7 +78,7 @@ extern int sound_ay, sound_ay_type;
 extern int sound_stereo, sound_stereo_acb;
 
 /* Variables */
-char workdir[256];
+char startdir[256];
 
 struct runtimeoptions {
 	int state;

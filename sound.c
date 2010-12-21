@@ -784,18 +784,9 @@ void sound_reset(void)
 {
 int count;
 
-/* These few are actually declared in common.c but need to be
- * reinitialised right here right now
-sound=0;
-sound_vsync=0;
-sound_ay=0;
-sound_ay_type=AY_TYPE_NONE;	Redundant: now managed by sz81 */
-
 /* Reinitialise all variables at the top of sound.c */
 sound_enabled=0;
 sound_freq=32000;
-/*sound_stereo=0;
-sound_stereo_acb=0;	Redundant: now managed by sz81 */
 sound_framesiz=0;
 for(count=0;count<16;count++)
   ay_tone_levels[count]=0;

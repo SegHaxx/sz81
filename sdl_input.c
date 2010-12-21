@@ -708,10 +708,6 @@ void keyboard_init(void) {
 	/* Initialise the hotspots now */
 	hotspots_init();
 
-	/* Initialise the control remapper */
-	/*ctrl_remapper.master_interval = CTRL_REMAPPER_INTERVAL / (1000 / 
-		(sdl_emulator.speed / scrn_freq));	Redundant: now managed by the component_executive */
-	
 }
 
 /***************************************************************************
@@ -1178,18 +1174,6 @@ void manage_cursor_input(void) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 		}
 
-		/* Locate currently selected hotspot for group LOAD / Redundant.
-		hs_load_selected = get_selected_hotspot(HS_GRP_LOAD);
-
-		/ Locate currently selected hotspot for group VKEYB + CTB /
-		if ((hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
-			hs_vkeyb_ctb_selected = get_selected_hotspot(HS_GRP_CTB);
-
-		/ Locate currently selected hotspot for group RUNOPTSx /
-		if (runtime_options_which() < MAX_RUNTIME_OPTIONS)
-			hs_runopts_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 + runtime_options_which());
-		*/
-
 		/* Process the events */
 		if (state == SDL_PRESSED) {
 			if (id == CURSOR_HIT) {
@@ -1207,19 +1191,7 @@ void manage_cursor_input(void) {
 					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
 						hotspots[hs_currently_selected].hit_h / 2;
 					SDL_PushEvent(&virtualevent);
-				} /*else if (vkeyb.state) {	Redundant: duplicated.
-					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
-						hotspots[hs_currently_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
-						hotspots[hs_currently_selected].hit_h / 2;
-					SDL_PushEvent(&virtualevent);
-				} else if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
-					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
-						hotspots[hs_currently_selected].hit_w / 2;
-					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
-						hotspots[hs_currently_selected].hit_h / 2;
-					SDL_PushEvent(&virtualevent);
-				}*/
+				}
 			} else if (id == CURSOR_REMAP) {
 				/* Initiate joystick control remapping if a joystick is present */
 				if (joystick) {
@@ -2505,7 +2477,6 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		repeatevent.type = SDL_NOEVENT;
 		last_eventid = eventid;
 		/* Reset to the initial delay (* 2 as this is currently running at half the emulation Hz) */
-		/*interval = sdl_key_repeat.delay / (1000 / sdl_emulator.speed * 2);	Redundant */
 		interval = sdl_key_repeat.delay / sdl_emulator.speed / 2;
 		/* When interval is 1 there can be some odd behaviour, presumably
 		 * because the event queue is being flooded with presses and so
@@ -2517,7 +2488,6 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		if (repeatevent.type != SDL_NOEVENT) {
 			if (--interval <= 0) {
 				/* Reset the interval (* 2 as this is currently running at half the emulator Hz) */
-				/*interval = sdl_key_repeat.interval / (1000 / sdl_emulator.speed * 2);	Redundant */
 				interval = sdl_key_repeat.interval / sdl_emulator.speed / 2;
 				if (interval < 2) interval = 2;	/* See note above about this */
 				SDL_PushEvent(&repeatevent);

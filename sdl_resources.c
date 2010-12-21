@@ -75,11 +75,7 @@ void sdl_zxprinter_init(void) {
 	char unique[96];
 
 	#if defined(PLATFORM_GP2X)
-		/* If used, the load selector can change the working directory
-		 * and this affects relatively referenced files.
-		 * Once the load selector has been replaced this code
-		 * should be reviewed. I'll mark it temp temp */
-		strcpy(zxprinter.filename, workdir);
+		strcpy(zxprinter.filename, startdir);
 		strcat(zxprinter.filename, "/");
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(zxprinter.filename, getenv ("HOME"));
@@ -150,11 +146,7 @@ void sdl_rcfile_read(void) {
 	FILE *fp;
 
 	#if defined(PLATFORM_GP2X)
-		/* If used, the load selector can change the working directory
-		 * and this affects relatively referenced files.
-		 * Once the load selector has been replaced this code
-		 * should be reviewed. I'll mark it temp temp */
-		strcpy(rcfile.filename, workdir);
+		strcpy(rcfile.filename, startdir);
 		strcat(rcfile.filename, "/");
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(rcfile.filename, getenv ("HOME"));
@@ -660,41 +652,6 @@ void sdl_rcfile_read(void) {
 			colours.hs_options_selected = read_colours.hs_options_selected;
 		if (read_colours.hs_options_pressed != UNDEFINED) 
 			colours.hs_options_pressed = read_colours.hs_options_pressed;
-
-		/* read_ctrl_remaps have pretty much validated themselves since if
-		 * something was found to be invalid then they'll still be UNDEFINED	Redundant: I'm changing updating to completely
-		 * and they won't overwrite/insert into ctrl_remaps.					replacing if at least one has been read.
-		 * 
-		 * Attempt to find a match and overwrite the existing default
-		 * controls; insert new ones following the defaults
-		for (index = 0; index < MAX_CTRL_REMAPS; index++) {
-			for (count = 0; count < MAX_CTRL_REMAPS; count++) {
-				if (read_ctrl_remaps[index].components > 0 &&
-					read_ctrl_remaps[index].device != UNDEFINED &&
-					read_ctrl_remaps[index].id != UNDEFINED) {
-					if (ctrl_remaps[count].device != UNDEFINED &&
-						read_ctrl_remaps[index].components == ctrl_remaps[count].components &&
-						read_ctrl_remaps[index].device == ctrl_remaps[count].device &&
-						read_ctrl_remaps[index].remap_device == ctrl_remaps[count].remap_device &&
-						read_ctrl_remaps[index].remap_id == ctrl_remaps[count].remap_id &&
-						read_ctrl_remaps[index].remap_mod_id == ctrl_remaps[count].remap_mod_id) {
-						/$ Update existing $/
-						#ifdef SDL_DEBUG_RCFILE
-							printf("Overwriting ctrl_remaps[%i] with read_ctrl_remaps[%i]\n", count, index);
-						#endif
-						ctrl_remaps[count] = read_ctrl_remaps[index];
-						break;
-					} else if (ctrl_remaps[count].device == UNDEFINED) {
-						/$ Insert new $/
-						#ifdef SDL_DEBUG_RCFILE
-							printf("Inserting read_ctrl_remaps[%i] into ctrl_remaps[%i]\n", index, count);
-						#endif
-						ctrl_remaps[count] = read_ctrl_remaps[index];
-						break;
-					}
-				}
-			}
-		} */
 
 		/* New improved system: If one or more ctrl_remaps were read then they will
 		 * completely replace the existing default ctrl_remaps. If none were read

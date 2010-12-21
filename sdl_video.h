@@ -19,15 +19,6 @@
 #define MAX_RUNTIME_OPTIONS 4
 #define MAX_FRAMESKIP 9
 
-/* Message box manager function IDs */
-#define MSG_BOX_SHOW 1
-#define MSG_BOX_KILL 2
-
-/* Message box timeouts in ms */
-#define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
-#define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
-#define MSG_BOX_TIMEOUT_CONTROL_REMAPPER 750
-
 /* Joystick configurator text IDs */
 #define JOY_CFG_TEXT_DEFAULT_SETTINGS 0
 #define JOY_CFG_TEXT_PRESS_SOMETHING 1
@@ -49,17 +40,13 @@ struct {
 	int redraw;			/* TRUE to redraw entire screen */
 } video;
 
-struct MSG_Box {
-	char title[33];		/* The title bar text */
-	char text[33];		/* A single line message */
-	int timeout;		/* In ms */
-};
-
 /* Function prototypes */
+SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_colour);
+Uint32 get_pixel(SDL_Surface *surface, int x, int y);
+void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 void scale_surface(SDL_Surface *original, SDL_Surface *scaled);
 void cycle_resolutions(void);
 Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
-void message_box_manager(int funcid, struct MSG_Box *msg_box);
 void set_joy_cfg_text(int textid);
 
 
