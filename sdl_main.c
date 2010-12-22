@@ -39,26 +39,6 @@ unsigned char *vptr;
 
 /* Function prototypes */
 
-
-/***************************************************************************
- * Exit Program                                                            *
- ***************************************************************************/
-
-void exit_program(void) {
-
-	#ifdef OSS_SOUND_SUPPORT
-		sound_end();
-	#endif
-
-	zxpclose();
-
-	#ifdef __amigaos4__
-		amiga_close_libs();
-	#endif
-
-	exit(0);
-}
-
 /***************************************************************************
  * Update Screen                                                           *
  ***************************************************************************/
@@ -237,13 +217,15 @@ int main(int argc, char *argv[]) {
 				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
 				fakedispy=ZX_VID_MARGIN;
 
-				/* Synchronise */
-				sdl_component_executive();
-				
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 
-				while (1) {
+				/* Synchronise */
+				sdl_component_executive();
+				
+				while (interrupted != INTERRUPT_PROGRAM_QUIT) {
+					interrupted = 0;
+					
 					/* Initialise the printer file */
 					sdl_zxprinter_init();
 
@@ -277,6 +259,9 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+
+	/* clean_up_before_exit will tidy up here before returning to the
+	 * OS (it was registered earlier with atexit within sdl_init) */
 
 	return retval;
 }

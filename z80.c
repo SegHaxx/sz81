@@ -388,12 +388,18 @@ while(1)
       {
       do_interrupt();	/* also zeroes it */
       }
-#ifdef SZ81	/* Added by Thunor to support a thorough emulator reset */
-    else if(interrupted==3)
+#ifdef SZ81	/* Added by Thunor */
+    /* I've added these new interrupt types to support a thorough
+     * emulator reset and to do a proper exit i.e. back to main */
+    else if(interrupted==INTERRUPT_EMULATOR_RESET)
       {
       z80_reset();		/* Reinitialise variables at the top of z80.c */
       common_reset();	/* Reinitialise variables at the top of common.c */
-      return;			/* Return to smain.c and do it all again */
+      return;			/* Return to sdl_main.c and do it all again */
+      }
+    else if(interrupted==INTERRUPT_PROGRAM_QUIT)
+      {
+      return;			/* Return to sdl_main.c and drop out of the loop */
       }
 #endif
     else	/* must be 2 */

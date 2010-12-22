@@ -86,9 +86,9 @@ extern int ignore_esc;
 #ifndef SZ81	/* Added by Thunor */
 extern void sighandler(int a);
 extern void startsigsandtimer();
+extern void exit_program(void);
 #endif
 extern char *libdir(char *file);
-extern void exit_program(void);
 extern void initmem();
 extern void loadhelp(void);
 extern void zxpopen(void);

@@ -20,13 +20,17 @@
  *      sdl.h <-- sdl_engine.h --> sdl_*.h
  *        ^             ^
  *       /              |
- *   smain.c         sdl_*.c
+ *   sdl_main.c      sdl_*.c
  */ 
 
 /* Includes */
 #include <SDL/SDL.h>
 
 /* Defines */
+#define INTERRUPT_MACHINE_RESET 2
+#define INTERRUPT_EMULATOR_RESET 3
+#define INTERRUPT_PROGRAM_QUIT 4
+
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
 #if defined(PLATFORM_GP2X) && defined (TOOLCHAIN_OPENWIZ)
@@ -35,7 +39,7 @@
 	#define SOUND_BUFFER_SIZE (1024 * 16)
 #endif
 
-/* SVGAlib keyboard scancodes (smain.c currently uses these) */
+/* SVGAlib keyboard scancodes (sdl_main.c currently uses these) */
 #define SCANCODE_ESCAPE 1
 #define SCANCODE_MINUS 12
 #define SCANCODE_EQUAL 13

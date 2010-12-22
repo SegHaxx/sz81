@@ -1686,7 +1686,7 @@ void manage_all_input(void) {
 			if (state == SDL_PRESSED) {
 				if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
 					runopts_transit(TRANSIT_OUT);	/* Restore variables */
-				exit_program();
+				interrupted = INTERRUPT_PROGRAM_QUIT;
 			}
 		} else if (id == SDLK_F11) {
 			#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)

@@ -274,7 +274,6 @@ void sdl_component_executive(void) {
 	static int vkeyb_alpha = SDL_ALPHA_OPAQUE;
 	static int vkeyb_autohide = FALSE;
 	static int vkeyb_toggle_shift = FALSE;
-	static int synchronise = TRUE;
 	int found = FALSE;
 	int count;
 	
@@ -320,14 +319,14 @@ void sdl_component_executive(void) {
 		/* Resize vkeyb hotspots only */
 		hotspots_resize(HS_GRP_VKEYB);
 		/* Restart mainloop on return */
-		interrupted = 3;
+		interrupted = INTERRUPT_EMULATOR_RESET;
 	}
 
 	/* Monitor RAM size changes */
 	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
 		sdl_emulator_ramsize = sdl_emulator.ramsize;
 		/* Restart mainloop on return */
-		interrupted = 3;
+		interrupted = INTERRUPT_EMULATOR_RESET;
 	}
 
 	#ifdef OSS_SOUND_SUPPORT
@@ -371,7 +370,7 @@ void sdl_component_executive(void) {
 						break;
 				}
 				/* Restart mainloop on return */
-				interrupted = 3;
+				interrupted = INTERRUPT_EMULATOR_RESET;
 			}
 		}
 	#endif
@@ -438,13 +437,6 @@ void sdl_component_executive(void) {
 		} else {
 			active_components &= ~(COMP_RUNOPTS0 << count);
 		}
-	}
-
-	/* The first time in, this function may need to synchronise with any
-	 * updates from the rcfile, so full emulator resets are unnecessary */
-	if (synchronise) {
-		synchronise = FALSE;
-		interrupted = 0;
 	}
 }
 
@@ -551,5 +543,9 @@ void clean_up_before_exit(void) {
 	if (wm_icon) SDL_FreeSurface(wm_icon);
 
 	SDL_Quit();
+
+	#ifdef __amigaos4__
+		amiga_close_libs();
+	#endif
 }
 

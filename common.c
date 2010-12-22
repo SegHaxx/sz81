@@ -910,7 +910,11 @@ else
         {
         /* if autolist is aborted or goes wrong, we exit completely */
         if(autolist)
+          #ifdef SZ81	/* Added by Thunor */
+          interrupted=INTERRUPT_PROGRAM_QUIT;
+          #else
           exit_program();
+          #endif
         return;
         }
 
@@ -926,7 +930,11 @@ else
   if(!got_ascii_already)
     {
     /* test for Xtender-style LOAD " STOP " to quit */
+    #ifdef SZ81	/* Added by Thunor */
+    if(*ptr==227) interrupted=INTERRUPT_PROGRAM_QUIT;
+    #else
     if(*ptr==227) exit_program();
+    #endif
     
     memset(fname,0,sizeof(fname));
     do
@@ -995,8 +1003,10 @@ void do_interrupt()
 {
 static int count=0;
 
+#ifndef SZ81	/* Added by Thunor */
 if(exit_program_flag)
   exit_program();
+#endif
 
 /* being careful here not to screw up any pending reset... */
 if(interrupted==1)
@@ -1021,7 +1031,11 @@ check_events();	/* on X checks events, on VGA scans kybd */
 /* despite the name, this also works for the ZX80 :-) */
 void reset81()
 {
+#ifdef SZ81	/* Added by Thunor */
+interrupted=INTERRUPT_MACHINE_RESET;	/* will cause a reset */
+#else
 interrupted=2;	/* will cause a reset */
+#endif
 memset(mem+16384,0,49152);
 refresh_screen=1;
 #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
@@ -1684,8 +1698,6 @@ int count;
 for(count=0;count<9;count++)
   keyports[count]=0xff;
 signal_int_flag=0;
-exit_program_flag=0;
-interrupted=0;
 nmigen=hsyncgen=vsync=0;
 zxpframes=zxpcycles=zxpspeed=zxpnewspeed=0;
 zxpheight=0;
