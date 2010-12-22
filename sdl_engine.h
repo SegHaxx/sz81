@@ -69,7 +69,7 @@
 /* Emulator variables I require access to */
 extern int refresh_screen;
 extern int load_selector_state;
-extern int ignore_esc;	/* Only used within the load selector so it can eventually go temp temp */
+extern int ignore_esc;	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 extern int interrupted;
 extern volatile int signal_int_flag;
 extern char *zxpfilename;

@@ -1701,7 +1701,7 @@ void manage_all_input(void) {
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state &&
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-					if (!ignore_esc) {
+					if (!ignore_esc) {	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 						reset81();
 					}
 				}

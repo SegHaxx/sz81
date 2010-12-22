@@ -1704,7 +1704,7 @@ zxpheight=0;
 zxppixel=-1;
 zxpstylus=0;
 refresh_screen=1;
-ignore_esc=0;
+ignore_esc=0;	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 }
 #endif
 

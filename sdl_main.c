@@ -255,6 +255,12 @@ int main(int argc, char *argv[]) {
 
 					/* Close any open printer file */
 					zxpclose();
+
+					/* Reinitialise variables at the top of z80.c */
+					z80_reset();
+
+					/* Reinitialise variables at the top of common.c */
+					common_reset();
 				}
 			}
 		}
