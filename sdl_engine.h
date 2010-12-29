@@ -17,10 +17,11 @@
 
 /* Includes */
 #include <sys/stat.h>
-#include <unistd.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "sdl.h"
 #include "sdl_dialogs.h"
 #include "sdl_hotspots.h"
@@ -60,7 +61,8 @@
 #define COMP_RUNOPTS2 64
 #define COMP_RUNOPTS3 128
 #define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
-#define COMP_ALL ((COMP_RUNOPTS3 - 1) | COMP_RUNOPTS3)
+#define COMP_LDFILE 256
+#define COMP_ALL ((COMP_LDFILE - 1) | COMP_LDFILE)
 
 /* Machine models */
 #define MODEL_ZX81 0
@@ -100,7 +102,6 @@ extern void initmem(void);
 int get_active_component(void);
 int runtime_options_which(void);
 Uint32 emulator_timer (Uint32 interval, void *param);
-
 
 
 

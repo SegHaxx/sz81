@@ -54,7 +54,9 @@
 #define ICON_ALPHA_DN_Y 0
 #define ICON_ALPHA_UP_X 144
 #define ICON_ALPHA_UP_Y 0
-#define ICON_RUNOPTS_X 160
+#define ICON_LDFILE_X 160
+#define ICON_LDFILE_Y 0
+#define ICON_RUNOPTS_X 176
 #define ICON_RUNOPTS_Y 0
 
 /* Variables */
@@ -1210,8 +1212,8 @@ int control_bar_init(void) {
 			dstrect.x += 17 * 2 * video.scale;
 			dstrect.w = 17 * 5 * video.scale + video.scale;
 		} else if (count == 3) {
-			dstrect.x += 17 * 9 * video.scale;
-			dstrect.w = 18 * video.scale;
+			dstrect.x += 17 * 8 * video.scale;
+			dstrect.w = (17 + 18) * video.scale;
 		}
 		if (SDL_FillRect(control_bar.scaled, &dstrect, SDL_MapRGB(video.screen->format,
 			colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
@@ -1222,7 +1224,7 @@ int control_bar_init(void) {
 	/* Blit the icons */
 	srcrect.w = srcrect.h = dstrect.w = dstrect.h = 16 * video.scale;
 	dstrect.y = video.scale;
-	for (count = 0; count < 8; count++) {
+	for (count = 0; count < 9; count++) {
 		if (count == 0) {
 			/* Exit */
 			srcrect.x = ICON_EXIT_X * video.scale; srcrect.y = ICON_EXIT_Y * video.scale;
@@ -1264,6 +1266,10 @@ int control_bar_init(void) {
 			srcrect.x = ICON_ALPHA_UP_X * video.scale; srcrect.y = ICON_ALPHA_UP_Y * video.scale;
 			dstrect.x = video.scale + 17 * 8 * video.scale; 
 		} else if (count == 7) {
+			/* Load file */
+			srcrect.x = ICON_LDFILE_X * video.scale; srcrect.y = ICON_LDFILE_Y * video.scale;
+			dstrect.x = video.scale + 17 * 12 * video.scale; 
+		} else if (count == 8) {
 			/* Runtime options */
 			srcrect.x = ICON_RUNOPTS_X * video.scale; srcrect.y = ICON_RUNOPTS_Y * video.scale;
 			dstrect.x = video.scale + 17 * 13 * video.scale; 

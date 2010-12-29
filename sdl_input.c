@@ -1216,16 +1216,19 @@ void manage_cursor_input(void) {
 						hs_currently_selected <= HS_CTB_ALPHA_UP) {
 						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_CTB_LDFILE) {
+						hotspots[HS_VKEYB_SHIFT + 8].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
 						hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_VKEYB_1 &&
 						hs_currently_selected <= HS_VKEYB_1 + 6) {
 						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_VKEYB_1 + 7 &&
-						hs_currently_selected <= HS_VKEYB_1 + 8) {
+					} else if (hs_currently_selected == HS_VKEYB_1 + 7) {
 						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
 							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_VKEYB_1 + 8) {
+						hotspots[HS_CTB_LDFILE].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_VKEYB_1 + 9) {
 						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_VKEYB_Q) {
@@ -1323,16 +1326,19 @@ void manage_cursor_input(void) {
 						hs_currently_selected <= HS_VKEYB_SHIFT + 6) {
 						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected >= HS_VKEYB_SHIFT + 7 &&
-						hs_currently_selected <= HS_VKEYB_SHIFT + 8) {
+					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 7) {
 						hotspots[HS_VKEYB_1 + hs_currently_selected -
 							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 8) {
+						hotspots[HS_CTB_LDFILE].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 9) {
 						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_CTB_EXIT && 
 						hs_currently_selected <= HS_CTB_ALPHA_UP) {
 						hotspots[HS_VKEYB_1 + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_CTB_LDFILE) {
+						hotspots[HS_VKEYB_1 + 8].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
 						hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected <= HS_VKEYB_A + 9) {
@@ -1650,20 +1656,36 @@ void manage_all_input(void) {
 					vkeyb.state = !vkeyb.state;
 				}
 			}
-		} else if (id == SDLK_F2) {
+		} else if (id == SDLK_F3) {
+
+
+			/* Show the load file dialog */
+			if (state == SDL_PRESSED) {
+				load_file_dialog.state = !load_file_dialog.state;
+				if (load_file_dialog.state) {
+
+					getcwd(load_file_dialog.dir, 256);	/* temp temp */
+
+					dirlist_init(load_file_dialog.dir,
+						&load_file_dialog.dirlist,
+						&load_file_dialog.dirlist_sizeof,
+						&load_file_dialog.dirlist_count,
+						&load_file_dialog.dirlist_selected,
+						DIRLIST_FILETYPE_ZX81);
+
+					load_file_dialog.dirlist_selected = 
+						load_file_dialog.dirlist_count / 2;//temp temp
+
+				}
+			}
+
+
+		} else if (id == SDLK_F4) {
 			/* Reserved for future Save State */
 			if (state == SDL_PRESSED) {
 			}
-		} else if (id == SDLK_F3) {
-			/* Reserved for future Load State */
-			if (state == SDL_PRESSED) {
-			}
-		} else if (id == SDLK_F4) {
-			/* Reserved for future Emulation Speed reduce */
-			if (state == SDL_PRESSED) {
-			}
 		} else if (id == SDLK_F5) {
-			/* Reserved for future Emulation Speed increase */
+			/* Reserved for future Load State */
 			if (state == SDL_PRESSED) {
 			}
 		} else if (id == SDLK_F8) {

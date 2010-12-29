@@ -17,6 +17,12 @@
 
 /* Defines */
 
+/* Directory List file types */
+#define DIRLIST_FILETYPE_HIDDEN 1
+#define DIRLIST_FILETYPE_ZX80 2
+#define DIRLIST_FILETYPE_ZX81 4
+#define DIRLIST_FILETYPE_TXT 8
+
 /* Message box manager function IDs */
 #define MSG_BOX_SHOW 1
 #define MSG_BOX_KILL 2
@@ -33,7 +39,21 @@ struct MSG_Box {
 	int timeout;		/* In ms */
 };
 
+struct {
+	int state;
+	int xoffset;
+	int yoffset;
+	char dir[256];
+	char *dirlist;
+	int dirlist_sizeof;
+	int dirlist_count;
+	int dirlist_selected;
+} load_file_dialog;
+
 /* Function prototypes */
+void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
+	int *dirlist_count, int *dirlist_selected, int filetypes);
 void message_box_manager(int funcid, struct MSG_Box *msg_box);
+
 
 

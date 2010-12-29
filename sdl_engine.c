@@ -137,6 +137,10 @@ int sdl_init(void) {
 	runtime_options[3].text = runtime_options_text3;
 	show_input_id = FALSE;
 	current_input_id = UNDEFINED;
+	strcpy(startdir, ""); getcwd(startdir, 256); startdir[255] = 0;
+	load_file_dialog.state = FALSE;
+	strcpy(load_file_dialog.dir, startdir);
+	load_file_dialog.dirlist = NULL;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -166,11 +170,6 @@ int sdl_init(void) {
 		/* Set display window title */
 		SDL_WM_SetCaption("sz81", "sz81");
 	#endif
-
-	/* Record the current working directory (required for builds
-	 * that run from the current working directory e.g. GP2X) */
-	strcpy(startdir, "");
-	getcwd(startdir, 256);
 
 	/* Set-up the local data directory */
 	local_data_dir_init();
@@ -508,6 +507,8 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 
 void clean_up_before_exit(void) {
 	int count;
+
+	if (load_file_dialog.dirlist) free(load_file_dialog.dirlist);
 
 	#ifdef OSS_SOUND_SUPPORT
 		sdl_sound_end();

@@ -26,16 +26,267 @@
 
 
 /***************************************************************************
- *                                                                         *
+ * Directory List Initialise                                               *
  ***************************************************************************/
-/* On exit: returns FALSE on success else
- *          returns TRUE on error */
+/* This function will record the current directory, change to the requested
+ * directory, create a sorted listing of its contents and then change back
+ * to the original directory.
+ * 
+ * Directory names are wrapped within brackets and a parent directory
+ * "(..)" is forced to always be present.
+ * 
+ * dirlist will return a pointer to the dynamically allocated memory
+ * containing the list and should be freed before program exit.
+ * When calling this function, any existing list created from a previous
+ * call will be freed automatically so the caller need not do this.
+ * 
+ * On entry: char *dir = a string containing the directory to list
+ *           int filetypes = an OR'd combination of file types to list
+ *  On exit: char **dirlist will point to the dynamically allocated
+ *               directory listing
+ *           int *dirlist_sizeof will contain the size of each item
+ *           int *dirlist_count will contain the number of items found
+ *           int *dirlist_selected will equal zero */
 
+void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
+	int *dirlist_count, int *dirlist_selected, int filetypes) {
+	char cwd[256], swap[256], *realloclist;
+	int count, found, lendirentry, swapped;
+	int parentfound = 0, offset = 0;
+	struct dirent *direntry;
+	struct stat filestatus;
+	DIR *dirstream;
 
+	/* [Re]initialise the list */
+	if (*dirlist) {
+		free(*dirlist); *dirlist = NULL;
+	}
+	*dirlist_sizeof = 0; *dirlist_count = 0; *dirlist_selected = 0;
 
+	/* Record the current working directory before changing it to dir
+	 * (I've found that stat doesn't work unless the dir is changed) */
+	strcpy(cwd, ""); getcwd(cwd, 256); cwd[255] = 0; chdir(dir);
 
+	if ((dirstream = opendir(dir))) {
 
+		while ((direntry = readdir(dirstream))) {
 
+			/* Store the size of the list element once */
+			if (*dirlist_sizeof == 0)
+				*dirlist_sizeof = sizeof(direntry->d_name) + 2;
+
+			/* Get directory entry status information */
+			if (stat(direntry->d_name, &filestatus)) {
+				fprintf(stderr, "%s: Cannot stat %s\n", __func__, direntry->d_name);
+			} else {
+				/* Get directory entry string length */
+				lendirentry = strlen(direntry->d_name);
+
+				found = FALSE;
+
+				if (strcmp(direntry->d_name, "..") == 0) {
+					found = TRUE;
+				} else if (strcmp(direntry->d_name, ".") == 0) {
+					/* Discard */
+				} else if (!(filetypes & DIRLIST_FILETYPE_HIDDEN) &&
+					direntry->d_name[0] == '.') {
+					/* Discard */
+				} else if (S_ISDIR(filestatus.st_mode)) {
+					found = TRUE;
+				} else if (filetypes & DIRLIST_FILETYPE_ZX80 &&
+					lendirentry > 2 && 
+					strcasecmp(direntry->d_name + lendirentry - 2, ".o") == 0) {
+					found = TRUE;
+				} else if (filetypes & DIRLIST_FILETYPE_ZX80 &&
+					lendirentry > 3 && 
+					strcmp(direntry->d_name + lendirentry - 3, ".80") == 0) {
+					found = TRUE;
+				} else if (filetypes & DIRLIST_FILETYPE_ZX81 &&
+					lendirentry > 2 && 
+					strcasecmp(direntry->d_name + lendirentry - 2, ".p") == 0) {
+					found = TRUE;
+				} else if (filetypes & DIRLIST_FILETYPE_ZX81 &&
+					lendirentry > 3 && 
+					strcmp(direntry->d_name + lendirentry - 3, ".81") == 0) {
+					found = TRUE;
+				} else if (filetypes & DIRLIST_FILETYPE_TXT &&
+					lendirentry > 4 && 
+					strcasecmp(direntry->d_name + lendirentry - 4, ".txt") == 0) {
+					found = TRUE;
+				}
+
+				/*if ((strcmp(direntry->d_name, "..") == 0) ||	Redundant
+					((direntry->d_name[0] != '.') &&
+					((S_ISDIR(filestatus.st_mode)) ||
+					(lendirentry > 2 && strcasecmp(direntry->d_name + 
+					lendirentry - 2, ".p") == 0) ||
+					(lendirentry > 3 && strcasecmp(direntry->d_name + 
+					lendirentry - 3, ".81") == 0)))) {*/
+
+				if (found) {
+
+					/* Record that the parent directory was found because it's
+					 * not always the case that it is (the Zaurus for example) */
+					if (strcmp(direntry->d_name, "..") == 0) parentfound = TRUE;
+
+					/* Expand the list by the necessary size (if the list
+					 * is currently NULL then realloc acts like malloc) */
+					if ((realloclist = realloc(*dirlist, 
+						*dirlist_sizeof * (offset + 1))) == NULL) {
+						fprintf(stderr, "%s: Cannot expand list\n", __func__);
+					} else {
+						/* Update list pointer */
+						*dirlist = realloclist;
+
+						/* Store the filename and wrap within brackets if dir */
+						if (S_ISDIR(filestatus.st_mode)) {
+							*(*dirlist + offset) = '(';
+							strcpy(*dirlist + offset + 1, direntry->d_name);
+							strcat(*dirlist + offset + 1, ")");
+						} else {
+							strcpy(*dirlist + offset, direntry->d_name);
+						}
+
+						(*dirlist_count)++;
+						offset += *dirlist_sizeof;
+					}
+				}
+			}
+		}
+		closedir(dirstream);
+
+		/* If ".." wasn't found then add it to the end of the list */
+		if (!parentfound) {
+			if ((realloclist = realloc(*dirlist, 
+				*dirlist_sizeof * (offset + 1))) == NULL) {
+				fprintf(stderr, "%s: Cannot expand list\n", __func__);
+			} else {
+				/* Update list pointer */
+				*dirlist = realloclist;
+				/* Store the filename wrapped within brackets */
+				strcpy(*dirlist + offset, "(..)");
+				(*dirlist_count)++;
+			}
+		}
+
+		/* Bubble sort the directory list */
+		do {
+			swapped = FALSE;
+			for (count = 0; count < *dirlist_count - 1; count++) {
+				if (strcmp(*dirlist + *dirlist_sizeof * count,
+					*dirlist + *dirlist_sizeof * (count + 1)) > 0) {
+					swapped = TRUE;
+					strcpy(swap, *dirlist + *dirlist_sizeof * (count + 1));
+					strcpy(*dirlist + *dirlist_sizeof * (count + 1),
+						*dirlist + *dirlist_sizeof * count);
+					strcpy(*dirlist + *dirlist_sizeof * count, swap);
+				}
+			}
+		}
+		while (swapped);
+
+	} else {
+		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
+			dir);
+	}
+
+	/* Restore the current working directory */
+	chdir(cwd);
+}
+
+/*void load_file_dialog_list_fill(void) {	Redundant
+	struct dirent *direntry;
+	struct stat filestatus;
+	int parentfound = 0;
+	char *realloclist;
+	int lendirentry;
+	DIR *dirstream;
+	int offset = 0;
+
+	/$ [Re]initialise the list $/
+	if (load_file_dialog.list) {
+		free(load_file_dialog.list);
+		load_file_dialog.list = NULL;
+	}
+	load_file_dialog.list_element_sizeof = 0;
+	load_file_dialog.list_element_count = 0;
+	load_file_dialog.list_element_selected = 0;
+
+	if ((dirstream = opendir(load_file_dialog.cwd))) {
+
+		while ((direntry = readdir(dirstream))) {
+			/$ Store the size of the list element once $/
+			if (load_file_dialog.list_element_sizeof == 0)
+				load_file_dialog.list_element_sizeof = sizeof(direntry->d_name) + 2;
+
+			/$ Get directory entry status information $/
+			if (stat(direntry->d_name, &filestatus)) {
+				fprintf(stderr, "%s: Cannot stat %s\n", __func__, direntry->d_name);
+			} else {
+				/$ Get directory entry string length $/
+				lendirentry = strlen(direntry->d_name);
+
+				if ((strcmp(direntry->d_name, "..") == 0) ||
+					((direntry->d_name[0] != '.') &&
+					((S_ISDIR(filestatus.st_mode)) ||
+					(lendirentry > 2 && strcasecmp(direntry->d_name + 
+					lendirentry - 2, ".p") == 0) ||
+					(lendirentry > 3 && strcasecmp(direntry->d_name + 
+					lendirentry - 3, ".81") == 0)))) {
+
+					/$ Record that the parent directory was found because it's
+					 * not always the case that it is (the Zaurus for example) $/
+					if (strcmp(direntry->d_name, "..") == 0) parentfound = TRUE;
+
+					/$ Expand the list by the necessary size (if the list
+					 * is currently NULL then realloc acts like malloc) $/
+					if ((realloclist = realloc(load_file_dialog.list, 
+						load_file_dialog.list_element_sizeof * (offset + 1))) == NULL) {
+						fprintf(stderr, "%s: Cannot expand list\n", __func__);
+					} else {
+						/$ Update list pointer $/
+						load_file_dialog.list = realloclist;
+
+						/$ Store the filename and wrap within brackets if dir $/
+						if (S_ISDIR(filestatus.st_mode)) {
+							*(load_file_dialog.list + offset) = '(';
+							strcpy(load_file_dialog.list + offset + 1, direntry->d_name);
+							strcat(load_file_dialog.list + offset + 1, ")");
+						} else {
+							strcpy(load_file_dialog.list + offset, direntry->d_name);
+						}
+
+						load_file_dialog.list_element_count++;
+						offset += load_file_dialog.list_element_sizeof;
+					}
+				}
+			}
+		}
+		closedir(dirstream);
+
+		/$ If ".." wasn't found then add it to the end of the list $/
+		if (!parentfound) {
+			if ((realloclist = realloc(load_file_dialog.list, 
+				load_file_dialog.list_element_sizeof * (offset + 1))) == NULL) {
+				fprintf(stderr, "%s: Cannot expand list\n", __func__);
+			} else {
+				/$ Update list pointer $/
+				load_file_dialog.list = realloclist;
+				/$ Store the filename wrapped within brackets $/
+				strcpy(load_file_dialog.list + offset, "(..)");
+				load_file_dialog.list_element_count++;
+			}
+		}
+
+		for (offset = 0; offset < load_file_dialog.list_element_count; offset++) {	//temp temp
+			printf("%s\n", load_file_dialog.list + load_file_dialog.list_element_sizeof * offset);
+		}
+
+	} else {
+		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
+			load_file_dialog.cwd);
+	}
+}*/
 
 /***************************************************************************
  * Message Box Manager                                                     *

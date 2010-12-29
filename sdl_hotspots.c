@@ -130,6 +130,7 @@ void hotspots_init(void) {
 	hotspots[HS_CTB_INVERSE].remap_id = SDLK_F8;
 	hotspots[HS_CTB_ALPHA_DN].remap_id = SDLK_HOME;
 	hotspots[HS_CTB_ALPHA_UP].remap_id = SDLK_END;
+	hotspots[HS_CTB_LDFILE].remap_id = SDLK_F3;
 	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_ESCAPE;
 
 	/* Initialise runtime options hotspots */
@@ -335,6 +336,7 @@ void hotspots_resize(int gid) {
 		hotspots[HS_CTB_INVERSE].hit_x = control_bar.xoffset + video.scale + 17 * 6 * video.scale;
 		hotspots[HS_CTB_ALPHA_DN].hit_x = control_bar.xoffset + video.scale + 17 * 7 * video.scale;
 		hotspots[HS_CTB_ALPHA_UP].hit_x = control_bar.xoffset + video.scale + 17 * 8 * video.scale;
+		hotspots[HS_CTB_LDFILE].hit_x = control_bar.xoffset + video.scale + 17 * 12 * video.scale;
 		hotspots[HS_CTB_RUNOPTS].hit_x = control_bar.xoffset + video.scale + 17 * 13 * video.scale;
 		/* Set-up hit_y/w/h */
 		for (count = HS_CTB_EXIT; count <= HS_CTB_RUNOPTS; count++) {
