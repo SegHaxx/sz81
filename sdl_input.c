@@ -1673,8 +1673,8 @@ void manage_all_input(void) {
 						&load_file_dialog.dirlist_selected,
 						DIRLIST_FILETYPE_ZX81);
 
-					load_file_dialog.dirlist_selected = 
-						load_file_dialog.dirlist_count / 2;//temp temp
+					//load_file_dialog.dirlist_selected = 
+						//load_file_dialog.dirlist_count / 2;//temp temp
 
 				}
 			}

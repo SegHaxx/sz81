@@ -53,7 +53,6 @@ struct {
 /* Function prototypes */
 void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
 	int *dirlist_count, int *dirlist_selected, int filetypes);
-void message_box_manager(int funcid, struct MSG_Box *msg_box);
 
 
 

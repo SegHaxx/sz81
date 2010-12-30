@@ -101,5 +101,9 @@ int vkeyb_init(void);
 int vkeyb_alpha_apply(void);
 int sz81icons_init(void);
 int control_bar_init(void);
+void message_box_manager(int funcid, struct MSG_Box *msg_box);
+
+
+
 
 

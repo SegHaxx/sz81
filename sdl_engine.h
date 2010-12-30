@@ -23,9 +23,9 @@
 #include <time.h>
 #include <unistd.h>
 #include "sdl.h"
-#include "sdl_dialogs.h"
 #include "sdl_hotspots.h"
 #include "sdl_input.h"
+#include "sdl_loadsave.h"
 #include "sdl_resources.h"
 #include "sdl_sound.h"
 #include "sdl_video.h"
