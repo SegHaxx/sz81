@@ -53,6 +53,7 @@ struct {
 
 /* Function prototypes */
 void load_file_dialog_dirlist_init(void);
+char *file_dialog_basename(char *dir);
 void file_dialog_cd(char *dir, char *direntry);
 void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 	int *dirlist_count, int filetypes);

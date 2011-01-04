@@ -2106,8 +2106,10 @@ void manage_runopts_input(void) {
  ***************************************************************************/
 
 void manage_ldfile_input(void) {
+	char lastsubdir[256];
 	int found = FALSE;
 	char *direntry;
+	int count;
 
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_q || id == SDLK_UP || id == SDLK_PAGEUP) {
@@ -2193,16 +2195,41 @@ void manage_ldfile_input(void) {
 			if (state == SDL_PRESSED) {
 				direntry = load_file_dialog.dirlist + 
 					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof;
+
+				/* Is it a directory? */
 				if (*direntry == '(') {
+					*lastsubdir = 0;
+					if ((strcmp(load_file_dialog.dir, "/") != 0) && 
+						(strcmp(direntry, "(..)") == 0))
+						/* Record the current subdirectory for later reselection*/
+						sprintf(lastsubdir, "(%s)", 
+							file_dialog_basename(load_file_dialog.dir));
+
 					/* Update the directory string */
 					file_dialog_cd(load_file_dialog.dir, direntry);
 					/* Reinitialise the list */
 					load_file_dialog_dirlist_init();
+
+					if (*lastsubdir) {
+						/* Auto-select the previously recorded subdirectory */
+						for (count = 0; count < load_file_dialog.dirlist_count; count++)
+							if (strcmp(lastsubdir, load_file_dialog.dirlist + 
+								load_file_dialog.dirlist_sizeof * count) == 0) break;
+						if (count < load_file_dialog.dirlist_count)
+							load_file_dialog.dirlist_selected = count;
+					}
+
 					/* Resize list hotspots */
 					hotspots_resize(HS_GRP_LDFILE);
 				} else {
+					/* It's a file */
 
-					/*printf("Opening %s/%s\n", load_file_dialog.dir, direntry);	 temp temp */
+
+
+/*printf("Opening %s/%s\n", load_file_dialog.dir, direntry);	 temp temp */
+
+
+
 
 				}
 			}

@@ -341,6 +341,8 @@ void hotspots_resize(int gid) {
 				hotspots[HS_LDFILE_LIST00 + count].hit_w = 
 					strlen(load_file_dialog.dirlist + load_file_dialog.dirlist_sizeof * 
 					(load_file_dialog.dirlist_top + count)) * 8 * video.scale;
+				if (hotspots[HS_LDFILE_LIST00 + count].hit_w > 32 * 8 * video.scale)
+					hotspots[HS_LDFILE_LIST00 + count].hit_w = 32 * 8 * video.scale;
 				hotspots[HS_LDFILE_LIST00 + count].hit_h = 1 * 8 * video.scale;
 			} else {
 				hotspots[HS_LDFILE_LIST00 + count].hit_w = 0;

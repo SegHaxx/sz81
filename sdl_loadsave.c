@@ -47,6 +47,39 @@ void load_file_dialog_dirlist_init(void) {
 }
 
 /***************************************************************************
+ * File Dialog Basename                                                    *
+ ***************************************************************************/
+/* This will return the basename of a path e.g. "/moo/bah/" returns "bah".
+ * It works exactly the same way as the *nix basename command and supports
+ * multiple directory delimeters such as "/moo//bah//".
+ * 
+ * On entry: char *dir = the path to extract the basename from
+ *  On exit: returns a pointer to a string containing the extracted basename
+ *               (the root directory is returned as "/" not "") */
+
+char *file_dialog_basename(char *dir) {
+	static char basename[256];
+	int index;
+
+	strcpy(basename, "");
+	
+	if ((index = strlen(dir))) {
+		/* Move leftwards past trailing delimeters */
+		while (index > 0 && dir[index - 1] == '/') index--;
+		/* Move leftwards up to a delimeter or zero */
+		while (index > 0 && dir[index - 1] != '/') index--;
+		/* Copy from this point */
+		strcpy(basename, dir + index);
+	}
+
+	/* Cut trailing delimeters from our copy */
+	if ((index = strlen(basename) - 1))
+		while (index && basename[index] == '/') basename[index--] = 0;
+
+	return basename;
+}
+
+/***************************************************************************
  * File Dialog Change Directory                                            *
  ***************************************************************************/
 /* This function will update a target directory string with another source
@@ -84,8 +117,8 @@ void file_dialog_cd(char *dir, char *direntry) {
 			}
 			dir[index--] = 0;
 		}
-	/* It's a subdirectory */
 	} else {
+		/* It's a subdirectory */
 		/* Add a directory delimeter if required */
 		if (dir[strlen(dir) - 1] != '/') strcat(dir, "/");
 		strcat(dir, filename);
@@ -100,7 +133,7 @@ void file_dialog_cd(char *dir, char *direntry) {
  * the original directory.
  * 
  * Directory names are wrapped within brackets and a parent directory
- * "(..)" is forced to always be present.
+ * "(..)" is forced to always be present (dirlist will never return NULL).
  * 
  * dirlist will return a pointer to the dynamically allocated memory
  * containing the list and should be freed before program exit.
@@ -213,50 +246,53 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 		}
 		closedir(dirstream);
 
-		/* If ".." wasn't found then add it to the end of the list */
-		if (!parentfound) {
-			if ((realloclist = realloc(*dirlist, 
-				*dirlist_sizeof * (offset + 1))) == NULL) {
-				fprintf(stderr, "%s: Cannot expand list\n", __func__);
-			} else {
-				/* Update list pointer */
-				*dirlist = realloclist;
-				/* Store the filename wrapped within brackets */
-				strcpy(*dirlist + offset, "(..)");
-				(*dirlist_count)++;
-			}
-		}
-
-		/* Force the parent directory "(..)" to always be the topmost item */
-		for (count = 0; count < *dirlist_count; count++) {
-			if (strcmp(*dirlist + *dirlist_sizeof * count, "(..)") == 0) {
-				strcpy(swap, *dirlist);
-				strcpy(*dirlist, *dirlist + *dirlist_sizeof * count);
-				strcpy(*dirlist + *dirlist_sizeof * count, swap);
-				break;
-			}
-		}
-
-		/* Bubble sort the directory list following element zero */
-		do {
-			swapped = FALSE;
-			for (count = 1; count < *dirlist_count - 1; count++) {
-				if (strcmp(*dirlist + *dirlist_sizeof * count,
-					*dirlist + *dirlist_sizeof * (count + 1)) > 0) {
-					swapped = TRUE;
-					strcpy(swap, *dirlist + *dirlist_sizeof * (count + 1));
-					strcpy(*dirlist + *dirlist_sizeof * (count + 1),
-						*dirlist + *dirlist_sizeof * count);
-					strcpy(*dirlist + *dirlist_sizeof * count, swap);
-				}
-			}
-		}
-		while (swapped);
-
 	} else {
 		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
 			dir);
 	}
+
+	/* If opening the dir failed then manually set an element size */
+	if (*dirlist_sizeof == 0) *dirlist_sizeof = 256 + 2;
+
+	/* If ".." wasn't found then add it to the end of the list */
+	if (!parentfound) {
+		if ((realloclist = realloc(*dirlist, 
+			*dirlist_sizeof * (offset + 1))) == NULL) {
+			fprintf(stderr, "%s: Cannot expand list\n", __func__);
+		} else {
+			/* Update list pointer */
+			*dirlist = realloclist;
+			/* Store the filename wrapped within brackets */
+			strcpy(*dirlist + offset, "(..)");
+			(*dirlist_count)++;
+		}
+	}
+
+	/* Force the parent directory "(..)" to always be the topmost item */
+	for (count = 0; count < *dirlist_count; count++) {
+		if (strcmp(*dirlist + *dirlist_sizeof * count, "(..)") == 0) {
+			strcpy(swap, *dirlist);
+			strcpy(*dirlist, *dirlist + *dirlist_sizeof * count);
+			strcpy(*dirlist + *dirlist_sizeof * count, swap);
+			break;
+		}
+	}
+
+	/* Bubble sort the directory list following element zero */
+	do {
+		swapped = FALSE;
+		for (count = 1; count < *dirlist_count - 1; count++) {
+			if (strcmp(*dirlist + *dirlist_sizeof * count,
+				*dirlist + *dirlist_sizeof * (count + 1)) > 0) {
+				swapped = TRUE;
+				strcpy(swap, *dirlist + *dirlist_sizeof * (count + 1));
+				strcpy(*dirlist + *dirlist_sizeof * (count + 1),
+					*dirlist + *dirlist_sizeof * count);
+				strcpy(*dirlist + *dirlist_sizeof * count, swap);
+			}
+		}
+	}
+	while (swapped);
 
 	/* Restore the current working directory */
 	chdir(cwd);
