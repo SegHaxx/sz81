@@ -47,12 +47,15 @@ struct {
 	char *dirlist;
 	int dirlist_sizeof;
 	int dirlist_count;
+	int dirlist_top;
 	int dirlist_selected;
 } load_file_dialog;
 
 /* Function prototypes */
-void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
-	int *dirlist_count, int *dirlist_selected, int filetypes);
+void load_file_dialog_dirlist_init(void);
+void file_dialog_cd(char *dir, char *direntry);
+void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
+	int *dirlist_count, int filetypes);
 
 
 

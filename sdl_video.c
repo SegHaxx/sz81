@@ -252,7 +252,7 @@ unsigned char *vga_getgraphmem(void) {
  * hotspots will require overlaying */
 
 void sdl_video_update(void) {
-	int srcx, srcy, desx, desy, srcw, count, index;
+	int srcx, srcy, desx, desy, srcw, count;
 	Uint32 colour, fg_colour, bg_colour;
 	Uint32 *screen_pixels_32;
 	Uint16 *screen_pixels_16;
@@ -318,7 +318,7 @@ void sdl_video_update(void) {
 			/* [Re]set-up x coordinates and src width */
 			if (video.xres < 320 * video.scale) {
 				srcx = abs(sdl_emulator.xoffset / video.scale);
-				if (*sdl_emulator.model && video.xres < 256 * video.scale)
+				if (*sdl_emulator.model == MODEL_ZX80 && video.xres < 256 * video.scale)
 					srcx += 8 * 2;	/* The emulator shifts it right 2 chars! */
 				srcw = video.xres / video.scale + srcx; desx = 0;
 			} else {
@@ -400,7 +400,7 @@ void sdl_video_update(void) {
 			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		/* Draw the header */
-		strcpy(text, " Load File                      ");
+		strcpy(text, " Load File               ");
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
 		dstrect.x = srcx; dstrect.y = srcy;
 		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
@@ -409,14 +409,23 @@ void sdl_video_update(void) {
 			exit(1);
 		}
 		SDL_FreeSurface(renderedtext);
+		/* Write the details */
+		sprintf(text, "%i of %i ", load_file_dialog.dirlist_selected + 1,
+			load_file_dialog.dirlist_count);
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = srcx + 32 * 8 * video.scale - renderedtext->w; dstrect.y = srcy;
+		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
 		/* Write the directory list */
-		index = load_file_dialog.dirlist_selected - 10;
-		if (index > load_file_dialog.dirlist_count - 20)
-			index = load_file_dialog.dirlist_count - 20;
-		if (index < 0) index = 0;
-		for (count = 0; count < 20 && count + index < load_file_dialog.dirlist_count; count++) {
+		for (count = load_file_dialog.dirlist_top;
+			count < load_file_dialog.dirlist_top + 20 && count < load_file_dialog.dirlist_count;
+			count++) {
 			direntry = load_file_dialog.dirlist + 
-				load_file_dialog.dirlist_sizeof * (count + index);
+				load_file_dialog.dirlist_sizeof * count;
 			/* Truncate filenames longer than 32 chars */
 			if (strlen(direntry) < 33) {
 				strcpy(text, direntry);
@@ -426,12 +435,13 @@ void sdl_video_update(void) {
 				strcat(text, direntry + strlen(direntry) - 15);
 			}
 			/* Render the text highlighting the selected item */
-			if (count + index == load_file_dialog.dirlist_selected) {
+			if (count == load_file_dialog.dirlist_selected) {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
 			} else {
 				renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
 			}
-			dstrect.x = srcx; dstrect.y = srcy + (count + 2) * 8 * video.scale;
+			dstrect.x = srcx; dstrect.y = srcy + 
+				(count - load_file_dialog.dirlist_top + 2) * 8 * video.scale;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
@@ -687,7 +697,7 @@ void sdl_video_update(void) {
 			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		sprintf(text, "%i", current_input_id);
-		if (*sdl_emulator.model) {
+		if (*sdl_emulator.model == MODEL_ZX80) {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX80, text, fg_colour, bg_colour);
 		} else {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX81, text, fg_colour, bg_colour);

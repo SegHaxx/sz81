@@ -141,6 +141,7 @@ int sdl_init(void) {
 	load_file_dialog.state = FALSE;
 	strcpy(load_file_dialog.dir, startdir);
 	load_file_dialog.dirlist = NULL;
+	load_file_dialog_dirlist_init();
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -315,8 +316,10 @@ void sdl_component_executive(void) {
 		sdl_emulator_model = *sdl_emulator.model;
 		/* Change the virtual keyboard */
 		vkeyb_init();
-		/* Resize vkeyb hotspots only */
-		hotspots_resize(HS_GRP_VKEYB);
+		/* Reinitialise the load file dialog's directory list */
+		load_file_dialog_dirlist_init();
+		/* Resize relevant hotspots */
+		hotspots_resize(HS_GRP_VKEYB | HS_GRP_LDFILE);
 		/* Restart mainloop on return */
 		interrupted = INTERRUPT_EMULATOR_RESET;
 	}
@@ -386,6 +389,12 @@ void sdl_component_executive(void) {
 		found = TRUE;
 	}
 
+	/* Monitor load file dialog's state */
+	if ((active_components & COMP_LDFILE) != (load_file_dialog.state * COMP_LDFILE)) {
+		if (load_file_dialog.state && vkeyb.state) vkeyb.state = FALSE;
+		found = TRUE;
+	}
+
 	/* Monitor runtime options' state */
 	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
 		if ((active_components & (COMP_RUNOPTS0 << count)) !=
@@ -415,7 +424,14 @@ void sdl_component_executive(void) {
 
 	/* Maintain a copy of current program component states  */
 	active_components = 0;
-	if (sdl_emulator.state) {
+	if (sdl_emulator.state) active_components |= COMP_EMU;
+	if (load_selector_state) active_components |= COMP_LOAD;
+	if (load_file_dialog.state) active_components |= COMP_LDFILE;
+	if (vkeyb.state) active_components |= COMP_VKEYB;
+	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
+		active_components |= COMP_RUNOPTS0 << runtime_options_which();
+
+/*	if (sdl_emulator.state) {	Redundant: don't need to clear flags as we start with zero anyway.
 		active_components |= COMP_EMU;
 	} else {
 		active_components &= ~COMP_EMU;
@@ -424,6 +440,11 @@ void sdl_component_executive(void) {
 		active_components |= COMP_LOAD;
 	} else {
 		active_components &= ~COMP_LOAD;
+	}
+	if (load_file_dialog.state) {
+		active_components |= COMP_LDFILE;
+	} else {
+		active_components &= ~COMP_LDFILE;
 	}
 	if (vkeyb.state) {
 		active_components |= COMP_VKEYB;
@@ -436,7 +457,7 @@ void sdl_component_executive(void) {
 		} else {
 			active_components &= ~(COMP_RUNOPTS0 << count);
 		}
-	}
+	} */
 }
 
 /***************************************************************************
@@ -446,17 +467,19 @@ void sdl_component_executive(void) {
 
 int get_active_component(void) {
 	int retval;
-	
+
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
 		retval = COMP_RUNOPTS0 << runtime_options_which();
 	} else if (vkeyb.state) {
 		retval = COMP_VKEYB;
 	} else if (load_selector_state) {
 		retval = COMP_LOAD;
+	} else if (load_file_dialog.state) {
+		retval = COMP_LDFILE;
 	} else {
 		retval = COMP_EMU;
 	}
-	
+
 	return retval;
 }
 

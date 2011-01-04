@@ -134,17 +134,17 @@ void manage_cursor_input(void);
 void manage_all_input(void);
 void manage_vkeyb_input(void);
 void manage_runopts_input(void);
+void manage_ldfile_input(void);
 void runopts_transit(int state);
 
 
 /***************************************************************************
  * Keyboard Initialise                                                     *
  ***************************************************************************/
-/* This initialises the keyboard buffer, opens joystick 0 if available,
- * sets up the control remappings and initialises the hotspots.
- * It's only called once */
+/* This initialises the keyboard buffer, opens joystick 0 if available
+ * and sets up the control remappings. It's only called once */
 
-void keyboard_init(void) {
+void sdl_keyboard_init(void) {
 	int count, index;
 	SDL_Event event;
 	
@@ -254,6 +254,28 @@ void keyboard_init(void) {
 	ctrl_remaps[index].remap_id = SDLK_a;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
+	/* Active within ldfile/runopts */
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_LEFT;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_W;
+
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_RIGHT;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_E;
+
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[index].protected = TRUE;
+	ctrl_remaps[index].device = DEVICE_KEYBOARD;
+	ctrl_remaps[index].id = SDLK_RETURN;
+	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
+	ctrl_remaps[index].remap_id = CURSOR_HIT;
+
 	/* Active within runopts only */
 	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
@@ -269,27 +291,6 @@ void keyboard_init(void) {
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_S;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
-	ctrl_remaps[index].protected = TRUE;
-	ctrl_remaps[index].device = DEVICE_KEYBOARD;
-	ctrl_remaps[index].id = SDLK_LEFT;
-	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-	ctrl_remaps[index].remap_id = CURSOR_W;
-
-	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
-	ctrl_remaps[index].protected = TRUE;
-	ctrl_remaps[index].device = DEVICE_KEYBOARD;
-	ctrl_remaps[index].id = SDLK_RIGHT;
-	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-	ctrl_remaps[index].remap_id = CURSOR_E;
-
-	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
-	ctrl_remaps[index].protected = TRUE;
-	ctrl_remaps[index].device = DEVICE_KEYBOARD;
-	ctrl_remaps[index].id = SDLK_RETURN;
-	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
-	ctrl_remaps[index].remap_id = CURSOR_HIT;
-
 	/* Joystick to some other device.
 	 * Platform specific joysticks can be hardcoded with some defaults
 	 * here but otherwise their configurations should be entirely read
@@ -304,7 +305,7 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F1;
 
-			/* Active within emulator/runopts */
+			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -376,15 +377,15 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-			/* Active within the load selector only */
-			ctrl_remaps[++index].components = COMP_LOAD;
+			/* Active within load/ldfile */
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_q;
 
-			ctrl_remaps[++index].components = COMP_LOAD;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
@@ -407,7 +408,7 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_id = SDLK_a;
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-			/* Active within load/vkeyb/ctb/runopts */
+			/* Active within load/ldfile/vkeyb/ctb/runopts */
 			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -429,14 +430,14 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_S;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_W;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
@@ -458,7 +459,7 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
@@ -480,14 +481,14 @@ void keyboard_init(void) {
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
 			/* Active within runopts only */
-			ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_LTRIG;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_PAGEUP;
 
-			ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_RTRIG;
@@ -580,15 +581,15 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-					/* Active within the load selector only */
-					ctrl_remaps[++index].components = COMP_LOAD;
+					/* Active within load/ldfile */
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 12;	/* Up */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_q;
 
-					ctrl_remaps[++index].components = COMP_LOAD;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 13;	/* Down */
@@ -611,7 +612,7 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_id = SDLK_a;
 					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-					/* Active within load/vkeyb/ctb/runopts */
+					/* Active within load/ldfile/vkeyb/ctb/runopts */
 					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -633,14 +634,14 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_S;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 10;	/* Left */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_W;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 11;	/* Right */
@@ -662,7 +663,7 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 3;	/* X */
@@ -684,14 +685,14 @@ void keyboard_init(void) {
 					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
 					/* Active within runopts only */
-					ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 6;	/* LTrig */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_PAGEUP;
 
-					ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 7;	/* RTrig */
@@ -704,9 +705,6 @@ void keyboard_init(void) {
 	#ifdef SDL_DEBUG_EVENTS
 		printf("%s: ctrl_remaps index=%i\n", __func__, index);
 	#endif
-
-	/* Initialise the hotspots now */
-	hotspots_init();
 
 }
 
@@ -1027,6 +1025,10 @@ int keyboard_update(void) {
 				if (get_active_component() == COMP_VKEYB ||
 					get_active_component() == COMP_CTB) manage_vkeyb_input();
 
+				/* Manage COMP_LDFILE input */
+				if (get_active_component() & COMP_LDFILE)
+					manage_ldfile_input();
+
 				/* Manage COMP_ALL input */
 				manage_all_input();
 
@@ -1166,8 +1168,9 @@ void manage_cursor_input(void) {
 		/* Locate currently selected hotspot for active component (there can be only one) */
 		if (get_active_component() == COMP_LOAD) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
-		} else if (get_active_component() == COMP_VKEYB ||
-			get_active_component() == COMP_CTB) {
+		} else if (get_active_component() == COMP_LDFILE) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_LDFILE);
+		} else if (get_active_component() == COMP_VKEYB || get_active_component() == COMP_CTB) {
 			if ((hs_currently_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
 				hs_currently_selected = get_selected_hotspot(HS_GRP_CTB);
 		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
@@ -1184,7 +1187,7 @@ void manage_cursor_input(void) {
 				virtualevent.type = SDL_MOUSEBUTTONDOWN;
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
-				if (load_selector_state || vkeyb.state ||
+				if (load_selector_state || load_file_dialog.state || vkeyb.state ||
 					(runtime_options_which() < MAX_RUNTIME_OPTIONS)) {
 					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
 						hotspots[hs_currently_selected].hit_w / 2;
@@ -1434,6 +1437,11 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (--hs_currently_selected < HS_LOAD_Q) hs_currently_selected = HS_LOAD_SPACE;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+				} else if (load_file_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (--hs_currently_selected < HS_LDFILE_LOAD) hs_currently_selected = HS_LDFILE_EXIT;
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1526,6 +1534,11 @@ void manage_cursor_input(void) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (++hs_currently_selected > HS_LOAD_SPACE) hs_currently_selected = HS_LOAD_Q;
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+				} else if (load_file_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (++hs_currently_selected > HS_LDFILE_EXIT) hs_currently_selected = HS_LDFILE_LOAD;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
@@ -1651,35 +1664,27 @@ void manage_all_input(void) {
 		if (id == SDLK_F1) {
 			/* Toggle the virtual keyboard */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state &&
+				if (!load_selector_state && !load_file_dialog.state &&
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					vkeyb.state = !vkeyb.state;
 				}
 			}
 		} else if (id == SDLK_F3) {
-
-
-			/* Show the load file dialog */
+			/* Toggle the load file dialog */
 			if (state == SDL_PRESSED) {
-				load_file_dialog.state = !load_file_dialog.state;
-				if (load_file_dialog.state) {
-
-					getcwd(load_file_dialog.dir, 256);	/* temp temp */
-
-					dirlist_init(load_file_dialog.dir,
-						&load_file_dialog.dirlist,
-						&load_file_dialog.dirlist_sizeof,
-						&load_file_dialog.dirlist_count,
-						&load_file_dialog.dirlist_selected,
-						DIRLIST_FILETYPE_ZX81);
-
-					//load_file_dialog.dirlist_selected = 
-						//load_file_dialog.dirlist_count / 2;//temp temp
-
+				if (!load_selector_state &&
+					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+					if (!load_file_dialog.state) {
+						load_file_dialog.state = TRUE;
+						sdl_emulator.state = FALSE;
+						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+					} else {
+						load_file_dialog.state = FALSE;
+						sdl_emulator.state = TRUE;
+						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
+					}
 				}
 			}
-
-
 		} else if (id == SDLK_F4) {
 			/* Reserved for future Save State */
 			if (state == SDL_PRESSED) {
@@ -1721,7 +1726,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F12) {
 			/* Reset the emulator */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state &&
+				if (!load_selector_state && !load_file_dialog.state &&
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 					if (!ignore_esc) {	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 						reset81();
@@ -1731,7 +1736,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_ESCAPE) {
 			/* Toggle runtime options */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state) {
+				if (!load_selector_state && !load_file_dialog.state) {
 					if (runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
 							if (last_runopts_comp == (COMP_RUNOPTS0 << count)) {
@@ -2097,6 +2102,126 @@ void manage_runopts_input(void) {
 }
 
 /***************************************************************************
+ * Manage Load File Dialog Input                                           *
+ ***************************************************************************/
+
+void manage_ldfile_input(void) {
+	int found = FALSE;
+	char *direntry;
+
+	if (device == DEVICE_KEYBOARD) {
+		if (id == SDLK_q || id == SDLK_UP || id == SDLK_PAGEUP) {
+			if (state == SDL_PRESSED) {
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				found = TRUE;
+				/* Page up */
+				if (id == SDLK_PAGEUP ||
+					keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_PRESSED) {
+					if (load_file_dialog.dirlist_selected - 19 < 0) {
+						load_file_dialog.dirlist_selected = 0;
+					} else {
+						load_file_dialog.dirlist_selected -= 19;
+					}
+				/* Select the previous item */
+				} else {
+					if (load_file_dialog.dirlist_selected - 1 < 0) {
+						load_file_dialog.dirlist_selected = 0;
+					} else {
+						load_file_dialog.dirlist_selected -= 1;
+					}
+				}
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
+		} else if (id == SDLK_a || id == SDLK_DOWN || id == SDLK_PAGEDOWN) {
+			if (state == SDL_PRESSED) {
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				found = TRUE;
+				/* Page down */
+				if (id == SDLK_PAGEDOWN ||
+					keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_PRESSED) {
+					if (load_file_dialog.dirlist_selected + 19 > 
+						load_file_dialog.dirlist_count - 1) {
+						load_file_dialog.dirlist_selected = 
+						load_file_dialog.dirlist_count - 1;
+					} else {
+						load_file_dialog.dirlist_selected += 19;
+					}
+				/* Select the next item */
+				} else {
+					if (load_file_dialog.dirlist_selected + 1 > 
+						load_file_dialog.dirlist_count - 1) {
+						load_file_dialog.dirlist_selected = 
+						load_file_dialog.dirlist_count - 1;
+					} else {
+						load_file_dialog.dirlist_selected += 1;
+					}
+				}
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
+		} else if (id == SDLK_HOME) {
+			/* Select topmost item */
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				load_file_dialog.dirlist_selected = 0;
+			}
+		} else if (id == SDLK_END) {
+			/* Select last item */
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				load_file_dialog.dirlist_selected = load_file_dialog.dirlist_count - 1;
+			}
+		} else if (id >= SDLK_0 && id <= SDLK_9) {
+			/* Update the selected item */
+			if (state == SDL_PRESSED) {
+				if (load_file_dialog.dirlist_top + id - SDLK_0 < 
+					load_file_dialog.dirlist_count)
+					load_file_dialog.dirlist_selected = 
+					load_file_dialog.dirlist_top + id - SDLK_0;
+			}
+		} else if (id >= SDLK_b && id <= SDLK_k) {
+			/* Update the selected item */
+			if (state == SDL_PRESSED) {
+				if (load_file_dialog.dirlist_top + id - SDLK_b + 10 < 
+					load_file_dialog.dirlist_count)
+					load_file_dialog.dirlist_selected = 
+					load_file_dialog.dirlist_top + id - SDLK_b + 10;
+			}
+		} else if (id == SDLK_l) {
+			/* Load */
+			if (state == SDL_PRESSED) {
+				direntry = load_file_dialog.dirlist + 
+					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof;
+				if (*direntry == '(') {
+					/* Update the directory string */
+					file_dialog_cd(load_file_dialog.dir, direntry);
+					/* Reinitialise the list */
+					load_file_dialog_dirlist_init();
+					/* Resize list hotspots */
+					hotspots_resize(HS_GRP_LDFILE);
+				} else {
+
+					/*printf("Opening %s/%s\n", load_file_dialog.dir, direntry);	 temp temp */
+
+				}
+			}
+		}
+		if (found) {
+			/* Adjust the list top marker */
+			if (load_file_dialog.dirlist_top > load_file_dialog.dirlist_selected) {
+				load_file_dialog.dirlist_top = load_file_dialog.dirlist_selected;
+			} else if (load_file_dialog.dirlist_top < 
+				load_file_dialog.dirlist_selected - 19) {
+				load_file_dialog.dirlist_top = load_file_dialog.dirlist_selected - 19;
+			}
+			/* Resize hotspots to match new text */
+			hotspots_resize(HS_GRP_LDFILE);
+		}
+	}
+}
+
+/***************************************************************************
  * Runtime Options Is A Reset Scheduled?                                   *
  ***************************************************************************/
 /* This is used to show the warning message at the bottom of selected runopts
@@ -2271,7 +2396,7 @@ void runopts_transit(int state) {
 								components = COMP_VKEYB;
 								remap_id = SDLK_LSHIFT;
 							} else if (count == 3) {
-								components = COMP_RUNOPTS_ALL;
+								components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 								remap_id = SDLK_PAGEUP;
 							} else {
 								break;
@@ -2283,7 +2408,7 @@ void runopts_transit(int state) {
 								remap_id = SDLK_a;
 								remap_mod_id = SDLK_LSHIFT;
 							} else if (count == 1) {
-								components = COMP_RUNOPTS_ALL;
+								components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 								remap_id = SDLK_PAGEDOWN;
 							} else {
 								break;
@@ -2295,7 +2420,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_o;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_W;
 							} else {
@@ -2308,7 +2433,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_p;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_E;
 							} else {
@@ -2321,7 +2446,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_q;
 							} else if (count == 1) {
-								components = COMP_LOAD;
+								components = COMP_LOAD | COMP_LDFILE;
 								remap_id = SDLK_q;
 							} else if (count == 2) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
@@ -2337,7 +2462,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_a;
 							} else if (count == 1) {
-								components = COMP_LOAD;
+								components = COMP_LOAD | COMP_LDFILE;
 								remap_id = SDLK_a;
 							} else if (count == 2) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
@@ -2373,7 +2498,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_RETURN;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_HIT;
 							} else {

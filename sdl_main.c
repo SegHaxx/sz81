@@ -199,13 +199,17 @@ int main(int argc, char *argv[]) {
 				 * the SVGAlib API ;) */
 				vptr = vga_getgraphmem();
 
-				/* Initialise the keyboard buffer, open a joystick,
-				 * set-up control remappings and initialise hotspots */
-				keyboard_init();
+				/* Initialise the keyboard buffer, open a joystick
+				 * and set-up control remappings */
+				sdl_keyboard_init();
 
 				/* Read the project's rcfile if it exists and update
 				 * variables that are defined within it */
 				sdl_rcfile_read();
+
+				/* Initialise the hotspots now (this will set the
+				 * default initial vkeyb hotspot for the model) */
+				sdl_hotspots_init();
 
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
@@ -224,8 +228,9 @@ int main(int argc, char *argv[]) {
 				sdl_component_executive();
 				
 				while (interrupted != INTERRUPT_PROGRAM_QUIT) {
+
 					interrupted = 0;
-					
+
 					/* Initialise the printer file */
 					sdl_zxprinter_init();
 

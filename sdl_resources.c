@@ -411,6 +411,8 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_EMU;
 				if (strstr(value, "COMP_LOAD") != NULL)
 					read_ctrl_remaps[index].components |= COMP_LOAD;
+				if (strstr(value, "COMP_LDFILE") != NULL)
+					read_ctrl_remaps[index].components |= COMP_LDFILE;
 				if (strstr(value, "COMP_VKEYB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_VKEYB;
 				if (strstr(value, "COMP_CTB") != NULL)
@@ -811,6 +813,10 @@ void rcfile_write(void) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_LOAD"); found = TRUE;
 				}				
+				if (ctrl_remaps[count].components & COMP_LDFILE) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_LDFILE"); found = TRUE;
+				}				
 				if (ctrl_remaps[count].components & COMP_VKEYB) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_VKEYB"); found = TRUE;
@@ -1058,7 +1064,7 @@ int vkeyb_init(void) {
 	}
 
 	/* Initialise a pointer to the relevant original surface */
-	if (*sdl_emulator.model) {
+	if (*sdl_emulator.model == MODEL_ZX80) {
 		original = vkeyb.zx80original;
 	} else {
 		original = vkeyb.zx81original;

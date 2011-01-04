@@ -24,13 +24,80 @@
 
 /* Function prototypes */
 
+/***************************************************************************
+ * Load File Dialog Directory List Initialise                              *
+ ***************************************************************************/
+/* This is called from multiple places */
+
+void load_file_dialog_dirlist_init(void) {
+	int filetypes;
+
+	if (*sdl_emulator.model == MODEL_ZX80) {
+		filetypes = DIRLIST_FILETYPE_ZX80;
+	} else {
+		filetypes = DIRLIST_FILETYPE_ZX81;
+	}
+
+	dirlist_populate(load_file_dialog.dir,
+		&load_file_dialog.dirlist, &load_file_dialog.dirlist_sizeof,
+		&load_file_dialog.dirlist_count, filetypes);
+
+	load_file_dialog.dirlist_top = 0;
+	load_file_dialog.dirlist_selected = 0;
+}
 
 /***************************************************************************
- * Directory List Initialise                                               *
+ * File Dialog Change Directory                                            *
+ ***************************************************************************/
+/* This function will update a target directory string with another source
+ * string which could be a relative subdirectory or parent directory.
+ * The source directory can be wrapped within brackets which will be removed
+ * if found. Multiple directory delimeters are supported e.g. "/moo//bah".
+ * 
+ * On entry: char *dir = the directory string to update
+ *           char *direntry = the relative directory to change to,
+ *               examples "(home)", "(..)", "home", ".."
+ *  On exit: char *dir will be updated */
+
+void file_dialog_cd(char *dir, char *direntry) {
+	char filename[256];
+	int index;
+
+	/* Copy the direntry and strip the surrounding brackets if found */
+	if (*direntry == '(') {
+		strcpy(filename, direntry + 1);
+		filename[strlen(filename) - 1] = 0;
+	} else {
+		strcpy(filename, direntry);
+	}
+
+	/* Is this the parent directory? */
+	if (strcmp(filename, "..") == 0) {
+		/* Go back to the parent directory */
+		index = strlen(dir) - 1;
+		while (index > 0) {
+			if (dir[index] == '/') {
+				while (index > 0 && dir[index] == '/') {
+					dir[index--] = 0;
+				}
+				break;
+			}
+			dir[index--] = 0;
+		}
+	/* It's a subdirectory */
+	} else {
+		/* Add a directory delimeter if required */
+		if (dir[strlen(dir) - 1] != '/') strcat(dir, "/");
+		strcat(dir, filename);
+	}
+}
+
+/***************************************************************************
+ * Directory List Populate                                                 *
  ***************************************************************************/
 /* This function will record the current directory, change to the requested
- * directory, create a sorted listing of its contents and then change back
- * to the original directory.
+ * directory, create a sorted list of its contents and then change back to
+ * the original directory.
  * 
  * Directory names are wrapped within brackets and a parent directory
  * "(..)" is forced to always be present.
@@ -43,13 +110,12 @@
  * On entry: char *dir = a string containing the directory to list
  *           int filetypes = an OR'd combination of file types to list
  *  On exit: char **dirlist will point to the dynamically allocated
- *               directory listing
+ *               directory list
  *           int *dirlist_sizeof will contain the size of each item
- *           int *dirlist_count will contain the number of items found
- *           int *dirlist_selected will equal zero */
+ *           int *dirlist_count will contain the number of items found */
 
-void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
-	int *dirlist_count, int *dirlist_selected, int filetypes) {
+void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
+	int *dirlist_count, int filetypes) {
 	char cwd[256], swap[256], *realloclist;
 	int count, found, lendirentry, swapped;
 	int parentfound = FALSE, offset = 0;
@@ -61,7 +127,7 @@ void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
 	if (*dirlist) {
 		free(*dirlist); *dirlist = NULL;
 	}
-	*dirlist_sizeof = 0; *dirlist_count = 0; *dirlist_selected = 0;
+	*dirlist_sizeof = 0; *dirlist_count = 0;
 
 	/* Record the current working directory before changing it to dir
 	 * (I've found that stat doesn't work unless the dir is changed) */
@@ -171,7 +237,7 @@ void dirlist_init(char *dir, char **dirlist, int *dirlist_sizeof,
 			}
 		}
 
-		/* Bubble sort the directory listing following element zero */
+		/* Bubble sort the directory list following element zero */
 		do {
 			swapped = FALSE;
 			for (count = 1; count < *dirlist_count - 1; count++) {

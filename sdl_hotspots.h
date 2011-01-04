@@ -161,7 +161,6 @@ struct hotspot {
 struct hotspot hotspots[MAX_HOTSPOTS];
 
 /* Function prototypes */
-void hotspots_init(void);
 void hotspots_vkeyb_shift_init(void);
 void hotspots_resize(int gid);
 void hotspots_update(void);
