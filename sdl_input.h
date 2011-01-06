@@ -18,7 +18,7 @@
 /* Defines */
 #define MAX_CTRL_REMAPS 64
 #define MAX_JOY_AXES 20
-#define MAX_SCANCODES 128
+#define MAX_SCANCODES (128 + 20)
 
 #define DEVICE_KEYBOARD 1
 #define DEVICE_JOYSTICK 2
@@ -35,6 +35,28 @@
 #define KRM_FUNC_RELEASE 0
 #define KRM_FUNC_REPEAT 1
 #define KRM_FUNC_TICK 2
+
+/* Extended SDL keysyms used for hotspots+lists */
+#define SDLK_ROW00 330	//temp temp
+#define SDLK_ROW01 331
+#define SDLK_ROW02 332
+#define SDLK_ROW03 333
+#define SDLK_ROW04 334
+#define SDLK_ROW05 335
+#define SDLK_ROW06 336
+#define SDLK_ROW07 337
+#define SDLK_ROW08 338
+#define SDLK_ROW09 339
+#define SDLK_ROW10 340
+#define SDLK_ROW11 341
+#define SDLK_ROW12 342
+#define SDLK_ROW13 343
+#define SDLK_ROW14 344
+#define SDLK_ROW15 345
+#define SDLK_ROW16 346
+#define SDLK_ROW17 347
+#define SDLK_ROW18 348
+#define SDLK_ROW19 349
 
 /* Variables */
 char keyboard_buffer[MAX_SCANCODES];

@@ -31,6 +31,10 @@
 #define INTERRUPT_EMULATOR_RESET 3
 #define INTERRUPT_PROGRAM_QUIT 4
 
+/* Machine models */
+#define MODEL_ZX81 0
+#define MODEL_ZX80 1
+
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
 #if defined(PLATFORM_GP2X) && defined (TOOLCHAIN_OPENWIZ)
@@ -107,6 +111,28 @@
 #define SCANCODE_N 49
 #define SCANCODE_B 48
 
+/* Extended SVGAlib keyboard scancodes used for hotspots+lists */
+#define SCANCODE_ROW00 128	//temp temp
+#define SCANCODE_ROW01 129
+#define SCANCODE_ROW02 130
+#define SCANCODE_ROW03 131
+#define SCANCODE_ROW04 132
+#define SCANCODE_ROW05 133
+#define SCANCODE_ROW06 134
+#define SCANCODE_ROW07 135
+#define SCANCODE_ROW08 136
+#define SCANCODE_ROW09 137
+#define SCANCODE_ROW10 138
+#define SCANCODE_ROW11 139
+#define SCANCODE_ROW12 140
+#define SCANCODE_ROW13 141
+#define SCANCODE_ROW14 142
+#define SCANCODE_ROW15 143
+#define SCANCODE_ROW16 144
+#define SCANCODE_ROW17 145
+#define SCANCODE_ROW18 146
+#define SCANCODE_ROW19 147
+
 /* Variables */
 struct {
 	int fullscreen;
@@ -173,5 +199,6 @@ int sdl_sound_init(int freq, int *stereo, int *sixteenbit);
 void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
 void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
-
+int sdl_filetype_casecmp(char *filename, char *filetype);
+ 
 

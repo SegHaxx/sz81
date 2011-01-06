@@ -150,8 +150,8 @@ void file_dialog_cd(char *dir, char *direntry) {
 void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 	int *dirlist_count, int filetypes) {
 	char cwd[256], swap[256], *realloclist;
-	int count, found, lendirentry, swapped;
 	int parentfound = FALSE, offset = 0;
+	int count, found, swapped;
 	struct dirent *direntry;
 	struct stat filestatus;
 	DIR *dirstream;
@@ -178,8 +178,6 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 			if (stat(direntry->d_name, &filestatus)) {
 				fprintf(stderr, "%s: Cannot stat %s\n", __func__, direntry->d_name);
 			} else {
-				/* Get directory entry string length */
-				lendirentry = strlen(direntry->d_name);
 
 				found = FALSE;
 
@@ -193,24 +191,19 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 				} else if (S_ISDIR(filestatus.st_mode)) {
 					found = TRUE;
 				} else if (filetypes & DIRLIST_FILETYPE_ZX80 &&
-					lendirentry > 2 && 
-					strcasecmp(direntry->d_name + lendirentry - 2, ".o") == 0) {
+					sdl_filetype_casecmp(direntry->d_name, ".o") == 0) {
 					found = TRUE;
 				} else if (filetypes & DIRLIST_FILETYPE_ZX80 &&
-					lendirentry > 3 && 
-					strcmp(direntry->d_name + lendirentry - 3, ".80") == 0) {
+					sdl_filetype_casecmp(direntry->d_name, ".80") == 0) {
 					found = TRUE;
 				} else if (filetypes & DIRLIST_FILETYPE_ZX81 &&
-					lendirentry > 2 && 
-					strcasecmp(direntry->d_name + lendirentry - 2, ".p") == 0) {
+					sdl_filetype_casecmp(direntry->d_name, ".p") == 0) {
 					found = TRUE;
 				} else if (filetypes & DIRLIST_FILETYPE_ZX81 &&
-					lendirentry > 3 && 
-					strcmp(direntry->d_name + lendirentry - 3, ".81") == 0) {
+					sdl_filetype_casecmp(direntry->d_name, ".81") == 0) {
 					found = TRUE;
 				} else if (filetypes & DIRLIST_FILETYPE_TXT &&
-					lendirentry > 4 && 
-					strcasecmp(direntry->d_name + lendirentry - 4, ".txt") == 0) {
+					sdl_filetype_casecmp(direntry->d_name, ".txt") == 0) {
 					found = TRUE;
 				}
 
@@ -296,6 +289,22 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 
 	/* Restore the current working directory */
 	chdir(cwd);
+}
+
+/***************************************************************************
+ * File Type Case Insensitive Compare                                      *
+ ***************************************************************************/
+/* On exit: returns TRUE on error
+ *          else FALSE */
+
+int sdl_filetype_casecmp(char *filename, char *filetype) {
+	int retval = FALSE;
+
+	if (filename == NULL || filetype == NULL || strlen(filename) < strlen(filetype) || 
+		strcasecmp(filename + strlen(filename) - strlen(filetype), filetype) != 0)
+		retval = TRUE;
+
+	return retval;
 }
 
 

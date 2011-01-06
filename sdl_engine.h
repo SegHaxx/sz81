@@ -64,10 +64,6 @@
 #define COMP_LDFILE 256
 #define COMP_ALL ((COMP_LDFILE - 1) | COMP_LDFILE)
 
-/* Machine models */
-#define MODEL_ZX81 0
-#define MODEL_ZX80 1
-
 /* Emulator variables I require access to */
 extern int refresh_screen;
 extern int load_selector_state;

@@ -400,7 +400,7 @@ void sdl_video_update(void) {
 			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		/* Draw the header */
-		strcpy(text, " Load File               ");
+		strcpy(text, " Load File                  ");
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
 		dstrect.x = srcx; dstrect.y = srcy;
 		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
@@ -410,7 +410,7 @@ void sdl_video_update(void) {
 		}
 		SDL_FreeSurface(renderedtext);
 		/* Write the details */
-		sprintf(text, "%i of %i ", load_file_dialog.dirlist_selected + 1,
+		sprintf(text, "%i/%i ", load_file_dialog.dirlist_selected + 1,
 			load_file_dialog.dirlist_count);
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
 		dstrect.x = srcx + 32 * 8 * video.scale - renderedtext->w; dstrect.y = srcy;

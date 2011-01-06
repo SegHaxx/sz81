@@ -207,6 +207,24 @@ int main(int argc, char *argv[]) {
 				 * variables that are defined within it */
 				sdl_rcfile_read();
 
+				/* If the user passed a program filename via the command
+				 * line then now is the time to validate it against the
+				 * machine type and set it for autoloading if compatible */
+				if (*sdl_com_line.filename) {
+					if (*sdl_emulator.model == MODEL_ZX80) {
+						if (sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
+							sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)
+							autoload = 1;
+					} else if (*sdl_emulator.model == MODEL_ZX81) {
+						if (sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
+							sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0)
+							autoload = 1;
+					}
+					/* I'll mark this temp temp because when load_p has been
+					 * replaced we'll work with sdl_com_line.filename directly */
+					if (autoload) strcpy(autoload_filename, sdl_com_line.filename);
+				}
+
 				/* Initialise the hotspots now (this will set the
 				 * default initial vkeyb hotspot for the model) */
 				sdl_hotspots_init();

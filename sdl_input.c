@@ -377,15 +377,15 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-			/* Active within load/ldfile */
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
+			/* Active within the load selector only */
+			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_q;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
+			ctrl_remaps[++index].components = COMP_LOAD;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
@@ -407,6 +407,21 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_a;
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+			/* Active within ldfile only */
+			ctrl_remaps[++index].components = COMP_LDFILE;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_N;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_UP;
+
+			ctrl_remaps[++index].components = COMP_LDFILE;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_JOY_S;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_DOWN;
 
 			/* Active within load/ldfile/vkeyb/ctb/runopts */
 			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
@@ -480,7 +495,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-			/* Active within runopts only */
+			/* Active within ldfile/runopts */
 			ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -581,15 +596,15 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-					/* Active within load/ldfile */
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
+					/* Active within the load selector only */
+					ctrl_remaps[++index].components = COMP_LOAD;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 12;	/* Up */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_q;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE;
+					ctrl_remaps[++index].components = COMP_LOAD;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 13;	/* Down */
@@ -611,6 +626,21 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_a;
 					ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
+
+					/* Active within ldfile only */
+					ctrl_remaps[++index].components = COMP_LDFILE;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 12;	/* Up */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_UP;
+
+					ctrl_remaps[++index].components = COMP_LDFILE;
+					ctrl_remaps[index].protected = TRUE;
+					ctrl_remaps[index].device = DEVICE_JOYSTICK;
+					ctrl_remaps[index].id = 13;	/* Down */
+					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+					ctrl_remaps[index].remap_id = SDLK_DOWN;
 
 					/* Active within load/ldfile/vkeyb/ctb/runopts */
 					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
@@ -684,7 +714,7 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_LSHIFT;
 
-					/* Active within runopts only */
+					/* Active within ldfile/runopts */
 					ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -2111,14 +2141,14 @@ void manage_ldfile_input(void) {
 	char *direntry;
 	int count;
 
+	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_q || id == SDLK_UP || id == SDLK_PAGEUP) {
+		if (id == SDLK_UP || id == SDLK_PAGEUP) {
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page up */
-				if (id == SDLK_PAGEUP ||
-					keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_PRESSED) {
+				if (id == SDLK_PAGEUP) {
 					if (load_file_dialog.dirlist_selected - 19 < 0) {
 						load_file_dialog.dirlist_selected = 0;
 					} else {
@@ -2135,13 +2165,12 @@ void manage_ldfile_input(void) {
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
-		} else if (id == SDLK_a || id == SDLK_DOWN || id == SDLK_PAGEDOWN) {
+		} else if (id == SDLK_DOWN || id == SDLK_PAGEDOWN) {
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page down */
-				if (id == SDLK_PAGEDOWN ||
-					keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_PRESSED) {
+				if (id == SDLK_PAGEDOWN) {
 					if (load_file_dialog.dirlist_selected + 19 > 
 						load_file_dialog.dirlist_count - 1) {
 						load_file_dialog.dirlist_selected = 
@@ -2174,34 +2203,40 @@ void manage_ldfile_input(void) {
 				found = TRUE;
 				load_file_dialog.dirlist_selected = load_file_dialog.dirlist_count - 1;
 			}
-		} else if (id >= SDLK_0 && id <= SDLK_9) {
+		} else if (id >= SDLK_ROW00 && id <= SDLK_ROW19) {
 			/* Update the selected item */
 			if (state == SDL_PRESSED) {
-				if (load_file_dialog.dirlist_top + id - SDLK_0 < 
+				if (load_file_dialog.dirlist_top + id - SDLK_ROW00 < 
 					load_file_dialog.dirlist_count)
 					load_file_dialog.dirlist_selected = 
-					load_file_dialog.dirlist_top + id - SDLK_0;
+					load_file_dialog.dirlist_top + id - SDLK_ROW00;
 			}
-		} else if (id >= SDLK_b && id <= SDLK_k) {
+		} else if (id >= SDLK_a && id <= SDLK_z) {
 			/* Update the selected item */
 			if (state == SDL_PRESSED) {
-				if (load_file_dialog.dirlist_top + id - SDLK_b + 10 < 
-					load_file_dialog.dirlist_count)
-					load_file_dialog.dirlist_selected = 
-					load_file_dialog.dirlist_top + id - SDLK_b + 10;
+				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+
+
+
+
+
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
-		} else if (id == SDLK_l) {
+		} else if (id == SDLK_F2) {
 			/* Load */
 			if (state == SDL_PRESSED) {
+				found = TRUE;
 				direntry = load_file_dialog.dirlist + 
 					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof;
 
 				/* Is it a directory? */
 				if (*direntry == '(') {
 					*lastsubdir = 0;
-					if ((strcmp(load_file_dialog.dir, "/") != 0) && 
-						(strcmp(direntry, "(..)") == 0))
-						/* Record the current subdirectory for later reselection*/
+					if ((strcmp(direntry, "(..)") == 0) &&
+						(strcmp(file_dialog_basename(load_file_dialog.dir), "/") != 0))
+						/* Record the current subdirectory for later reselection */
 						sprintf(lastsubdir, "(%s)", 
 							file_dialog_basename(load_file_dialog.dir));
 
@@ -2218,9 +2253,6 @@ void manage_ldfile_input(void) {
 						if (count < load_file_dialog.dirlist_count)
 							load_file_dialog.dirlist_selected = count;
 					}
-
-					/* Resize list hotspots */
-					hotspots_resize(HS_GRP_LDFILE);
 				} else {
 					/* It's a file */
 
@@ -2473,9 +2505,12 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_q;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_LDFILE;
+								components = COMP_LOAD;
 								remap_id = SDLK_q;
 							} else if (count == 2) {
+								components = COMP_LDFILE;
+								remap_id = SDLK_UP;
+							} else if (count == 3) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_N;
@@ -2489,9 +2524,12 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_a;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_LDFILE;
+								components = COMP_LOAD;
 								remap_id = SDLK_a;
 							} else if (count == 2) {
+								components = COMP_LDFILE;
+								remap_id = SDLK_DOWN;
+							} else if (count == 3) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_S;
@@ -2772,6 +2810,26 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_m: return SCANCODE_M;
 			case SDLK_n: return SCANCODE_N;
 			case SDLK_b: return SCANCODE_B;
+			case SDLK_ROW00: return SCANCODE_ROW00;	//temp temp
+			case SDLK_ROW01: return SCANCODE_ROW01;
+			case SDLK_ROW02: return SCANCODE_ROW02;
+			case SDLK_ROW03: return SCANCODE_ROW03;
+			case SDLK_ROW04: return SCANCODE_ROW04;
+			case SDLK_ROW05: return SCANCODE_ROW05;
+			case SDLK_ROW06: return SCANCODE_ROW06;
+			case SDLK_ROW07: return SCANCODE_ROW07;
+			case SDLK_ROW08: return SCANCODE_ROW08;
+			case SDLK_ROW09: return SCANCODE_ROW09;
+			case SDLK_ROW10: return SCANCODE_ROW10;
+			case SDLK_ROW11: return SCANCODE_ROW11;
+			case SDLK_ROW12: return SCANCODE_ROW12;
+			case SDLK_ROW13: return SCANCODE_ROW13;
+			case SDLK_ROW14: return SCANCODE_ROW14;
+			case SDLK_ROW15: return SCANCODE_ROW15;
+			case SDLK_ROW16: return SCANCODE_ROW16;
+			case SDLK_ROW17: return SCANCODE_ROW17;
+			case SDLK_ROW18: return SCANCODE_ROW18;
+			case SDLK_ROW19: return SCANCODE_ROW19;
 			default: return 0;
 		}
 	} else {
@@ -2842,6 +2900,26 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_M: return SDLK_m;
 			case SCANCODE_N: return SDLK_n;
 			case SCANCODE_B: return SDLK_b;
+			case SCANCODE_ROW00: return SDLK_ROW00;	//temp temp
+			case SCANCODE_ROW01: return SDLK_ROW01;
+			case SCANCODE_ROW02: return SDLK_ROW02;
+			case SCANCODE_ROW03: return SDLK_ROW03;
+			case SCANCODE_ROW04: return SDLK_ROW04;
+			case SCANCODE_ROW05: return SDLK_ROW05;
+			case SCANCODE_ROW06: return SDLK_ROW06;
+			case SCANCODE_ROW07: return SDLK_ROW07;
+			case SCANCODE_ROW08: return SDLK_ROW08;
+			case SCANCODE_ROW09: return SDLK_ROW09;
+			case SCANCODE_ROW10: return SDLK_ROW10;
+			case SCANCODE_ROW11: return SDLK_ROW11;
+			case SCANCODE_ROW12: return SDLK_ROW12;
+			case SCANCODE_ROW13: return SDLK_ROW13;
+			case SCANCODE_ROW14: return SDLK_ROW14;
+			case SCANCODE_ROW15: return SDLK_ROW15;
+			case SCANCODE_ROW16: return SDLK_ROW16;
+			case SCANCODE_ROW17: return SDLK_ROW17;
+			case SCANCODE_ROW18: return SDLK_ROW18;
+			case SCANCODE_ROW19: return SDLK_ROW19;
 			default: return 0;
 		}
 	}

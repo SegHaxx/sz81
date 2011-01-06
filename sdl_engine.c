@@ -203,10 +203,10 @@ int sdl_com_line_process(int argc, char *argv[]) {
 					fprintf (stdout, "Invalid resolution: a minimum of 240x240 is required.\n");
 					return TRUE;
 				}
-			} else if (strstr(argv[count], ".o") != NULL ||
-				strstr(argv[count], ".p") != NULL ||
-				strstr(argv[count], ".80") != NULL ||
-				strstr(argv[count], ".81") != NULL) {
+			} else if (sdl_filetype_casecmp(argv[count], ".o") == 0 ||
+				sdl_filetype_casecmp(argv[count], ".80") == 0 ||
+				sdl_filetype_casecmp(argv[count], ".p") == 0 ||
+				sdl_filetype_casecmp(argv[count], ".81") == 0) {
 				strcpy(sdl_com_line.filename, argv[count]);
 			} else {
 				/*   1234567890123456789012345678901234567890 <- Formatting for small terminal. */
