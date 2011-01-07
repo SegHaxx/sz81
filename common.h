@@ -105,7 +105,7 @@ extern void parseoptions(int argc,char *argv[]);
 extern void frame_pause(void);
 #ifdef SZ81	/* Added by Thunor */
 extern void common_reset(void);
-extern char autoload_filename[1024];
+extern char autoload_filename[1024];	/* temp temp My own load_p will make this redundant here */
 #endif
 
 

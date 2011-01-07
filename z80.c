@@ -154,6 +154,11 @@ if(autoload)
   sp=0x7FFC;
   pc=0x207;
 
+  #ifdef SZ81	/* Added by Thunor temp temp I will ultimately be using my own version of load_p */
+  strcpy(autoload_filename, sdl_com_line.filename);
+  printf("%s: Autoloading %s\n", __func__, autoload_filename);//temp temp
+  #endif
+
   /* finally, load. It'll reset (via reset81) if it fails. */
   load_p(32768);
 

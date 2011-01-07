@@ -188,6 +188,7 @@ unsigned char *vga_getgraphmem(void);
 void sdl_keyboard_init(void);
 void sdl_hotspots_init(void);
 void sdl_rcfile_read(void);
+int sdl_autoload_init(void);
 int sdl_zxroms_init(void);
 void sdl_component_executive(void);
 void sdl_timer_init(void);

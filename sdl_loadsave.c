@@ -25,6 +25,38 @@
 /* Function prototypes */
 
 /***************************************************************************
+ * Auto Load Initialise                                                    *
+ ***************************************************************************/
+/* This will copy a compatible filename from sdl_com_line.filename (if found)
+ * to the load_file_dialog struct in preparation for autoloading at the top
+ * of the emulator's mainloop.
+ * 
+ * The returned value can be (and is) used to initialise the autoload variable.
+ * 
+ * On exit: returns TRUE if filename is compatible
+ *          else FALSE */
+
+int sdl_autoload_init(void) {
+	int retval = FALSE;
+
+	if (*sdl_com_line.filename) {
+		if ((*sdl_emulator.model == MODEL_ZX80 &&
+			(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
+			sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
+			(*sdl_emulator.model == MODEL_ZX81 &&
+			(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
+			sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
+			strcpy(load_file_dialog.filename, sdl_com_line.filename);
+			retval = TRUE;
+		} else {
+			fprintf (stdout, "Passed filename is incompatible with machine type.\n");
+		}
+	}
+
+	return retval;
+}
+
+/***************************************************************************
  * Load File Dialog Directory List Initialise                              *
  ***************************************************************************/
 /* This is called from multiple places */

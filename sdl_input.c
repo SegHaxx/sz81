@@ -887,6 +887,20 @@ int keyboard_update(void) {
 							}
 						}
 						if (!found) device = UNDEFINED;	/* Ignore id */
+					} else if (event.button.button % 128 == SDL_BUTTON_WHEELUP ||
+						event.button.button % 128 == SDL_BUTTON_WHEELDOWN) {
+						/* Remap mouse wheel movement to SDLK_UP & SDLK_DOWN */
+						device = DEVICE_KEYBOARD;
+						if (event.button.button % 128 == SDL_BUTTON_WHEELUP) {
+							id = SDLK_UP;
+						} else {
+							id = SDLK_DOWN;
+						}
+						if (event.type == SDL_MOUSEBUTTONUP) {
+							state = SDL_RELEASED;
+						} else {
+							state = SDL_PRESSED;
+						}
 					}
 					break;
 				case SDL_JOYBUTTONUP:
@@ -2138,8 +2152,8 @@ void manage_runopts_input(void) {
 void manage_ldfile_input(void) {
 	char lastsubdir[256];
 	int found = FALSE;
+	int count, index;
 	char *direntry;
-	int count;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -2211,16 +2225,22 @@ void manage_ldfile_input(void) {
 					load_file_dialog.dirlist_selected = 
 					load_file_dialog.dirlist_top + id - SDLK_ROW00;
 			}
-		} else if (id >= SDLK_a && id <= SDLK_z) {
-			/* Update the selected item */
+		} else if ((id >= SDLK_0 && id <= SDLK_9) || (id >= SDLK_a && id <= SDLK_z)) {
+			/* Select the next item in the list that starts with id */
 			if (state == SDL_PRESSED) {
 				found = TRUE;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-
-
-
-
-
+				index = load_file_dialog.dirlist_selected;
+				for (count = 0; count < load_file_dialog.dirlist_count; count++) {
+					if (++index > load_file_dialog.dirlist_count - 1) index = 0;
+					direntry = load_file_dialog.dirlist + index * 
+						load_file_dialog.dirlist_sizeof;
+					if (*direntry == '(') direntry++;
+					if (*direntry == id || *direntry == toupper(id)) {
+						load_file_dialog.dirlist_selected = index;
+						break;
+					}
+				}
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -2230,7 +2250,6 @@ void manage_ldfile_input(void) {
 				found = TRUE;
 				direntry = load_file_dialog.dirlist + 
 					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof;
-
 				/* Is it a directory? */
 				if (*direntry == '(') {
 					*lastsubdir = 0;
@@ -2255,13 +2274,11 @@ void manage_ldfile_input(void) {
 					}
 				} else {
 					/* It's a file */
+					/* Record the full path and filename in preparation for loading */
+					sprintf(load_file_dialog.filename, "%s/%s", load_file_dialog.dir,
+						direntry);
 
-
-
-/*printf("Opening %s/%s\n", load_file_dialog.dir, direntry);	 temp temp */
-
-
-
+					printf("Opening %s\n", load_file_dialog.filename);	/* temp temp */
 
 				}
 			}

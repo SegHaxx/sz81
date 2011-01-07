@@ -49,6 +49,7 @@ struct {
 	int dirlist_count;
 	int dirlist_top;
 	int dirlist_selected;
+	char filename[256];
 } load_file_dialog;
 
 /* Function prototypes */
