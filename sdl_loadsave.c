@@ -25,32 +25,146 @@
 /* Function prototypes */
 
 /***************************************************************************
- * Auto Load Initialise                                                    *
+ * Load File                                                               *
  ***************************************************************************/
-/* This will copy a compatible filename from sdl_com_line.filename (if found)
- * to the load_file_dialog struct in preparation for autoloading at the top
- * of the emulator's mainloop.
+/* This function replaces z81's load_p.
  * 
- * The returned value can be (and is) used to initialise the autoload variable.
- * 
- * On exit: returns TRUE if filename is compatible
+ * On exit: returns TRUE on error
  *          else FALSE */
 
-int sdl_autoload_init(void) {
+int sdl_load_file(int load_method) {
 	int retval = FALSE;
+	FILE *fp;
 
-	if (*sdl_com_line.filename) {
+	if (load_method == LOAD_FILE_METHOD_AUTOLOAD) {
+
+		sdl_com_line.autoload = FALSE;
+
+		/* Check that the file type is compatible with the machine model */
 		if ((*sdl_emulator.model == MODEL_ZX80 &&
 			(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
 			sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
 			(*sdl_emulator.model == MODEL_ZX81 &&
 			(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
 			sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
+
+			/* It's compatible so copy the filename across to the load
+			 * file dialog as then we have a record of what was/is loaded */
 			strcpy(load_file_dialog.filename, sdl_com_line.filename);
-			retval = TRUE;
+
+			/* Open the file */
+			if ((fp = fopen(load_file_dialog.filename, "rb")) != NULL) {
+				/* To duplicate these values: in mainloop in z80.c around
+				 * line 189, change #if 0 to #if 1 and recompile. Run
+				 * the emulator, load a suitably sized program by typing
+				 * LOAD or LOAD "something" and view the console output.
+				 * 
+				 * It's likely I've been a bit too thorough recording these
+				 * values because I know from looking at the ZX81 ROM that
+				 * DE points to the program name in memory which would get
+				 * overwritten on LOAD and make it redundant, and HL and A
+				 * are modified soon after anyway, but there's no harm done.
+				 * 
+				 * Note that the ZX81's RAMTOP won't be greater than 0x8000
+				 * unless POKEd by the user.
+				 */
+				if (*sdl_emulator.model == MODEL_ZX80) {
+					/* Registers (common values) */
+					a = 0x00; f = 0x44; b = 0x00; c = 0x00;
+					d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
+					pc = 0x0283;
+					ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
+					a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
+					d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
+					iff1 = 0x00; iff2 = 0x00; im = 0x02;
+					radjust = 0x6a;
+					/* Machine Stack (common values) */
+					if (sdl_emulator.ramsize >= 16) {
+						sp = 0x8000 - 4;
+					} else {
+						sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+					}
+					mem[sp + 0] = 0x47;
+					mem[sp + 1] = 0x04;
+					mem[sp + 2] = 0xba;
+					mem[sp + 3] = 0x3f;
+					/* Now override if RAM configuration changes things
+					 * (there's a possibility these changes are unimportant) */
+					if (sdl_emulator.ramsize == 16) {
+						mem[sp + 2] = 0x22;
+					}
+				} else if (*sdl_emulator.model == MODEL_ZX81) {
+					/* Registers (common values) */
+					a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
+					d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
+					pc = 0x0207;
+					ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
+					a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
+					d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
+					iff1 = 0; iff2 = 0; im = 2;
+					radjust = 0xa4;
+					/* GOSUB Stack (common values) */
+					if (sdl_emulator.ramsize >= 16) {
+						sp = 0x8000 - 4;
+					} else {
+						sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+					}
+					mem[sp + 0] = 0x76;
+					mem[sp + 1] = 0x06;
+					mem[sp + 2] = 0x00;
+					mem[sp + 3] = 0x3e;
+					/* Now override if RAM configuration changes things
+					 * (there's a possibility these changes are unimportant) */
+					if (sdl_emulator.ramsize >= 4) {
+						d = 0x43; h = 0x43;
+						a1 = 0xec; b1 = 0x81; c1 = 0x02;
+						radjust = 0xa9;
+					}
+					/* System variables */
+					mem[0x4000] = 0xff;				/* ERR_NR */
+					mem[0x4001] = 0x80;				/* FLAGS */
+					mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
+					mem[0x4003] = sp >> 8;			/* ERR_SP hi */
+					mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
+					mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
+					mem[0x4006] = 0x00;				/* MODE */
+					mem[0x4007] = 0xfe;				/* PPC lo */
+					mem[0x4008] = 0xff;				/* PPC hi */
+				}
+				/* Read in up to sdl_emulator.ramsize K of data */
+				if (sdl_filetype_casecmp(load_file_dialog.filename, ".o") == 0) {
+
+					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
+
+				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".80") == 0) {
+
+					fprintf(stderr, "%s: The 80 file format is not currently supported.\n", __func__);
+					retval = TRUE;
+
+				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".p") == 0) {
+
+					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
+
+				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".81") == 0) {
+
+					fprintf(stderr, "%s: The 81 file format is not currently supported.\n", __func__);
+					retval = TRUE;
+
+				}
+				/* Close the file now as we've finished with it */
+				fclose(fp);
+			} else {
+				fprintf(stderr, "%s: Cannot read from %s\n", __func__,
+					load_file_dialog.filename);
+				retval = TRUE;
+			}
 		} else {
-			fprintf (stdout, "Passed filename is incompatible with machine type.\n");
+			fprintf(stderr, "%s: File type is incompatible with machine model.\n",
+				__func__);
+			retval = TRUE;
 		}
+	} else if (load_method == LOAD_FILE_METHOD_HOOKLOAD) {
+	} else if (load_method == LOAD_FILE_METHOD_STATELOAD) {
 	}
 
 	return retval;

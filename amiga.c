@@ -121,6 +121,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 	{
 		wbarg--;
 		strcpy(sdl_com_line.filename, wbarg->wa_Name);
+		sdl_com_line.autoload=1;
 	}
 }
 

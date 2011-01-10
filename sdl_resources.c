@@ -163,7 +163,7 @@ void sdl_rcfile_read(void) {
 
 	fprintf(stdout, "Reading from %s\n", rcfile.filename);
 	if ((fp = fopen(rcfile.filename, "r")) == NULL) {
-		fprintf(stderr, "Cannot read from %s\n", rcfile.filename);
+		fprintf(stderr, "%s: Cannot read from %s\n", __func__, rcfile.filename);
 		/* Schedule a new rcfile */
 		rcfile.rewrite = TRUE;
 		return;
@@ -524,7 +524,7 @@ void sdl_rcfile_read(void) {
 	if (strcmp(read_version, VERSION) != 0) {
 		/* For the moment as features are being added and modified
 		 * discard rcfiles from previous versions temp temp */
-		fprintf(stderr, "Discarding rcfile from previous version\n");
+		fprintf(stderr, "%s: Discarding rcfile from previous version.\n", __func__);
 		/* Schedule a new rcfile */
 		rcfile.rewrite = TRUE;
 	} else {
@@ -582,13 +582,13 @@ void sdl_rcfile_read(void) {
 		/* RAM size */
 		if (read_emulator_ramsize != UNDEFINED) {
 			if (read_emulator_ramsize == 1 || read_emulator_ramsize == 2 ||
-				read_emulator_ramsize == 4 || read_emulator_ramsize == 8 ||
+				read_emulator_ramsize == 3 || read_emulator_ramsize == 4 ||
 				read_emulator_ramsize == 16 || read_emulator_ramsize == 32 ||
 				read_emulator_ramsize == 48 || read_emulator_ramsize == 56) {
 				sdl_emulator.ramsize = read_emulator_ramsize;
 			} else {
 				fprintf(stderr, "%s: emulator.ramsize within rcfile is invalid: "
-					"try 1, 2, 4, 8, 16, 32, 48 or 56\n", __func__);
+					"try 1, 2, 3, 4, 16, 32, 48 or 56\n", __func__);
 			}
 		}
 
@@ -680,7 +680,7 @@ void rcfile_write(void) {
 
 	fprintf(stdout, "Writing to %s\n", rcfile.filename);
 	if ((fp = fopen(rcfile.filename, "w")) == NULL) {
-		fprintf(stderr, "Cannot write to %s\n", rcfile.filename);
+		fprintf(stderr, "%s: Cannot write to %s\n", __func__, rcfile.filename);
 		return;
 	}
 
@@ -1320,7 +1320,7 @@ int sdl_zxroms_init(void) {
 			}
 			/* Open the ROM */
 			if ((fp = fopen(filename, "rb")) == NULL) {
-				fprintf(stderr, "Cannot read from %s\n", filename);
+				fprintf(stderr, "%s: Cannot read from %s\n", __func__, filename);
 				retval = TRUE;
 			} else {
 				/* Read in the data */

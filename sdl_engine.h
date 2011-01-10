@@ -75,6 +75,12 @@ extern char *zxpfilename;
 extern int sound, sound_vsync;
 extern int sound_ay, sound_ay_type;
 extern int sound_stereo, sound_stereo_acb;
+extern unsigned char mem[];
+extern unsigned char a, f, b, c, d, e, h, l;
+extern unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
+extern unsigned short pc;
+extern unsigned short ix, iy, sp;
+extern unsigned char radjust;
 
 /* Variables */
 char startdir[256];

@@ -1958,16 +1958,23 @@ void manage_runopts_input(void) {
 					if (id == SDLK_INSERT) {
 						if (runopts_emulator_ramsize == 56) {
 							runopts_emulator_ramsize = 48;
-						} else if (runopts_emulator_ramsize == 48) {
-							runopts_emulator_ramsize = 32;
-						} else if (runopts_emulator_ramsize >= 2) {
-							runopts_emulator_ramsize /= 2;
+						} else if (runopts_emulator_ramsize >= 32 &&
+							runopts_emulator_ramsize <= 48) {
+							runopts_emulator_ramsize -= 16;
+						} else if (runopts_emulator_ramsize == 16) {
+							runopts_emulator_ramsize = 4;
+						} else if (runopts_emulator_ramsize > 1 &&
+							runopts_emulator_ramsize <= 4) {
+							runopts_emulator_ramsize -= 1;
 						}
 					} else {
-						if (runopts_emulator_ramsize <= 16) {
-							runopts_emulator_ramsize *= 2;
-						} else if (runopts_emulator_ramsize == 32) {
-							runopts_emulator_ramsize = 48;
+						if (runopts_emulator_ramsize < 4) {
+							runopts_emulator_ramsize += 1;
+						} else if (runopts_emulator_ramsize == 4) {
+							runopts_emulator_ramsize = 16;
+						} else if (runopts_emulator_ramsize >= 16 &&
+							runopts_emulator_ramsize <= 32) {
+							runopts_emulator_ramsize += 16;
 						} else if (runopts_emulator_ramsize == 48) {
 							runopts_emulator_ramsize = 56;
 						}

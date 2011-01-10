@@ -110,14 +110,25 @@ for(y=vsy;y<ny;y++)
 }
 
 
-void mainloop()
-{
+#ifdef SZ81	/* Added by Thunor: I need these to be visible to sdl_loadsave.c */
 unsigned char a, f, b, c, d, e, h, l;
 unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
 unsigned short pc;
 unsigned short ix, iy, sp;
-unsigned long nextlinetime=0,linegap=208,lastvsyncpend=0;
 unsigned char radjust;
+#endif
+
+
+void mainloop()
+{
+#ifndef SZ81	/* Added by Thunor */
+unsigned char a, f, b, c, d, e, h, l;
+unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
+unsigned short pc;
+unsigned short ix, iy, sp;
+unsigned char radjust;
+#endif
+unsigned long nextlinetime=0,linegap=208,lastvsyncpend=0;
 unsigned char ixoriy, new_ixoriy;
 unsigned char intsample=0;
 unsigned char op;
@@ -132,6 +143,21 @@ ix=iy=sp=pc=0;
 tstates=radjust=0;
 nextlinetime=linegap;
 
+#ifdef SZ81	/* Added by Thunor */
+if(sdl_com_line.autoload)
+  {
+  /* The existing z81 code lower down is limited to autoloading ZX81 16K
+   * p files and so I'm going to manage as much as I can elsewhere */
+  if(!sdl_load_file(LOAD_FILE_METHOD_AUTOLOAD))
+    {
+    /* Copied from the bottom of z81's load_p:
+     * "The ZX80 ROM load routine does this if it works" */
+    if(zx80)store(0x400b,fetch(0x400b)+1);
+    /* wait for a real frame, to avoid an annoying frame `jump'. */
+    framewait=1;
+    }
+  }
+#else
 if(autoload)
   {
   /* we load a snapshot, in effect. The memory was done by
@@ -154,24 +180,57 @@ if(autoload)
   sp=0x7FFC;
   pc=0x207;
 
-  #ifdef SZ81	/* Added by Thunor temp temp I will ultimately be using my own version of load_p */
-  strcpy(autoload_filename, sdl_com_line.filename);
-  printf("%s: Autoloading %s\n", __func__, autoload_filename);//temp temp
-  #endif
-
   /* finally, load. It'll reset (via reset81) if it fails. */
   load_p(32768);
 
   /* wait for a real frame, to avoid an annoying frame `jump'. */
   framewait=1;
   }
+#endif
 
 while(1)
   {
+#ifdef SZ81	/* Added by Thunor */
+	#if 0
+		/* Currently this is for development but it would be useful to
+		 * make it a feature temp temp
+		 * ZX80 load hook @ 0206:    ed fc|c3 83 02 =          LOAD|JP 0283
+		 * ZX81 load hook @ 0347: eb|ed fc|c3 07 02 = EX DE,HL|LOAD|JP 0207 */
+		if ((zx80 && pc == 0x283) || (!zx80 && pc == 0x207)) {
+			if (!zx80) {
+				printf("ZX81 System Variables\n");
+				printf("mem[0x%04x] = 0x%02x;	/* ERR_NR */\n", 0x4000, mem[0x4000]);
+				printf("mem[0x%04x] = 0x%02x;	/* FLAGS */\n", 0x4001, mem[0x4001]);
+				printf("mem[0x%04x] = 0x%02x;	/* ERR_SP lo */\n", 0x4002, mem[0x4002]);
+				printf("mem[0x%04x] = 0x%02x;	/* ERR_SP hi */\n", 0x4003, mem[0x4003]);
+				printf("mem[0x%04x] = 0x%02x;	/* RAMTOP lo */\n", 0x4004, mem[0x4004]);
+				printf("mem[0x%04x] = 0x%02x;	/* RAMTOP hi */\n", 0x4005, mem[0x4005]);
+				printf("mem[0x%04x] = 0x%02x;	/* MODE */\n", 0x4006, mem[0x4006]);
+				printf("mem[0x%04x] = 0x%02x;	/* PPC lo */\n", 0x4007, mem[0x4007]);
+				printf("mem[0x%04x] = 0x%02x;	/* PPC hi */\n", 0x4008, mem[0x4008]);
+			}
+			printf("Registers\n");
+			printf("a = 0x%02x; f = 0x%02x; b = 0x%02x; c = 0x%02x;\n", a, f, b, c);
+			printf("d = 0x%02x; e = 0x%02x; h = 0x%02x; l = 0x%02x;\n", d, e, h, l);
+			printf("sp = 0x%04x; pc = 0x%04x;\n", sp, pc);
+			printf("ix = 0x%04x; iy = 0x%04x; i = 0x%02x; r = 0x%02x;\n", ix, iy, i, r);
+			printf("a1 = 0x%02x; f1 = 0x%02x; b1 = 0x%02x; c1 = 0x%02x;\n", a1, f1, b1, c1);
+			printf("d1 = 0x%02x; e1 = 0x%02x; h1 = 0x%02x; l1 = 0x%02x;\n", d1, e1, h1, l1);
+			printf("iff1 = 0x%02x; iff2 = 0x%02x; im = 0x%02x;\n", iff1, iff2, im);
+			printf("radjust = 0x%02x;\n", radjust);
+			printf("Machine/GOSUB Stack\n");
+			printf("mem[0x%04x] = 0x%02x;\n", sp + 0, mem[sp + 0]);
+			printf("mem[0x%04x] = 0x%02x;\n", sp + 1, mem[sp + 1]);
+			printf("mem[0x%04x] = 0x%02x;\n", sp + 2, mem[sp + 2]);
+			printf("mem[0x%04x] = 0x%02x;\n", sp + 3, mem[sp + 3]);
+			printf("\n");
+		}
+	#endif
+#endif
   /* this *has* to be checked before radjust is incr'd */
   if(intsample && !(radjust&64))
     intpend=1;
-  
+
   ixoriy=new_ixoriy;
   new_ixoriy=0;
   intsample=1;

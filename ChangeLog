@@ -1,3 +1,8 @@
+2011-01-10 Thunor <thunorsif_at_hotmail.com>
+* Modified supported RAM sizes: it's now 1 to 4K, 16, 32, 48 and 56K.
+* Auto-loading of ZX80 o and ZX81 p files is now implemented for all
+  RAM configurations.
+
 2011-01-07 Thunor <thunorsif_at_hotmail.com>
 * Added support for the mouse wheel: remapped as keyboard cursor keys.
 

@@ -17,11 +17,13 @@
 
 /* This is how the SDL part of sz81 is organised :-
  * 
- *      sdl.h <-- sdl_engine.h --> sdl_*.h
- *        ^             ^
- *       /              |
- *   sdl_main.c      sdl_*.c
- */ 
+ *         sdl.h <----- sdl_engine.h ---> sdl_*.h
+ *         ^   ^              ^
+ *        /     \             |
+ *  common.c   sdl_main.c   sdl_*.c
+ *   sound.c
+ *     z80.c
+ */
 
 /* Includes */
 #include <SDL/SDL.h>
@@ -34,6 +36,11 @@
 /* Machine models */
 #define MODEL_ZX81 0
 #define MODEL_ZX80 1
+
+/* Load file methods */
+#define LOAD_FILE_METHOD_AUTOLOAD 0
+#define LOAD_FILE_METHOD_HOOKLOAD 1
+#define LOAD_FILE_METHOD_STATELOAD 2
 
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
@@ -140,6 +147,7 @@ struct {
 	int xres;
 	int yres;
 	char filename[256];
+	int autoload;
 } sdl_com_line;
 
 struct {
@@ -150,7 +158,7 @@ struct {
 	int speed;		/* 10ms=200%, 20ms=100%, 30ms=66%, 40ms=50% */
 	int frameskip;	/* 0 to MAX_FRAMESKIP */
 	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
-	int ramsize;	/* 1, 2, 4, 8, 16, 32, 48 or 56K */
+	int ramsize;	/* 1, 2, 3, 4, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
 } sdl_emulator;
 
@@ -188,7 +196,6 @@ unsigned char *vga_getgraphmem(void);
 void sdl_keyboard_init(void);
 void sdl_hotspots_init(void);
 void sdl_rcfile_read(void);
-int sdl_autoload_init(void);
 int sdl_zxroms_init(void);
 void sdl_component_executive(void);
 void sdl_timer_init(void);
@@ -201,5 +208,7 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
 void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
 int sdl_filetype_casecmp(char *filename, char *filetype);
- 
+int sdl_load_file(int load_method);
+
+
 

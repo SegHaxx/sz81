@@ -207,11 +207,6 @@ int main(int argc, char *argv[]) {
 				 * variables that are defined within it */
 				sdl_rcfile_read();
 
-				/* If the user passed a program filename via the command
-				 * line then now is the time to validate it against the
-				 * machine type and set it for autoloading if compatible */
-				autoload = sdl_autoload_init();
-
 				/* Initialise the hotspots now (this will set the
 				 * default initial vkeyb hotspot for the model) */
 				sdl_hotspots_init();

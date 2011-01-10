@@ -832,7 +832,11 @@ FILE *out;
 
 if(zx80)
   {
+#ifdef SZ81	/* Added by Thunor */
+  strcpy(fname,"zx80prog.o");
+#else
   strcpy(fname,"zx80prog.p");
+#endif
 #ifdef __amigaos4__
   strcpy(fname, amiga_file_request(""));
 #endif
@@ -877,7 +881,11 @@ int got_ascii_already=0;
 
 if(zx80)
   {
+#ifdef SZ81	/* Added by Thunor */
+  strcpy(fname,"zx80prog.o");
+#else
   strcpy(fname,"zx80prog.p");
+#endif
 #ifdef __amigaos4__
   strcpy(fname, amiga_file_request(""));
 #endif
