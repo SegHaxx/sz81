@@ -37,7 +37,7 @@
 #define KRM_FUNC_TICK 2
 
 /* Extended SDL keysyms used for hotspots+lists */
-#define SDLK_ROW00 330	//temp temp
+#define SDLK_ROW00 330
 #define SDLK_ROW01 331
 #define SDLK_ROW02 332
 #define SDLK_ROW03 333

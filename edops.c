@@ -508,7 +508,11 @@ endinstr;
 /* save/load patches */
 
 instr(0xfc,4);
+#ifdef SZ81	/* Added by Thunor */
+  sdl_load_file(hl);
+#else
   load_p(hl);
+#endif
   framewait=1;
 endinstr;
 

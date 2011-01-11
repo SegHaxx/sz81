@@ -23,20 +23,35 @@
 /* Variables */
 
 /* Function prototypes */
+char *strtoupper(char *original);
+char *strzx81_to_ascii(int memaddr);
+
 
 /***************************************************************************
  * Load File                                                               *
  ***************************************************************************/
 /* This function replaces z81's load_p.
  * 
- * On exit: returns TRUE on error
- *          else FALSE */
+ * On entry: if sdl_com_line.autoload is TRUE then prognameaddr is ignored
+ *             else prognameaddr holds the contents of the hl register pair
+ *             which points to the area in memory that contains the program
+ *             name (it'll be something like 0x4099/0x4399 for LOAD "PROG"
+ *             or 0xc099/0xc399 for LOAD "" which dictates how it's loaded).
+ *             The program name is translated from Sinclair character codes
+ *             to ASCII and is prefixed with whatever load_file_dialog.dir
+ *             currently holds (either the initial or last entered folder).
+ *  On exit: returns TRUE on error
+ *           else FALSE */
 
-int sdl_load_file(int load_method) {
+int sdl_load_file(int prognameaddr) {
+	struct MSG_Box msg_box;
+	char fullpath[256];
+	char filename[256];
 	int retval = FALSE;
+	int count;
 	FILE *fp;
 
-	if (load_method == LOAD_FILE_METHOD_AUTOLOAD) {
+	if (sdl_com_line.autoload) {
 
 		sdl_com_line.autoload = FALSE;
 
@@ -48,12 +63,8 @@ int sdl_load_file(int load_method) {
 			(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
 			sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
 
-			/* It's compatible so copy the filename across to the load
-			 * file dialog as then we have a record of what was/is loaded */
-			strcpy(load_file_dialog.filename, sdl_com_line.filename);
-
 			/* Open the file */
-			if ((fp = fopen(load_file_dialog.filename, "rb")) != NULL) {
+			if ((fp = fopen(sdl_com_line.filename, "rb")) != NULL) {
 				/* To duplicate these values: in mainloop in z80.c around
 				 * line 189, change #if 0 to #if 1 and recompile. Run
 				 * the emulator, load a suitably sized program by typing
@@ -131,31 +142,28 @@ int sdl_load_file(int load_method) {
 					mem[0x4007] = 0xfe;				/* PPC lo */
 					mem[0x4008] = 0xff;				/* PPC hi */
 				}
-				/* Read in up to sdl_emulator.ramsize K of data */
-				if (sdl_filetype_casecmp(load_file_dialog.filename, ".o") == 0) {
-
+				/* I can't find any concrete information on the differences
+				 * between the o/80 and p/81 formats. The ZX81 FAQ states that
+				 * they are likely simply renamed versions of the same thing.
+				 * 
+				 * Read in up to sdl_emulator.ramsize K of data */
+				if (sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
+					sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0) {
 					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
-
-				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".80") == 0) {
-
-					fprintf(stderr, "%s: The 80 file format is not currently supported.\n", __func__);
-					retval = TRUE;
-
-				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".p") == 0) {
-
+				} else if (sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
+					sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0) {
 					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
-
-				} else if (sdl_filetype_casecmp(load_file_dialog.filename, ".81") == 0) {
-
-					fprintf(stderr, "%s: The 81 file format is not currently supported.\n", __func__);
-					retval = TRUE;
-
 				}
 				/* Close the file now as we've finished with it */
 				fclose(fp);
+
+				/* Copy the filename across to the load file dialog as
+				 * then we have a record of what was last/is now loaded */
+				strcpy(load_file_dialog.filename, sdl_com_line.filename);
+
 			} else {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__,
-					load_file_dialog.filename);
+					sdl_com_line.filename);
 				retval = TRUE;
 			}
 		} else {
@@ -163,9 +171,66 @@ int sdl_load_file(int load_method) {
 				__func__);
 			retval = TRUE;
 		}
-	} else if (load_method == LOAD_FILE_METHOD_HOOKLOAD) {
-	} else if (load_method == LOAD_FILE_METHOD_STATELOAD) {
+
+	} else if (*sdl_emulator.model == MODEL_ZX81 && prognameaddr < 0x8000) {
+
+		/* Attempt to open the file firstly in lowercase and then 
+		 * in uppercase as program files are obtained in either */
+		for (count = 0; count < 2; count++) {
+			/* Get translated program name */
+			strcpy(filename, strzx81_to_ascii(prognameaddr));
+			/* Add a file extension if one hasn't already been affixed */
+			if (sdl_filetype_casecmp(filename, ".p") != 0 &&
+				sdl_filetype_casecmp(filename, ".81") != 0)
+				strcat(filename, ".p");
+
+			/* Convert filename to uppercase on second attempt */
+			if (count == 1) strcpy(filename, strtoupper(filename));
+
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			strcat(fullpath, "/");
+			/* Add translated program name */
+			strcat(fullpath, filename);
+
+			/* Attempt to open the file */
+			if ((fp = fopen(fullpath, "rb")) != NULL) {
+
+				/* I can't find any concrete information on the differences
+				 * between the o/80 and p/81 formats. The ZX81 FAQ states that
+				 * they are likely simply renamed versions of the same thing.
+				 * 
+				 * Read in up to sdl_emulator.ramsize K of data */
+				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".80") == 0) {
+					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
+				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".81") == 0) {
+					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
+				}
+
+				/* Close the file now as we've finished with it */
+				fclose(fp);
+
+				/* Copy the filename across to the load file dialog as
+				 * then we have a record of what was last/is now loaded */
+				strcpy(load_file_dialog.filename, fullpath);
+
+				break;
+			}
+		}
+		if (count == 2) {
+			retval = TRUE;
+			/* Warn the user via the GUI that the load failed */
+			strcpy(msg_box.title, "Load");
+			strcpy(msg_box.text, "File not found");
+			msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
+			message_box_manager(MSG_BOX_SHOW, &msg_box);
+		}
+
 	}
+
+	/* printf("%s: Was/is loaded: %s\n", __func__, load_file_dialog.filename);	temp temp */
 
 	return retval;
 }
@@ -190,6 +255,64 @@ void load_file_dialog_dirlist_init(void) {
 
 	load_file_dialog.dirlist_top = 0;
 	load_file_dialog.dirlist_selected = 0;
+}
+
+/***************************************************************************
+ * String to Uppercase                                                     *
+ ***************************************************************************/
+/* This will convert a string into a new uppercase string (the original
+ * remains unchanged).
+ * 
+ * On entry: char *original = the string to convert
+ *  On exit: returns a pointer to the converted string  */
+
+char *strtoupper(char *original) {
+	static char converted[256];
+	int index = 0;
+
+	do {
+		converted[index] = toupper(original[index]);
+	} while (original[index++] != 0);
+
+	return converted;
+}
+
+/***************************************************************************
+ * Sinclair ZX81 String to ASCII String                                    *
+ ***************************************************************************/
+/* This will translate a ZX81 string of characters into an ASCII equivalent.
+ * All alphabetical characters are converted to lowercase.
+ * Those characters that won't translate are replaced with underscores.
+ * 
+ * On entry: int memaddr = the string's address within mem[]
+ *  On exit: returns a pointer to the translated string */
+
+char *strzx81_to_ascii(int memaddr) {
+	unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(', ')',
+		'>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
+	static char translated[256];
+	unsigned char sinchar;
+	char asciichar;
+	int index = 0;
+
+	do {
+		sinchar = mem[memaddr] & 0x7f;
+		if (sinchar == 0x00) {
+			asciichar = ' ';
+		} else if (sinchar >= 0x0b && sinchar <= 0x1b) {
+			asciichar = zx81table[sinchar - 0x0b];
+		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
+			asciichar = '0' + sinchar - 0x1c;
+		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
+			asciichar = 'a' + sinchar - 0x26;
+		} else {
+			asciichar = '_';
+		}
+		translated[index] = asciichar;
+		translated[index++ + 1] = 0;
+	} while (mem[memaddr++] < 0x80);
+
+	return translated;
 }
 
 /***************************************************************************

@@ -37,11 +37,6 @@
 #define MODEL_ZX81 0
 #define MODEL_ZX80 1
 
-/* Load file methods */
-#define LOAD_FILE_METHOD_AUTOLOAD 0
-#define LOAD_FILE_METHOD_HOOKLOAD 1
-#define LOAD_FILE_METHOD_STATELOAD 2
-
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
 #if defined(PLATFORM_GP2X) && defined (TOOLCHAIN_OPENWIZ)
@@ -119,7 +114,7 @@
 #define SCANCODE_B 48
 
 /* Extended SVGAlib keyboard scancodes used for hotspots+lists */
-#define SCANCODE_ROW00 128	//temp temp
+#define SCANCODE_ROW00 128
 #define SCANCODE_ROW01 129
 #define SCANCODE_ROW02 130
 #define SCANCODE_ROW03 131
@@ -208,7 +203,7 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
 void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
 int sdl_filetype_casecmp(char *filename, char *filetype);
-int sdl_load_file(int load_method);
+int sdl_load_file(int prognameaddr);
 
 
 

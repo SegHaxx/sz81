@@ -68,7 +68,7 @@ void sdl_hotspots_init(void) {
 		if (count <= HS_LDFILE_LIST19) 
 			hotspots[count].flags &= ~HS_PROP_NAVIGABLE;
 	}
-	hotspots[HS_LDFILE_LIST00].remap_id = SDLK_ROW00;	//temp temp
+	hotspots[HS_LDFILE_LIST00].remap_id = SDLK_ROW00;
 	hotspots[HS_LDFILE_LIST01].remap_id = SDLK_ROW01;
 	hotspots[HS_LDFILE_LIST02].remap_id = SDLK_ROW02;
 	hotspots[HS_LDFILE_LIST03].remap_id = SDLK_ROW03;

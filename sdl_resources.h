@@ -34,6 +34,16 @@
 #define ROM_ZX80 "zx80.rom"
 #define ROM_ZX81 "zx81.rom"
 
+/* Message box manager function IDs */
+#define MSG_BOX_SHOW 1
+#define MSG_BOX_KILL 2
+
+/* Message box timeouts in ms */
+#define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
+#define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
+#define MSG_BOX_TIMEOUT_CONTROL_REMAPPER 750
+#define MSG_BOX_TIMEOUT_LOAD_FAILED 2500
+
 /* Variables */
 SDL_Surface *wm_icon;
 

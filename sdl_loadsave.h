@@ -23,15 +23,6 @@
 #define DIRLIST_FILETYPE_ZX81 4
 #define DIRLIST_FILETYPE_TXT 8
 
-/* Message box manager function IDs */
-#define MSG_BOX_SHOW 1
-#define MSG_BOX_KILL 2
-
-/* Message box timeouts in ms */
-#define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
-#define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
-#define MSG_BOX_TIMEOUT_CONTROL_REMAPPER 750
-
 /* Variables */
 struct MSG_Box {
 	char title[33];		/* The title bar text */

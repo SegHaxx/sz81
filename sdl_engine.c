@@ -436,33 +436,6 @@ void sdl_component_executive(void) {
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
 		active_components |= COMP_RUNOPTS0 << runtime_options_which();
 
-/*	if (sdl_emulator.state) {	Redundant: don't need to clear flags as we start with zero anyway.
-		active_components |= COMP_EMU;
-	} else {
-		active_components &= ~COMP_EMU;
-	}
-	if (load_selector_state) {
-		active_components |= COMP_LOAD;
-	} else {
-		active_components &= ~COMP_LOAD;
-	}
-	if (load_file_dialog.state) {
-		active_components |= COMP_LDFILE;
-	} else {
-		active_components &= ~COMP_LDFILE;
-	}
-	if (vkeyb.state) {
-		active_components |= COMP_VKEYB;
-	} else {
-		active_components &= ~COMP_VKEYB;
-	}
-	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
-		if (runtime_options[count].state) {
-			active_components |= (COMP_RUNOPTS0 << count);
-		} else {
-			active_components &= ~(COMP_RUNOPTS0 << count);
-		}
-	} */
 }
 
 /***************************************************************************

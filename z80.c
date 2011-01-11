@@ -148,7 +148,7 @@ if(sdl_com_line.autoload)
   {
   /* The existing z81 code lower down is limited to autoloading ZX81 16K
    * p files and so I'm going to manage as much as I can elsewhere */
-  if(!sdl_load_file(LOAD_FILE_METHOD_AUTOLOAD))
+  if(!sdl_load_file(0))
     {
     /* Copied from the bottom of z81's load_p:
      * "The ZX80 ROM load routine does this if it works" */

@@ -2281,11 +2281,10 @@ void manage_ldfile_input(void) {
 					}
 				} else {
 					/* It's a file */
-					/* Record the full path and filename in preparation for loading */
-					sprintf(load_file_dialog.filename, "%s/%s", load_file_dialog.dir,
-						direntry);
 
-					printf("Opening %s\n", load_file_dialog.filename);	/* temp temp */
+
+					/* printf("%s: Opening %s\n", __func__, direntry);	temp temp */
+
 
 				}
 			}
@@ -2834,7 +2833,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_m: return SCANCODE_M;
 			case SDLK_n: return SCANCODE_N;
 			case SDLK_b: return SCANCODE_B;
-			case SDLK_ROW00: return SCANCODE_ROW00;	//temp temp
+			case SDLK_ROW00: return SCANCODE_ROW00;
 			case SDLK_ROW01: return SCANCODE_ROW01;
 			case SDLK_ROW02: return SCANCODE_ROW02;
 			case SDLK_ROW03: return SCANCODE_ROW03;
@@ -2924,7 +2923,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_M: return SDLK_m;
 			case SCANCODE_N: return SDLK_n;
 			case SCANCODE_B: return SDLK_b;
-			case SCANCODE_ROW00: return SDLK_ROW00;	//temp temp
+			case SCANCODE_ROW00: return SDLK_ROW00;
 			case SCANCODE_ROW01: return SDLK_ROW01;
 			case SCANCODE_ROW02: return SDLK_ROW02;
 			case SCANCODE_ROW03: return SDLK_ROW03;
