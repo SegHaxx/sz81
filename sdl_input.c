@@ -1716,18 +1716,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F3) {
 			/* Toggle the load file dialog */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state &&
-					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-					if (!load_file_dialog.state) {
-						load_file_dialog.state = TRUE;
-						sdl_emulator.state = FALSE;
-						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
-					} else {
-						load_file_dialog.state = FALSE;
-						sdl_emulator.state = TRUE;
-						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
-					}
-				}
+				toggle_load_file_dialog_state();
 			}
 		} else if (id == SDLK_F4) {
 			/* Reserved for future Save State */
@@ -2281,11 +2270,16 @@ void manage_ldfile_input(void) {
 					}
 				} else {
 					/* It's a file */
+					if (load_file_dialog.method == LOAD_FILE_METHOD_NONE) {
 
+						printf("%s: Todo LOAD_FILE_METHOD_FORCEDLOAD\n", __func__);	/* temp temp */
 
-					/* printf("%s: Opening %s\n", __func__, direntry);	temp temp */
-
-
+					} else if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOAD) {
+						/* sdl_load_file is currently waiting in a loop
+						 * and this response will initiate the file load */
+						load_file_dialog.method = LOAD_FILE_METHOD_SELECTLOADOK;
+					}
+					toggle_load_file_dialog_state();
 				}
 			}
 		}
@@ -2299,6 +2293,27 @@ void manage_ldfile_input(void) {
 			}
 			/* Resize hotspots to match new text */
 			hotspots_resize(HS_GRP_LDFILE);
+		}
+	}
+}
+
+/***************************************************************************
+ * Toggle Load File Dialog State                                           *
+ ***************************************************************************/
+
+void toggle_load_file_dialog_state(void) {
+	static int last_vkeyb_state = FALSE;
+
+	if (!load_selector_state &&
+		runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+		if (!load_file_dialog.state) {
+			load_file_dialog.state = TRUE;
+			sdl_emulator.state = FALSE;
+			last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+		} else {
+			load_file_dialog.state = FALSE;
+			sdl_emulator.state = TRUE;
+			vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 		}
 	}
 }

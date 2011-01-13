@@ -96,6 +96,8 @@ struct runtimeoptions runtime_options[MAX_RUNTIME_OPTIONS];
 /* Emulator functions I require access to */
 extern void reset81(void);
 extern void initmem(void);
+extern void frame_pause(void);
+extern void do_interrupt(void);
 #ifdef OSS_SOUND_SUPPORT
 	extern void sound_ay_setvol(void);
 	extern void sound_framesiz_init(void);

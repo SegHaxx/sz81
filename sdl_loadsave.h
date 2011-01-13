@@ -41,6 +41,7 @@ struct {
 	int dirlist_top;
 	int dirlist_selected;
 	char filename[256];
+	int method;
 } load_file_dialog;
 
 /* Function prototypes */

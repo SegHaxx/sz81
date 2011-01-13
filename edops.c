@@ -509,7 +509,14 @@ endinstr;
 
 instr(0xfc,4);
 #ifdef SZ81	/* Added by Thunor */
-  sdl_load_file(hl);
+  if(!zx80 && hl < 0x8000)
+    {
+    sdl_load_file(hl,LOAD_FILE_METHOD_NAMEDLOAD);
+    }
+  else /* if((!zx80 && hl >= 0x8000) || zx80) */
+    {
+    sdl_load_file(hl,LOAD_FILE_METHOD_SELECTLOAD);
+    }
 #else
   load_p(hl);
 #endif

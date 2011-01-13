@@ -1,3 +1,7 @@
+2011-01-13 Thunor <thunorsif_at_hotmail.com>
+* Added support for ZX80 LOAD and ZX81 LOAD "" loading of o/80/p/81 
+  files via a new load file dialog.
+
 2011-01-11 Thunor <thunorsif_at_hotmail.com>
 * Auto-loading of 80 and 81 files is implemented as o and p.
 * The ZX81's LOAD "progname" will now open a file as lower or uppercase

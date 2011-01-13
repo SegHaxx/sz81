@@ -143,6 +143,7 @@ int sdl_init(void) {
 	strcpy(load_file_dialog.dir, startdir);
 	load_file_dialog.dirlist = NULL;
 	strcpy(load_file_dialog.filename, "");
+	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 	/* Populate the load file dialog's directory List */
 	load_file_dialog_dirlist_init();
 

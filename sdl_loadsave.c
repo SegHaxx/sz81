@@ -43,7 +43,7 @@ char *strzx81_to_ascii(int memaddr);
  *  On exit: returns TRUE on error
  *           else FALSE */
 
-int sdl_load_file(int prognameaddr) {
+int sdl_load_file(int prognameaddr, int method) {
 	struct MSG_Box msg_box;
 	char fullpath[256];
 	char filename[256];
@@ -51,9 +51,10 @@ int sdl_load_file(int prognameaddr) {
 	int count;
 	FILE *fp;
 
-	if (sdl_com_line.autoload) {
+	/* Record the method that we are about to implement */
+	load_file_dialog.method = method;
 
-		sdl_com_line.autoload = FALSE;
+	if (method == LOAD_FILE_METHOD_AUTOLOAD || method == LOAD_FILE_METHOD_FORCEDLOAD) {
 
 		/* Check that the file type is compatible with the machine model */
 		if ((*sdl_emulator.model == MODEL_ZX80 &&
@@ -142,11 +143,7 @@ int sdl_load_file(int prognameaddr) {
 					mem[0x4007] = 0xfe;				/* PPC lo */
 					mem[0x4008] = 0xff;				/* PPC hi */
 				}
-				/* I can't find any concrete information on the differences
-				 * between the o/80 and p/81 formats. The ZX81 FAQ states that
-				 * they are likely simply renamed versions of the same thing.
-				 * 
-				 * Read in up to sdl_emulator.ramsize K of data */
+				/* Read in up to sdl_emulator.ramsize K of data */
 				if (sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
 					sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0) {
 					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
@@ -172,7 +169,7 @@ int sdl_load_file(int prognameaddr) {
 			retval = TRUE;
 		}
 
-	} else if (*sdl_emulator.model == MODEL_ZX81 && prognameaddr < 0x8000) {
+	} else if (method == LOAD_FILE_METHOD_NAMEDLOAD) {
 
 		/* Attempt to open the file firstly in lowercase and then 
 		 * in uppercase as program files are obtained in either */
@@ -196,18 +193,8 @@ int sdl_load_file(int prognameaddr) {
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {
 
-				/* I can't find any concrete information on the differences
-				 * between the o/80 and p/81 formats. The ZX81 FAQ states that
-				 * they are likely simply renamed versions of the same thing.
-				 * 
-				 * Read in up to sdl_emulator.ramsize K of data */
-				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".80") == 0) {
-					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
-				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".81") == 0) {
-					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
-				}
+				/* Read in up to sdl_emulator.ramsize K of data */
+				fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
 
 				/* Close the file now as we've finished with it */
 				fclose(fp);
@@ -223,14 +210,69 @@ int sdl_load_file(int prognameaddr) {
 			retval = TRUE;
 			/* Warn the user via the GUI that the load failed */
 			strcpy(msg_box.title, "Load");
-			strcpy(msg_box.text, "File not found");
+			strcpy(msg_box.text, "Failed");
 			msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
 			message_box_manager(MSG_BOX_SHOW, &msg_box);
 		}
 
+	} else if (method == LOAD_FILE_METHOD_SELECTLOAD) {
+
+		toggle_load_file_dialog_state();
+
+		do {
+			frame_pause();
+			do_interrupt();
+		} while (load_file_dialog.state);
+
+		if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOADOK) {
+
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			strcat(fullpath, "/");
+			/* Add load_file_dialog.selected item */
+			strcat(fullpath, load_file_dialog.dirlist +
+				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+
+			/* Attempt to open the file */
+			if ((fp = fopen(fullpath, "rb")) != NULL) {
+
+				/* Read in up to sdl_emulator.ramsize K of data */
+				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".80") == 0) {
+					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
+				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".81") == 0) {
+					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
+				}
+
+				/* Close the file now as we've finished with it */
+				fclose(fp);
+
+				/* Copy the filename across to the load file dialog as
+				 * then we have a record of what was last/is now loaded */
+				strcpy(load_file_dialog.filename, fullpath);
+
+			} else {
+				retval = TRUE;
+				/* Warn the user via the GUI that the load failed */
+				strcpy(msg_box.title, "Load");
+				strcpy(msg_box.text, "Failed");
+				msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
+				message_box_manager(MSG_BOX_SHOW, &msg_box);
+			}
+
+		}
+
+	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
+
+		printf("%s: Todo LOAD_FILE_METHOD_STATELOAD\n", __func__);	/* temp temp */
+
 	}
 
 	/* printf("%s: Was/is loaded: %s\n", __func__, load_file_dialog.filename);	temp temp */
+
+	/* Erase the record of the method recently implemented */
+	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 
 	return retval;
 }

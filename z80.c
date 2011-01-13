@@ -146,9 +146,10 @@ nextlinetime=linegap;
 #ifdef SZ81	/* Added by Thunor */
 if(sdl_com_line.autoload)
   {
+  sdl_com_line.autoload=0;
   /* The existing z81 code lower down is limited to autoloading ZX81 16K
    * p files and so I'm going to manage as much as I can elsewhere */
-  if(!sdl_load_file(0))
+  if(!sdl_load_file(0,LOAD_FILE_METHOD_AUTOLOAD))
     {
     /* Copied from the bottom of z81's load_p:
      * "The ZX80 ROM load routine does this if it works" */
