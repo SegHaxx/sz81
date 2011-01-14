@@ -1,3 +1,7 @@
+2011-01-14 Thunor <thunorsif_at_hotmail.com>
+* Added forced (non-LOAD) program loading via the load file dialog.
+* Replaced z81's machine reset method with a thorough emulator reset.
+
 2011-01-13 Thunor <thunorsif_at_hotmail.com>
 * Added support for ZX80 LOAD and ZX81 LOAD "" loading of o/80/p/81 
   files via a new load file dialog.

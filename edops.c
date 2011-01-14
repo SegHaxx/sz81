@@ -524,7 +524,11 @@ instr(0xfc,4);
 endinstr;
 
 instr(0xfd,4);
+#ifdef SZ81	/* Added by Thunor */
+  sdl_save_file(hl,0);
+#else
   save_p(hl);
+#endif
   framewait=1;
 endinstr;
 

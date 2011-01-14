@@ -68,7 +68,6 @@
 /* Emulator variables I require access to */
 extern int refresh_screen;
 extern int load_selector_state;
-extern int ignore_esc;	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 extern int interrupted;
 extern volatile int signal_int_flag;
 extern char *zxpfilename;
@@ -94,7 +93,6 @@ struct runtimeoptions {
 struct runtimeoptions runtime_options[MAX_RUNTIME_OPTIONS];
 
 /* Emulator functions I require access to */
-extern void reset81(void);
 extern void initmem(void);
 extern void frame_pause(void);
 extern void do_interrupt(void);

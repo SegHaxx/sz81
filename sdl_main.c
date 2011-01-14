@@ -248,6 +248,8 @@ int main(int argc, char *argv[]) {
 					#endif
 
 					/* And off we go... */
+					/* printf("%s: Entering mainloop, autoload=%i\n",
+						__func__, sdl_emulator.autoload);	temp temp */
 					mainloop();
 
 					#ifdef OSS_SOUND_SUPPORT

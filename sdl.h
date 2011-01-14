@@ -29,7 +29,6 @@
 #include <SDL/SDL.h>
 
 /* Defines */
-#define INTERRUPT_MACHINE_RESET 2
 #define INTERRUPT_EMULATOR_RESET 3
 #define INTERRUPT_PROGRAM_QUIT 4
 
@@ -39,12 +38,17 @@
 
 /* Load file methods */
 #define LOAD_FILE_METHOD_NONE 0
-#define LOAD_FILE_METHOD_AUTOLOAD 1
-#define LOAD_FILE_METHOD_FORCEDLOAD 2
-#define LOAD_FILE_METHOD_NAMEDLOAD 3
-#define LOAD_FILE_METHOD_SELECTLOAD 4
-#define LOAD_FILE_METHOD_SELECTLOADOK 5
-#define LOAD_FILE_METHOD_STATELOAD 6
+#define LOAD_FILE_METHOD_DETECT 1
+#define LOAD_FILE_METHOD_AUTOLOAD 2
+#define LOAD_FILE_METHOD_FORCEDLOAD 3
+#define LOAD_FILE_METHOD_NAMEDLOAD 4
+#define LOAD_FILE_METHOD_SELECTLOAD 5
+#define LOAD_FILE_METHOD_SELECTLOADOK 6
+#define LOAD_FILE_METHOD_STATELOAD 7
+
+/* Save file methods */
+#define SAVE_FILE_METHOD_NAMEDSAVE 1
+#define SAVE_FILE_METHOD_UNNAMEDSAVE 2
 
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
@@ -144,6 +148,10 @@
 #define SCANCODE_ROW18 146
 #define SCANCODE_ROW19 147
 
+/* Extended SVGAlib keyboard scancodes used for the mousewheel */
+#define SCANCODE_MULTIUP 148
+#define SCANCODE_MULTIDOWN 149
+
 /* Variables */
 struct {
 	int fullscreen;
@@ -151,7 +159,6 @@ struct {
 	int xres;
 	int yres;
 	char filename[256];
-	int autoload;
 } sdl_com_line;
 
 struct {
@@ -164,6 +171,7 @@ struct {
 	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
 	int ramsize;	/* 1, 2, 3, 4, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
+	int autoload;	/* Set to TRUE when auto-loading or forced-loading */
 } sdl_emulator;
 
 struct {
@@ -213,6 +221,7 @@ void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
 int sdl_filetype_casecmp(char *filename, char *filetype);
 int sdl_load_file(int prognameaddr, int method);
+int sdl_save_file(int prognameaddr, int method);
 
 
 

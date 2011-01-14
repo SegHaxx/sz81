@@ -1,5 +1,6 @@
 /* z81/xz81, Linux console and X ZX81/ZX80 emulators.
  * Copyright (C) 1994 Ian Collier. z81 changes (C) 1995-2004 Russell Marks.
+ * sz81 Copyright (C) 2007-2010 Thunor <thunorsif@hotmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,24 +17,23 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * common.c - various routines/vars common to z81/xz81.
+ * common.c - various routines/vars common to z81/xz81/sz81.
  */
 
 #define Z81_VER		"2.1"
 
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 #ifndef SZ81	/* Added by Thunor */
+#include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
-#endif
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <dirent.h>
+#endif
 
 #ifdef SZ81	/* Added by Thunor */
 #include "sdl.h"
@@ -44,7 +44,7 @@
 #include "z80.h"
 #include "allmain.h"
 
-#ifdef __amigaos4__
+#ifdef __amigaos4__	/* ???amiga??? */
 #include "amiga.h"
 #endif
 
@@ -99,6 +99,10 @@ char *zxpfilename=NULL;
 static unsigned char zxpline[256];
 
 #ifdef SZ81	/* Added by Thunor */
+/* This is actually redundant as z81's load selector has been entirely
+ * replaced, but a load selector component still exists within sz81 that
+ * is currently always off and so I'll leave this here for the moment
+ * and mark it temp temp */
 int load_selector_state = 0;
 #endif
 
@@ -115,8 +119,9 @@ char autoload_filename[1024];
 
 
 /* not too many prototypes needed... :-) */
+#ifndef SZ81	/* Added by Thunor */
 char *load_selector(void);
-
+#endif
 
 
 #ifndef SZ81	/* Added by Thunor */
@@ -127,21 +132,22 @@ signal_int_flag=1;
 #endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 char *libdir(char *file)
 {
 static char buf[1024];
 
-#ifdef SZ81	/* Added by Thunor: LIBDIR isn't used but it must be defined */
 #define LIBDIR ""
-#endif
 if(strlen(LIBDIR)+strlen(file)+2>sizeof(buf))
   strcpy(buf,file);	/* we know file is a short constant */
 else
   sprintf(buf,"%s/%s",LIBDIR,file);
 return(buf);
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void autoload_setup(char *filename)
 {
 if(zx80 || (filename && strlen(filename)+1>sizeof(autoload_filename)))
@@ -152,6 +158,7 @@ if(filename)
 else
   *autoload_filename=0;
 }
+#endif
 
 
 #ifndef SZ81	/* Added by Thunor */
@@ -408,6 +415,7 @@ else
 }
 
 
+#ifndef SZ81	/* Added by Thunor */
 void loadhelp(void)
 {
 FILE *in;
@@ -437,7 +445,7 @@ else
   exit(1);
   }
 }
-
+#endif
 
 
 void zxpopen(void)
@@ -807,6 +815,7 @@ return(ts);
 }
 
 
+#ifndef SZ81	/* Added by Thunor */
 /* the ZX81 char is used to index into this, to give the ascii.
  * awkward chars are mapped to '_' (underscore), and the ZX81's
  * all-caps is converted to lowercase.
@@ -822,8 +831,10 @@ static char zx2ascii[64]={
 /* 50-59 */ 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 
 /* 60-63 */ 'w', 'x', 'y', 'z'
 };
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void save_p(int a)
 {
 static unsigned char fname[256];
@@ -832,12 +843,8 @@ FILE *out;
 
 if(zx80)
   {
-#ifdef SZ81	/* Added by Thunor */
-  strcpy(fname,"zx80prog.o");
-#else
   strcpy(fname,"zx80prog.p");
-#endif
-#ifdef __amigaos4__
+#ifdef __amigaos4__	/* ???amiga??? */
   strcpy(fname, amiga_file_request(""));
 #endif
   }
@@ -870,8 +877,10 @@ else
 
 fclose(out);
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void load_p(int a)
 {
 static unsigned char fname[sizeof(autoload_filename)];
@@ -881,12 +890,8 @@ int got_ascii_already=0;
 
 if(zx80)
   {
-#ifdef SZ81	/* Added by Thunor */
-  strcpy(fname,"zx80prog.o");
-#else
   strcpy(fname,"zx80prog.p");
-#endif
-#ifdef __amigaos4__
+#ifdef __amigaos4__	/* ???amiga??? */
   strcpy(fname, amiga_file_request(""));
 #endif
   }
@@ -910,19 +915,11 @@ else
       {
       char *ret=load_selector();
 
-      #ifdef SZ81	/* Added by Thunor */
-      load_selector_state = 0;
-      #endif
-
       if(ret==NULL || strlen(ret)+1>=sizeof(fname))
         {
         /* if autolist is aborted or goes wrong, we exit completely */
         if(autolist)
-          #ifdef SZ81	/* Added by Thunor */
-          interrupted=INTERRUPT_PROGRAM_QUIT;
-          #else
           exit_program();
-          #endif
         return;
         }
 
@@ -938,11 +935,7 @@ else
   if(!got_ascii_already)
     {
     /* test for Xtender-style LOAD " STOP " to quit */
-    #ifdef SZ81	/* Added by Thunor */
-    if(*ptr==227) interrupted=INTERRUPT_PROGRAM_QUIT;
-    #else
     if(*ptr==227) exit_program();
-    #endif
     
     memset(fname,0,sizeof(fname));
     do
@@ -966,18 +959,7 @@ if((in=fopen(fname,"rb"))==NULL)
 autoload=0;
 
 /* just read it all */
-#ifdef SZ81	/* Added by Thunor */
-if(zx80)
-  {
-  fread(mem+0x4000,1,0xC000,in);	/* Up to 48K */
-  }
-else
-  {
-  fread(mem+0x4009,1,0xC000-9,in);	/* Up to 48K */
-  }
-#else
 fread(mem+(zx80?0x4000:0x4009),1,16384,in);
-#endif
 
 fclose(in);
 
@@ -988,6 +970,7 @@ fclose(in);
 if(zx80)
   store(0x400b,fetch(0x400b)+1);
 }
+#endif
 
 
 void overlay_help(void)
@@ -1036,14 +1019,11 @@ check_events();	/* on X checks events, on VGA scans kybd */
 }
 
 
+#ifndef SZ81	/* Added by Thunor */
 /* despite the name, this also works for the ZX80 :-) */
 void reset81()
 {
-#ifdef SZ81	/* Added by Thunor */
-interrupted=INTERRUPT_MACHINE_RESET;	/* will cause a reset */
-#else
 interrupted=2;	/* will cause a reset */
-#endif
 memset(mem+16384,0,49152);
 refresh_screen=1;
 #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
@@ -1051,8 +1031,10 @@ if(sound_ay)
   sound_ay_reset();
 #endif
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void usage_help(char *cmd)
 {
 printf("z81 " Z81_VER
@@ -1094,8 +1076,10 @@ puts("\n"
 "		load the specified program instantly on startup;\n"
 "		this doesn't work when emulating a ZX80, or 1k ZX81.");
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void parseoptions(int argc,char *argv[])
 {
 int done=0;
@@ -1209,6 +1193,7 @@ if(optind==argc-1 || autolist)	/* if filename or `-l' given... */
     }
   }
 }
+#endif
 
 
 void frame_pause(void)
@@ -1262,7 +1247,7 @@ if(interrupted<2)
 }
 
 
-
+#ifndef SZ81	/* Added by Thunor */
 static char ascii2zx[96]=
   {
    0, 0,11,12,13, 0, 0,11,16,17,23,21,26,22,27,24,
@@ -1272,8 +1257,10 @@ static char ascii2zx[96]=
   11,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,
   53,54,55,56,57,58,59,60,61,62,63,16,24,17,11, 0
   };
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void draw_files(unsigned char *scrn,int top,int cursel,int numfiles,
 	char *filearr,int elmtsiz)
 {
@@ -1305,8 +1292,10 @@ for(y=3;y<21;y++,n++)
     }
   }
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void draw_load_frame(unsigned char *scrn)
 {
 int x,y;
@@ -1332,8 +1321,10 @@ for(x=0;x<32;x++)
   }
 memset(sptr+33*23,3,32);
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 /* convert our text display to a bitmap in scrnbmp */
 void selscrn_to_scrnbmp(unsigned char *scrn)
 {
@@ -1366,8 +1357,10 @@ for(y=0;y<24;y++,ptr++)
   optr=optrsav+ZX_VID_FULLWIDTH;
   }
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 /* simulate lastk generation from keyports[] */
 int make_lastk(void)
 {
@@ -1395,8 +1388,10 @@ for(y=0;y<8;y++)		/* 8 half-rows */
 
 return(0xffff^(lastk0|(lastk1<<8)));
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 /* wait for them to let go of all keys */
 void sel_waitnokeys(void)
 {
@@ -1406,12 +1401,13 @@ while(make_lastk()!=0xffff)
   do_interrupt();
   }
 }
+#endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 char *load_selector()
 {
 static char returned_filename[256];
-#ifndef __amigaos4__
 static unsigned char selscrn[33*24+1];	/* pseudo-DFILE */
 int f,height=18;
 char *files=NULL;
@@ -1424,33 +1420,17 @@ int top,cursel;
 int quit,got_one,isdir;
 char *filearr;
 char *ptr;
-#ifdef SZ81	/* Added by Thunor */
-int krwait = sdl_key_repeat.delay / sdl_emulator.speed;
-int krwrep = sdl_key_repeat.interval / sdl_emulator.speed / 2;
-#else
 int krwait=25,krwrep=3;	/* wait before key rpt and wait before next rpt */
-#endif
 int krheld=0,krsubh=0;
 int oldkey,key,virtkey;
-/* vvvvvvvvvvvv Added by Thunor */
-/* ".." is not always found so I force it unless the current working dir
- * is root. This I experienced on my Sharp Zaurus and I have a suspicion
- * that I've experienced this before somewhere */
-int parent_found;
-char workdir[256];
-/* ^^^^^^^^^^^^ Added by Thunor */
-#endif
-
-#ifdef SZ81	/* Added by Thunor */
-load_selector_state = 1;
-#endif
 
 /* should never get here if emulating ZX80, but FWIW... */
 if(zx80) return(NULL);
 
-#ifdef __amigaos4__
+#ifdef __amigaos4__	/* ???amiga??? */
 strcpy(returned_filename, amiga_file_request(""));
 #else
+#endif
 
 /* usually won't need this on a 16k, but a 1k responds to LOAD ""
  * much more quickly... :-)
@@ -1490,18 +1470,11 @@ do
   maxlen=-1;
   top=cursel=0;
   quit=got_one=0;
-  /* vvvvvvvvvvvv Added by Thunor */
-  parent_found=0;
-  strcpy(workdir, "");
-  getcwd(workdir, 256);
-  /* ^^^^^^^^^^^^ Added by Thunor */
 
   /* read list of .p files */
   while((entry=readdir(dirfile))!=NULL)
     {
     isdir=0;
-
-    if(strcmp(entry->d_name,"..")==0) parent_found=1;	/* Added by Thunor */
 
     /* must be non-hidden dir (and not `.') or .p file */
     len=strlen(entry->d_name);
@@ -1541,34 +1514,6 @@ do
 
   closedir(dirfile);
 
-  /* vvvvvvvvvvvv Added by Thunor */
-  if((numfiles==0 || parent_found==0) && strcmp(workdir, "/")!=0)
-    {
-    len=strlen("..");
-    /* make array of filenames bigger if needed */
-    if(files_ofs+len+(3)>=files_size)
-      {
-      files_size+=files_incr;
-      if((files=realloc(files,files_size))==NULL)
-        {
-        fprintf(stderr,"not enough memory for file selector!\n");
-        ignore_esc=0;
-        closedir(dirfile);
-        return(NULL);
-        }
-      }
-    /* copy filename */
-    files[files_ofs]='(';
-    strcpy(files+files_ofs+1,"..");
-    strcat(files+files_ofs+1,")");
-    len+=2;
-
-    files_ofs+=len+1;
-    if(len+1>maxlen) maxlen=len+1;
-    numfiles++;
-    }
-  /* ^^^^^^^^^^^^ Added by Thunor */
-
   /* have to put them into something more like a normal array to
    * use qsort...
    * (I later realised I could just have sorted an array of pointers,
@@ -1579,10 +1524,6 @@ do
     free(files);
     if(numfiles!=0)
       fprintf(stderr,"not enough memory for file selector!\n");
-    /* vvvvvvvvvvvv Added by Thunor */
-    else
-      fprintf(stderr,"no files found!\n");
-    /* ^^^^^^^^^^^^ Added by Thunor */
     ignore_esc=0;
     return(NULL);
     }
@@ -1691,10 +1632,11 @@ ignore_esc=0;
 
 /* or error, if the chdir() failed */
 if(got_one && isdir) return(NULL);
-#endif
 
 return(returned_filename);
 }
+#endif
+
 
 #ifdef SZ81	/* Added by Thunor */
 void common_reset(void)
@@ -1712,7 +1654,6 @@ zxpheight=0;
 zxppixel=-1;
 zxpstylus=0;
 refresh_screen=1;
-ignore_esc=0;	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
 }
 #endif
 

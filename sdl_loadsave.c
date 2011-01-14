@@ -28,18 +28,36 @@ char *strzx81_to_ascii(int memaddr);
 
 
 /***************************************************************************
+ * Save File                                                               *
+ ***************************************************************************/
+/* This function replaces z81's save_p.
+ * 
+ * On entry: if method = SAVE_FILE_METHOD_NAMEDSAVE then prognameaddr holds
+ *             the contents of the hl register pair which points to the area
+ *             in the ZX81's memory that contains the program name.
+ *           for all other methods prognameaddr is ignored.
+ *  On exit: returns TRUE on error
+ *           else FALSE */
+
+int sdl_save_file(int prognameaddr, int method) {
+	int retval = FALSE;
+
+
+	printf("%s: arse\n", __func__);//temp temp
+
+
+	return retval;
+}
+
+/***************************************************************************
  * Load File                                                               *
  ***************************************************************************/
 /* This function replaces z81's load_p.
  * 
- * On entry: if sdl_com_line.autoload is TRUE then prognameaddr is ignored
- *             else prognameaddr holds the contents of the hl register pair
- *             which points to the area in memory that contains the program
- *             name (it'll be something like 0x4099/0x4399 for LOAD "PROG"
- *             or 0xc099/0xc399 for LOAD "" which dictates how it's loaded).
- *             The program name is translated from Sinclair character codes
- *             to ASCII and is prefixed with whatever load_file_dialog.dir
- *             currently holds (either the initial or last entered folder).
+ * On entry: if method = LOAD_FILE_METHOD_NAMEDLOAD then prognameaddr holds
+ *             the contents of the hl register pair which points to the area
+ *             in the ZX81's memory that contains the program name.
+ *           for all other methods prognameaddr is ignored.
  *  On exit: returns TRUE on error
  *           else FALSE */
 
@@ -51,21 +69,41 @@ int sdl_load_file(int prognameaddr, int method) {
 	int count;
 	FILE *fp;
 
-	/* Record the method that we are about to implement */
-	load_file_dialog.method = method;
+	/* If requested, read and set the preset method instead */
+	if (method == LOAD_FILE_METHOD_DETECT) {
+		method = load_file_dialog.method;
+		load_file_dialog.method = LOAD_FILE_METHOD_NONE;
+	}
 
 	if (method == LOAD_FILE_METHOD_AUTOLOAD || method == LOAD_FILE_METHOD_FORCEDLOAD) {
 
-		/* Check that the file type is compatible with the machine model */
-		if ((*sdl_emulator.model == MODEL_ZX80 &&
-			(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
-			sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
-			(*sdl_emulator.model == MODEL_ZX81 &&
-			(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
-			sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
+		if (method == LOAD_FILE_METHOD_AUTOLOAD) {
+			/* Check that the file type is compatible with the machine model */
+			if ((*sdl_emulator.model == MODEL_ZX80 &&
+				(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
+				sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
+				(*sdl_emulator.model == MODEL_ZX81 &&
+				(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
+				sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
+				/* Copy the filename to fullpath which we'll be using below */
+				strcpy(fullpath, sdl_com_line.filename);
+			} else {
+				fprintf(stderr, "%s: File type is incompatible with machine model.\n",
+					__func__);
+				retval = TRUE;
+			}
+		} else {
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			strcat(fullpath, "/");
+			/* Add load_file_dialog.selected item */
+			strcat(fullpath, load_file_dialog.dirlist +
+				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+		}
 
+		if (!retval) {
 			/* Open the file */
-			if ((fp = fopen(sdl_com_line.filename, "rb")) != NULL) {
+			if ((fp = fopen(fullpath, "rb")) != NULL) {
 				/* To duplicate these values: in mainloop in z80.c around
 				 * line 189, change #if 0 to #if 1 and recompile. Run
 				 * the emulator, load a suitably sized program by typing
@@ -144,11 +182,11 @@ int sdl_load_file(int prognameaddr, int method) {
 					mem[0x4008] = 0xff;				/* PPC hi */
 				}
 				/* Read in up to sdl_emulator.ramsize K of data */
-				if (sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
-					sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0) {
+				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".80") == 0) {
 					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
-				} else if (sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
-					sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0) {
+				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
+					sdl_filetype_casecmp(fullpath, ".81") == 0) {
 					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
 				}
 				/* Close the file now as we've finished with it */
@@ -156,17 +194,13 @@ int sdl_load_file(int prognameaddr, int method) {
 
 				/* Copy the filename across to the load file dialog as
 				 * then we have a record of what was last/is now loaded */
-				strcpy(load_file_dialog.filename, sdl_com_line.filename);
+				strcpy(load_file_dialog.filename, fullpath);
 
 			} else {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__,
-					sdl_com_line.filename);
+					fullpath);
 				retval = TRUE;
 			}
-		} else {
-			fprintf(stderr, "%s: File type is incompatible with machine model.\n",
-				__func__);
-			retval = TRUE;
 		}
 
 	} else if (method == LOAD_FILE_METHOD_NAMEDLOAD) {
@@ -217,13 +251,19 @@ int sdl_load_file(int prognameaddr, int method) {
 
 	} else if (method == LOAD_FILE_METHOD_SELECTLOAD) {
 
-		toggle_load_file_dialog_state();
+		/* Let the load file dialog know what we are doing */
+		load_file_dialog.method = method;
+		/* Show the load file dialog */
+		toggle_ldfile_state();
 
+		/* Wait for the user to select Load or Exit which will close the
+		 * dialog (these two functions let the system continue to tick) */
 		do {
 			frame_pause();
 			do_interrupt();
 		} while (load_file_dialog.state);
 
+		/* If Load was selected then the method will have been updated */
 		if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOADOK) {
 
 			/* Build a path from the last entered directory */
@@ -260,19 +300,20 @@ int sdl_load_file(int prognameaddr, int method) {
 				msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
 			}
-
 		}
+
+		/* We've finished with the load file dialog now */
+		load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 
 	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
 
-		printf("%s: Todo LOAD_FILE_METHOD_STATELOAD\n", __func__);	/* temp temp */
+		/* Todo */
+		/* Todo */
+		/* Todo */
 
 	}
 
 	/* printf("%s: Was/is loaded: %s\n", __func__, load_file_dialog.filename);	temp temp */
-
-	/* Erase the record of the method recently implemented */
-	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 
 	return retval;
 }

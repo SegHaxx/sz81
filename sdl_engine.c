@@ -115,11 +115,11 @@ int sdl_init(void) {
 	sdl_com_line.xres = UNDEFINED;
 	sdl_com_line.yres = UNDEFINED;
 	sdl_com_line.filename[0] = 0;
-	sdl_com_line.autoload = FALSE;
 
 	/* Initialise other things that need to be done before sdl_video_setmode */
 	sdl_emulator.state = TRUE;
 	sdl_emulator.speed = 20;		/* 1000ms/50Hz=20ms is the default */
+	sdl_emulator.autoload = FALSE;
 	sdl_sound.state = FALSE;
 	video.redraw = TRUE;
 	vkeyb.state = FALSE;
@@ -212,7 +212,6 @@ int sdl_com_line_process(int argc, char *argv[]) {
 				sdl_filetype_casecmp(argv[count], ".p") == 0 ||
 				sdl_filetype_casecmp(argv[count], ".81") == 0) {
 				strcpy(sdl_com_line.filename, argv[count]);
-				sdl_com_line.autoload = TRUE;
 			} else {
 				/*   1234567890123456789012345678901234567890 <- Formatting for small terminal. */
 				fprintf (stdout,
@@ -242,6 +241,12 @@ int sdl_com_line_process(int argc, char *argv[]) {
 		video.xres = sdl_com_line.xres;
 		video.yres = sdl_com_line.yres;
 	}
+	if (*sdl_com_line.filename) {
+		/* sdl_load_file will detect this preset method when
+		 * autoloading is triggered at the top of z80.c */
+		load_file_dialog.method = LOAD_FILE_METHOD_AUTOLOAD;
+		sdl_emulator.autoload = TRUE;
+	}
 
 	#ifdef SDL_DEBUG_COM_LINE
 		printf("%s:\n", __func__);
@@ -254,7 +259,6 @@ int sdl_com_line_process(int argc, char *argv[]) {
 		printf("  sdl_com_line.xres=%i\n", sdl_com_line.xres);
 		printf("  sdl_com_line.yres=%i\n", sdl_com_line.yres);
 		printf("  sdl_com_line.filename=%s\n", sdl_com_line.filename);
-		printf("  sdl_com_line.autoload=%i\n", sdl_com_line.autoload);
 	#endif
 
 	return FALSE;

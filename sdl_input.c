@@ -889,12 +889,12 @@ int keyboard_update(void) {
 						if (!found) device = UNDEFINED;	/* Ignore id */
 					} else if (event.button.button % 128 == SDL_BUTTON_WHEELUP ||
 						event.button.button % 128 == SDL_BUTTON_WHEELDOWN) {
-						/* Remap mouse wheel movement to SDLK_UP & SDLK_DOWN */
+						/* Remap mouse wheel movement to SDLK_MULTIUP & SDLK_MULTIDOWN */
 						device = DEVICE_KEYBOARD;
 						if (event.button.button % 128 == SDL_BUTTON_WHEELUP) {
-							id = SDLK_UP;
+							id = SDLK_MULTIUP;
 						} else {
-							id = SDLK_DOWN;
+							id = SDLK_MULTIDOWN;
 						}
 						if (event.type == SDL_MOUSEBUTTONUP) {
 							state = SDL_RELEASED;
@@ -1716,7 +1716,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F3) {
 			/* Toggle the load file dialog */
 			if (state == SDL_PRESSED) {
-				toggle_load_file_dialog_state();
+				toggle_ldfile_state();
 			}
 		} else if (id == SDLK_F4) {
 			/* Reserved for future Save State */
@@ -1761,9 +1761,8 @@ void manage_all_input(void) {
 			if (state == SDL_PRESSED) {
 				if (!load_selector_state && !load_file_dialog.state &&
 					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-					if (!ignore_esc) {	/* ignore_esc is only used within the load selector so it can eventually go temp temp */
-						reset81();
-					}
+					/* Restart mainloop on return */
+					interrupted = INTERRUPT_EMULATOR_RESET;
 				}
 			}
 		} else if (id == SDLK_ESCAPE) {
@@ -2201,6 +2200,34 @@ void manage_ldfile_input(void) {
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
+		} else if (id == SDLK_MULTIUP) {
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				/* Multiple rows up */
+				if (load_file_dialog.dirlist_selected - 3 < 0) {
+					load_file_dialog.dirlist_selected = 0;
+				} else {
+					load_file_dialog.dirlist_selected -= 3;
+				}
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
+		} else if (id == SDLK_MULTIDOWN) {
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				/* Multiple rows down */
+				if (load_file_dialog.dirlist_selected + 3 > 
+					load_file_dialog.dirlist_count - 1) {
+					load_file_dialog.dirlist_selected = 
+					load_file_dialog.dirlist_count - 1;
+				} else {
+					load_file_dialog.dirlist_selected += 3;
+				}
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
 		} else if (id == SDLK_HOME) {
 			/* Select topmost item */
 			if (state == SDL_PRESSED) {
@@ -2214,12 +2241,28 @@ void manage_ldfile_input(void) {
 				load_file_dialog.dirlist_selected = load_file_dialog.dirlist_count - 1;
 			}
 		} else if (id >= SDLK_ROW00 && id <= SDLK_ROW19) {
-			/* Update the selected item */
+			/* Simulate activating Load on the newly selected item
+			 * (this is better than making the Load code a function
+			 * because the virtual event allows the newly selected
+			 * item to briefly highlight before something happens) */
 			if (state == SDL_PRESSED) {
 				if (load_file_dialog.dirlist_top + id - SDLK_ROW00 < 
-					load_file_dialog.dirlist_count)
+					load_file_dialog.dirlist_count) {
 					load_file_dialog.dirlist_selected = 
 					load_file_dialog.dirlist_top + id - SDLK_ROW00;
+					/* Simulate pressing Load */
+					virtualevent.type = SDL_KEYDOWN;
+					virtualevent.key.keysym.sym = hotspots[HS_LDFILE_LOAD].remap_id;
+					virtualevent.key.state = SDL_PRESSED;
+					SDL_PushEvent(&virtualevent);
+					/* Simulate releasing Load */
+					virtualevent.type = SDL_KEYUP;
+					virtualevent.key.state = SDL_RELEASED;
+					SDL_PushEvent(&virtualevent);
+					/* Change this press to a release so that we don't
+					 * leave a pressed hotspot on a refreshed list */
+					state = SDL_RELEASED;
+				}
 			}
 		} else if ((id >= SDLK_0 && id <= SDLK_9) || (id >= SDLK_a && id <= SDLK_z)) {
 			/* Select the next item in the list that starts with id */
@@ -2271,15 +2314,18 @@ void manage_ldfile_input(void) {
 				} else {
 					/* It's a file */
 					if (load_file_dialog.method == LOAD_FILE_METHOD_NONE) {
-
-						printf("%s: Todo LOAD_FILE_METHOD_FORCEDLOAD\n", __func__);	/* temp temp */
-
+						/* sdl_load_file will detect this preset method when
+						 * autoloading is triggered at the top of z80.c */
+						load_file_dialog.method = LOAD_FILE_METHOD_FORCEDLOAD;
+						sdl_emulator.autoload = TRUE;
+						/* Restart mainloop on return */
+						interrupted = INTERRUPT_EMULATOR_RESET;
 					} else if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOAD) {
 						/* sdl_load_file is currently waiting in a loop
 						 * and this response will initiate the file load */
 						load_file_dialog.method = LOAD_FILE_METHOD_SELECTLOADOK;
 					}
-					toggle_load_file_dialog_state();
+					toggle_ldfile_state();
 				}
 			}
 		}
@@ -2300,13 +2346,17 @@ void manage_ldfile_input(void) {
 /***************************************************************************
  * Toggle Load File Dialog State                                           *
  ***************************************************************************/
+/* This is called from multiple places */
 
-void toggle_load_file_dialog_state(void) {
+void toggle_ldfile_state(void) {
 	static int last_vkeyb_state = FALSE;
 
 	if (!load_selector_state &&
 		runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 		if (!load_file_dialog.state) {
+			/* Force select the Load hotspot */
+			hotspots[get_selected_hotspot(HS_GRP_LDFILE)].flags &= ~HS_PROP_SELECTED;
+			hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;
 			load_file_dialog.state = TRUE;
 			sdl_emulator.state = FALSE;
 			last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
@@ -2848,6 +2898,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_m: return SCANCODE_M;
 			case SDLK_n: return SCANCODE_N;
 			case SDLK_b: return SCANCODE_B;
+			/* Extended unofficial */
 			case SDLK_ROW00: return SCANCODE_ROW00;
 			case SDLK_ROW01: return SCANCODE_ROW01;
 			case SDLK_ROW02: return SCANCODE_ROW02;
@@ -2868,6 +2919,8 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_ROW17: return SCANCODE_ROW17;
 			case SDLK_ROW18: return SCANCODE_ROW18;
 			case SDLK_ROW19: return SCANCODE_ROW19;
+			case SDLK_MULTIUP: return SCANCODE_MULTIUP;
+			case SDLK_MULTIDOWN: return SCANCODE_MULTIDOWN;
 			default: return 0;
 		}
 	} else {
@@ -2938,6 +2991,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_M: return SDLK_m;
 			case SCANCODE_N: return SDLK_n;
 			case SCANCODE_B: return SDLK_b;
+			/* Extended unofficial */
 			case SCANCODE_ROW00: return SDLK_ROW00;
 			case SCANCODE_ROW01: return SDLK_ROW01;
 			case SCANCODE_ROW02: return SDLK_ROW02;
@@ -2958,6 +3012,8 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_ROW17: return SDLK_ROW17;
 			case SCANCODE_ROW18: return SDLK_ROW18;
 			case SCANCODE_ROW19: return SDLK_ROW19;
+			case SCANCODE_MULTIUP: return SDLK_MULTIUP;
+			case SCANCODE_MULTIDOWN: return SDLK_MULTIDOWN;
 			default: return 0;
 		}
 	}

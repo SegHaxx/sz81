@@ -86,22 +86,22 @@ extern int ignore_esc;
 #ifndef SZ81	/* Added by Thunor */
 extern void sighandler(int a);
 extern void startsigsandtimer();
-extern void exit_program(void);
-#endif
 extern char *libdir(char *file);
-extern void initmem();
+extern void exit_program(void);
 extern void loadhelp(void);
+extern void save_p(int a);
+extern void load_p(int a);
+extern void reset81();
+extern void parseoptions(int argc,char *argv[]);
+#endif
+extern void initmem();
 extern void zxpopen(void);
 extern void zxpclose(void);
 extern unsigned int in(int h,int l);
 extern unsigned int out(int h,int l,int a);
 extern void do_interrupt();
-extern void save_p(int a);
-extern void load_p(int a);
 extern void update_kybd();
 extern void do_interrupt();
-extern void reset81();
-extern void parseoptions(int argc,char *argv[]);
 extern void frame_pause(void);
 #ifdef SZ81	/* Added by Thunor */
 extern void common_reset(void);
