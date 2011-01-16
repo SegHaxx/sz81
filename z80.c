@@ -110,7 +110,7 @@ for(y=vsy;y<ny;y++)
 }
 
 
-#ifdef SZ81	/* Added by Thunor: I need these to be visible to sdl_loadsave.c */
+#ifdef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
 unsigned char a, f, b, c, d, e, h, l;
 unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
 unsigned short pc;

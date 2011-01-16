@@ -1216,7 +1216,7 @@ if(sound_enabled)
    */
   sound_frame();
   
-#ifndef SZ81	/* Added by Thunor: we don't block on sound but continue */
+#ifndef SZ81	/* Added by Thunor. We don't block on sound but continue */
   if(interrupted<2)
     interrupted=1;
   return;
