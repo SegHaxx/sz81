@@ -874,6 +874,7 @@ if(zx80)
   fwrite(mem+0x4000,1,fetch2(16394)-0x4000+1,out);
 else
   fwrite(mem+0x4009,1,fetch2(16404)-0x4009+1,out);
+/* Thunor: The +1 is unnecessary as it adds junk after the trailing 0x80 */
 
 fclose(out);
 }
@@ -969,6 +970,10 @@ fclose(in);
  */
 if(zx80)
   store(0x400b,fetch(0x400b)+1);
+/* Thunor: This must be a bug!? I can see it in the ROM 021A: INC (IY+$0B)
+ * but it's part of the ZX80 LOAD routine which is being jumped over.
+ * All I've found it to do is corrupt E_LINE, cause numbers to appear
+ * after the last program line with the only solution being a reset */
 }
 #endif
 

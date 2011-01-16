@@ -525,7 +525,14 @@ endinstr;
 
 instr(0xfd,4);
 #ifdef SZ81	/* Added by Thunor */
-  sdl_save_file(hl,0);
+  if(zx80)
+    {
+    sdl_save_file(hl,SAVE_FILE_METHOD_UNNAMEDSAVE);
+    }
+  else
+    {
+    sdl_save_file(hl,SAVE_FILE_METHOD_NAMEDSAVE);
+    }
 #else
   save_p(hl);
 #endif

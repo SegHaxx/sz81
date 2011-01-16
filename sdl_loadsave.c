@@ -25,7 +25,7 @@
 /* Function prototypes */
 char *strtoupper(char *original);
 char *strzx81_to_ascii(int memaddr);
-
+char *strzx80_to_ascii(int memaddr);
 
 /***************************************************************************
  * Save File                                                               *
@@ -40,11 +40,108 @@ char *strzx81_to_ascii(int memaddr);
  *           else FALSE */
 
 int sdl_save_file(int prognameaddr, int method) {
+	char fullpath[256], filename[256];
+	int index, idxend, vars;
+	struct MSG_Box msg_box;
+	struct tm *timestruct;
 	int retval = FALSE;
+	time_t rightnow;
+	FILE *fp;
 
+	if (method == SAVE_FILE_METHOD_NAMEDSAVE) {
 
-	printf("%s: arse\n", __func__);//temp temp
+		/* Build a path from the last entered directory */
+		strcpy(fullpath, load_file_dialog.dir);
+		/* Add a directory delimeter if required */
+		strcatdelimeter(fullpath);
+		/* Add translated program name */
+		strcat(fullpath, strzx81_to_ascii(prognameaddr));
+		/* Add a file extension if one hasn't already been affixed */
+		if (sdl_filetype_casecmp(fullpath, ".p") != 0 &&
+			sdl_filetype_casecmp(fullpath, ".81") != 0)
+			strcat(fullpath, ".p");
 
+		/* Attempt to open the file */
+		if ((fp = fopen(fullpath, "wb")) != NULL) {
+			/* Write up to and including E_LINE */
+			fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+			/* Close the file now as we've finished with it */
+			fclose(fp);
+		} else {
+			retval = TRUE;
+			/* Warn the user via the GUI that the save failed */
+			strcpy(msg_box.title, "Save");
+			strcpy(msg_box.text, "Failed");
+			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
+			message_box_manager(MSG_BOX_SHOW, &msg_box);
+		}
+
+	} else if (method == SAVE_FILE_METHOD_UNNAMEDSAVE) {
+
+		/* Build a path from the last entered directory */
+		strcpy(fullpath, load_file_dialog.dir);
+		/* Add a directory delimeter if required */
+		strcatdelimeter(fullpath);
+
+		/* At the moment I'm not looking to develop a Save As dialog
+		 * just for ZX80 files, but I'm happy to implement some other
+		 * methods to name the files:
+		 * 1. Date and time stamped files e.g. zx80-20110115-234836.o
+		 *    (the GP2X won't support this but everything else is OK)
+		 * 2. Filenames embedded within a xxxx REM SAVE "progname"
+		 *    (works on any platform and is actually quit cool :) ) */
+		index = 0x4028;	/* Start of user program area */
+		vars = mem[0x4009] << 8 | mem[0x4008];	/* VARS */
+		while (index < vars) {
+			if (mem[index] == 0xfe && mem[index + 1] == 0xea && 
+				mem[index + 2] == 0x01) {	/* REM SAVE " */
+				idxend = index = index + 3;	/* Position on first char */
+				while (mem[idxend] != 0x01 && mem[idxend] < 0x80 &&
+					mem[idxend] != 0x76 && idxend < vars) idxend++;
+				if (index < idxend) {
+					mem[--idxend] |= 0x80;	/* +80h marks last char */
+					strcpy(filename, strzx80_to_ascii(index));
+					mem[idxend] &= ~0x80;	/* Remove +80h */
+					index = vars;			/* Exit loop */
+				}
+			}
+			index++;
+		}
+		if (index == vars) {
+			/* Create a unique filename using the date and time */
+			rightnow = time(NULL);
+			timestruct = localtime(&rightnow);
+			strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);
+		}
+
+		/* Add program name */
+		strcat(fullpath, filename);
+		/* Add a file extension if one hasn't already been affixed */
+		if (sdl_filetype_casecmp(fullpath, ".o") != 0 &&
+			sdl_filetype_casecmp(fullpath, ".80") != 0)
+			strcat(fullpath, ".o");
+
+		/* Attempt to open the file */
+		if ((fp = fopen(fullpath, "wb")) != NULL) {
+			/* Write up to and including E_LINE */
+			fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
+			/* Close the file now as we've finished with it */
+			fclose(fp);
+		} else {
+			retval = TRUE;
+			/* Warn the user via the GUI that the save failed */
+			strcpy(msg_box.title, "Save");
+			strcpy(msg_box.text, "Failed");
+			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
+			message_box_manager(MSG_BOX_SHOW, &msg_box);
+		}
+
+	}
+
+	if (!retval) {
+		/* Reinitialise the load file dialog's directory list */
+		load_file_dialog_dirlist_init();
+	}
 
 	return retval;
 }
@@ -62,9 +159,8 @@ int sdl_save_file(int prognameaddr, int method) {
  *           else FALSE */
 
 int sdl_load_file(int prognameaddr, int method) {
+	char fullpath[256], filename[256];
 	struct MSG_Box msg_box;
-	char fullpath[256];
-	char filename[256];
 	int retval = FALSE;
 	int count;
 	FILE *fp;
@@ -95,7 +191,8 @@ int sdl_load_file(int prognameaddr, int method) {
 		} else {
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			strcat(fullpath, "/");
+			/* Add a directory delimeter if required */
+			strcatdelimeter(fullpath);
 			/* Add load_file_dialog.selected item */
 			strcat(fullpath, load_file_dialog.dirlist +
 				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
@@ -220,7 +317,8 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			strcat(fullpath, "/");
+			/* Add a directory delimeter if required */
+			strcatdelimeter(fullpath);
 			/* Add translated program name */
 			strcat(fullpath, filename);
 
@@ -268,7 +366,8 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			strcat(fullpath, "/");
+			/* Add a directory delimeter if required */
+			strcatdelimeter(fullpath);
 			/* Add load_file_dialog.selected item */
 			strcat(fullpath, load_file_dialog.dirlist +
 				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
@@ -307,9 +406,11 @@ int sdl_load_file(int prognameaddr, int method) {
 
 	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
 
-		/* Todo */
-		/* Todo */
-		/* Todo */
+		/* Todo todo todo todo todo */
+		/* Todo todo todo todo todo */
+		/* Todo todo todo todo todo */
+		/* Todo todo todo todo todo */
+		/* Todo todo todo todo todo */
 
 	}
 
@@ -338,6 +439,24 @@ void load_file_dialog_dirlist_init(void) {
 
 	load_file_dialog.dirlist_top = 0;
 	load_file_dialog.dirlist_selected = 0;
+}
+
+/***************************************************************************
+ * Append Directory Delimeter to String                                    *
+ ***************************************************************************/
+/* This will append a directory delimeter to a string if one doesn't already
+ * exist.
+ * The point of this function is to make it easier to change the delimeter
+ * character for other platforms. See also #define DIR_DELIMETER_CHAR.
+ * 
+ * On entry: char *toappendto = the string to append to
+ *  On exit: toappendto will have had a delimeter appended if required  */
+
+void strcatdelimeter(char *toappendto) {
+	static char delimeter[2] = {DIR_DELIMETER_CHAR, 0};
+
+	if (toappendto[strlen(toappendto) - 1] != DIR_DELIMETER_CHAR)
+		strcat(toappendto, delimeter);
 }
 
 /***************************************************************************
@@ -371,8 +490,8 @@ char *strtoupper(char *original) {
  *  On exit: returns a pointer to the translated string */
 
 char *strzx81_to_ascii(int memaddr) {
-	unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(', ')',
-		'>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
+	static unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(',
+		')', '>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
 	static char translated[256];
 	unsigned char sinchar;
 	char asciichar;
@@ -384,6 +503,46 @@ char *strzx81_to_ascii(int memaddr) {
 			asciichar = ' ';
 		} else if (sinchar >= 0x0b && sinchar <= 0x1b) {
 			asciichar = zx81table[sinchar - 0x0b];
+		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
+			asciichar = '0' + sinchar - 0x1c;
+		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
+			asciichar = 'a' + sinchar - 0x26;
+		} else {
+			asciichar = '_';
+		}
+		translated[index] = asciichar;
+		translated[index++ + 1] = 0;
+	} while (mem[memaddr++] < 0x80);
+
+	return translated;
+}
+
+/***************************************************************************
+ * Sinclair ZX80 String to ASCII String                                    *
+ ***************************************************************************/
+/* This will translate a ZX80 string of characters into an ASCII equivalent.
+ * All alphabetical characters are converted to lowercase.
+ * Those characters that won't translate are replaced with underscores.
+ * 
+ * On entry: int memaddr = the string's address within mem[]
+ *  On exit: returns a pointer to the translated string */
+
+char *strzx80_to_ascii(int memaddr) {
+	static unsigned char zx81table[16] = {'_', '$', ':', '?', '(', ')',
+		'-', '+', '*', '/', '=', '>', '<', ';', ',', '.'};
+	static char translated[256];
+	unsigned char sinchar;
+	char asciichar;
+	int index = 0;
+
+	do {
+		sinchar = mem[memaddr] & 0x7f;
+		if (sinchar == 0x00) {
+			asciichar = ' ';
+		} else if (sinchar == 0x01) {
+			asciichar = '\"';
+		} else if (sinchar >= 0x0c && sinchar <= 0x1b) {
+			asciichar = zx81table[sinchar - 0x0c];
 		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
 			asciichar = '0' + sinchar - 0x1c;
 		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
@@ -417,16 +576,17 @@ char *file_dialog_basename(char *dir) {
 	
 	if ((index = strlen(dir))) {
 		/* Move leftwards past trailing delimeters */
-		while (index > 0 && dir[index - 1] == '/') index--;
+		while (index > 0 && dir[index - 1] == DIR_DELIMETER_CHAR) index--;
 		/* Move leftwards up to a delimeter or zero */
-		while (index > 0 && dir[index - 1] != '/') index--;
+		while (index > 0 && dir[index - 1] != DIR_DELIMETER_CHAR) index--;
 		/* Copy from this point */
 		strcpy(basename, dir + index);
 	}
 
 	/* Cut trailing delimeters from our copy */
 	if ((index = strlen(basename) - 1))
-		while (index && basename[index] == '/') basename[index--] = 0;
+		while (index && basename[index] == DIR_DELIMETER_CHAR)
+			basename[index--] = 0;
 
 	return basename;
 }
@@ -461,8 +621,8 @@ void file_dialog_cd(char *dir, char *direntry) {
 		/* Go back to the parent directory */
 		index = strlen(dir) - 1;
 		while (index > 0) {
-			if (dir[index] == '/') {
-				while (index > 0 && dir[index] == '/') {
+			if (dir[index] == DIR_DELIMETER_CHAR) {
+				while (index > 0 && dir[index] == DIR_DELIMETER_CHAR) {
 					dir[index--] = 0;
 				}
 				break;
@@ -472,7 +632,7 @@ void file_dialog_cd(char *dir, char *direntry) {
 	} else {
 		/* It's a subdirectory */
 		/* Add a directory delimeter if required */
-		if (dir[strlen(dir) - 1] != '/') strcat(dir, "/");
+		strcatdelimeter(dir);
 		strcat(dir, filename);
 	}
 }

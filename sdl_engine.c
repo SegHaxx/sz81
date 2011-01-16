@@ -161,7 +161,8 @@ int sdl_init(void) {
 	#if defined (PLATFORM_GP2X)
 	#elif defined (PLATFORM_ZAURUS)
 	#else
-		strcpy(filename, PACKAGE_DATA_DIR "/");
+		strcpy(filename, PACKAGE_DATA_DIR);
+		strcatdelimeter(filename);
 		strcat(filename, IMG_WM_ICON);
 
 		/* Load the bitmap */
@@ -402,6 +403,7 @@ void sdl_component_executive(void) {
 	/* Monitor load file dialog's state */
 	if ((active_components & COMP_LDFILE) != (load_file_dialog.state * COMP_LDFILE)) {
 		if (load_file_dialog.state && vkeyb.state) vkeyb.state = FALSE;
+		video.redraw = TRUE;
 		found = TRUE;
 	}
 

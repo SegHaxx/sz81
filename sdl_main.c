@@ -214,13 +214,6 @@ int main(int argc, char *argv[]) {
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
 
-				/* I copied this here from loadhelp() as it's needed to
-				 * properly display the load selector.
-				 * Once the load selector has been replaced this code
-				 * should be removed. I'll mark it temp temp */
-				fakedispx=(ZX_VID_HMARGIN-FUDGE_FACTOR)/8;
-				fakedispy=ZX_VID_MARGIN;
-
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 

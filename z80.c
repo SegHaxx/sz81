@@ -149,13 +149,8 @@ if(sdl_emulator.autoload)
   sdl_emulator.autoload=0;
   /* This could be an initial autoload or a later forcedload */
   if(!sdl_load_file(0,LOAD_FILE_METHOD_DETECT))
-    {
-    /* Copied from the bottom of z81's load_p:
-     * "The ZX80 ROM load routine does this if it works" */
-    if(zx80)store(0x400b,fetch(0x400b)+1);
     /* wait for a real frame, to avoid an annoying frame `jump'. */
     framewait=1;
-    }
   }
 #else
 if(autoload)
