@@ -44,10 +44,6 @@
 #include "z80.h"
 #include "allmain.h"
 
-#ifdef __amigaos4__	/* ???amiga??? */
-#include "amiga.h"
-#endif
-
 unsigned char mem[65536],*helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
 
@@ -843,10 +839,7 @@ FILE *out;
 
 if(zx80)
   {
-  strcpy(fname,"zx80prog.p");
-#ifdef __amigaos4__	/* ???amiga??? */
-  strcpy(fname, amiga_file_request(""));
-#endif
+    strcpy(fname,"zx80prog.p");
   }
 else
   {
@@ -891,10 +884,7 @@ int got_ascii_already=0;
 
 if(zx80)
   {
-  strcpy(fname,"zx80prog.p");
-#ifdef __amigaos4__	/* ???amiga??? */
-  strcpy(fname, amiga_file_request(""));
-#endif
+    strcpy(fname,"zx80prog.p");
   }
 else
   {
@@ -1431,11 +1421,6 @@ int oldkey,key,virtkey;
 
 /* should never get here if emulating ZX80, but FWIW... */
 if(zx80) return(NULL);
-
-#ifdef __amigaos4__	/* ???amiga??? */
-strcpy(returned_filename, amiga_file_request(""));
-#else
-#endif
 
 /* usually won't need this on a 16k, but a 1k responds to LOAD ""
  * much more quickly... :-)
