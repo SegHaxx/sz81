@@ -148,5 +148,7 @@ char *amiga_file_request(char *path)
 		}
 		IAsl->FreeAslRequest(freq);
 	}
-	return fname;
+
+	if(sel) return fname;
+		else return NULL;
 }
