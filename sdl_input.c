@@ -21,10 +21,6 @@
 /* Defines */
 #define MAX_KEYSYMS (138 + 6)
 
-/* SVGAlib stuff that remains */
-#define KEY_NOTPRESSED 0
-#define KEY_PRESSED 1
-
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
 /* Cursor (virtual) device control IDs */
@@ -151,8 +147,8 @@ void sdl_keyboard_init(void) {
 	SDL_Event event;
 	
 	/* Erase the keyboard buffer */
-	for (count = 0; count < MAX_SCANCODES; count++)
-		keyboard_buffer[count] = KEY_NOTPRESSED;
+	for (count = 0; count < MAX_KEYCODES; count++)
+		keyboard_buffer[count] = SDL_RELEASED;
 	
 	/* Undefine all the control remappings */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
@@ -741,15 +737,6 @@ void sdl_keyboard_init(void) {
 }
 
 /***************************************************************************
- * Keyboard Get State                                                      *
- ***************************************************************************/
-/* On exit: returns a char pointer to a buffer holding the state of all keys */
-
-char *keyboard_getstate(void) {
-	return keyboard_buffer;
-}
-
-/***************************************************************************
  * Keyboard Update                                                         *
  ***************************************************************************/
 /* I was experiencing an issue that was highlighted by pointer hotspot input
@@ -1096,20 +1083,18 @@ int keyboard_update(void) {
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
 					if (state == SDL_PRESSED) {
-						keyboard_buffer[keysym_to_scancode(FALSE, id)] = KEY_PRESSED;
-						if (mod_id != UNDEFINED) keyboard_buffer
-							[keysym_to_scancode(FALSE, mod_id)] = KEY_PRESSED;
+						keyboard_buffer[id] = SDL_PRESSED;
+						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_PRESSED;
 					} else {
-						keyboard_buffer[keysym_to_scancode(FALSE, id)] = KEY_NOTPRESSED;
-						if (mod_id != UNDEFINED) keyboard_buffer
-							[keysym_to_scancode(FALSE, mod_id)] = KEY_NOTPRESSED;
+						keyboard_buffer[id] = SDL_RELEASED;
+						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_RELEASED;
 					}
 				}
 
 				/* Should the vkeyb be hidden on ENTER? */
 				if (device == DEVICE_KEYBOARD && id == SDLK_RETURN &&
 					state == SDL_RELEASED && vkeyb.state && vkeyb.autohide &&
-					keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] == KEY_NOTPRESSED) {
+					keyboard_buffer[SDLK_LSHIFT] == SDL_RELEASED) {
 					vkeyb.state = FALSE;
 				}
 
@@ -1156,8 +1141,8 @@ int keyboard_update(void) {
 									ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
 									ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
 									ctrl_remaps[count].remap_mod_id = UNDEFINED;
-									if (keyboard_buffer[keysym_to_scancode(FALSE, SDLK_LSHIFT)] ==
-										KEY_PRESSED) ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
+									if (keyboard_buffer[SDLK_LSHIFT] == SDL_PRESSED)
+										ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
 									rcfile.rewrite = TRUE;
 								}
 							}
@@ -2849,210 +2834,12 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
  * On entry: shift_reset = TRUE to additionally reset SHIFT */
 
 void keyboard_buffer_reset(int shift_reset) {
-	int scancode;
+	int keycode;
 	
-	for (scancode = 0; scancode < MAX_SCANCODES; scancode++) {
-		if ((scancode != SCANCODE_LEFTSHIFT) ||
-			(scancode == SCANCODE_LEFTSHIFT && shift_reset)) {
-			keyboard_buffer[scancode] = KEY_NOTPRESSED;
-		}
-	}
-}
-
-/***************************************************************************
- * Keysym to Scancode                                                      *
- ***************************************************************************/
-/* Translates SDL keysyms to SVGAlib scancodes and the reverse */
-
-int keysym_to_scancode(int reverse, int value) {
-	
-	if (!reverse) {
-		switch (value) {
-			case SDLK_ESCAPE: return SCANCODE_ESCAPE;
-			case SDLK_MINUS: return SCANCODE_MINUS;
-			case SDLK_EQUALS: return SCANCODE_EQUAL;
-			case SDLK_LEFTBRACKET: return SCANCODE_BRACKET_LEFT;
-			case SDLK_RIGHTBRACKET: return SCANCODE_BRACKET_RIGHT;
-			case SDLK_F1: return SCANCODE_F1;
-			case SDLK_F2: return SCANCODE_F2;
-			case SDLK_F3: return SCANCODE_F3;
-			case SDLK_F4: return SCANCODE_F4;
-			case SDLK_F5: return SCANCODE_F5;
-			case SDLK_F6: return SCANCODE_F6;
-			case SDLK_F7: return SCANCODE_F7;
-			case SDLK_F8: return SCANCODE_F8;
-			case SDLK_F9: return SCANCODE_F9;
-			case SDLK_F10: return SCANCODE_F10;
-			case SDLK_F11: return SCANCODE_F11;
-			case SDLK_F12: return SCANCODE_F12;
-			case SDLK_HOME: return SCANCODE_HOME;
-			case SDLK_PAGEUP: return SCANCODE_PAGEUP;
-			case SDLK_END: return SCANCODE_END;
-			case SDLK_PAGEDOWN: return SCANCODE_PAGEDOWN;
-			case SDLK_INSERT: return SCANCODE_INSERT;
-			case SDLK_DELETE: return SCANCODE_REMOVE;
-			case SDLK_LSHIFT: return SCANCODE_LEFTSHIFT;
-			case SDLK_RSHIFT: return SCANCODE_RIGHTSHIFT;
-			case SDLK_LCTRL: return SCANCODE_LEFTCONTROL;
-			case SDLK_RCTRL: return SCANCODE_RIGHTCONTROL;
-			case SDLK_z: return SCANCODE_Z;
-			case SDLK_x: return SCANCODE_X;
-			case SDLK_c: return SCANCODE_C;
-			case SDLK_v: return SCANCODE_V;
-			case SDLK_a: return SCANCODE_A;
-			case SDLK_s: return SCANCODE_S;
-			case SDLK_d: return SCANCODE_D;
-			case SDLK_f: return SCANCODE_F;
-			case SDLK_g: return SCANCODE_G;
-			case SDLK_q: return SCANCODE_Q;
-			case SDLK_w: return SCANCODE_W;
-			case SDLK_e: return SCANCODE_E;
-			case SDLK_r: return SCANCODE_R;
-			case SDLK_t: return SCANCODE_T;
-			case SDLK_1: return SCANCODE_1;
-			case SDLK_2: return SCANCODE_2;
-			case SDLK_3: return SCANCODE_3;
-			case SDLK_4: return SCANCODE_4;
-			case SDLK_5: return SCANCODE_5;
-			case SDLK_0: return SCANCODE_0;
-			case SDLK_9: return SCANCODE_9;
-			case SDLK_8: return SCANCODE_8;
-			case SDLK_7: return SCANCODE_7;
-			case SDLK_6: return SCANCODE_6;
-			case SDLK_p: return SCANCODE_P;
-			case SDLK_o: return SCANCODE_O;
-			case SDLK_i: return SCANCODE_I;
-			case SDLK_u: return SCANCODE_U;
-			case SDLK_y: return SCANCODE_Y;
-			case SDLK_RETURN: return SCANCODE_ENTER;
-			case SDLK_l: return SCANCODE_L;
-			case SDLK_k: return SCANCODE_K;
-			case SDLK_j: return SCANCODE_J;
-			case SDLK_h: return SCANCODE_H;
-			case SDLK_SPACE: return SCANCODE_SPACE;
-			case SDLK_PERIOD: return SCANCODE_PERIOD;
-			case SDLK_m: return SCANCODE_M;
-			case SDLK_n: return SCANCODE_N;
-			case SDLK_b: return SCANCODE_B;
-			/* Extended unofficial */
-			case SDLK_ROW00: return SCANCODE_ROW00;
-			case SDLK_ROW01: return SCANCODE_ROW01;
-			case SDLK_ROW02: return SCANCODE_ROW02;
-			case SDLK_ROW03: return SCANCODE_ROW03;
-			case SDLK_ROW04: return SCANCODE_ROW04;
-			case SDLK_ROW05: return SCANCODE_ROW05;
-			case SDLK_ROW06: return SCANCODE_ROW06;
-			case SDLK_ROW07: return SCANCODE_ROW07;
-			case SDLK_ROW08: return SCANCODE_ROW08;
-			case SDLK_ROW09: return SCANCODE_ROW09;
-			case SDLK_ROW10: return SCANCODE_ROW10;
-			case SDLK_ROW11: return SCANCODE_ROW11;
-			case SDLK_ROW12: return SCANCODE_ROW12;
-			case SDLK_ROW13: return SCANCODE_ROW13;
-			case SDLK_ROW14: return SCANCODE_ROW14;
-			case SDLK_ROW15: return SCANCODE_ROW15;
-			case SDLK_ROW16: return SCANCODE_ROW16;
-			case SDLK_ROW17: return SCANCODE_ROW17;
-			case SDLK_ROW18: return SCANCODE_ROW18;
-			case SDLK_ROW19: return SCANCODE_ROW19;
-			case SDLK_MULTIUP: return SCANCODE_MULTIUP;
-			case SDLK_MULTIDOWN: return SCANCODE_MULTIDOWN;
-			case SDLK_ACCEPT: return SCANCODE_ACCEPT;
-			default: return 0;
-		}
-	} else {
-		switch (value) {
-			case SCANCODE_ESCAPE: return SDLK_ESCAPE;
-			case SCANCODE_MINUS: return SDLK_MINUS;
-			case SCANCODE_EQUAL: return SDLK_EQUALS;
-			case SCANCODE_BRACKET_LEFT: return SDLK_LEFTBRACKET;
-			case SCANCODE_BRACKET_RIGHT: return SDLK_RIGHTBRACKET;
-			case SCANCODE_F1: return SDLK_F1;
-			case SCANCODE_F2: return SDLK_F2;
-			case SCANCODE_F3: return SDLK_F3;
-			case SCANCODE_F4: return SDLK_F4;
-			case SCANCODE_F5: return SDLK_F5;
-			case SCANCODE_F6: return SDLK_F6;
-			case SCANCODE_F7: return SDLK_F7;
-			case SCANCODE_F8: return SDLK_F8;
-			case SCANCODE_F9: return SDLK_F9;
-			case SCANCODE_F10: return SDLK_F10;
-			case SCANCODE_F11: return SDLK_F11;
-			case SCANCODE_F12: return SDLK_F12;
-			case SCANCODE_HOME: return SDLK_HOME;
-			case SCANCODE_PAGEUP: return SDLK_PAGEUP;
-			case SCANCODE_END: return SDLK_END;
-			case SCANCODE_PAGEDOWN: return SDLK_PAGEDOWN;
-			case SCANCODE_INSERT: return SDLK_INSERT;
-			case SCANCODE_REMOVE: return SDLK_DELETE;
-			case SCANCODE_LEFTSHIFT: return SDLK_LSHIFT;
-			case SCANCODE_RIGHTSHIFT: return SDLK_RSHIFT;
-			case SCANCODE_LEFTCONTROL: return SDLK_LCTRL;
-			case SCANCODE_RIGHTCONTROL: return SDLK_RCTRL;
-			case SCANCODE_Z: return SDLK_z;
-			case SCANCODE_X: return SDLK_x;
-			case SCANCODE_C: return SDLK_c;
-			case SCANCODE_V: return SDLK_v;
-			case SCANCODE_A: return SDLK_a;
-			case SCANCODE_S: return SDLK_s;
-			case SCANCODE_D: return SDLK_d;
-			case SCANCODE_F: return SDLK_f;
-			case SCANCODE_G: return SDLK_g;
-			case SCANCODE_Q: return SDLK_q;
-			case SCANCODE_W: return SDLK_w;
-			case SCANCODE_E: return SDLK_e;
-			case SCANCODE_R: return SDLK_r;
-			case SCANCODE_T: return SDLK_t;
-			case SCANCODE_1: return SDLK_1;
-			case SCANCODE_2: return SDLK_2;
-			case SCANCODE_3: return SDLK_3;
-			case SCANCODE_4: return SDLK_4;
-			case SCANCODE_5: return SDLK_5;
-			case SCANCODE_0: return SDLK_0;
-			case SCANCODE_9: return SDLK_9;
-			case SCANCODE_8: return SDLK_8;
-			case SCANCODE_7: return SDLK_7;
-			case SCANCODE_6: return SDLK_6;
-			case SCANCODE_P: return SDLK_p;
-			case SCANCODE_O: return SDLK_o;
-			case SCANCODE_I: return SDLK_i;
-			case SCANCODE_U: return SDLK_u;
-			case SCANCODE_Y: return SDLK_y;
-			case SCANCODE_ENTER: return SDLK_RETURN;
-			case SCANCODE_L: return SDLK_l;
-			case SCANCODE_K: return SDLK_k;
-			case SCANCODE_J: return SDLK_j;
-			case SCANCODE_H: return SDLK_h;
-			case SCANCODE_SPACE: return SDLK_SPACE;
-			case SCANCODE_PERIOD: return SDLK_PERIOD;
-			case SCANCODE_M: return SDLK_m;
-			case SCANCODE_N: return SDLK_n;
-			case SCANCODE_B: return SDLK_b;
-			/* Extended unofficial */
-			case SCANCODE_ROW00: return SDLK_ROW00;
-			case SCANCODE_ROW01: return SDLK_ROW01;
-			case SCANCODE_ROW02: return SDLK_ROW02;
-			case SCANCODE_ROW03: return SDLK_ROW03;
-			case SCANCODE_ROW04: return SDLK_ROW04;
-			case SCANCODE_ROW05: return SDLK_ROW05;
-			case SCANCODE_ROW06: return SDLK_ROW06;
-			case SCANCODE_ROW07: return SDLK_ROW07;
-			case SCANCODE_ROW08: return SDLK_ROW08;
-			case SCANCODE_ROW09: return SDLK_ROW09;
-			case SCANCODE_ROW10: return SDLK_ROW10;
-			case SCANCODE_ROW11: return SDLK_ROW11;
-			case SCANCODE_ROW12: return SDLK_ROW12;
-			case SCANCODE_ROW13: return SDLK_ROW13;
-			case SCANCODE_ROW14: return SDLK_ROW14;
-			case SCANCODE_ROW15: return SDLK_ROW15;
-			case SCANCODE_ROW16: return SDLK_ROW16;
-			case SCANCODE_ROW17: return SDLK_ROW17;
-			case SCANCODE_ROW18: return SDLK_ROW18;
-			case SCANCODE_ROW19: return SDLK_ROW19;
-			case SCANCODE_MULTIUP: return SDLK_MULTIUP;
-			case SCANCODE_MULTIDOWN: return SDLK_MULTIDOWN;
-			case SCANCODE_ACCEPT: return SDLK_ACCEPT;
-			default: return 0;
+	for (keycode = 0; keycode < MAX_KEYCODES; keycode++) {
+		if ((keycode != SDLK_LSHIFT) ||
+			(keycode == SDLK_LSHIFT && shift_reset)) {
+			keyboard_buffer[keycode] = SDL_RELEASED;
 		}
 	}
 }

@@ -18,7 +18,6 @@
 /* Defines */
 #define MAX_CTRL_REMAPS 64
 #define MAX_JOY_AXES 20
-#define MAX_SCANCODES (128 + 20 + 2 + 1)
 
 #define DEVICE_KEYBOARD 1
 #define DEVICE_JOYSTICK 2
@@ -64,7 +63,6 @@
 #define SDLK_ACCEPT 352
 
 /* Variables */
-char keyboard_buffer[MAX_SCANCODES];
 SDL_Joystick *joystick;
 int joystick_dead_zone;
 int show_input_id;
@@ -102,7 +100,6 @@ void toggle_ldfile_state(void);
 int runopts_is_a_reset_scheduled(void);
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(int shift_reset);
-int keysym_to_scancode(int reverse, int value);
 int keysym_to_keycode(char *keysym);
 char *keycode_to_keysym(int keycode);
 

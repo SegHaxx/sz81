@@ -756,7 +756,7 @@ void hotspots_render(void) {
 		if (hotspots[count].gid != UNDEFINED && hotspots[count].flags & HS_PROP_VISIBLE &&
 			hotspots[count].gid != HS_GRP_ROOT && hotspots[count].remap_id != UNDEFINED) {
 
-			pressed = keyboard_buffer[keysym_to_scancode(FALSE, hotspots[count].remap_id)];
+			pressed = keyboard_buffer[hotspots[count].remap_id];
 			selected = hotspots[count].flags & HS_PROP_SELECTED;
 
 			/* If the control remapper state is active then blink the selected highlight */
