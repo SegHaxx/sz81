@@ -18,7 +18,7 @@
 /* Defines */
 #define MAX_CTRL_REMAPS 64
 #define MAX_JOY_AXES 20
-#define MAX_SCANCODES (128 + 20 + 2)
+#define MAX_SCANCODES (128 + 20 + 2 + 1)
 
 #define DEVICE_KEYBOARD 1
 #define DEVICE_JOYSTICK 2
@@ -57,10 +57,11 @@
 #define SDLK_ROW17 347
 #define SDLK_ROW18 348
 #define SDLK_ROW19 349
-
 /* Extended SDL keysyms used for the mousewheel */
 #define SDLK_MULTIUP 350
 #define SDLK_MULTIDOWN 351
+/* Extended SDL keysyms used for other things */
+#define SDLK_ACCEPT 352
 
 /* Variables */
 char keyboard_buffer[MAX_SCANCODES];

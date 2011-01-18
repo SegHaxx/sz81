@@ -133,7 +133,9 @@ int keycodes[] = {
 void manage_cursor_input(void);
 void manage_all_input(void);
 void manage_vkeyb_input(void);
+void toggle_vkeyb_state(void);
 void manage_runopts_input(void);
+void toggle_runopts_state(void);
 void manage_ldfile_input(void);
 void runopts_transit(int state);
 
@@ -311,7 +313,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_SELECT;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-			ctrl_remaps[index].remap_id = SDLK_ESCAPE;
+			ctrl_remaps[index].remap_id = SDLK_F3;
 
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = FALSE;
@@ -530,7 +532,7 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 2;	/* C */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-					ctrl_remaps[index].remap_id = SDLK_ESCAPE;
+					ctrl_remaps[index].remap_id = SDLK_F3;
 
 					ctrl_remaps[++index].components = COMP_EMU;
 					ctrl_remaps[index].protected = FALSE;
@@ -1073,7 +1075,7 @@ int keyboard_update(void) {
 				if (get_active_component() & COMP_LDFILE)
 					manage_ldfile_input();
 
-				/* Manage COMP_ALL input */
+				/* Manage COMP_EMU and COMP_ALL input */
 				manage_all_input();
 
 				/* Make sure that stuck sticky and toggle hotspots are not released
@@ -1700,18 +1702,18 @@ void manage_cursor_input(void) {
  ***************************************************************************/
 
 void manage_all_input(void) {
-	static int last_vkeyb_state = FALSE;
-	int count;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_F1) {
 			/* Toggle the virtual keyboard */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state && !load_file_dialog.state &&
-					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-					vkeyb.state = !vkeyb.state;
-				}
+				toggle_vkeyb_state();
+			}
+		} else if (id == SDLK_F2) {
+			/* Toggle runtime options */
+			if (state == SDL_PRESSED) {
+				toggle_runopts_state();
 			}
 		} else if (id == SDLK_F3) {
 			/* Toggle the load file dialog */
@@ -1766,26 +1768,17 @@ void manage_all_input(void) {
 				}
 			}
 		} else if (id == SDLK_ESCAPE) {
-			/* Toggle runtime options */
+			/* Exit the currently active component */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state && !load_file_dialog.state) {
-					if (runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
-							if (last_runopts_comp == (COMP_RUNOPTS0 << count)) {
-								runtime_options[count].state = TRUE;
-								break;
-							}
-						}
-						sdl_emulator.state = FALSE;
-						last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
-						runopts_transit(TRANSIT_IN);
-					} else {
-						for (count = 0; count < MAX_RUNTIME_OPTIONS; count++)
-							runtime_options[count].state = FALSE;
-						sdl_emulator.state = TRUE;
-						vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
-						runopts_transit(TRANSIT_OUT);
-					}
+				if (get_active_component() == COMP_LOAD) {
+					/* This component is now redundant */
+				} else if (get_active_component() == COMP_LDFILE) {
+					toggle_ldfile_state();
+				} else if (get_active_component() == COMP_VKEYB || 
+					get_active_component() == COMP_CTB) {
+					toggle_vkeyb_state();
+				} else if (get_active_component() & COMP_RUNOPTS_ALL) {
+					toggle_runopts_state();
 				}
 			}
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
@@ -1870,6 +1863,19 @@ void manage_vkeyb_input(void) {
 }
 
 /***************************************************************************
+ * Toggle Virtual Keyboard (and Control Bar) State                         *
+ ***************************************************************************/
+/* This is called from multiple places */
+
+void toggle_vkeyb_state(void) {
+
+	if (!load_selector_state && !load_file_dialog.state &&
+		runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+		vkeyb.state = !vkeyb.state;
+	}
+}
+
+/***************************************************************************
  * Manage Runtime Options Input                                            *
  ***************************************************************************/
 /* A check was done before calling this function so it is certain that one
@@ -1881,7 +1887,7 @@ void manage_runopts_input(void) {
 	
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_F2) {
+		if (id == SDLK_ACCEPT) {
 			/* Save */
 			if (state == SDL_PRESSED) {
 				runopts_transit(TRANSIT_SAVE);
@@ -2141,6 +2147,36 @@ void manage_runopts_input(void) {
 }
 
 /***************************************************************************
+ * Toggle Runtime Options State                                            *
+ ***************************************************************************/
+/* This is called from multiple places */
+
+void toggle_runopts_state(void) {
+	static int last_vkeyb_state = FALSE;
+	int count;
+
+	if (!load_selector_state && !load_file_dialog.state) {
+		if (runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+			for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
+				if (last_runopts_comp == (COMP_RUNOPTS0 << count)) {
+					runtime_options[count].state = TRUE;
+					break;
+				}
+			}
+			sdl_emulator.state = FALSE;
+			last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+			runopts_transit(TRANSIT_IN);
+		} else {
+			for (count = 0; count < MAX_RUNTIME_OPTIONS; count++)
+				runtime_options[count].state = FALSE;
+			sdl_emulator.state = TRUE;
+			vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
+			runopts_transit(TRANSIT_OUT);
+		}
+	}
+}
+
+/***************************************************************************
  * Manage Load File Dialog Input                                           *
  ***************************************************************************/
 
@@ -2283,7 +2319,7 @@ void manage_ldfile_input(void) {
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
-		} else if (id == SDLK_F2) {
+		} else if (id == SDLK_ACCEPT) {
 			/* Load */
 			if (state == SDL_PRESSED) {
 				found = TRUE;
@@ -2628,7 +2664,7 @@ void runopts_transit(int state) {
 							/* Set-up SELECT joystick controls */
 							if (count == 0) {
 								components = COMP_EMU;
-								remap_id = SDLK_ESCAPE;
+								remap_id = SDLK_F3;
 							} else if (count == 1) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
@@ -2921,6 +2957,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SDLK_ROW19: return SCANCODE_ROW19;
 			case SDLK_MULTIUP: return SCANCODE_MULTIUP;
 			case SDLK_MULTIDOWN: return SCANCODE_MULTIDOWN;
+			case SDLK_ACCEPT: return SCANCODE_ACCEPT;
 			default: return 0;
 		}
 	} else {
@@ -3014,6 +3051,7 @@ int keysym_to_scancode(int reverse, int value) {
 			case SCANCODE_ROW19: return SDLK_ROW19;
 			case SCANCODE_MULTIUP: return SDLK_MULTIUP;
 			case SCANCODE_MULTIDOWN: return SDLK_MULTIDOWN;
+			case SCANCODE_ACCEPT: return SDLK_ACCEPT;
 			default: return 0;
 		}
 	}

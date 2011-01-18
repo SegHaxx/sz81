@@ -125,7 +125,6 @@
 #define SCANCODE_M 50
 #define SCANCODE_N 49
 #define SCANCODE_B 48
-
 /* Extended SVGAlib keyboard scancodes used for hotspots+lists */
 #define SCANCODE_ROW00 128
 #define SCANCODE_ROW01 129
@@ -147,10 +146,11 @@
 #define SCANCODE_ROW17 145
 #define SCANCODE_ROW18 146
 #define SCANCODE_ROW19 147
-
 /* Extended SVGAlib keyboard scancodes used for the mousewheel */
 #define SCANCODE_MULTIUP 148
 #define SCANCODE_MULTIDOWN 149
+/* Extended SVGAlib keyboard scancodes used for other things */
+#define SCANCODE_ACCEPT 150
 
 /* Variables */
 struct {

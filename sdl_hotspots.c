@@ -88,7 +88,7 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LDFILE_LIST17].remap_id = SDLK_ROW17;
 	hotspots[HS_LDFILE_LIST18].remap_id = SDLK_ROW18;
 	hotspots[HS_LDFILE_LIST19].remap_id = SDLK_ROW19;
-	hotspots[HS_LDFILE_LOAD].remap_id = SDLK_F2;
+	hotspots[HS_LDFILE_LOAD].remap_id = SDLK_ACCEPT;
 	hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LDFILE_EXIT].remap_id = SDLK_F3;
 
@@ -163,7 +163,7 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_CTB_ALPHA_DN].remap_id = SDLK_HOME;
 	hotspots[HS_CTB_ALPHA_UP].remap_id = SDLK_END;
 	hotspots[HS_CTB_LDFILE].remap_id = SDLK_F3;
-	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_ESCAPE;
+	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_F2;
 
 	/* Initialise runtime options hotspots */
 	hotspots[HS_RUNOPTS0_RUNOPTS0].flags &= ~HS_PROP_NAVIGABLE;
@@ -181,8 +181,8 @@ void sdl_hotspots_init(void) {
 		hotspots[HS_RUNOPTS0_SPEED_DN].remap_id = SDLK_1;
 		hotspots[HS_RUNOPTS0_SPEED_UP].remap_id = SDLK_2;
 	#endif
-	hotspots[HS_RUNOPTS0_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPTS0_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS0_SAVE].remap_id = SDLK_ACCEPT;
+	hotspots[HS_RUNOPTS0_EXIT].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPTS0_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
@@ -198,8 +198,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS1_ACB_STEREO].remap_id = SDLK_5;
 	hotspots[HS_RUNOPTS1_DEVICE_VSYNC].remap_id = SDLK_6;
 	hotspots[HS_RUNOPTS1_BACK].remap_id = SDLK_PAGEUP;
-	hotspots[HS_RUNOPTS1_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPTS1_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS1_SAVE].remap_id = SDLK_ACCEPT;
+	hotspots[HS_RUNOPTS1_EXIT].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPTS1_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
@@ -227,8 +227,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS2_BGC_B_DN].remap_id = SDLK_LEFTBRACKET;
 	hotspots[HS_RUNOPTS2_BGC_B_UP].remap_id = SDLK_RIGHTBRACKET;
 	hotspots[HS_RUNOPTS2_BACK].remap_id = SDLK_PAGEUP;
-	hotspots[HS_RUNOPTS2_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPTS2_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS2_SAVE].remap_id = SDLK_ACCEPT;
+	hotspots[HS_RUNOPTS2_EXIT].remap_id = SDLK_F2;
 	hotspots[HS_RUNOPTS2_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
@@ -252,8 +252,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS3_JOY_CFG_Y].remap_id = SDLK_k;
 	hotspots[HS_RUNOPTS3_JOY_CFG_X].remap_id = SDLK_l;
 	hotspots[HS_RUNOPTS3_BACK].remap_id = SDLK_PAGEUP;
-	hotspots[HS_RUNOPTS3_SAVE].remap_id = SDLK_F2;
-	hotspots[HS_RUNOPTS3_EXIT].remap_id = SDLK_ESCAPE;
+	hotspots[HS_RUNOPTS3_SAVE].remap_id = SDLK_ACCEPT;
+	hotspots[HS_RUNOPTS3_EXIT].remap_id = SDLK_F2;
 
 	/* Resize all hotspots for the current screen dimensions */
 	hotspots_resize(HS_GRP_ALL);
