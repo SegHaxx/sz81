@@ -52,8 +52,8 @@ int sdl_save_file(int prognameaddr, int method) {
 
 		/* Build a path from the last entered directory */
 		strcpy(fullpath, load_file_dialog.dir);
-		/* Add a directory delimeter if required */
-		strcatdelimeter(fullpath);
+		/* Add a directory delimiter if required */
+		strcatdelimiter(fullpath);
 		/* Add translated program name */
 		strcat(fullpath, strzx81_to_ascii(prognameaddr));
 		/* Add a file extension if one hasn't already been affixed */
@@ -80,8 +80,8 @@ int sdl_save_file(int prognameaddr, int method) {
 
 		/* Build a path from the last entered directory */
 		strcpy(fullpath, load_file_dialog.dir);
-		/* Add a directory delimeter if required */
-		strcatdelimeter(fullpath);
+		/* Add a directory delimiter if required */
+		strcatdelimiter(fullpath);
 
 		/* At the moment I'm not looking to develop a Save As dialog
 		 * just for ZX80 files, but I'm happy to implement some other
@@ -191,8 +191,8 @@ int sdl_load_file(int prognameaddr, int method) {
 		} else {
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimeter if required */
-			strcatdelimeter(fullpath);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
 			/* Add load_file_dialog.selected item */
 			strcat(fullpath, load_file_dialog.dirlist +
 				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
@@ -317,8 +317,8 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimeter if required */
-			strcatdelimeter(fullpath);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
 			/* Add translated program name */
 			strcat(fullpath, filename);
 
@@ -366,8 +366,8 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Build a path from the last entered directory */
 			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimeter if required */
-			strcatdelimeter(fullpath);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
 			/* Add load_file_dialog.selected item */
 			strcat(fullpath, load_file_dialog.dirlist +
 				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
@@ -442,21 +442,21 @@ void load_file_dialog_dirlist_init(void) {
 }
 
 /***************************************************************************
- * Append Directory Delimeter to String                                    *
+ * Append Directory Delimiter to String                                    *
  ***************************************************************************/
-/* This will append a directory delimeter to a string if one doesn't already
+/* This will append a directory delimiter to a string if one doesn't already
  * exist.
- * The point of this function is to make it easier to change the delimeter
- * character for other platforms. See also #define DIR_DELIMETER_CHAR.
+ * The point of this function is to make it easier to change the delimiter
+ * character for other platforms. See also #define DIR_DELIMITER_CHAR.
  * 
  * On entry: char *toappendto = the string to append to
- *  On exit: toappendto will have had a delimeter appended if required  */
+ *  On exit: toappendto will have had a delimiter appended if required  */
 
-void strcatdelimeter(char *toappendto) {
-	static char delimeter[2] = {DIR_DELIMETER_CHAR, 0};
+void strcatdelimiter(char *toappendto) {
+	static char delimiter[2] = {DIR_DELIMITER_CHAR, 0};
 
-	if (toappendto[strlen(toappendto) - 1] != DIR_DELIMETER_CHAR)
-		strcat(toappendto, delimeter);
+	if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
+		strcat(toappendto, delimiter);
 }
 
 /***************************************************************************
@@ -562,7 +562,7 @@ char *strzx80_to_ascii(int memaddr) {
  ***************************************************************************/
 /* This will return the basename of a path e.g. "/moo/bah/" returns "bah".
  * It works exactly the same way as the *nix basename command and supports
- * multiple directory delimeters such as "/moo//bah//".
+ * multiple directory delimiters such as "/moo//bah//".
  * 
  * On entry: char *dir = the path to extract the basename from
  *  On exit: returns a pointer to a string containing the extracted basename
@@ -575,17 +575,17 @@ char *file_dialog_basename(char *dir) {
 	strcpy(basename, "");
 	
 	if ((index = strlen(dir))) {
-		/* Move leftwards past trailing delimeters */
-		while (index > 0 && dir[index - 1] == DIR_DELIMETER_CHAR) index--;
-		/* Move leftwards up to a delimeter or zero */
-		while (index > 0 && dir[index - 1] != DIR_DELIMETER_CHAR) index--;
+		/* Move leftwards past trailing delimiters */
+		while (index > 0 && dir[index - 1] == DIR_DELIMITER_CHAR) index--;
+		/* Move leftwards up to a delimiter or zero */
+		while (index > 0 && dir[index - 1] != DIR_DELIMITER_CHAR) index--;
 		/* Copy from this point */
 		strcpy(basename, dir + index);
 	}
 
-	/* Cut trailing delimeters from our copy */
+	/* Cut trailing delimiters from our copy */
 	if ((index = strlen(basename) - 1))
-		while (index && basename[index] == DIR_DELIMETER_CHAR)
+		while (index && basename[index] == DIR_DELIMITER_CHAR)
 			basename[index--] = 0;
 
 	return basename;
@@ -597,7 +597,7 @@ char *file_dialog_basename(char *dir) {
 /* This function will update a target directory string with another source
  * string which could be a relative subdirectory or parent directory.
  * The source directory can be wrapped within brackets which will be removed
- * if found. Multiple directory delimeters are supported e.g. "/moo//bah".
+ * if found. Multiple directory delimiters are supported e.g. "/moo//bah".
  * 
  * On entry: char *dir = the directory string to update
  *           char *direntry = the relative directory to change to,
@@ -621,8 +621,8 @@ void file_dialog_cd(char *dir, char *direntry) {
 		/* Go back to the parent directory */
 		index = strlen(dir) - 1;
 		while (index > 0) {
-			if (dir[index] == DIR_DELIMETER_CHAR) {
-				while (index > 0 && dir[index] == DIR_DELIMETER_CHAR) {
+			if (dir[index] == DIR_DELIMITER_CHAR) {
+				while (index > 0 && dir[index] == DIR_DELIMITER_CHAR) {
 					dir[index--] = 0;
 				}
 				break;
@@ -631,8 +631,8 @@ void file_dialog_cd(char *dir, char *direntry) {
 		}
 	} else {
 		/* It's a subdirectory */
-		/* Add a directory delimeter if required */
-		strcatdelimeter(dir);
+		/* Add a directory delimiter if required */
+		strcatdelimiter(dir);
 		strcat(dir, filename);
 	}
 }

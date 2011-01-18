@@ -162,7 +162,7 @@ int sdl_init(void) {
 	#elif defined (PLATFORM_ZAURUS)
 	#else
 		strcpy(filename, PACKAGE_DATA_DIR);
-		strcatdelimeter(filename);
+		strcatdelimiter(filename);
 		strcat(filename, IMG_WM_ICON);
 
 		/* Load the bitmap */

@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define DIR_DELIMETER_CHAR '/'
+#define DIR_DELIMITER_CHAR '/'
 
 /* Directory List file types */
 #define DIRLIST_FILETYPE_HIDDEN 1
@@ -47,7 +47,7 @@ struct {
 
 /* Function prototypes */
 void load_file_dialog_dirlist_init(void);
-void strcatdelimeter(char *toappendto);
+void strcatdelimiter(char *toappendto);
 char *file_dialog_basename(char *dir);
 void file_dialog_cd(char *dir, char *direntry);
 void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,

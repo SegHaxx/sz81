@@ -78,21 +78,21 @@ void sdl_zxprinter_init(void) {
 
 	#if defined(PLATFORM_GP2X)
 		strcpy(zxprinter.filename, startdir);
-		strcatdelimeter(zxprinter.filename);
+		strcatdelimiter(zxprinter.filename);
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(zxprinter.filename, getenv ("HOME"));
-		strcatdelimeter(zxprinter.filename);
+		strcatdelimiter(zxprinter.filename);
 		strcat(zxprinter.filename, LOCAL_DATA_DIR);
-		strcatdelimeter(zxprinter.filename);
+		strcatdelimiter(zxprinter.filename);
 	#elif defined(__amigaos4__)
 		strcpy(zxprinter.filename, LOCAL_DATA_DIR);
 		if (zxprinter.filename[strlen(zxprinter.filename) - 1] != ':')
-			strcatdelimeter(zxprinter.filename);
+			strcatdelimiter(zxprinter.filename);
 	#else
 		strcpy(zxprinter.filename, getenv ("HOME"));
-		strcatdelimeter(zxprinter.filename);
+		strcatdelimiter(zxprinter.filename);
 		strcat(zxprinter.filename, LOCAL_DATA_DIR);
-		strcatdelimeter(zxprinter.filename);
+		strcatdelimiter(zxprinter.filename);
 	#endif
 
 	/* Create a unique filename using the date and time */
@@ -119,7 +119,7 @@ void local_data_dir_init(void) {
 		strcpy(foldername, "");	/* Avoids warnings */
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(foldername, getenv ("HOME"));
-		strcatdelimeter(foldername);
+		strcatdelimiter(foldername);
 		strcat(foldername, LOCAL_DATA_DIR);
 		mkdir(foldername, 0755);
 	#elif defined(__amigaos4__)
@@ -127,7 +127,7 @@ void local_data_dir_init(void) {
 		mkdir(foldername, 0755);
 	#else
 		strcpy(foldername, getenv ("HOME"));
-		strcatdelimeter(foldername);
+		strcatdelimiter(foldername);
 		strcat(foldername, LOCAL_DATA_DIR);
 		mkdir(foldername, 0755);
 	#endif
@@ -154,15 +154,15 @@ void sdl_rcfile_read(void) {
 
 	#if defined(PLATFORM_GP2X)
 		strcpy(rcfile.filename, startdir);
-		strcatdelimeter(rcfile.filename);
+		strcatdelimiter(rcfile.filename);
 	#elif defined(PLATFORM_ZAURUS)
 		strcpy(rcfile.filename, getenv ("HOME"));
-		strcatdelimeter(rcfile.filename);
+		strcatdelimiter(rcfile.filename);
 	#elif defined(__amigaos4__)
 		rcfile.filename[0] = '\0';
 	#else
 		strcpy(rcfile.filename, getenv ("HOME"));
-		strcatdelimeter(rcfile.filename);
+		strcatdelimiter(rcfile.filename);
 	#endif
 	strcat(rcfile.filename, RESOURCE_FILE);
 
@@ -938,7 +938,7 @@ int fonts_init(void) {
 		}
 		if (ptrfont->original == NULL) {
 			strcpy(filename, PACKAGE_DATA_DIR);
-			strcatdelimeter(filename);
+			strcatdelimiter(filename);
 			if (count == BMF_FONT_ZX80) {
 				strcat(filename, IMG_ZX80_FONT);
 			} else if (count == BMF_FONT_ZX81) {
@@ -1042,11 +1042,11 @@ int vkeyb_init(void) {
 			/* Prepare the relevant filename */
 			if (count == 0) {
 				strcpy(filename, PACKAGE_DATA_DIR);
-				strcatdelimeter(filename);
+				strcatdelimiter(filename);
 				strcat(filename, IMG_ZX80_KYBD);
 			} else {
 				strcpy(filename, PACKAGE_DATA_DIR);
-				strcatdelimeter(filename);
+				strcatdelimiter(filename);
 				strcat(filename, IMG_ZX81_KYBD);
 			}
 			/* Load the bitmap */
@@ -1142,7 +1142,7 @@ int sz81icons_init(void) {
 	/* Load the original scale icons once */
 	if (sz81icons.original == NULL) {
 		strcpy(filename, PACKAGE_DATA_DIR);
-		strcatdelimeter(filename);
+		strcatdelimiter(filename);
 		strcat(filename, IMG_SZ81_ICONS);
 		/* Load the bitmap */
 		if ((unconverted = SDL_LoadBMP(filename)) == NULL) {
@@ -1326,11 +1326,11 @@ int sdl_zxroms_init(void) {
 			/* Prepare the relevant filename */
 			if (count == 0) {
 				strcpy(filename, PACKAGE_DATA_DIR);
-				strcatdelimeter(filename);
+				strcatdelimiter(filename);
 				strcat(filename, ROM_ZX80);
 			} else {
 				strcpy(filename, PACKAGE_DATA_DIR);
-				strcatdelimeter(filename);
+				strcatdelimiter(filename);
 				strcat(filename, ROM_ZX81);
 			}
 			/* Open the ROM */
