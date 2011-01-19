@@ -968,6 +968,7 @@ if(zx80)
 #endif
 
 
+#ifndef SZ81	/* Added by Thunor */
 void overlay_help(void)
 {
 unsigned char *ptr,*optr;
@@ -983,6 +984,7 @@ for(y=0;y<192;y++)
   optr+=ZX_VID_FULLWIDTH/8;
   }
 }
+#endif
 
 
 void do_interrupt()
@@ -1007,7 +1009,9 @@ if(count>=scrn_freq)
 #endif
   {
   count=0;
+  #ifndef SZ81	/* Added by Thunor */
   if(help) overlay_help();
+  #endif
   update_scrn();
   }
 check_events();	/* on X checks events, on VGA scans kybd */

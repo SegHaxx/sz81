@@ -146,6 +146,7 @@ int sdl_init(void) {
 	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 	/* Populate the load file dialog's directory List */
 	load_file_dialog_dirlist_init();
+	save_state_dialog.state = FALSE;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -407,6 +408,12 @@ void sdl_component_executive(void) {
 		found = TRUE;
 	}
 
+	/* Monitor save state dialog's state */
+	if ((active_components & COMP_SSTATE) != (save_state_dialog.state * COMP_SSTATE)) {
+		if (save_state_dialog.state && vkeyb.state) vkeyb.state = FALSE;
+		found = TRUE;
+	}
+
 	/* Monitor runtime options' state */
 	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
 		if ((active_components & (COMP_RUNOPTS0 << count)) !=
@@ -439,6 +446,7 @@ void sdl_component_executive(void) {
 	if (sdl_emulator.state) active_components |= COMP_EMU;
 	if (load_selector_state) active_components |= COMP_LOAD;
 	if (load_file_dialog.state) active_components |= COMP_LDFILE;
+	if (save_state_dialog.state) active_components |= COMP_SSTATE;
 	if (vkeyb.state) active_components |= COMP_VKEYB;
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
 		active_components |= COMP_RUNOPTS0 << runtime_options_which();
@@ -455,14 +463,18 @@ int get_active_component(void) {
 
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
 		retval = COMP_RUNOPTS0 << runtime_options_which();
-	} else if (vkeyb.state) {
-		retval = COMP_VKEYB;
-	} else if (load_selector_state) {
-		retval = COMP_LOAD;
+	} else if (save_state_dialog.state) {
+		retval = COMP_SSTATE;
 	} else if (load_file_dialog.state) {
 		retval = COMP_LDFILE;
-	} else {
+	} else if (load_selector_state) {
+		retval = COMP_LOAD;
+	} else if (sdl_emulator.state) {
 		retval = COMP_EMU;
+	} else if (vkeyb.state) {
+		retval = COMP_VKEYB;
+	} else {
+		retval = 0;
 	}
 
 	return retval;
@@ -497,7 +509,7 @@ void sdl_timer_init(void) {
  * Emulator Timer                                                          *
  ***************************************************************************/
 
-Uint32 emulator_timer (Uint32 interval, void *param) {
+Uint32 emulator_timer(Uint32 interval, void *param) {
 	static int intervals = 0;
 
 	intervals++;
@@ -507,6 +519,28 @@ Uint32 emulator_timer (Uint32 interval, void *param) {
 	}
 	
 	return interval;
+}
+
+/***************************************************************************
+ * Emulator Hold                                                           *
+ ***************************************************************************/
+/* This will place the emulator into a holding position i.e. it will pause
+ * until the condition changes.
+ * 
+ * On entry: int *condition points to the variable to monitor */
+
+void emulator_hold(int *condition) {
+	int origcond = *condition;
+
+	do {
+		/* This waits until it's time to process the next frame
+		 * (signal_int_flag=1) */
+		frame_pause();
+		/* This calls update_scrn if the frame is to be rendered
+		 * i.e. not skipped, calls check_events which then calls
+		 * keyboard_update */
+		do_interrupt();
+	} while (origcond == *condition);
 }
 
 /***************************************************************************

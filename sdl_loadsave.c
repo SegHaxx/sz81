@@ -41,19 +41,25 @@ char *strzx80_to_ascii(int memaddr);
 
 int sdl_save_file(int prognameaddr, int method) {
 	char fullpath[256], filename[256];
-	int index, idxend, vars;
 	struct MSG_Box msg_box;
-	struct tm *timestruct;
 	int retval = FALSE;
-	time_t rightnow;
 	FILE *fp;
+	#ifndef __amigaos4__
+		int index, idxend, vars;
+		struct tm *timestruct;
+		time_t rightnow;
+	#endif
 
 	if (method == SAVE_FILE_METHOD_NAMEDSAVE) {
 
-		/* Build a path from the last entered directory */
-		strcpy(fullpath, load_file_dialog.dir);
-		/* Add a directory delimiter if required */
-		strcatdelimiter(fullpath);
+		#ifdef __amigaos4__
+			strcpy(fullpath, "");
+		#else
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
+		#endif
 		/* Add translated program name */
 		strcat(fullpath, strzx81_to_ascii(prognameaddr));
 		/* Add a file extension if one hasn't already been affixed */
@@ -78,62 +84,76 @@ int sdl_save_file(int prognameaddr, int method) {
 
 	} else if (method == SAVE_FILE_METHOD_UNNAMEDSAVE) {
 
-		/* Build a path from the last entered directory */
-		strcpy(fullpath, load_file_dialog.dir);
-		/* Add a directory delimiter if required */
-		strcatdelimiter(fullpath);
-
-		/* At the moment I'm not looking to develop a Save As dialog
-		 * just for ZX80 files, but I'm happy to implement some other
-		 * methods to name the files:
-		 * 1. Date and time stamped files e.g. zx80-20110115-234836.o
-		 *    (the GP2X won't support this but everything else is OK)
-		 * 2. Filenames embedded within a xxxx REM SAVE "progname"
-		 *    (works on any platform and is actually quit cool :) ) */
-		index = 0x4028;	/* Start of user program area */
-		vars = mem[0x4009] << 8 | mem[0x4008];	/* VARS */
-		while (index < vars) {
-			if (mem[index] == 0xfe && mem[index + 1] == 0xea && 
-				mem[index + 2] == 0x01) {	/* REM SAVE " */
-				idxend = index = index + 3;	/* Position on first char */
-				while (mem[idxend] != 0x01 && mem[idxend] < 0x80 &&
-					mem[idxend] != 0x76 && idxend < vars) idxend++;
-				if (index < idxend) {
-					mem[--idxend] |= 0x80;	/* +80h marks last char */
-					strcpy(filename, strzx80_to_ascii(index));
-					mem[idxend] &= ~0x80;	/* Remove +80h */
-					index = vars;			/* Exit loop */
-				}
+		#ifdef __amigaos4__
+			/* This will return NULL if the user cancelled */
+			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
+				strcpy(fullpath, amiga_file_request_retval);
+			} else {
+				retval = TRUE;
 			}
-			index++;
-		}
-		if (index == vars) {
-			/* Create a unique filename using the date and time */
-			rightnow = time(NULL);
-			timestruct = localtime(&rightnow);
-			strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);
-		}
+		#else
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
 
-		/* Add program name */
-		strcat(fullpath, filename);
-		/* Add a file extension if one hasn't already been affixed */
-		if (sdl_filetype_casecmp(fullpath, ".o") != 0 &&
-			sdl_filetype_casecmp(fullpath, ".80") != 0)
-			strcat(fullpath, ".o");
+			/* At the moment I'm not looking to develop a Save As dialog
+			 * just for ZX80 files, but I'm happy to implement some other
+			 * methods to name the files:
+			 * 1. Date and time stamped files e.g. zx80-20110115-234836.o
+			 *    (the GP2X won't support this but everything else is OK)
+			 * 2. Filenames embedded within a xxxx REM SAVE "progname"
+			 *    (works on any platform and is actually quit cool :) ) */
+			index = 0x4028;	/* Start of user program area */
+			vars = mem[0x4009] << 8 | mem[0x4008];	/* VARS */
+			while (index < vars) {
+				if (mem[index] == 0xfe && mem[index + 1] == 0xea && 
+					mem[index + 2] == 0x01) {	/* REM SAVE " */
+					idxend = index = index + 3;	/* Position on first char */
+					while (mem[idxend] != 0x01 && mem[idxend] < 0x80 &&
+						mem[idxend] != 0x76 && idxend < vars) idxend++;
+					if (index < idxend) {
+						mem[--idxend] |= 0x80;	/* +80h marks last char */
+						strcpy(filename, strzx80_to_ascii(index));
+						mem[idxend] &= ~0x80;	/* Remove +80h */
+						index = vars;			/* Exit loop */
+					}
+				}
+				index++;
+			}
+			if (index == vars) {
+				/* Create a unique filename using the date and time */
+				rightnow = time(NULL);
+				timestruct = localtime(&rightnow);
+				strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);
+			}
 
-		/* Attempt to open the file */
-		if ((fp = fopen(fullpath, "wb")) != NULL) {
-			/* Write up to and including E_LINE */
-			fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
-			/* Close the file now as we've finished with it */
-			fclose(fp);
-		} else {
-			retval = TRUE;
-			/* Warn the user via the GUI that the save failed */
-			strcpy(msg_box.title, "Save");
-			strcpy(msg_box.text, "Failed");
-			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
-			message_box_manager(MSG_BOX_SHOW, &msg_box);
+			/* Add program name */
+			strcat(fullpath, filename);
+		#endif
+
+		if (!retval) {
+
+			/* Add a file extension if one hasn't already been affixed */
+			if (sdl_filetype_casecmp(fullpath, ".o") != 0 &&
+				sdl_filetype_casecmp(fullpath, ".80") != 0)
+				strcat(fullpath, ".o");
+
+			/* Attempt to open the file */
+			if ((fp = fopen(fullpath, "wb")) != NULL) {
+				/* Write up to and including E_LINE */
+				fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
+				/* Close the file now as we've finished with it */
+				fclose(fp);
+			} else {
+				retval = TRUE;
+				/* Warn the user via the GUI that the save failed */
+				strcpy(msg_box.title, "Save");
+				strcpy(msg_box.text, "Failed");
+				msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
+				message_box_manager(MSG_BOX_SHOW, &msg_box);
+			}
+
 		}
 
 	}
@@ -189,13 +209,17 @@ int sdl_load_file(int prognameaddr, int method) {
 				retval = TRUE;
 			}
 		} else {
-			/* Build a path from the last entered directory */
-			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimiter if required */
-			strcatdelimiter(fullpath);
-			/* Add load_file_dialog.selected item */
-			strcat(fullpath, load_file_dialog.dirlist +
-				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+			#ifdef __amigaos4__
+				strcpy(fullpath, amiga_file_request_retval);
+			#else
+				/* Build a path from the last entered directory */
+				strcpy(fullpath, load_file_dialog.dir);
+				/* Add a directory delimiter if required */
+				strcatdelimiter(fullpath);
+				/* Add load_file_dialog.selected item */
+				strcat(fullpath, load_file_dialog.dirlist +
+					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+			#endif
 		}
 
 		if (!retval) {
@@ -315,10 +339,14 @@ int sdl_load_file(int prognameaddr, int method) {
 			/* Convert filename to uppercase on second attempt */
 			if (count == 1) strcpy(filename, strtoupper(filename));
 
-			/* Build a path from the last entered directory */
-			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimiter if required */
-			strcatdelimiter(fullpath);
+			#ifdef __amigaos4__
+				strcpy(fullpath, "");
+			#else
+				/* Build a path from the last entered directory */
+				strcpy(fullpath, load_file_dialog.dir);
+				/* Add a directory delimiter if required */
+				strcatdelimiter(fullpath);
+			#endif
 			/* Add translated program name */
 			strcat(fullpath, filename);
 
@@ -351,26 +379,34 @@ int sdl_load_file(int prognameaddr, int method) {
 
 		/* Let the load file dialog know what we are doing */
 		load_file_dialog.method = method;
-		/* Show the load file dialog */
-		toggle_ldfile_state();
 
-		/* Wait for the user to select Load or Exit which will close the
-		 * dialog (these two functions let the system continue to tick) */
-		do {
-			frame_pause();
-			do_interrupt();
-		} while (load_file_dialog.state);
+		#ifdef __amigaos4__
+			/* This will return NULL if the user cancelled */
+			if ((amiga_file_request_retval = amiga_file_request("")) != NULL)
+				load_file_dialog.method = LOAD_FILE_METHOD_SELECTLOADOK;
+		#else
+			/* Show the load file dialog */
+			toggle_ldfile_state();
+
+			/* Wait for the user to select Load or Exit
+			 * which will close the dialog */
+			emulator_hold(&load_file_dialog.state);
+		#endif
 
 		/* If Load was selected then the method will have been updated */
 		if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOADOK) {
 
-			/* Build a path from the last entered directory */
-			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimiter if required */
-			strcatdelimiter(fullpath);
-			/* Add load_file_dialog.selected item */
-			strcat(fullpath, load_file_dialog.dirlist +
-				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+			#ifdef __amigaos4__
+				strcpy(fullpath, amiga_file_request_retval);
+			#else
+				/* Build a path from the last entered directory */
+				strcpy(fullpath, load_file_dialog.dir);
+				/* Add a directory delimiter if required */
+				strcatdelimiter(fullpath);
+				/* Add load_file_dialog.selected item */
+				strcat(fullpath, load_file_dialog.dirlist +
+					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+			#endif
 
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {

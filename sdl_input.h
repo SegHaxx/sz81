@@ -97,6 +97,7 @@ struct {
 
 /* Function prototypes */
 void toggle_ldfile_state(void);
+void toggle_sstate_state(int mode);
 int runopts_is_a_reset_scheduled(void);
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(int shift_reset);

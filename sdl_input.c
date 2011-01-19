@@ -1059,7 +1059,7 @@ int keyboard_update(void) {
 					get_active_component() == COMP_CTB) manage_vkeyb_input();
 
 				/* Manage COMP_LDFILE input */
-				if (get_active_component() & COMP_LDFILE)
+				if (get_active_component() == COMP_LDFILE)
 					manage_ldfile_input();
 
 				/* Manage COMP_EMU and COMP_ALL input */
@@ -1082,6 +1082,11 @@ int keyboard_update(void) {
 				/* Record the event within the keyboard buffer */
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
+
+					if (id >= MAX_KEYCODES) fprintf(stderr,
+						"%s: id=%i is too large for keyboard_buffer\n",
+						__func__, id);	/* temp temp */
+
 					if (state == SDL_PRESSED) {
 						keyboard_buffer[id] = SDL_PRESSED;
 						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_PRESSED;
@@ -1706,12 +1711,14 @@ void manage_all_input(void) {
 				toggle_ldfile_state();
 			}
 		} else if (id == SDLK_F4) {
-			/* Reserved for future Save State */
+			/* Toggle save state dialog in save mode */
 			if (state == SDL_PRESSED) {
+				toggle_sstate_state(SSTATE_MODE_SAVE);
 			}
 		} else if (id == SDLK_F5) {
-			/* Reserved for future Load State */
+			/* Toggle save state dialog in load mode */
 			if (state == SDL_PRESSED) {
+				toggle_sstate_state(SSTATE_MODE_LOAD);
 			}
 		} else if (id == SDLK_F8) {
 			/* Toggle invert screen */
@@ -1746,8 +1753,9 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F12) {
 			/* Reset the emulator */
 			if (state == SDL_PRESSED) {
-				if (!load_selector_state && !load_file_dialog.state &&
-					runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+				if (get_active_component() == COMP_VKEYB ||
+					get_active_component() == COMP_CTB ||
+					get_active_component() == COMP_EMU) {
 					/* Restart mainloop on return */
 					interrupted = INTERRUPT_EMULATOR_RESET;
 				}
@@ -1759,6 +1767,8 @@ void manage_all_input(void) {
 					/* This component is now redundant */
 				} else if (get_active_component() == COMP_LDFILE) {
 					toggle_ldfile_state();
+				} else if (get_active_component() == COMP_SSTATE) {
+					toggle_sstate_state(0);
 				} else if (get_active_component() == COMP_VKEYB || 
 					get_active_component() == COMP_CTB) {
 					toggle_vkeyb_state();
@@ -1854,8 +1864,9 @@ void manage_vkeyb_input(void) {
 
 void toggle_vkeyb_state(void) {
 
-	if (!load_selector_state && !load_file_dialog.state &&
-		runtime_options_which() == MAX_RUNTIME_OPTIONS) {
+	if (get_active_component() == COMP_VKEYB ||
+		get_active_component() == COMP_CTB ||
+		get_active_component() == COMP_EMU) {
 		vkeyb.state = !vkeyb.state;
 	}
 }
@@ -2140,7 +2151,10 @@ void toggle_runopts_state(void) {
 	static int last_vkeyb_state = FALSE;
 	int count;
 
-	if (!load_selector_state && !load_file_dialog.state) {
+	if (get_active_component() & COMP_RUNOPTS_ALL ||
+		get_active_component() == COMP_VKEYB ||
+		get_active_component() == COMP_CTB ||
+		get_active_component() == COMP_EMU) {
 		if (runtime_options_which() == MAX_RUNTIME_OPTIONS) {
 			for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
 				if (last_runopts_comp == (COMP_RUNOPTS0 << count)) {
@@ -2370,20 +2384,60 @@ void manage_ldfile_input(void) {
 /* This is called from multiple places */
 
 void toggle_ldfile_state(void) {
+	#ifndef __amigaos4__
+		static int last_vkeyb_state = FALSE;
+	#endif
+
+	if (get_active_component() == COMP_LDFILE ||
+		get_active_component() == COMP_VKEYB ||
+		get_active_component() == COMP_CTB ||
+		get_active_component() == COMP_EMU) {
+		#ifdef __amigaos4__
+			/* This will return NULL if the user cancelled */
+			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
+				load_file_dialog.method = LOAD_FILE_METHOD_FORCEDLOAD;
+				sdl_emulator.autoload = TRUE;
+				/* Restart mainloop on return */
+				interrupted = INTERRUPT_EMULATOR_RESET;
+			}
+		#else
+			if (!load_file_dialog.state) {
+				/* Force select the Load hotspot */
+				hotspots[get_selected_hotspot(HS_GRP_LDFILE)].flags &= ~HS_PROP_SELECTED;
+				hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;
+				load_file_dialog.state = TRUE;
+				sdl_emulator.state = FALSE;
+				last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+			} else {
+				load_file_dialog.state = FALSE;
+				sdl_emulator.state = TRUE;
+				vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
+			}
+		#endif
+	}
+}
+
+/***************************************************************************
+ * Toggle Save State Dialog State                                          *
+ ***************************************************************************/
+/* This is called from multiple places */
+
+void toggle_sstate_state(int mode) {
 	static int last_vkeyb_state = FALSE;
 
-	if (!load_selector_state &&
-		runtime_options_which() == MAX_RUNTIME_OPTIONS) {
-		if (!load_file_dialog.state) {
-			/* Force select the Load hotspot */
-			hotspots[get_selected_hotspot(HS_GRP_LDFILE)].flags &= ~HS_PROP_SELECTED;
-			hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;
-			load_file_dialog.state = TRUE;
-			sdl_emulator.state = FALSE;
+	if (get_active_component() == COMP_SSTATE ||
+		get_active_component() == COMP_VKEYB ||
+		get_active_component() == COMP_CTB ||
+		get_active_component() == COMP_EMU) {
+		if (!save_state_dialog.state) {
+			save_state_dialog.mode = mode;
+			save_state_dialog.state = TRUE;
 			last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+			/* Wait for the user to select a slot or Exit
+			 * which will close the dialog */
+			emulator_hold(&save_state_dialog.state);
 		} else {
-			load_file_dialog.state = FALSE;
-			sdl_emulator.state = TRUE;
+			save_state_dialog.state = FALSE;
 			vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 		}
 	}

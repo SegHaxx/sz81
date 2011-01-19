@@ -24,6 +24,10 @@
 #define DIRLIST_FILETYPE_ZX81 4
 #define DIRLIST_FILETYPE_TXT 8
 
+/* Save state dialog operating modes */
+#define SSTATE_MODE_SAVE 0
+#define SSTATE_MODE_LOAD 1
+
 /* Variables */
 struct MSG_Box {
 	char title[33];		/* The title bar text */
@@ -35,15 +39,23 @@ struct {
 	int state;
 	int xoffset;
 	int yoffset;
-	char dir[256];
-	char *dirlist;
-	int dirlist_sizeof;
-	int dirlist_count;
-	int dirlist_top;
-	int dirlist_selected;
-	char filename[256];
-	int method;
+	char dir[256];			/* The directory that files are loaded from and saved to */
+	char *dirlist;			/* A list containing compatible entries from the directory */
+	int dirlist_sizeof;		/* The size of each element within the list */
+	int dirlist_count;		/* The count of files within the list */
+	int dirlist_top;		/* The GUI list top as an index into the list */
+	int dirlist_selected;	/* The selected item as an index into the list */
+	char filename[256];		/* The filename of the most recently loaded file */
+	int method;				/* The loading method to be implemented for certain methods */
 } load_file_dialog;
+
+struct {
+	int state;
+	int xoffset;
+	int yoffset;
+	int slots[9];		/* The slots currently saved to (existing state files) */
+	int mode;			/* Are we loading or saving */
+} save_state_dialog;
 
 /* Function prototypes */
 void load_file_dialog_dirlist_init(void);

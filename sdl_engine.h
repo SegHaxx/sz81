@@ -63,7 +63,8 @@
 #define COMP_RUNOPTS3 128
 #define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
 #define COMP_LDFILE 256
-#define COMP_ALL ((COMP_LDFILE - 1) | COMP_LDFILE)
+#define COMP_SSTATE 512
+#define COMP_ALL ((COMP_SSTATE - 1) | COMP_SSTATE)
 
 /* Emulator variables I require access to */
 extern int refresh_screen;
@@ -104,6 +105,7 @@ extern void do_interrupt(void);
 /* Function prototypes */
 int get_active_component(void);
 int runtime_options_which(void);
+void emulator_hold(int *condition);
 Uint32 emulator_timer (Uint32 interval, void *param);
 
 
