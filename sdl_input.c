@@ -1056,7 +1056,8 @@ int keyboard_update(void) {
 				
 				/* Manage COMP_VKEYB and COMP_CTB input */
 				if (get_active_component() == COMP_VKEYB ||
-					get_active_component() == COMP_CTB) manage_vkeyb_input();
+					get_active_component() == COMP_CTB)
+					manage_vkeyb_input();
 
 				/* Manage COMP_LDFILE input */
 				if (get_active_component() == COMP_LDFILE)
@@ -1816,6 +1817,7 @@ void manage_all_input(void) {
  ***************************************************************************/
 
 void manage_vkeyb_input(void) {
+
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
 		if (id == SDLK_F6) {

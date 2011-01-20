@@ -19,7 +19,7 @@
 #define MAX_HOTSPOTS 172
 
 /* Hotspot group IDs */
-#define HS_GRP_ROOT 1
+#define HS_GRP_EMU 1
 #define HS_GRP_LOAD 2
 #define HS_GRP_VKEYB 4
 #define HS_GRP_CTB 8
@@ -32,7 +32,7 @@
 #define HS_GRP_ALL ((HS_GRP_LDFILE - 1) | HS_GRP_LDFILE)
 
 /* Hotspot IDs (hotspots[] indexes which are also zorders) */
-#define HS_ROOT_CANVAS 0
+#define HS_EMU_EMU 0
 #define HS_LOAD_Q 1
 #define HS_LOAD_A 2
 #define HS_LOAD_ENTER 3

@@ -467,12 +467,12 @@ int get_active_component(void) {
 		retval = COMP_SSTATE;
 	} else if (load_file_dialog.state) {
 		retval = COMP_LDFILE;
+	} else if (vkeyb.state) {
+		retval = COMP_VKEYB;
 	} else if (load_selector_state) {
 		retval = COMP_LOAD;
 	} else if (sdl_emulator.state) {
 		retval = COMP_EMU;
-	} else if (vkeyb.state) {
-		retval = COMP_VKEYB;
 	} else {
 		retval = 0;
 	}

@@ -191,192 +191,34 @@ int sdl_load_file(int prognameaddr, int method) {
 		load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 	}
 
-	if (method == LOAD_FILE_METHOD_AUTOLOAD || method == LOAD_FILE_METHOD_FORCEDLOAD) {
-
-		if (method == LOAD_FILE_METHOD_AUTOLOAD) {
-			/* Check that the file type is compatible with the machine model */
-			if ((*sdl_emulator.model == MODEL_ZX80 &&
-				(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
-				sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
-				(*sdl_emulator.model == MODEL_ZX81 &&
-				(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
-				sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
-				/* Copy the filename to fullpath which we'll be using below */
-				strcpy(fullpath, sdl_com_line.filename);
-			} else {
-				fprintf(stderr, "%s: File type is incompatible with machine model.\n",
-					__func__);
-				retval = TRUE;
-			}
+	if (method == LOAD_FILE_METHOD_AUTOLOAD) {
+		/* Check that the file type is compatible with the machine model */
+		if ((*sdl_emulator.model == MODEL_ZX80 &&
+			(sdl_filetype_casecmp(sdl_com_line.filename, ".o") == 0 ||
+			sdl_filetype_casecmp(sdl_com_line.filename, ".80") == 0)) ||
+			(*sdl_emulator.model == MODEL_ZX81 &&
+			(sdl_filetype_casecmp(sdl_com_line.filename, ".p") == 0 ||
+			sdl_filetype_casecmp(sdl_com_line.filename, ".81") == 0))) {
+			/* Copy the filename to fullpath which we'll be using below */
+			strcpy(fullpath, sdl_com_line.filename);
 		} else {
-			#ifdef __amigaos4__
-				strcpy(fullpath, amiga_file_request_retval);
-			#else
-				/* Build a path from the last entered directory */
-				strcpy(fullpath, load_file_dialog.dir);
-				/* Add a directory delimiter if required */
-				strcatdelimiter(fullpath);
-				/* Add load_file_dialog.selected item */
-				strcat(fullpath, load_file_dialog.dirlist +
-					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
-			#endif
-		}
-
-		if (!retval) {
-			/* Open the file */
-			if ((fp = fopen(fullpath, "rb")) != NULL) {
-				/* To duplicate these values: in mainloop in z80.c around
-				 * line 189, change #if 0 to #if 1 and recompile. Run
-				 * the emulator, load a suitably sized program by typing
-				 * LOAD or LOAD "something" and view the console output.
-				 * 
-				 * It's likely I've been a bit too thorough recording these
-				 * values because I know from looking at the ZX81 ROM that
-				 * DE points to the program name in memory which would get
-				 * overwritten on LOAD and make it redundant, and HL and A
-				 * are modified soon after anyway, but there's no harm done.
-				 * 
-				 * Note that the ZX81's RAMTOP won't be greater than 0x8000
-				 * unless POKEd by the user.
-				 */
-				if (*sdl_emulator.model == MODEL_ZX80) {
-					/* Registers (common values) */
-					a = 0x00; f = 0x44; b = 0x00; c = 0x00;
-					d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
-					pc = 0x0283;
-					ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
-					a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
-					d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
-					iff1 = 0x00; iff2 = 0x00; im = 0x02;
-					radjust = 0x6a;
-					/* Machine Stack (common values) */
-					if (sdl_emulator.ramsize >= 16) {
-						sp = 0x8000 - 4;
-					} else {
-						sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
-					}
-					mem[sp + 0] = 0x47;
-					mem[sp + 1] = 0x04;
-					mem[sp + 2] = 0xba;
-					mem[sp + 3] = 0x3f;
-					/* Now override if RAM configuration changes things
-					 * (there's a possibility these changes are unimportant) */
-					if (sdl_emulator.ramsize == 16) {
-						mem[sp + 2] = 0x22;
-					}
-				} else if (*sdl_emulator.model == MODEL_ZX81) {
-					/* Registers (common values) */
-					a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
-					d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
-					pc = 0x0207;
-					ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
-					a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
-					d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
-					iff1 = 0; iff2 = 0; im = 2;
-					radjust = 0xa4;
-					/* GOSUB Stack (common values) */
-					if (sdl_emulator.ramsize >= 16) {
-						sp = 0x8000 - 4;
-					} else {
-						sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
-					}
-					mem[sp + 0] = 0x76;
-					mem[sp + 1] = 0x06;
-					mem[sp + 2] = 0x00;
-					mem[sp + 3] = 0x3e;
-					/* Now override if RAM configuration changes things
-					 * (there's a possibility these changes are unimportant) */
-					if (sdl_emulator.ramsize >= 4) {
-						d = 0x43; h = 0x43;
-						a1 = 0xec; b1 = 0x81; c1 = 0x02;
-						radjust = 0xa9;
-					}
-					/* System variables */
-					mem[0x4000] = 0xff;				/* ERR_NR */
-					mem[0x4001] = 0x80;				/* FLAGS */
-					mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
-					mem[0x4003] = sp >> 8;			/* ERR_SP hi */
-					mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
-					mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
-					mem[0x4006] = 0x00;				/* MODE */
-					mem[0x4007] = 0xfe;				/* PPC lo */
-					mem[0x4008] = 0xff;				/* PPC hi */
-				}
-				/* Read in up to sdl_emulator.ramsize K of data */
-				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".80") == 0) {
-					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
-				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".81") == 0) {
-					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
-				}
-				/* Close the file now as we've finished with it */
-				fclose(fp);
-
-				/* Copy the filename across to the load file dialog as
-				 * then we have a record of what was last/is now loaded */
-				strcpy(load_file_dialog.filename, fullpath);
-
-			} else {
-				fprintf(stderr, "%s: Cannot read from %s\n", __func__,
-					fullpath);
-				retval = TRUE;
-			}
-		}
-
-	} else if (method == LOAD_FILE_METHOD_NAMEDLOAD) {
-
-		/* Attempt to open the file firstly in lowercase and then 
-		 * in uppercase as program files are obtained in either */
-		for (count = 0; count < 2; count++) {
-			/* Get translated program name */
-			strcpy(filename, strzx81_to_ascii(prognameaddr));
-			/* Add a file extension if one hasn't already been affixed */
-			if (sdl_filetype_casecmp(filename, ".p") != 0 &&
-				sdl_filetype_casecmp(filename, ".81") != 0)
-				strcat(filename, ".p");
-
-			/* Convert filename to uppercase on second attempt */
-			if (count == 1) strcpy(filename, strtoupper(filename));
-
-			#ifdef __amigaos4__
-				strcpy(fullpath, "");
-			#else
-				/* Build a path from the last entered directory */
-				strcpy(fullpath, load_file_dialog.dir);
-				/* Add a directory delimiter if required */
-				strcatdelimiter(fullpath);
-			#endif
-			/* Add translated program name */
-			strcat(fullpath, filename);
-
-			/* Attempt to open the file */
-			if ((fp = fopen(fullpath, "rb")) != NULL) {
-
-				/* Read in up to sdl_emulator.ramsize K of data */
-				fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
-
-				/* Close the file now as we've finished with it */
-				fclose(fp);
-
-				/* Copy the filename across to the load file dialog as
-				 * then we have a record of what was last/is now loaded */
-				strcpy(load_file_dialog.filename, fullpath);
-
-				break;
-			}
-		}
-		if (count == 2) {
+			fprintf(stderr, "%s: File type is incompatible with machine model.\n",
+				__func__);
 			retval = TRUE;
-			/* Warn the user via the GUI that the load failed */
-			strcpy(msg_box.title, "Load");
-			strcpy(msg_box.text, "Failed");
-			msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
-			message_box_manager(MSG_BOX_SHOW, &msg_box);
 		}
-
+	} else if (method == LOAD_FILE_METHOD_FORCEDLOAD) {
+		#ifdef __amigaos4__
+			strcpy(fullpath, amiga_file_request_retval);
+		#else
+			/* Build a path from the last entered directory */
+			strcpy(fullpath, load_file_dialog.dir);
+			/* Add a directory delimiter if required */
+			strcatdelimiter(fullpath);
+			/* Add load_file_dialog.selected item */
+			strcat(fullpath, load_file_dialog.dirlist +
+				load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
+		#endif
 	} else if (method == LOAD_FILE_METHOD_SELECTLOAD) {
-
 		/* Let the load file dialog know what we are doing */
 		load_file_dialog.method = method;
 
@@ -395,7 +237,6 @@ int sdl_load_file(int prognameaddr, int method) {
 
 		/* If Load was selected then the method will have been updated */
 		if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOADOK) {
-
 			#ifdef __amigaos4__
 				strcpy(fullpath, amiga_file_request_retval);
 			#else
@@ -407,16 +248,127 @@ int sdl_load_file(int prognameaddr, int method) {
 				strcat(fullpath, load_file_dialog.dirlist +
 					load_file_dialog.dirlist_selected * load_file_dialog.dirlist_sizeof);
 			#endif
+		} else {
+			retval = TRUE;
+		}
+	}
+
+	if (!retval) {
+		for (count = 0; count < 2; count++) {
+			if (method == LOAD_FILE_METHOD_NAMEDLOAD) {
+				/* Attempt to open the file firstly in lowercase and then 
+				 * in uppercase as program files are obtained in either */
+
+				/* Get translated program name */
+				strcpy(filename, strzx81_to_ascii(prognameaddr));
+				/* Add a file extension if one hasn't already been affixed */
+				if (sdl_filetype_casecmp(filename, ".p") != 0 &&
+					sdl_filetype_casecmp(filename, ".81") != 0)
+					strcat(filename, ".p");
+
+				/* Convert filename to uppercase on second attempt */
+				if (count == 1) strcpy(filename, strtoupper(filename));
+
+				#ifdef __amigaos4__
+					strcpy(fullpath, "");
+				#else
+					/* Build a path from the last entered directory */
+					strcpy(fullpath, load_file_dialog.dir);
+					/* Add a directory delimiter if required */
+					strcatdelimiter(fullpath);
+				#endif
+				/* Add translated program name */
+				strcat(fullpath, filename);
+			}
 
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {
 
+				if (method == LOAD_FILE_METHOD_AUTOLOAD || 
+					method == LOAD_FILE_METHOD_FORCEDLOAD) {
+					/* To duplicate these values: in mainloop in z80.c around
+					 * line 189, change #if 0 to #if 1 and recompile. Run
+					 * the emulator, load a suitably sized program by typing
+					 * LOAD or LOAD "something" and view the console output.
+					 * 
+					 * It's likely I've been a bit too thorough recording these
+					 * values because I know from looking at the ZX81 ROM that
+					 * DE points to the program name in memory which would get
+					 * overwritten on LOAD and make it redundant, and HL and A
+					 * are modified soon after anyway, but there's no harm done.
+					 * 
+					 * Note that the ZX81's RAMTOP won't be greater than 0x8000
+					 * unless POKEd by the user.
+					 */
+					if (*sdl_emulator.model == MODEL_ZX80) {
+						/* Registers (common values) */
+						a = 0x00; f = 0x44; b = 0x00; c = 0x00;
+						d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
+						pc = 0x0283;
+						ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
+						a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
+						d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
+						iff1 = 0x00; iff2 = 0x00; im = 0x02;
+						radjust = 0x6a;
+						/* Machine Stack (common values) */
+						if (sdl_emulator.ramsize >= 16) {
+							sp = 0x8000 - 4;
+						} else {
+							sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+						}
+						mem[sp + 0] = 0x47;
+						mem[sp + 1] = 0x04;
+						mem[sp + 2] = 0xba;
+						mem[sp + 3] = 0x3f;
+						/* Now override if RAM configuration changes things
+						 * (there's a possibility these changes are unimportant) */
+						if (sdl_emulator.ramsize == 16) {
+							mem[sp + 2] = 0x22;
+						}
+					} else if (*sdl_emulator.model == MODEL_ZX81) {
+						/* Registers (common values) */
+						a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
+						d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
+						pc = 0x0207;
+						ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
+						a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
+						d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
+						iff1 = 0; iff2 = 0; im = 2;
+						radjust = 0xa4;
+						/* GOSUB Stack (common values) */
+						if (sdl_emulator.ramsize >= 16) {
+							sp = 0x8000 - 4;
+						} else {
+							sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+						}
+						mem[sp + 0] = 0x76;
+						mem[sp + 1] = 0x06;
+						mem[sp + 2] = 0x00;
+						mem[sp + 3] = 0x3e;
+						/* Now override if RAM configuration changes things
+						 * (there's a possibility these changes are unimportant) */
+						if (sdl_emulator.ramsize >= 4) {
+							d = 0x43; h = 0x43;
+							a1 = 0xec; b1 = 0x81; c1 = 0x02;
+							radjust = 0xa9;
+						}
+						/* System variables */
+						mem[0x4000] = 0xff;				/* ERR_NR */
+						mem[0x4001] = 0x80;				/* FLAGS */
+						mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
+						mem[0x4003] = sp >> 8;			/* ERR_SP hi */
+						mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
+						mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
+						mem[0x4006] = 0x00;				/* MODE */
+						mem[0x4007] = 0xfe;				/* PPC lo */
+						mem[0x4008] = 0xff;				/* PPC hi */
+					}
+				}
+
 				/* Read in up to sdl_emulator.ramsize K of data */
-				if (sdl_filetype_casecmp(fullpath, ".o") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".80") == 0) {
+				if (*sdl_emulator.model == MODEL_ZX80) {
 					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
-				} else if (sdl_filetype_casecmp(fullpath, ".p") == 0 ||
-					sdl_filetype_casecmp(fullpath, ".81") == 0) {
+				} else if (*sdl_emulator.model == MODEL_ZX81) {
 					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
 				}
 
@@ -427,8 +379,23 @@ int sdl_load_file(int prognameaddr, int method) {
 				 * then we have a record of what was last/is now loaded */
 				strcpy(load_file_dialog.filename, fullpath);
 
+				break;
+
 			} else {
-				retval = TRUE;
+				if ((method == LOAD_FILE_METHOD_NAMEDLOAD && count == 1) ||
+					method != LOAD_FILE_METHOD_NAMEDLOAD) {
+					retval = TRUE;
+					break;
+				}
+			}
+		}
+
+		if (retval) {
+			if (method == LOAD_FILE_METHOD_AUTOLOAD || 
+				method == LOAD_FILE_METHOD_FORCEDLOAD) {
+				fprintf(stderr, "%s: Cannot read from %s\n", __func__, fullpath);
+			} else if (method == LOAD_FILE_METHOD_NAMEDLOAD || 
+				method == LOAD_FILE_METHOD_SELECTLOAD) {
 				/* Warn the user via the GUI that the load failed */
 				strcpy(msg_box.title, "Load");
 				strcpy(msg_box.text, "Failed");
@@ -436,19 +403,10 @@ int sdl_load_file(int prognameaddr, int method) {
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
 			}
 		}
-
-		/* We've finished with the load file dialog now */
-		load_file_dialog.method = LOAD_FILE_METHOD_NONE;
-
-	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
-
-		/* Todo todo todo todo todo */
-		/* Todo todo todo todo todo */
-		/* Todo todo todo todo todo */
-		/* Todo todo todo todo todo */
-		/* Todo todo todo todo todo */
-
 	}
+
+	/* We've finished with the load file dialog now */
+	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 
 	/* printf("%s: Was/is loaded: %s\n", __func__, load_file_dialog.filename);	temp temp */
 

@@ -48,9 +48,9 @@ void sdl_hotspots_init(void) {
 	}
 	
 	/* Initialise root hotspots */
-	hotspots[HS_ROOT_CANVAS].gid = HS_GRP_ROOT;
-	hotspots[HS_ROOT_CANVAS].flags &= ~HS_PROP_NAVIGABLE;
-	hotspots[HS_ROOT_CANVAS].remap_id = SDLK_F1;
+	hotspots[HS_EMU_EMU].gid = HS_GRP_EMU;
+	hotspots[HS_EMU_EMU].flags &= ~HS_PROP_NAVIGABLE;
+	hotspots[HS_EMU_EMU].remap_id = SDLK_F1;
 
 	/* Initialise file selector hotspots */
 	for (count = HS_LOAD_Q; count <= HS_LOAD_SPACE; count++) {
@@ -290,12 +290,12 @@ void hotspots_vkeyb_shift_init(void) {
 void hotspots_resize(int gid) {
 	int count;
 
-	if (gid & HS_GRP_ROOT) {
+	if (gid & HS_GRP_EMU) {
 		/* Resize root hotspots */
-		hotspots[HS_ROOT_CANVAS].hit_x = 0;
-		hotspots[HS_ROOT_CANVAS].hit_y = 0;
-		hotspots[HS_ROOT_CANVAS].hit_w = video.screen->w;
-		hotspots[HS_ROOT_CANVAS].hit_h = video.screen->h;
+		hotspots[HS_EMU_EMU].hit_x = 0;
+		hotspots[HS_EMU_EMU].hit_y = 0;
+		hotspots[HS_EMU_EMU].hit_w = video.screen->w;
+		hotspots[HS_EMU_EMU].hit_h = video.screen->h;
 	}
 
 	if (gid & HS_GRP_LOAD) {
@@ -754,7 +754,7 @@ void hotspots_render(void) {
 	 * that are recorded as being pressed, and selected hotspots if applicable */
 	for (count = 0; count < MAX_HOTSPOTS; count++) {
 		if (hotspots[count].gid != UNDEFINED && hotspots[count].flags & HS_PROP_VISIBLE &&
-			hotspots[count].gid != HS_GRP_ROOT && hotspots[count].remap_id != UNDEFINED) {
+			hotspots[count].gid != HS_GRP_EMU && hotspots[count].remap_id != UNDEFINED) {
 
 			pressed = keyboard_buffer[hotspots[count].remap_id];
 			selected = hotspots[count].flags & HS_PROP_SELECTED;
