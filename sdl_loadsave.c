@@ -51,7 +51,6 @@ int sdl_save_file(int prognameaddr, int method) {
 	#endif
 
 	if (method == SAVE_FILE_METHOD_NAMEDSAVE) {
-
 		#ifdef __amigaos4__
 			strcpy(fullpath, "");
 		#else
@@ -66,24 +65,7 @@ int sdl_save_file(int prognameaddr, int method) {
 		if (sdl_filetype_casecmp(fullpath, ".p") != 0 &&
 			sdl_filetype_casecmp(fullpath, ".81") != 0)
 			strcat(fullpath, ".p");
-
-		/* Attempt to open the file */
-		if ((fp = fopen(fullpath, "wb")) != NULL) {
-			/* Write up to and including E_LINE */
-			fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
-			/* Close the file now as we've finished with it */
-			fclose(fp);
-		} else {
-			retval = TRUE;
-			/* Warn the user via the GUI that the save failed */
-			strcpy(msg_box.title, "Save");
-			strcpy(msg_box.text, "Failed");
-			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
-			message_box_manager(MSG_BOX_SHOW, &msg_box);
-		}
-
 	} else if (method == SAVE_FILE_METHOD_UNNAMEDSAVE) {
-
 		#ifdef __amigaos4__
 			/* This will return NULL if the user cancelled */
 			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
@@ -131,31 +113,33 @@ int sdl_save_file(int prognameaddr, int method) {
 			/* Add program name */
 			strcat(fullpath, filename);
 		#endif
-
 		if (!retval) {
-
 			/* Add a file extension if one hasn't already been affixed */
 			if (sdl_filetype_casecmp(fullpath, ".o") != 0 &&
 				sdl_filetype_casecmp(fullpath, ".80") != 0)
 				strcat(fullpath, ".o");
-
-			/* Attempt to open the file */
-			if ((fp = fopen(fullpath, "wb")) != NULL) {
-				/* Write up to and including E_LINE */
-				fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
-				/* Close the file now as we've finished with it */
-				fclose(fp);
-			} else {
-				retval = TRUE;
-				/* Warn the user via the GUI that the save failed */
-				strcpy(msg_box.title, "Save");
-				strcpy(msg_box.text, "Failed");
-				msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
-				message_box_manager(MSG_BOX_SHOW, &msg_box);
-			}
-
 		}
+	}
 
+	if (!retval) {
+		/* Attempt to open the file */
+		if ((fp = fopen(fullpath, "wb")) != NULL) {
+			/* Write up to and including E_LINE */
+			if (*sdl_emulator.model == MODEL_ZX80) {
+				fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
+			} else if (*sdl_emulator.model == MODEL_ZX81) {
+				fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+			}
+			/* Close the file now as we've finished with it */
+			fclose(fp);
+		} else {
+			retval = TRUE;
+			/* Warn the user via the GUI that the save failed */
+			strcpy(msg_box.title, "Save");
+			strcpy(msg_box.text, "Failed");
+			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
+			message_box_manager(MSG_BOX_SHOW, &msg_box);
+		}
 	}
 
 	if (!retval) {
@@ -382,8 +366,7 @@ int sdl_load_file(int prognameaddr, int method) {
 				break;
 
 			} else {
-				if ((method == LOAD_FILE_METHOD_NAMEDLOAD && count == 1) ||
-					method != LOAD_FILE_METHOD_NAMEDLOAD) {
+				if (!(method == LOAD_FILE_METHOD_NAMEDLOAD && count == 0)) {
 					retval = TRUE;
 					break;
 				}

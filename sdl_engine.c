@@ -445,18 +445,22 @@ void sdl_component_executive(void) {
 	active_components = 0;
 	if (sdl_emulator.state) active_components |= COMP_EMU;
 	if (load_selector_state) active_components |= COMP_LOAD;
+	if (vkeyb.state) active_components |= COMP_VKEYB;
+	if (runtime_options_which() < MAX_RUNTIME_OPTIONS)
+		active_components |= COMP_RUNOPTS0 << runtime_options_which();
 	if (load_file_dialog.state) active_components |= COMP_LDFILE;
 	if (save_state_dialog.state) active_components |= COMP_SSTATE;
-	if (vkeyb.state) active_components |= COMP_VKEYB;
-	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
-		active_components |= COMP_RUNOPTS0 << runtime_options_which();
 
 }
 
 /***************************************************************************
  * Get Active Component                                                    *
  ***************************************************************************/
-/* This returns the main currently active component */
+/* This returns the main currently active component.
+ * 
+ * COMP_EMU is inactive when another fullscreen component is covering it but
+ * not when the vkeyb or save state dialog is active, so COMP_EMU's state
+ * should be detected last otherwise it can override something else */
 
 int get_active_component(void) {
 	int retval;
@@ -526,6 +530,10 @@ Uint32 emulator_timer(Uint32 interval, void *param) {
  ***************************************************************************/
 /* This will place the emulator into a holding position i.e. it will pause
  * until the condition changes.
+ * 
+ * Currently there is a limitation here in that if the user attempts to quit
+ * sz81 (interrupted = INTERRUPT_PROGRAM_QUIT) then it won't exit until this
+ * exits and the component that uses it closes temp temp
  * 
  * On entry: int *condition points to the variable to monitor */
 
