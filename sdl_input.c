@@ -303,14 +303,14 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F1;
 
-			/* Active within emulator only */
-			ctrl_remaps[++index].components = COMP_EMU;
+			ctrl_remaps[++index].components = COMP_EMU | COMP_LDFILE;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_SELECT;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F3;
 
+			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = FALSE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -522,14 +522,14 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_F1;
 
-					/* Active within emulator */
-					ctrl_remaps[++index].components = COMP_EMU;
+					ctrl_remaps[++index].components = COMP_EMU | COMP_LDFILE;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 2;	/* C */
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_F3;
 
+					/* Active within emulator */
 					ctrl_remaps[++index].components = COMP_EMU;
 					ctrl_remaps[index].protected = FALSE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -2704,7 +2704,7 @@ void runopts_transit(int state) {
 						} else if (ctrl == 6) {
 							/* Set-up SELECT joystick controls */
 							if (count == 0) {
-								components = COMP_EMU;
+								components = COMP_EMU | COMP_LDFILE;
 								remap_id = SDLK_F3;
 							} else if (count == 1) {
 								components = COMP_VKEYB | COMP_RUNOPTS_ALL;

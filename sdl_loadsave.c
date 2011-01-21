@@ -166,6 +166,7 @@ int sdl_load_file(int prognameaddr, int method) {
 	char fullpath[256], filename[256];
 	struct MSG_Box msg_box;
 	int retval = FALSE;
+	int ramsize;
 	int count;
 	FILE *fp;
 
@@ -349,11 +350,16 @@ int sdl_load_file(int prognameaddr, int method) {
 					}
 				}
 
-				/* Read in up to sdl_emulator.ramsize K of data */
+				/* Read in up to 48K of data */
+				if (sdl_emulator.ramsize > 48) {
+					ramsize = 48;
+				} else {
+					ramsize = sdl_emulator.ramsize;
+				}
 				if (*sdl_emulator.model == MODEL_ZX80) {
-					fread(mem + 0x4000, 1, sdl_emulator.ramsize * 1024, fp);
+					fread(mem + 0x4000, 1, ramsize * 1024, fp);
 				} else if (*sdl_emulator.model == MODEL_ZX81) {
-					fread(mem + 0x4009, 1, sdl_emulator.ramsize * 1024 - 9, fp);
+					fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
 				}
 
 				/* Close the file now as we've finished with it */

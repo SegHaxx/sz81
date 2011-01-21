@@ -207,6 +207,10 @@ int sdl_video_setmode(void) {
 	load_file_dialog.yoffset = (video.yres - 192 * video.scale) / 2;
 	if (load_file_dialog.yoffset < 0) load_file_dialog.yoffset = 0;
 
+	/* Set-up the save state dialog's screen offset */
+	save_state_dialog.xoffset = (video.screen->w - 15 * 8 * video.scale) / 2;
+	save_state_dialog.yoffset = (video.screen->h - 17.5 * 8 * video.scale) / 2;
+
 	/* Set-up the fonts */
 	if (fonts_init()) exit(1);
 
@@ -377,6 +381,78 @@ void sdl_video_update(void) {
 		if (SDL_MUSTLOCK(video.screen)) SDL_UnlockSurface(video.screen);
 	}
 	
+	/* Is the save state dialog being rendered? */
+	if (save_state_dialog.state) {
+		srcx = save_state_dialog.xoffset;
+		srcy = save_state_dialog.yoffset;
+		if (!sdl_emulator.invert) {
+			colour = fg_colour;
+		} else {
+			colour = bg_colour;
+		}
+		/* Draw the vertical bars */
+		dstrect.x = srcx; dstrect.y = srcy + 1.5 * 8 * video.scale;
+		dstrect.w = 4 * video.scale; dstrect.h = 13 * 8 * video.scale;
+		for (count = 0; count < 4; count++) {
+			if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			dstrect.x += 4.5 * 8 * video.scale;
+		}
+		/* Draw the horizontal bars */
+		dstrect.x = srcx; dstrect.y = srcy + 8 * video.scale;
+		dstrect.w = 14 * 8 * video.scale; dstrect.h = 4 * video.scale;
+		for (count = 0; count < 4; count++) {
+			if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			if (count < 3) dstrect.y += 4.5 * 8 * video.scale;
+		}
+		dstrect.y += 1.5 * 8 * video.scale;
+		if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		/* Set the font colours we'll be using */
+		if (!sdl_emulator.invert) {
+			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
+		} else {
+			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
+		}
+		/* Draw the title bar */
+		if (save_state_dialog.mode == SSTATE_MODE_SAVE) {
+			strcpy(text, " Save State   ");
+		} else {
+			strcpy(text, " Load State   ");
+		}
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = srcx; dstrect.y = srcy;
+		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+		/* Draw the controls */
+		strcpy(text, "     Exit     ");
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = srcx; dstrect.y = srcy + 15 * 8 * video.scale;
+		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+
+
+
+
+
+
+	}
+
 	/* Is the load file dialog being rendered? */
 	if (load_file_dialog.state) {
 		srcx = load_file_dialog.xoffset;
