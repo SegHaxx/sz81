@@ -33,7 +33,7 @@
 
 /* Interrupt types */
 #define INTERRUPT_EMULATOR_RESET 3
-#define INTERRUPT_PROGRAM_QUIT 4
+#define INTERRUPT_EMULATOR_EXIT 4
 
 /* Machine models */
 #define MODEL_ZX81 0

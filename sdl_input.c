@@ -52,11 +52,6 @@
 #define GP2X_VOL_DN 0x11
 #define GP2X_BTN_JOY 0x12
 
-/* Transit states */
-#define TRANSIT_OUT 0
-#define TRANSIT_IN 1
-#define TRANSIT_SAVE 2
-
 /* Variables */
 int device, id, mod_id, state;
 int last_runopts_comp = COMP_RUNOPTS0;
@@ -133,7 +128,6 @@ void toggle_vkeyb_state(void);
 void manage_runopts_input(void);
 void toggle_runopts_state(void);
 void manage_ldfile_input(void);
-void runopts_transit(int state);
 
 
 /***************************************************************************
@@ -1159,7 +1153,7 @@ int keyboard_update(void) {
 							} else {
 								strcpy(msg_box.text, "Cancelled");
 							}
-							msg_box.timeout = MSG_BOX_TIMEOUT_CONTROL_REMAPPER;
+							msg_box.timeout = MSG_BOX_TIMEOUT_750;
 							message_box_manager(MSG_BOX_SHOW, &msg_box);
 						} else if (runtime_options[3].state) {
 							/* Locate currently selected hotspot for group RUNOPTS3 */
@@ -1203,15 +1197,15 @@ void manage_cursor_input(void) {
 	if (device == DEVICE_CURSOR) {
 
 		/* Locate currently selected hotspot for active component (there can be only one) */
-		if (get_active_component() == COMP_LOAD) {
-			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
+		if (get_active_component() & COMP_RUNOPTS_ALL) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 		} else if (get_active_component() == COMP_LDFILE) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_LDFILE);
 		} else if (get_active_component() == COMP_VKEYB || get_active_component() == COMP_CTB) {
 			if ((hs_currently_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
 				hs_currently_selected = get_selected_hotspot(HS_GRP_CTB);
-		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
-			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
+		} else if (get_active_component() == COMP_LOAD) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
 		}
 
 		/* Process the events */
@@ -1224,8 +1218,11 @@ void manage_cursor_input(void) {
 				virtualevent.type = SDL_MOUSEBUTTONDOWN;
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
-				if (load_selector_state || load_file_dialog.state || vkeyb.state ||
-					(runtime_options_which() < MAX_RUNTIME_OPTIONS)) {
+				if (get_active_component() & COMP_RUNOPTS_ALL ||
+					get_active_component() == COMP_LDFILE ||
+					get_active_component() == COMP_VKEYB ||
+					get_active_component() == COMP_CTB ||
+					get_active_component() == COMP_LOAD) {
 					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
 						hotspots[hs_currently_selected].hit_w / 2;
 					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
@@ -1739,9 +1736,7 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
 			if (state == SDL_PRESSED) {
-				if (runtime_options_which() < MAX_RUNTIME_OPTIONS) 
-					runopts_transit(TRANSIT_OUT);	/* Restore variables */
-				interrupted = INTERRUPT_PROGRAM_QUIT;
+				emulator_exit();
 			}
 		} else if (id == SDLK_F11) {
 			#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
@@ -1757,24 +1752,24 @@ void manage_all_input(void) {
 				if (get_active_component() == COMP_VKEYB ||
 					get_active_component() == COMP_CTB ||
 					get_active_component() == COMP_EMU) {
-					/* Restart mainloop on return */
-					interrupted = INTERRUPT_EMULATOR_RESET;
+					/* Reset the emulator */
+					emulator_reset();
 				}
 			}
 		} else if (id == SDLK_ESCAPE) {
 			/* Exit the currently active component */
 			if (state == SDL_PRESSED) {
-				if (get_active_component() == COMP_LOAD) {
-					/* This component is now redundant */
-				} else if (get_active_component() == COMP_LDFILE) {
-					toggle_ldfile_state();
+				if (get_active_component() & COMP_RUNOPTS_ALL) {
+					toggle_runopts_state();
 				} else if (get_active_component() == COMP_SSTATE) {
 					toggle_sstate_state(0);
+				} else if (get_active_component() == COMP_LDFILE) {
+					toggle_ldfile_state();
 				} else if (get_active_component() == COMP_VKEYB || 
 					get_active_component() == COMP_CTB) {
 					toggle_vkeyb_state();
-				} else if (get_active_component() & COMP_RUNOPTS_ALL) {
-					toggle_runopts_state();
+				} else if (get_active_component() == COMP_LOAD) {
+					/* This component is now redundant */
 				}
 			}
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
@@ -1801,7 +1796,7 @@ void manage_all_input(void) {
 					}
 					strcpy(msg_box.title, "Sound");
 					sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
-					msg_box.timeout = MSG_BOX_TIMEOUT_SOUND_VOLUME;
+					msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 					message_box_manager(MSG_BOX_SHOW, &msg_box);
 					rcfile.rewrite = TRUE;
 				} else {
@@ -2355,8 +2350,8 @@ void manage_ldfile_input(void) {
 						 * autoloading is triggered at the top of z80.c */
 						load_file_dialog.method = LOAD_FILE_METHOD_FORCEDLOAD;
 						sdl_emulator.autoload = TRUE;
-						/* Restart mainloop on return */
-						interrupted = INTERRUPT_EMULATOR_RESET;
+						/* Reset the emulator */
+						emulator_reset();
 					} else if (load_file_dialog.method == LOAD_FILE_METHOD_SELECTLOAD) {
 						/* sdl_load_file is currently waiting in a loop
 						 * and this response will initiate the file load */
@@ -2399,8 +2394,8 @@ void toggle_ldfile_state(void) {
 			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
 				load_file_dialog.method = LOAD_FILE_METHOD_FORCEDLOAD;
 				sdl_emulator.autoload = TRUE;
-				/* Restart mainloop on return */
-				interrupted = INTERRUPT_EMULATOR_RESET;
+				/* Reset the emulator */
+				emulator_reset();
 			}
 		#else
 			if (!load_file_dialog.state) {
@@ -2426,18 +2421,34 @@ void toggle_ldfile_state(void) {
 
 void toggle_sstate_state(int mode) {
 	static int last_vkeyb_state = FALSE;
+	struct MSG_Box msg_box;
 
 	if (get_active_component() == COMP_SSTATE ||
 		get_active_component() == COMP_VKEYB ||
 		get_active_component() == COMP_CTB ||
 		get_active_component() == COMP_EMU) {
 		if (!save_state_dialog.state) {
-			save_state_dialog.mode = mode;
-			save_state_dialog.state = TRUE;
-			last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
-			/* Wait for the user to select a slot or Exit
-			 * which will close the dialog */
-			emulator_hold(&save_state_dialog.state);
+			/* Only show the dialog if something has been previously
+			 * loaded (or saved) as we need a filename to work with */
+			if (strcmp(load_file_dialog.loaded, "") != 0) {
+				save_state_dialog.mode = mode;
+				save_state_dialog.state = TRUE;
+				last_vkeyb_state = vkeyb.state;	/* Preserve vkeyb state */
+				/* Populate the slots */
+				save_state_dialog_slots_populate();
+				/* Wait for the user to select a slot or Exit
+				 * which will close the dialog */
+				emulator_pause(&save_state_dialog.state);
+			} else {
+				if (mode == SSTATE_MODE_SAVE) {
+					strcpy(msg_box.title, "Save State");
+				} else {
+					strcpy(msg_box.title, "Load State");
+				}
+				strcpy(msg_box.text, "LOAD/SAVE first");
+				msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+				message_box_manager(MSG_BOX_SHOW, &msg_box);
+			}
 		} else {
 			save_state_dialog.state = FALSE;
 			vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
@@ -2531,7 +2542,7 @@ void runopts_transit(int state) {
 	} else if (state == TRANSIT_SAVE) {
 		strcpy(msg_box.title, "Options");
 		strcpy(msg_box.text, "Changes saved");
-		msg_box.timeout = MSG_BOX_TIMEOUT_RUNOPTS_SAVE;
+		msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST

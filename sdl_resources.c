@@ -19,20 +19,6 @@
 #include "sdl_engine.h"
 
 /* Defines */
-#if defined(PLATFORM_GP2X)
-	#define LOCAL_DATA_DIR ""
-	#define RESOURCE_FILE "sz81rc"
-#elif defined(PLATFORM_ZAURUS)
-	#define LOCAL_DATA_DIR ".sz81"
-	#define RESOURCE_FILE ".sz81rc"
-#elif defined(__amigaos4__)
-	#define LOCAL_DATA_DIR amiga_data_dir
-	#define RESOURCE_FILE amiga_resource_file
-#else
-	#define LOCAL_DATA_DIR ".sz81"
-	#define RESOURCE_FILE ".sz81rc"
-#endif
-
 /* Icon bitmap offsets that must be multiplied by video.scale */
 #define ICON_EXIT_X 0
 #define ICON_EXIT_Y 0
@@ -76,29 +62,31 @@ void sdl_zxprinter_init(void) {
 	time_t rightnow;
 	char unique[96];
 
-	#if defined(PLATFORM_GP2X)
-		strcpy(zxprinter.filename, startdir);
-		strcatdelimiter(zxprinter.filename);
-	#elif defined(PLATFORM_ZAURUS)
-		strcpy(zxprinter.filename, getenv ("HOME"));
-		strcatdelimiter(zxprinter.filename);
-		strcat(zxprinter.filename, LOCAL_DATA_DIR);
-		strcatdelimiter(zxprinter.filename);
-	#elif defined(__amigaos4__)
+	#if defined(__amigaos4__)	/* ???amiga??? */
 		strcpy(zxprinter.filename, LOCAL_DATA_DIR);
-		if (zxprinter.filename[strlen(zxprinter.filename) - 1] != ':')
-			strcatdelimiter(zxprinter.filename);
-	#else
-		strcpy(zxprinter.filename, getenv ("HOME"));
 		strcatdelimiter(zxprinter.filename);
-		strcat(zxprinter.filename, LOCAL_DATA_DIR);
+	#else
+		#if defined(PLATFORM_GP2X)
+			strcpy(zxprinter.filename, LOCAL_DATA_DIR);
+		#else
+			strcpy(zxprinter.filename, getenv ("HOME"));
+			strcatdelimiter(zxprinter.filename);
+			strcat(zxprinter.filename, LOCAL_DATA_DIR);
+		#endif
+		strcatdelimiter(zxprinter.filename);
+		strcat(zxprinter.filename, LOCAL_PRTOUT_DIR);
 		strcatdelimiter(zxprinter.filename);
 	#endif
 
 	/* Create a unique filename using the date and time */
+	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
 	rightnow = time(NULL);
 	timestruct = localtime(&rightnow);
-	strftime(unique, sizeof(unique), "zxprinter-%Y%m%d-%H%M%S.pbm", timestruct);
+	strftime(unique, sizeof(unique), "prtout%Y%m%d-%H%M%S.pbm", timestruct);
 	strcat(zxprinter.filename, unique);
 
 	/* Update z81's filename pointer */
@@ -113,23 +101,33 @@ void sdl_zxprinter_init(void) {
 
 void local_data_dir_init(void) {
 	char foldername[256];
-
-	/* Create local data directory [structure] whilst ignoring errors */
-	#if defined(PLATFORM_GP2X)
-		strcpy(foldername, "");	/* Avoids warnings */
-	#elif defined(PLATFORM_ZAURUS)
-		strcpy(foldername, getenv ("HOME"));
-		strcatdelimiter(foldername);
-		strcat(foldername, LOCAL_DATA_DIR);
-		mkdir(foldername, 0755);
-	#elif defined(__amigaos4__)
+	int count;
+	
+	/* Create local data directory structure whilst ignoring errors */
+	#if defined(__amigaos4__)	/* ???amiga??? */
 		strcpy(foldername, LOCAL_DATA_DIR);
 		mkdir(foldername, 0755);
 	#else
-		strcpy(foldername, getenv ("HOME"));
-		strcatdelimiter(foldername);
-		strcat(foldername, LOCAL_DATA_DIR);
-		mkdir(foldername, 0755);
+		for (count = 0; count < 4; count++) {
+			#if defined(PLATFORM_GP2X)
+				strcpy(foldername, LOCAL_DATA_DIR);
+			#else
+				strcpy(foldername, getenv ("HOME"));
+				strcatdelimiter(foldername);
+				strcat(foldername, LOCAL_DATA_DIR);
+			#endif
+			if (count == 1) {
+				strcatdelimiter(foldername);
+				strcat(foldername, LOCAL_PRTOUT_DIR);
+			} else if (count == 2) {
+				strcatdelimiter(foldername);
+				strcat(foldername, LOCAL_SAVSTA_DIR);
+			} else if (count == 3) {
+				strcatdelimiter(foldername);
+				strcat(foldername, LOCAL_SCNSHT_DIR);
+			}
+			mkdir(foldername, 0755);
+		}
 	#endif
 }
 
@@ -152,19 +150,19 @@ void sdl_rcfile_read(void) {
 	char read_version[16];
 	FILE *fp;
 
-	#if defined(PLATFORM_GP2X)
-		strcpy(rcfile.filename, startdir);
-		strcatdelimiter(rcfile.filename);
-	#elif defined(PLATFORM_ZAURUS)
-		strcpy(rcfile.filename, getenv ("HOME"));
-		strcatdelimiter(rcfile.filename);
-	#elif defined(__amigaos4__)
-		rcfile.filename[0] = '\0';
+	#if defined(__amigaos4__)	/* ???amiga??? */
+		strcpy(rcfile.filename, RESOURCE_FILE);
 	#else
-		strcpy(rcfile.filename, getenv ("HOME"));
+		#if defined(PLATFORM_GP2X)
+			strcpy(rcfile.filename, LOCAL_DATA_DIR);
+		#else
+			strcpy(rcfile.filename, getenv ("HOME"));
+			strcatdelimiter(rcfile.filename);
+			strcat(rcfile.filename, LOCAL_DATA_DIR);
+		#endif
 		strcatdelimiter(rcfile.filename);
+		strcat(rcfile.filename, RESOURCE_FILE);
 	#endif
-	strcat(rcfile.filename, RESOURCE_FILE);
 
 	fprintf(stdout, "Reading from %s\n", rcfile.filename);
 	if ((fp = fopen(rcfile.filename, "r")) == NULL) {
@@ -1379,7 +1377,7 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 	static int init = TRUE;
 	int window_x, window_y, window_w, window_h;
 	Uint32 colour, fg_colour, bg_colour;
-	SDL_Surface *renderedtext, *shadow;
+	SDL_Surface *renderedtext;
 	SDL_Rect dstrect;
 	int count;
 
@@ -1451,7 +1449,6 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			SDL_FreeSurface(renderedtext);
 			/* Draw the right-hand and bottom shadows */
 			for (count = 0; count < 2; count++) {
-
 				/* I want to document some odd behaviour that I experienced here
 				 * on my GP2X using the GPH SDK, but not anything else:
 				 * Originally window_x/y/w/h was an SDL_Rect winrect and I found 
@@ -1463,46 +1460,18 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 				 * to store data and replaced it with four integers instead.
 				 * Since I've only experienced this with the GPH SDK I'm expecting
 				 * that there's an issue with that and not anything else */
-
 				if (count == 0) {
-					dstrect.w = 8 * video.scale; dstrect.h = window_h;
+					dstrect.x = window_x + window_w;
+					dstrect.y = window_y + 8 * video.scale;
+					dstrect.w = 8 * video.scale;
+					dstrect.h = window_h;
 				} else {
-					dstrect.w = window_w - 8 * video.scale; dstrect.h = 8 * video.scale;
+					dstrect.x = window_x + 8 * video.scale;
+					dstrect.y = window_y + window_h;
+					dstrect.w = window_w - 8 * video.scale;
+					dstrect.h = 8 * video.scale;
 				}
-				shadow = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
-					video.screen->format->BitsPerPixel,
-					video.screen->format->Rmask, video.screen->format->Gmask,
-					video.screen->format->Bmask, video.screen->format->Amask);
-				if (shadow == NULL) {
-					fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
-						SDL_GetError ());
-					exit(1);
-				}
-				/* Fill the shadow with black */
-				if (SDL_FillRect(shadow, NULL, 0) < 0) {
-					fprintf(stderr, "%s: FillRect error: %s\n", __func__,
-						SDL_GetError ());
-					exit(1);
-				}
-				/* Set the alpha for the entire surface */
-				if (SDL_SetAlpha(shadow, SDL_SRCALPHA, 64) < 0) {	/* 25% */
-					fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
-						SDL_GetError());
-					exit(1);
-				}
-				/* Blit it to the screen */
-				if (count == 0) {
-					dstrect.x = window_x + window_w; dstrect.y = window_y + 8 * video.scale;
-				} else {
-					dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y + window_h;
-				}
-				dstrect.w = shadow->w; dstrect.h = shadow->h;
-				if (SDL_BlitSurface (shadow, NULL, video.screen, &dstrect) < 0) {
-					fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
-						SDL_GetError ());
-					exit(1);
-				}
-				SDL_FreeSurface(shadow);
+				draw_shadow(dstrect, 64);	/* 25% */
 			}
 			/* Decrement the timeout */			
 			the_box.timeout -= SDL_GetTicks() - last_time;

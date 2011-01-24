@@ -249,7 +249,11 @@ while(1)
         v=mem[((i&0xfe)<<8)|radjust];
       else
 #endif
-        v=mem[((i&0xfe)<<8)|((op&63)<<3)|ulacharline];
+      /* Thunor: mem[] here is being read without memptr and therefore
+       * bypasses the address lines and reads directly from the array.
+       * My fixed equivalent is the next line down which uses fetch().
+        v=mem[((i&0xfe)<<8)|((op&63)<<3)|ulacharline]; */
+        v=fetch(((i&0xfe)<<8)|((op&63)<<3)|ulacharline);
       if(taguladisp) v^=128;
       scrnbmp_new[y*(ZX_VID_FULLWIDTH/8)+x]=((op&128)?~v:v);
       }
@@ -451,7 +455,7 @@ while(1)
     /* I've added these new interrupt types to support a thorough
      * emulator reset and to do a proper exit i.e. back to main */
     else if(interrupted==INTERRUPT_EMULATOR_RESET || 
-            interrupted==INTERRUPT_PROGRAM_QUIT)
+            interrupted==INTERRUPT_EMULATOR_EXIT)
       {
       return;
       }

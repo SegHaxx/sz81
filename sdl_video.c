@@ -256,13 +256,14 @@ unsigned char *vga_getgraphmem(void) {
  * hotspots will require overlaying */
 
 void sdl_video_update(void) {
-	int srcx, srcy, desx, desy, srcw, count;
+	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
+	int srcx, srcy, desx, desy, srcw, count, count2;
 	Uint32 colour, fg_colour, bg_colour;
+	SDL_Surface *renderedtext;
 	Uint32 *screen_pixels_32;
 	Uint16 *screen_pixels_16;
-	SDL_Surface *renderedtext;
-	SDL_Rect dstrect;
 	char text[33], *direntry;
+	SDL_Rect dstrect;
 	#ifdef SDL_DEBUG_FONTS
 		struct bmpfont *ptrfont;
 		int fontcount;
@@ -282,26 +283,37 @@ void sdl_video_update(void) {
 	/* Monitor and manage component states */
 	sdl_component_executive();
 
-	/* Prepare the colours we shall be using */
-	fg_colour = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
-		colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
-	bg_colour = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
-		colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
+	/* Prepare the colours we shall be using (these remain unchanged throughout) */
+	if (!sdl_emulator.invert) {
+		fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
+			colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
+		bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
+			colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
+		colour0RGB = fg_colourRGB;
+		colour1RGB = bg_colourRGB;
+		fg_colour = colours.emu_fg;
+		bg_colour = colours.emu_bg;
+	} else {
+		fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
+			colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
+		bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
+			colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
+		colour0RGB = bg_colourRGB;
+		colour1RGB = fg_colourRGB;
+		fg_colour = colours.emu_bg;
+		bg_colour = colours.emu_fg;
+	}
 
 	/* Should everything be redrawn? */
 	if (video.redraw) {
 		video.redraw = FALSE;
 		/* Wipe the entire screen surface */
 		#ifdef SDL_DEBUG_VIDEO
-			colour = SDL_MapRGB(video.screen->format, 0x0, 0x80, 0xc0);
+			colourRGB = SDL_MapRGB(video.screen->format, 0x0, 0x80, 0xc0);
 		#else
-			if (!sdl_emulator.invert) {
-				colour = bg_colour;
-			} else {
-				colour = fg_colour;
-			}
+			colourRGB = bg_colourRGB;
 		#endif
-		if (SDL_FillRect(video.screen, NULL, colour) < 0) {
+		if (SDL_FillRect(video.screen, NULL, colourRGB) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 			exit(1);
 		}
@@ -318,7 +330,7 @@ void sdl_video_update(void) {
 		desy = sdl_emulator.yoffset;
 
 		for (srcy = 0; srcy < 200; srcy++) {
-			
+
 			/* [Re]set-up x coordinates and src width */
 			if (video.xres < 320 * video.scale) {
 				srcx = abs(sdl_emulator.xoffset / video.scale);
@@ -329,47 +341,46 @@ void sdl_video_update(void) {
 				srcx = 0;
 				srcw = 320; desx = sdl_emulator.xoffset;
 			}
-			
-			for (;srcx < srcw; srcx++) {
-				/* Get 8 bit source pixel */
-				if (vga_graphmemory[srcy * 320 + srcx] == 0) {
-					colour = fg_colour;
-				} else {
-					colour = bg_colour;
-				}
 
+			for (;srcx < srcw; srcx++) {
+				/* Get 8 bit source pixel and convert to RGB */
+				if (vga_graphmemory[srcy * 320 + srcx] == 0) {
+					colourRGB = colour0RGB;
+				} else {
+					colourRGB = colour1RGB;
+				}
 				if (video.screen->format->BitsPerPixel == 16) {
 					/* Write the destination pixel[s] */
-					screen_pixels_16[desy * video.xres + desx] = colour;
+					screen_pixels_16[desy * video.xres + desx] = colourRGB;
 					if (video.scale > 1) {
 						/* x2 scaling */
-						screen_pixels_16[desy * video.xres + desx + 1] = colour;
-						screen_pixels_16[(desy + 1) * video.xres + desx] = colour;
-						screen_pixels_16[(desy + 1) * video.xres + desx + 1] = colour;
+						screen_pixels_16[desy * video.xres + desx + 1] = colourRGB;
+						screen_pixels_16[(desy + 1) * video.xres + desx] = colourRGB;
+						screen_pixels_16[(desy + 1) * video.xres + desx + 1] = colourRGB;
 						if (video.scale > 2) {
 							/* x3 scaling */
-							screen_pixels_16[desy * video.xres + desx + 2] = colour;
-							screen_pixels_16[(desy + 1) * video.xres + desx + 2] = colour;
-							screen_pixels_16[(desy + 2) * video.xres + desx] = colour;
-							screen_pixels_16[(desy + 2) * video.xres + desx + 1] = colour;
-							screen_pixels_16[(desy + 2) * video.xres + desx + 2] = colour;
+							screen_pixels_16[desy * video.xres + desx + 2] = colourRGB;
+							screen_pixels_16[(desy + 1) * video.xres + desx + 2] = colourRGB;
+							screen_pixels_16[(desy + 2) * video.xres + desx] = colourRGB;
+							screen_pixels_16[(desy + 2) * video.xres + desx + 1] = colourRGB;
+							screen_pixels_16[(desy + 2) * video.xres + desx + 2] = colourRGB;
 						}
 					}
 				} else if (video.screen->format->BitsPerPixel == 32) {
 					/* Write the destination pixel[s] */
-					screen_pixels_32[desy * video.xres + desx] = colour;
+					screen_pixels_32[desy * video.xres + desx] = colourRGB;
 					if (video.scale > 1) {
 						/* x2 scaling */
-						screen_pixels_32[desy * video.xres + desx + 1] = colour;
-						screen_pixels_32[(desy + 1) * video.xres + desx] = colour;
-						screen_pixels_32[(desy + 1) * video.xres + desx + 1] = colour;
+						screen_pixels_32[desy * video.xres + desx + 1] = colourRGB;
+						screen_pixels_32[(desy + 1) * video.xres + desx] = colourRGB;
+						screen_pixels_32[(desy + 1) * video.xres + desx + 1] = colourRGB;
 						if (video.scale > 2) {
 							/* x3 scaling */
-							screen_pixels_32[desy * video.xres + desx + 2] = colour;
-							screen_pixels_32[(desy + 1) * video.xres + desx + 2] = colour;
-							screen_pixels_32[(desy + 2) * video.xres + desx] = colour;
-							screen_pixels_32[(desy + 2) * video.xres + desx + 1] = colour;
-							screen_pixels_32[(desy + 2) * video.xres + desx + 2] = colour;
+							screen_pixels_32[desy * video.xres + desx + 2] = colourRGB;
+							screen_pixels_32[(desy + 1) * video.xres + desx + 2] = colourRGB;
+							screen_pixels_32[(desy + 2) * video.xres + desx] = colourRGB;
+							screen_pixels_32[(desy + 2) * video.xres + desx + 1] = colourRGB;
+							screen_pixels_32[(desy + 2) * video.xres + desx + 2] = colourRGB;
 						}
 					}
 				}
@@ -380,21 +391,16 @@ void sdl_video_update(void) {
 
 		if (SDL_MUSTLOCK(video.screen)) SDL_UnlockSurface(video.screen);
 	}
-	
+
 	/* Is the save state dialog being rendered? */
 	if (save_state_dialog.state) {
 		srcx = save_state_dialog.xoffset;
 		srcy = save_state_dialog.yoffset;
-		if (!sdl_emulator.invert) {
-			colour = fg_colour;
-		} else {
-			colour = bg_colour;
-		}
 		/* Draw the vertical bars */
 		dstrect.x = srcx; dstrect.y = srcy + 1.5 * 8 * video.scale;
 		dstrect.w = 4 * video.scale; dstrect.h = 13 * 8 * video.scale;
 		for (count = 0; count < 4; count++) {
-			if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
@@ -404,22 +410,31 @@ void sdl_video_update(void) {
 		dstrect.x = srcx; dstrect.y = srcy + 8 * video.scale;
 		dstrect.w = 14 * 8 * video.scale; dstrect.h = 4 * video.scale;
 		for (count = 0; count < 4; count++) {
-			if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
 			if (count < 3) dstrect.y += 4.5 * 8 * video.scale;
 		}
 		dstrect.y += 1.5 * 8 * video.scale;
-		if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+		if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 			exit(1);
 		}
-		/* Set the font colours we'll be using */
-		if (!sdl_emulator.invert) {
-			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
-		} else {
-			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
+		/* Draw the right-hand and bottom shadows */
+		for (count = 0; count < 2; count++) {
+			if (count == 0) {
+				dstrect.x = srcx + 14 * 8 * video.scale;
+				dstrect.y = srcy + 8 * video.scale;
+				dstrect.w = 8 * video.scale;
+				dstrect.h =  15.5 * 8 * video.scale;
+			} else {
+				dstrect.x = srcx + 8 * video.scale;
+				dstrect.y = srcy + 16.5 * 8 * video.scale;
+				dstrect.w = 14 * 8 * video.scale; 
+				dstrect.h = 8 * video.scale;
+			}
+			draw_shadow(dstrect, 64);	/* 25% */
 		}
 		/* Draw the title bar */
 		if (save_state_dialog.mode == SSTATE_MODE_SAVE) {
@@ -445,35 +460,56 @@ void sdl_video_update(void) {
 			exit(1);
 		}
 		SDL_FreeSurface(renderedtext);
+		/* Draw the slot backgrounds */
+		dstrect.y = srcy + 1.5 * 8 * video.scale;
+		for (count = 0; count < 3; count++) {
+			dstrect.x = srcx + 4 * video.scale;
+			for (count2 = 0; count2 < 3; count2++) {
+				if (!save_state_dialog.slots[count * 3 + count2]) {
+					colourRGB = bg_colourRGB;
+				} else {
+					colourRGB = fg_colourRGB;
+				}
+				dstrect.w = 4 * 8 * video.scale; dstrect.h = 4 * 8 * video.scale;
+				if (SDL_FillRect(video.screen, &dstrect, colourRGB) < 0) {
+					fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+					exit(1);
+				}
+				dstrect.x += 4.5 * 8 * video.scale;
+			}
+			dstrect.y += 4.5 * 8 * video.scale;
+		}
+		/* Draw the slot numbers */
 
 
 
 
 
-
+		/*
+		char *save_state_dialog_slots_text[72] = {
+			0x00, 0x18, 0x28, 0x08, 0x08, 0x08, 0x3e, 0x00,
+			0x00, 0x3c, 0x42, 0x02, 0x3c, 0x40, 0x7e, 0x00,
+			0x00, 0x3c, 0x42, 0x0c, 0x02, 0x42, 0x3c, 0x00,
+			0x00, 0x08, 0x18, 0x28, 0x48, 0x7e, 0x08, 0x00,
+			0x00, 0x7e, 0x40, 0x7c, 0x02, 0x42, 0x3c, 0x00,
+			0x00, 0x3c, 0x40, 0x7c, 0x42, 0x42, 0x3c, 0x00,
+			0x00, 0x7e, 0x02, 0x04, 0x08, 0x10, 0x10, 0x00,
+			0x00, 0x3c, 0x42, 0x3c, 0x42, 0x42, 0x3c, 0x00,
+			0x00, 0x3c, 0x42, 0x42, 0x3e, 0x02, 0x3c, 0x00
+		};
+		*/
 	}
 
 	/* Is the load file dialog being rendered? */
 	if (load_file_dialog.state) {
 		srcx = load_file_dialog.xoffset;
 		srcy = load_file_dialog.yoffset;
-		if (!sdl_emulator.invert) {
-			colour = bg_colour;
-		} else {
-			colour = fg_colour;
-		}
 		/* Draw the background minus the header and nav control lines */
 		dstrect.x = srcx; dstrect.y = srcy + 8 * video.scale;
 		dstrect.w = 256 * video.scale; dstrect.h = 176 * video.scale;
-		if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+		if (SDL_FillRect(video.screen, &dstrect, bg_colourRGB) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 			exit(1);
-		}
-		/* Set the font colours we'll be using */
-		if (!sdl_emulator.invert) {
-			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
-		} else {
-			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		/* Draw the header */
 		strcpy(text, " Load File                  ");
@@ -561,23 +597,12 @@ void sdl_video_update(void) {
 	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
 		srcx = runtime_options[runtime_options_which()].xoffset;
 		srcy = runtime_options[runtime_options_which()].yoffset;
-		if (!sdl_emulator.invert) {
-			colour = bg_colour;
-		} else {
-			colour = fg_colour;
-		}
 		/* Draw the background minus the header and nav control lines */
 		dstrect.x = srcx; dstrect.y = srcy + 8 * video.scale;
 		dstrect.w = 256 * video.scale; dstrect.h = 176 * video.scale;
-		if (SDL_FillRect(video.screen, &dstrect, colour) < 0) {
+		if (SDL_FillRect(video.screen, &dstrect, bg_colourRGB) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 			exit(1);
-		}
-		/* Set the font colours we'll be using */
-		if (!sdl_emulator.invert) {
-			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
-		} else {
-			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 		}
 		/* Draw the static text */
 		for (desy = 0; desy < 24; desy++) {
@@ -767,11 +792,6 @@ void sdl_video_update(void) {
 	/* If the user wants to see the input ids then show
 	 * the currently pressed control id on-screen */
 	if (show_input_id && current_input_id != UNDEFINED) {
-		if (sdl_emulator.invert) {
-			fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
-		} else {
-			fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
-		}
 		sprintf(text, "%i", current_input_id);
 		if (*sdl_emulator.model == MODEL_ZX80) {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX80, text, fg_colour, bg_colour);
@@ -1079,6 +1099,44 @@ void scale_surface(SDL_Surface *original, SDL_Surface *scaled) {
 
 	if (SDL_MUSTLOCK(original)) SDL_LockSurface(original);
 	if (SDL_MUSTLOCK(scaled)) SDL_LockSurface(scaled);
+}
+
+/***************************************************************************
+ * Draw Shadow                                                             *
+ ***************************************************************************/
+
+void draw_shadow(SDL_Rect dstrect, int alpha) {
+	SDL_Surface *shadow;
+
+	/* Create an RGB surface to accommodate the shadow */
+	shadow = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
+		video.screen->format->BitsPerPixel,
+		video.screen->format->Rmask, video.screen->format->Gmask,
+		video.screen->format->Bmask, video.screen->format->Amask);
+	if (shadow == NULL) {
+		fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
+			SDL_GetError ());
+		exit(1);
+	}
+	/* Fill the shadow with black */
+	if (SDL_FillRect(shadow, NULL, 0) < 0) {
+		fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+			SDL_GetError ());
+		exit(1);
+	}
+	/* Set the alpha for the entire surface */
+	if (SDL_SetAlpha(shadow, SDL_SRCALPHA, alpha) < 0) {
+		fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
+			SDL_GetError());
+		exit(1);
+	}
+	/* Blit it to the screen */
+	if (SDL_BlitSurface (shadow, NULL, video.screen, &dstrect) < 0) {
+		fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+			SDL_GetError ());
+		exit(1);
+	}
+	SDL_FreeSurface(shadow);
 }
 
 /***************************************************************************

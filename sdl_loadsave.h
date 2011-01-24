@@ -45,7 +45,7 @@ struct {
 	int dirlist_count;		/* The count of files within the list */
 	int dirlist_top;		/* The GUI list top as an index into the list */
 	int dirlist_selected;	/* The selected item as an index into the list */
-	char filename[256];		/* The filename of the most recently loaded file */
+	char loaded[256];		/* The fullpath of the most recently loaded/saved file */
 	int method;				/* The loading method to be implemented for certain methods */
 } load_file_dialog;
 
@@ -58,6 +58,7 @@ struct {
 } save_state_dialog;
 
 /* Function prototypes */
+void save_state_dialog_slots_populate(void);
 void load_file_dialog_dirlist_init(void);
 void strcatdelimiter(char *toappendto);
 char *file_dialog_basename(char *dir);

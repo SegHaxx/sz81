@@ -142,7 +142,7 @@ int sdl_init(void) {
 	load_file_dialog.state = FALSE;
 	strcpy(load_file_dialog.dir, startdir);
 	load_file_dialog.dirlist = NULL;
-	strcpy(load_file_dialog.filename, "");
+	strcpy(load_file_dialog.loaded, "");
 	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 	/* Populate the load file dialog's directory List */
 	load_file_dialog_dirlist_init();
@@ -288,7 +288,7 @@ void sdl_component_executive(void) {
 	static int vkeyb_toggle_shift = FALSE;
 	int found = FALSE;
 	int count;
-	
+
 	/* Monitor control remapper's state */ 
 	if (ctrl_remapper_state != ctrl_remapper.state) {
 		ctrl_remapper_state = ctrl_remapper.state;
@@ -332,15 +332,15 @@ void sdl_component_executive(void) {
 		load_file_dialog_dirlist_init();
 		/* Resize relevant hotspots */
 		hotspots_resize(HS_GRP_VKEYB | HS_GRP_LDFILE);
-		/* Restart mainloop on return */
-		interrupted = INTERRUPT_EMULATOR_RESET;
+		/* Reset the emulator */
+		emulator_reset();
 	}
 
 	/* Monitor RAM size changes */
 	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
 		sdl_emulator_ramsize = sdl_emulator.ramsize;
-		/* Restart mainloop on return */
-		interrupted = INTERRUPT_EMULATOR_RESET;
+		/* Reset the emulator */
+		emulator_reset();
 	}
 
 	#ifdef OSS_SOUND_SUPPORT
@@ -383,8 +383,8 @@ void sdl_component_executive(void) {
 						sound_stereo = sound_stereo_acb = 0;
 						break;
 				}
-				/* Restart mainloop on return */
-				interrupted = INTERRUPT_EMULATOR_RESET;
+				/* Reset the emulator */
+				emulator_reset();
 			}
 		}
 	#endif
@@ -526,19 +526,31 @@ Uint32 emulator_timer(Uint32 interval, void *param) {
 }
 
 /***************************************************************************
- * Emulator Hold                                                           *
+ * Emulator Reset                                                          *
+ ***************************************************************************/
+
+void emulator_reset(void) {
+
+	/* Erase record of which program was last loaded/saved */
+	strcpy(load_file_dialog.loaded, "");
+
+	/* Restart mainloop on return */
+	interrupted = INTERRUPT_EMULATOR_RESET;
+}
+
+/***************************************************************************
+ * Emulator Pause                                                          *
  ***************************************************************************/
 /* This will place the emulator into a holding position i.e. it will pause
- * until the condition changes.
+ * until the condition changes or the user has initiated emulator exit.
  * 
- * Currently there is a limitation here in that if the user attempts to quit
- * sz81 (interrupted = INTERRUPT_PROGRAM_QUIT) then it won't exit until this
- * exits and the component that uses it closes temp temp
- * 
- * On entry: int *condition points to the variable to monitor */
+ * On entry: int *condition points to the variable to monitor
+ *  On exit: returns TRUE if emulator exit detected
+ *           else FALSE */
 
-void emulator_hold(int *condition) {
+int emulator_pause(int *condition) {
 	int origcond = *condition;
+	int retval = FALSE;
 
 	do {
 		/* This waits until it's time to process the next frame
@@ -548,7 +560,26 @@ void emulator_hold(int *condition) {
 		 * i.e. not skipped, calls check_events which then calls
 		 * keyboard_update */
 		do_interrupt();
-	} while (origcond == *condition);
+		/* If the user initiates emulator exit then quit loop */
+		if (interrupted == INTERRUPT_EMULATOR_EXIT) retval = TRUE;
+	} while (origcond == *condition && !retval);
+
+	return retval;
+}
+
+/***************************************************************************
+ * Emulator Exit                                                           *
+ ***************************************************************************/
+
+void emulator_exit(void) {
+
+	/* If runopts is active then restore variables else the rcfile might
+	 * be flagged for saving and it'll erroneously save the previewed ones */
+	if (get_active_component() & COMP_RUNOPTS_ALL)
+		runopts_transit(TRANSIT_OUT);
+
+	/* Exit mainloop on return */
+	interrupted = INTERRUPT_EMULATOR_EXIT;
 }
 
 /***************************************************************************

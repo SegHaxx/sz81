@@ -45,6 +45,7 @@ SDL_Surface *BMF_RenderText(int font, char *text, Uint32 fg_colour, Uint32 bg_co
 Uint32 get_pixel(SDL_Surface *surface, int x, int y);
 void set_pixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
 void scale_surface(SDL_Surface *original, SDL_Surface *scaled);
+void draw_shadow(SDL_Rect dstrect, int alpha);
 void cycle_resolutions(void);
 Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
 void set_joy_cfg_text(int textid);

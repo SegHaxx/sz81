@@ -28,6 +28,72 @@ char *strzx81_to_ascii(int memaddr);
 char *strzx80_to_ascii(int memaddr);
 
 /***************************************************************************
+ * Save State Dialog Slots Populate                                        *
+ ***************************************************************************/
+/* This function will open the currently loaded program's save state folder
+ * and create it if it's not found to exist. It will then scan it looking
+ * for savsta1.ss{o|p} to savsta9.ss{o|p} */
+
+void save_state_dialog_slots_populate(void) {
+	struct dirent *direntry;
+	char foldername[256];
+	DIR *dirstream;
+	int count;
+
+	/* Wipe the slots ready for fresh data */
+	for (count = 0; count < 9; count++)
+		save_state_dialog.slots[count] = 0;
+
+	/* Build a path to the currently loaded program's save state folder */
+	#if defined(__amigaos4__)	/* ???amiga??? */
+
+
+	#else
+		#if defined(PLATFORM_GP2X)
+			strcpy(foldername, LOCAL_DATA_DIR);
+		#else
+			strcpy(foldername, getenv ("HOME"));
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_DATA_DIR);
+		#endif
+		strcatdelimiter(foldername);
+		strcat(foldername, LOCAL_SAVSTA_DIR);
+		strcatdelimiter(foldername);
+		strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
+	#endif
+
+	/* Firstly attempt to open the folder */
+	if ((dirstream = opendir(foldername)) == NULL) {
+		/* It doesn't yet exist so attempt to create it */
+		mkdir(foldername, 0755);
+		/* Attempt to open the newly created folder */
+		dirstream = opendir(foldername);
+	}
+
+	if (dirstream != NULL) {
+		while ((direntry = readdir(dirstream))) {
+			if (strlen(direntry->d_name) >= 5 &&
+				direntry->d_name[strlen(direntry->d_name) - 5] >= '1' &&
+				direntry->d_name[strlen(direntry->d_name) - 5] <= '9' &&
+				((*sdl_emulator.model == MODEL_ZX80 &&
+				sdl_filetype_casecmp(direntry->d_name, ".sso") == 0) ||
+				(*sdl_emulator.model == MODEL_ZX81 &&
+				sdl_filetype_casecmp(direntry->d_name, ".ssp") == 0))) {
+				save_state_dialog.slots[direntry->d_name
+					[strlen(direntry->d_name) - 5] - '1'] = TRUE;
+			}
+		}
+		closedir(dirstream);
+	} else {
+		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
+			foldername);
+	}
+	/* for (count = 0; count < 9; count++)
+		printf("%i", save_state_dialog.slots[count]);
+	printf("\n");	temp temp */
+}
+
+/***************************************************************************
  * Save File                                                               *
  ***************************************************************************/
 /* This function replaces z81's save_p.
@@ -84,7 +150,8 @@ int sdl_save_file(int prognameaddr, int method) {
 			 * methods to name the files:
 			 * 1. Date and time stamped files e.g. zx80-20110115-234836.o
 			 *    (the GP2X won't support this but everything else is OK)
-			 * 2. Filenames embedded within a xxxx REM SAVE "progname"
+			 * 2. Incremented filenames e.g. zx80-0001.o, zx80-0002.o etc.
+			 * 3. Filenames embedded within a xxxx REM SAVE "progname"
 			 *    (works on any platform and is actually quit cool :) ) */
 			index = 0x4028;	/* Start of user program area */
 			vars = mem[0x4009] << 8 | mem[0x4008];	/* VARS */
@@ -105,6 +172,11 @@ int sdl_save_file(int prognameaddr, int method) {
 			}
 			if (index == vars) {
 				/* Create a unique filename using the date and time */
+				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
 				rightnow = time(NULL);
 				timestruct = localtime(&rightnow);
 				strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);
@@ -132,12 +204,16 @@ int sdl_save_file(int prognameaddr, int method) {
 			}
 			/* Close the file now as we've finished with it */
 			fclose(fp);
+
+			/* Copy fullpath across to the load file dialog as
+			 * then we have a record of what was last saved */
+			strcpy(load_file_dialog.loaded, fullpath);
 		} else {
 			retval = TRUE;
 			/* Warn the user via the GUI that the save failed */
 			strcpy(msg_box.title, "Save");
 			strcpy(msg_box.text, "Failed");
-			msg_box.timeout = MSG_BOX_TIMEOUT_SAVE_FAILED;
+			msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 			message_box_manager(MSG_BOX_SHOW, &msg_box);
 		}
 	}
@@ -217,7 +293,7 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Wait for the user to select Load or Exit
 			 * which will close the dialog */
-			emulator_hold(&load_file_dialog.state);
+			emulator_pause(&load_file_dialog.state);
 		#endif
 
 		/* If Load was selected then the method will have been updated */
@@ -365,9 +441,9 @@ int sdl_load_file(int prognameaddr, int method) {
 				/* Close the file now as we've finished with it */
 				fclose(fp);
 
-				/* Copy the filename across to the load file dialog as
-				 * then we have a record of what was last/is now loaded */
-				strcpy(load_file_dialog.filename, fullpath);
+				/* Copy fullpath across to the load file dialog as
+				 * then we have a record of what was last loaded */
+				strcpy(load_file_dialog.loaded, fullpath);
 
 				break;
 
@@ -380,15 +456,15 @@ int sdl_load_file(int prognameaddr, int method) {
 		}
 
 		if (retval) {
-			if (method == LOAD_FILE_METHOD_AUTOLOAD || 
-				method == LOAD_FILE_METHOD_FORCEDLOAD) {
+			if (method == LOAD_FILE_METHOD_AUTOLOAD) {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__, fullpath);
 			} else if (method == LOAD_FILE_METHOD_NAMEDLOAD || 
-				method == LOAD_FILE_METHOD_SELECTLOAD) {
+				method == LOAD_FILE_METHOD_SELECTLOAD || 
+				method == LOAD_FILE_METHOD_FORCEDLOAD) {
 				/* Warn the user via the GUI that the load failed */
 				strcpy(msg_box.title, "Load");
 				strcpy(msg_box.text, "Failed");
-				msg_box.timeout = MSG_BOX_TIMEOUT_LOAD_FAILED;
+				msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
 			}
 		}
@@ -396,8 +472,6 @@ int sdl_load_file(int prognameaddr, int method) {
 
 	/* We've finished with the load file dialog now */
 	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
-
-	/* printf("%s: Was/is loaded: %s\n", __func__, load_file_dialog.filename);	temp temp */
 
 	return retval;
 }
@@ -438,8 +512,14 @@ void load_file_dialog_dirlist_init(void) {
 void strcatdelimiter(char *toappendto) {
 	static char delimiter[2] = {DIR_DELIMITER_CHAR, 0};
 
-	if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
-		strcat(toappendto, delimiter);
+	#if defined(__amigaos4__)
+		if (toappendto[strlen(toappendto) - 1] != ':' &&
+			toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
+			strcat(toappendto, delimiter);
+	#else
+		if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
+			strcat(toappendto, delimiter);
+	#endif
 }
 
 /***************************************************************************

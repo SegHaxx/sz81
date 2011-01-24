@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
 				/* Synchronise */
 				sdl_component_executive();
 				
-				while (interrupted != INTERRUPT_PROGRAM_QUIT) {
+				while (interrupted != INTERRUPT_EMULATOR_EXIT) {
 
 					interrupted = 0;
 

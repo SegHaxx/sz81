@@ -18,6 +18,25 @@
 /* Defines */
 #define MAX_FONTS 4
 
+/* Local resources */
+#if defined(__amigaos4__)
+	#define LOCAL_DATA_DIR amiga_data_dir
+	#define RESOURCE_FILE amiga_resource_file
+	#define LOCAL_PRTOUT_DIR	/* ???amiga??? */
+	#define LOCAL_SAVSTA_DIR	/* ???amiga??? */
+	#define LOCAL_SCNSHT_DIR	/* ???amiga??? */
+#else
+	#if defined(PLATFORM_GP2X)
+		#define LOCAL_DATA_DIR "local"
+	#else
+		#define LOCAL_DATA_DIR ".sz81"
+	#endif
+	#define RESOURCE_FILE "sz81rc"
+	#define LOCAL_PRTOUT_DIR "prtout"
+	#define LOCAL_SAVSTA_DIR "savsta"
+	#define LOCAL_SCNSHT_DIR "scnsht"
+#endif
+
 /* Bitmap font IDs */
 #define BMF_FONT_ZX80 0
 #define BMF_FONT_ZX81 1
@@ -39,11 +58,8 @@
 #define MSG_BOX_KILL 2
 
 /* Message box timeouts in ms */
-#define MSG_BOX_TIMEOUT_RUNOPTS_SAVE 1500
-#define MSG_BOX_TIMEOUT_SOUND_VOLUME 1500
-#define MSG_BOX_TIMEOUT_CONTROL_REMAPPER 750
-#define MSG_BOX_TIMEOUT_LOAD_FAILED 1500
-#define MSG_BOX_TIMEOUT_SAVE_FAILED 1500
+#define MSG_BOX_TIMEOUT_1500 1500
+#define MSG_BOX_TIMEOUT_750 750
 
 /* Variables */
 SDL_Surface *wm_icon;

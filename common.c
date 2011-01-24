@@ -307,7 +307,18 @@ int ramsize;
 int count;
 
 loadrom();
+#ifdef SZ81	/* Added by Thunor */
+if(zx80)
+  {
+  memset(mem+0x1000,0,0xf000);
+  }
+else
+  {
+  memset(mem+0x2000,0,0xe000);
+  }
+#else
 memset(mem+0x4000,0,0xc000);
+#endif
 
 /* ROM setup */
 count=0;
@@ -382,7 +393,6 @@ for(f=16;f<32;f++)
 switch(ramsize)
   {
   case 56:
-    memset(mem+0x2000,0,0x2000);	/* It wasn't wiped earlier */
     for(f=8;f<16;f++)
       {
       memattr[f]=1;					/* It's now writable */

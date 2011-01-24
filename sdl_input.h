@@ -35,6 +35,11 @@
 #define KRM_FUNC_REPEAT 1
 #define KRM_FUNC_TICK 2
 
+/* Transit states */
+#define TRANSIT_OUT 0
+#define TRANSIT_IN 1
+#define TRANSIT_SAVE 2
+
 /* Extended SDL keysyms used for hotspots+lists */
 #define SDLK_ROW00 330
 #define SDLK_ROW01 331
@@ -99,6 +104,7 @@ struct {
 void toggle_ldfile_state(void);
 void toggle_sstate_state(int mode);
 int runopts_is_a_reset_scheduled(void);
+void runopts_transit(int state);
 void key_repeat_manager(int funcid, SDL_Event *event, int eventid);
 void keyboard_buffer_reset(int shift_reset);
 int keysym_to_keycode(char *keysym);
