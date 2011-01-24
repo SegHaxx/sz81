@@ -130,7 +130,7 @@ int sdl_save_file(int prognameaddr, int method) {
 	} else if (method == SAVE_FILE_METHOD_UNNAMEDSAVE) {
 		#ifdef __amigaos4__
 			/* This will return NULL if the user cancelled */
-			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
+			if ((amiga_file_request_retval = amiga_file_request("SZ81: Save file", TRUE)) != NULL) {
 				strcpy(fullpath, amiga_file_request_retval);
 			} else {
 				retval = TRUE;
@@ -281,7 +281,7 @@ int sdl_load_file(int prognameaddr, int method) {
 
 		#ifdef __amigaos4__
 			/* This will return NULL if the user cancelled */
-			if ((amiga_file_request_retval = amiga_file_request("")) != NULL)
+			if ((amiga_file_request_retval = amiga_file_request("SZ81: Load file", FALSE)) != NULL)
 				load_file_dialog.method = LOAD_FILE_METHOD_SELECTLOADOK;
 		#else
 			/* Show the load file dialog */

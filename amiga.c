@@ -118,7 +118,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 	}
 }
 
-char *amiga_file_request(char *path)
+char *amiga_file_request(char *title, BOOL save)
 {
 	int sel=0;
 	struct FileRequester *freq;
@@ -130,10 +130,11 @@ char *amiga_file_request(char *path)
 	if((freq = (struct FileRequester *)IAsl->AllocAslRequest(ASL_FileRequest,NULL)))
 	{
 		if(IAsl->AslRequestTags(freq,
-								ASLFR_TitleText,"SZ81",
+								ASLFR_TitleText, title,
                              	ASLFR_InitialPattern,&pattern,
-                             	ASLFR_InitialDrawer,path,
+                          //   	ASLFR_InitialDrawer,path,
                              	ASLFR_DoPatterns,TRUE,
+								ASLFR_DoSaveMode, save,
                     			TAG_DONE))
 		{
 			strlcpy(fname,freq->fr_Drawer,1024);	

@@ -14,6 +14,6 @@ int amiga_open_libs(void);
 void amiga_close_libs(void);
 
 void amiga_read_tooltypes(struct WBStartup *);
-char *amiga_file_request(char *);
+char *amiga_file_request(char *, BOOL);
 
 #endif

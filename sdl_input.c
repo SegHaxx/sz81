@@ -2391,7 +2391,7 @@ void toggle_ldfile_state(void) {
 		get_active_component() == COMP_EMU) {
 		#ifdef __amigaos4__
 			/* This will return NULL if the user cancelled */
-			if ((amiga_file_request_retval = amiga_file_request("")) != NULL) {
+			if ((amiga_file_request_retval = amiga_file_request("SZ81", FALSE)) != NULL) {
 				load_file_dialog.method = LOAD_FILE_METHOD_FORCEDLOAD;
 				sdl_emulator.autoload = TRUE;
 				/* Reset the emulator */
