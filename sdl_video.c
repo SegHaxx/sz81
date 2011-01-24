@@ -138,6 +138,18 @@ char *runtime_options_text3[24] = {
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
 };
 
+char save_state_dialog_text[72] = {
+	0x00, 0x18, 0x28, 0x08, 0x08, 0x08, 0x3e, 0x00,
+	0x00, 0x3c, 0x42, 0x02, 0x3c, 0x40, 0x7e, 0x00,
+	0x00, 0x3c, 0x42, 0x0c, 0x02, 0x42, 0x3c, 0x00,
+	0x00, 0x08, 0x18, 0x28, 0x48, 0x7e, 0x08, 0x00,
+	0x00, 0x7e, 0x40, 0x7c, 0x02, 0x42, 0x3c, 0x00,
+	0x00, 0x3c, 0x40, 0x7c, 0x42, 0x42, 0x3c, 0x00,
+	0x00, 0x7e, 0x02, 0x04, 0x08, 0x10, 0x10, 0x00,
+	0x00, 0x3c, 0x42, 0x3c, 0x42, 0x42, 0x3c, 0x00,
+	0x00, 0x3c, 0x42, 0x42, 0x3e, 0x02, 0x3c, 0x00
+};
+
 /* Function prototypes */
 
 
@@ -257,10 +269,10 @@ unsigned char *vga_getgraphmem(void) {
 
 void sdl_video_update(void) {
 	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
-	int srcx, srcy, desx, desy, srcw, count, count2;
-	Uint32 colour, fg_colour, bg_colour;
+	int srcx, srcy, desx, desy, srcw, count, invertcolours;
+	Uint32 fg_colour, bg_colour, *screen_pixels_32;
+	int xpos, ypos, xmask, ybyte;
 	SDL_Surface *renderedtext;
-	Uint32 *screen_pixels_32;
 	Uint16 *screen_pixels_16;
 	char text[33], *direntry;
 	SDL_Rect dstrect;
@@ -462,10 +474,10 @@ void sdl_video_update(void) {
 		SDL_FreeSurface(renderedtext);
 		/* Draw the slot backgrounds */
 		dstrect.y = srcy + 1.5 * 8 * video.scale;
-		for (count = 0; count < 3; count++) {
+		for (ypos = 0; ypos < 3; ypos++) {
 			dstrect.x = srcx + 4 * video.scale;
-			for (count2 = 0; count2 < 3; count2++) {
-				if (!save_state_dialog.slots[count * 3 + count2]) {
+			for (xpos = 0; xpos < 3; xpos++) {
+				if (!save_state_dialog.slots[ypos * 3 + xpos]) {
 					colourRGB = bg_colourRGB;
 				} else {
 					colourRGB = fg_colourRGB;
@@ -479,25 +491,31 @@ void sdl_video_update(void) {
 			}
 			dstrect.y += 4.5 * 8 * video.scale;
 		}
-		/* Draw the slot numbers */
-
-
-
-
-
-		/*
-		char *save_state_dialog_slots_text[72] = {
-			0x00, 0x18, 0x28, 0x08, 0x08, 0x08, 0x3e, 0x00,
-			0x00, 0x3c, 0x42, 0x02, 0x3c, 0x40, 0x7e, 0x00,
-			0x00, 0x3c, 0x42, 0x0c, 0x02, 0x42, 0x3c, 0x00,
-			0x00, 0x08, 0x18, 0x28, 0x48, 0x7e, 0x08, 0x00,
-			0x00, 0x7e, 0x40, 0x7c, 0x02, 0x42, 0x3c, 0x00,
-			0x00, 0x3c, 0x40, 0x7c, 0x42, 0x42, 0x3c, 0x00,
-			0x00, 0x7e, 0x02, 0x04, 0x08, 0x10, 0x10, 0x00,
-			0x00, 0x3c, 0x42, 0x3c, 0x42, 0x42, 0x3c, 0x00,
-			0x00, 0x3c, 0x42, 0x42, 0x3e, 0x02, 0x3c, 0x00
-		};
-		*/
+		/* Draw the slot text */
+		for (ypos = 0; ypos < 3; ypos++) {
+			for (xpos = 0; xpos < 3; xpos++) {
+				dstrect.y = srcy + 1.5 * 8 * video.scale + ypos * 4.5 * 8 * video.scale;
+				for (ybyte = 0; ybyte < 8; ybyte++) {
+					dstrect.x = srcx + 4 * video.scale + xpos * 4.5 * 8 * video.scale;
+					for (xmask = 0x80; xmask >= 1; xmask >>= 1) {
+						if (save_state_dialog_text[(ypos * 3 + xpos) * 8 + ybyte] & xmask) {
+							if (!save_state_dialog.slots[ypos * 3 + xpos]) {
+								colourRGB = fg_colourRGB;
+							} else {
+								colourRGB = bg_colourRGB;
+							}
+							dstrect.w = 4 * video.scale; dstrect.h = 4 * video.scale;
+							if (SDL_FillRect(video.screen, &dstrect, colourRGB) < 0) {
+								fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+								exit(1);
+							}
+						}
+						dstrect.x += 4 * video.scale;
+					}
+					dstrect.y += 4 * video.scale;
+				}
+			}
+		}
 	}
 
 	/* Is the load file dialog being rendered? */
@@ -605,19 +623,22 @@ void sdl_video_update(void) {
 			exit(1);
 		}
 		/* Draw the static text */
+		invertcolours = FALSE;
 		for (desy = 0; desy < 24; desy++) {
 			dstrect.x = srcx; desx = 0;
 			for (;;) {
 				do {
 					text[0] = runtime_options[runtime_options_which()].text[desy][desx++];
 					/* Invert the colours */
-					if (text[0] == 2) {
-						colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
-					}
+					if (text[0] == 2) invertcolours = !invertcolours;
 				} while (text[0] == 1 || text[0] == 2);
 				if (text[0]) {
 					text[1] = 0;	/* Null terminate the string */
-					renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+					if (!invertcolours) {
+						renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+					} else {
+						renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+					}
 					dstrect.y = srcy + desy * 8 * video.scale;
 					dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 					if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
@@ -639,9 +660,7 @@ void sdl_video_update(void) {
 				do {
 					text[0] = runtime_options[runtime_options_which()].text[desy][desx++];
 					/* Invert the colours */
-					if (text[0] == 2) {
-						colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
-					}
+					if (text[0] == 2) invertcolours = !invertcolours;
 				} while (text[0] == 2);
 				if (text[0] == 1) {
 					text[0] = 0;	/* Erase it as we might put a value in it */
@@ -655,8 +674,7 @@ void sdl_video_update(void) {
 							if ((count <= 1 && runopts_emulator_model) || 
 								(count >= 2 && !runopts_emulator_model)) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count == 4) {
 							sprintf(text, "%2i", runopts_emulator_ramsize);
@@ -681,44 +699,38 @@ void sdl_video_update(void) {
 							if (!(count % 2)) strcpy(text, "O");
 							if (runopts_sound_device == DEVICE_NONE) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count >= 2 && count <= 3) {
 							if (!(count % 2)) strcpy(text, "O");
 							if (runopts_sound_device == DEVICE_QUICKSILVA ||
 								runopts_sound_device == DEVICE_ZONX) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count >= 4 && count <= 5) {
 							if (!(count % 2)) strcpy(text, "O");
 							if (runopts_sound_device == DEVICE_QUICKSILVA) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count >= 6 && count <= 7) {
 							if (!(count % 2)) strcpy(text, "O");
 							if (runopts_sound_device == DEVICE_ZONX) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count >= 8 && count <= 9) {
 							if (!(count % 2)) strcpy(text, "X");
 							if (runopts_sound_stereo) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count >= 10 && count <= 11) {
 							if (!(count % 2)) strcpy(text, "O");
 							if (runopts_sound_device == DEVICE_VSYNC) {
 								/* Invert the colours */
-								colour = fg_colour; fg_colour = bg_colour; 
-								bg_colour = colour;
+								invertcolours = !invertcolours;
 							}
 						} else if (count == 12) {
 							#ifdef OSS_SOUND_SUPPORT
@@ -766,7 +778,11 @@ void sdl_video_update(void) {
 					}
 					if (text[0]) {	/* Let's not go to that place - again ;) */
 						dstrect.y = srcy + desy * 8 * video.scale;
-						renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+						if (!invertcolours) {
+							renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+						} else {
+							renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+						}
 						dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 						if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 							fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
@@ -794,9 +810,9 @@ void sdl_video_update(void) {
 	if (show_input_id && current_input_id != UNDEFINED) {
 		sprintf(text, "%i", current_input_id);
 		if (*sdl_emulator.model == MODEL_ZX80) {
-			renderedtext = BMF_RenderText(BMF_FONT_ZX80, text, fg_colour, bg_colour);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX80, text, bg_colour, fg_colour);
 		} else {
-			renderedtext = BMF_RenderText(BMF_FONT_ZX81, text, fg_colour, bg_colour);
+			renderedtext = BMF_RenderText(BMF_FONT_ZX81, text, bg_colour, fg_colour);
 		}
 		dstrect.x = video.screen->w / 2 - renderedtext->w / 2;
 		dstrect.y = video.screen->h / 2 - renderedtext->h / 2;
