@@ -62,21 +62,16 @@ void sdl_zxprinter_init(void) {
 	time_t rightnow;
 	char unique[96];
 
-	#if defined(__amigaos4__)	/* ???amiga??? */
+	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
 		strcpy(zxprinter.filename, LOCAL_DATA_DIR);
-		strcatdelimiter(zxprinter.filename);
 	#else
-		#if defined(PLATFORM_GP2X)
-			strcpy(zxprinter.filename, LOCAL_DATA_DIR);
-		#else
-			strcpy(zxprinter.filename, getenv ("HOME"));
-			strcatdelimiter(zxprinter.filename);
-			strcat(zxprinter.filename, LOCAL_DATA_DIR);
-		#endif
+		strcpy(zxprinter.filename, getenv ("HOME"));
 		strcatdelimiter(zxprinter.filename);
-		strcat(zxprinter.filename, LOCAL_PRTOUT_DIR);
-		strcatdelimiter(zxprinter.filename);
+		strcat(zxprinter.filename, LOCAL_DATA_DIR);
 	#endif
+	strcatdelimiter(zxprinter.filename);
+	strcat(zxprinter.filename, LOCAL_PRTOUT_DIR);
+	strcatdelimiter(zxprinter.filename);
 
 	/* Create a unique filename using the date and time */
 	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
@@ -104,31 +99,26 @@ void local_data_dir_init(void) {
 	int count;
 	
 	/* Create local data directory structure whilst ignoring errors */
-	#if defined(__amigaos4__)	/* ???amiga??? */
-		strcpy(foldername, LOCAL_DATA_DIR);
-		mkdir(foldername, 0755);
-	#else
-		for (count = 0; count < 4; count++) {
-			#if defined(PLATFORM_GP2X)
-				strcpy(foldername, LOCAL_DATA_DIR);
-			#else
-				strcpy(foldername, getenv ("HOME"));
-				strcatdelimiter(foldername);
-				strcat(foldername, LOCAL_DATA_DIR);
-			#endif
-			if (count == 1) {
-				strcatdelimiter(foldername);
-				strcat(foldername, LOCAL_PRTOUT_DIR);
-			} else if (count == 2) {
-				strcatdelimiter(foldername);
-				strcat(foldername, LOCAL_SAVSTA_DIR);
-			} else if (count == 3) {
-				strcatdelimiter(foldername);
-				strcat(foldername, LOCAL_SCNSHT_DIR);
-			}
-			mkdir(foldername, 0755);
+	for (count = 0; count < 4; count++) {
+		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+			strcpy(foldername, LOCAL_DATA_DIR);
+		#else
+			strcpy(foldername, getenv ("HOME"));
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_DATA_DIR);
+		#endif
+		if (count == 1) {
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_PRTOUT_DIR);
+		} else if (count == 2) {
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_SAVSTA_DIR);
+		} else if (count == 3) {
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_SCNSHT_DIR);
 		}
-	#endif
+		mkdir(foldername, 0755);
+	}
 }
 
 /***************************************************************************
@@ -150,19 +140,15 @@ void sdl_rcfile_read(void) {
 	char read_version[16];
 	FILE *fp;
 
-	#if defined(__amigaos4__)	/* ???amiga??? */
-		strcpy(rcfile.filename, RESOURCE_FILE);
+	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+		strcpy(rcfile.filename, LOCAL_DATA_DIR);
 	#else
-		#if defined(PLATFORM_GP2X)
-			strcpy(rcfile.filename, LOCAL_DATA_DIR);
-		#else
-			strcpy(rcfile.filename, getenv ("HOME"));
-			strcatdelimiter(rcfile.filename);
-			strcat(rcfile.filename, LOCAL_DATA_DIR);
-		#endif
+		strcpy(rcfile.filename, getenv ("HOME"));
 		strcatdelimiter(rcfile.filename);
-		strcat(rcfile.filename, RESOURCE_FILE);
+		strcat(rcfile.filename, LOCAL_DATA_DIR);
 	#endif
+	strcatdelimiter(rcfile.filename);
+	strcat(rcfile.filename, RESOURCE_FILE);
 
 	fprintf(stdout, "Reading from %s\n", rcfile.filename);
 	if ((fp = fopen(rcfile.filename, "r")) == NULL) {

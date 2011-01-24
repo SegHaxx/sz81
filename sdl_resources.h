@@ -19,23 +19,18 @@
 #define MAX_FONTS 4
 
 /* Local resources */
+
 #if defined(__amigaos4__)
 	#define LOCAL_DATA_DIR amiga_data_dir
-	#define RESOURCE_FILE amiga_resource_file
-	#define LOCAL_PRTOUT_DIR	/* ???amiga??? */
-	#define LOCAL_SAVSTA_DIR	/* ???amiga??? */
-	#define LOCAL_SCNSHT_DIR	/* ???amiga??? */
+#elif defined(PLATFORM_GP2X)
+	#define LOCAL_DATA_DIR "local"
 #else
-	#if defined(PLATFORM_GP2X)
-		#define LOCAL_DATA_DIR "local"
-	#else
-		#define LOCAL_DATA_DIR ".sz81"
-	#endif
-	#define RESOURCE_FILE "sz81rc"
-	#define LOCAL_PRTOUT_DIR "prtout"
-	#define LOCAL_SAVSTA_DIR "savsta"
-	#define LOCAL_SCNSHT_DIR "scnsht"
+	#define LOCAL_DATA_DIR ".sz81"
 #endif
+#define RESOURCE_FILE "sz81rc"
+#define LOCAL_PRTOUT_DIR "prtout"
+#define LOCAL_SAVSTA_DIR "savsta"
+#define LOCAL_SCNSHT_DIR "scnsht"
 
 /* Bitmap font IDs */
 #define BMF_FONT_ZX80 0

@@ -46,7 +46,6 @@ int amiga_open_libs(void)
 		ret=0;
 	}
 
-	strcpy(amiga_resource_file, "ENVARC:sz81.config");
 	strcpy(amiga_data_dir, "PROGDIR:save");
 
 	return(ret);
@@ -101,12 +100,7 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 				sdl_com_line.yres=atoi(s);
 			}
 
-			if((s = IIcon->FindToolType(toolarray,"RESOURCEFILE")))
-			{
-			 	strcpy(amiga_resource_file, s);
-			}
-
-			if((s = IIcon->FindToolType(toolarray,"USERDATA")))
+			if((s = IIcon->FindToolType(toolarray,"LOCALDATA")))
 			{
 			 	strcpy(amiga_data_dir, s);
 			}

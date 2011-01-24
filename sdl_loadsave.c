@@ -45,22 +45,18 @@ void save_state_dialog_slots_populate(void) {
 		save_state_dialog.slots[count] = 0;
 
 	/* Build a path to the currently loaded program's save state folder */
-	#if defined(__amigaos4__)	/* ???amiga??? */
 
-
+	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+		strcpy(foldername, LOCAL_DATA_DIR);
 	#else
-		#if defined(PLATFORM_GP2X)
-			strcpy(foldername, LOCAL_DATA_DIR);
-		#else
-			strcpy(foldername, getenv ("HOME"));
-			strcatdelimiter(foldername);
-			strcat(foldername, LOCAL_DATA_DIR);
-		#endif
+		strcpy(foldername, getenv ("HOME"));
 		strcatdelimiter(foldername);
-		strcat(foldername, LOCAL_SAVSTA_DIR);
-		strcatdelimiter(foldername);
-		strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
+		strcat(foldername, LOCAL_DATA_DIR);
 	#endif
+	strcatdelimiter(foldername);
+	strcat(foldername, LOCAL_SAVSTA_DIR);
+	strcatdelimiter(foldername);
+	strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
 
 	/* Firstly attempt to open the folder */
 	if ((dirstream = opendir(foldername)) == NULL) {

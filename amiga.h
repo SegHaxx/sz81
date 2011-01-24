@@ -7,7 +7,6 @@
 
 #include <workbench/startup.h>
 
-char amiga_resource_file[256];
 char amiga_data_dir[256];
 char *amiga_file_request_retval;
 

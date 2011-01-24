@@ -112,8 +112,7 @@ For the Amiga:
     XRES=<240+>
     YRES=<240+>
 
-    RESOURCEFILE=<sz81rc file> (default: ENVARC:sz81.config)
-    USERDATA=<dir to save user data> (default: PROGDIR:save)
+    LOCALDATA=<dir to save user data> (default: PROGDIR:save)
 
     File Selector
     -------------
