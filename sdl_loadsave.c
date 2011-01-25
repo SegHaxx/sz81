@@ -627,6 +627,12 @@ char *strzx80_to_ascii(int memaddr) {
  *  On exit: returns a pointer to a string containing the extracted basename
  *               (the root directory is returned as "/" not "") */
 
+/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+
 char *file_dialog_basename(char *dir) {
 	static char basename[256];
 	int index;

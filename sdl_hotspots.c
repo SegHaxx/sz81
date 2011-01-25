@@ -92,6 +92,23 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LDFILE_EXIT].remap_id = SDLK_F3;
 
+	/* Initialise save state dialog hotspots */
+	hotspots[HS_SSTATE_SSTATE].flags &= ~HS_PROP_NAVIGABLE;
+	for (count = HS_SSTATE_SSTATE; count <= HS_SSTATE_EXIT; count++) {
+		hotspots[count].gid = HS_GRP_SSTATE;
+	}
+	hotspots[HS_SSTATE_SLOT0].remap_id = SDLK_1;
+	hotspots[HS_SSTATE_SLOT0].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_SSTATE_SLOT1].remap_id = SDLK_2;
+	hotspots[HS_SSTATE_SLOT2].remap_id = SDLK_3;
+	hotspots[HS_SSTATE_SLOT3].remap_id = SDLK_4;
+	hotspots[HS_SSTATE_SLOT4].remap_id = SDLK_5;
+	hotspots[HS_SSTATE_SLOT5].remap_id = SDLK_6;
+	hotspots[HS_SSTATE_SLOT6].remap_id = SDLK_7;
+	hotspots[HS_SSTATE_SLOT7].remap_id = SDLK_8;
+	hotspots[HS_SSTATE_SLOT8].remap_id = SDLK_9;
+	hotspots[HS_SSTATE_EXIT].remap_id = SDLK_F4;
+
 	/* Initialise virtual keyboard hotspots */
 	hotspots[HS_VKEYB_VKEYB].gid = HS_GRP_VKEYB;
 	hotspots[HS_VKEYB_VKEYB].flags &= ~HS_PROP_NAVIGABLE;
@@ -359,6 +376,44 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_EXIT].hit_h = 2 * 8 * video.scale;
 		/* Set-up hl_x/y/w/h */
 		for (count = HS_LDFILE_LOAD; count <= HS_LDFILE_EXIT; count++) {
+			hotspots[count].hl_x = hotspots[count].hit_x;
+			hotspots[count].hl_y = hotspots[count].hit_y + 0.5 * 8 * video.scale;
+			hotspots[count].hl_w = hotspots[count].hit_w;
+			hotspots[count].hl_h = hotspots[count].hit_h - 1 * 8 * video.scale;
+		}
+	}
+
+	if (gid & HS_GRP_SSTATE) {
+		/* Resize save state dialog hotspots */
+		hotspots[HS_SSTATE_SSTATE].hit_x = save_state_dialog.xoffset;
+		hotspots[HS_SSTATE_SSTATE].hit_y = save_state_dialog.yoffset;
+		hotspots[HS_SSTATE_SSTATE].hit_w = 14 * 8 * video.scale;
+		hotspots[HS_SSTATE_SSTATE].hit_h = 16.5 * 8 * video.scale;
+		for (count = 0; count < 3; count++) {
+			hotspots[HS_SSTATE_SLOT0 + count].hit_x = 
+				hotspots[HS_SSTATE_SLOT3 + count].hit_x = 
+				hotspots[HS_SSTATE_SLOT6 + count].hit_x = 
+				save_state_dialog.xoffset + 4 * video.scale + 
+				count * 4.5 * 8 * video.scale;
+			hotspots[HS_SSTATE_SLOT0 + count * 3].hit_y = 
+				hotspots[HS_SSTATE_SLOT1 + count * 3].hit_y = 
+				hotspots[HS_SSTATE_SLOT2 + count * 3].hit_y = 
+				save_state_dialog.yoffset + 1.5 * 8 * video.scale + 
+				count * 4.5 * 8 * video.scale;
+			hotspots[HS_SSTATE_SLOT0 + count].hit_w = 
+				hotspots[HS_SSTATE_SLOT3 + count].hit_w = 
+				hotspots[HS_SSTATE_SLOT6 + count].hit_w = 
+				hotspots[HS_SSTATE_SLOT0 + count].hit_h = 
+				hotspots[HS_SSTATE_SLOT3 + count].hit_h = 
+				hotspots[HS_SSTATE_SLOT6 + count].hit_h =
+				4 * 8 * video.scale;
+		}
+		hotspots[HS_SSTATE_EXIT].hit_x = save_state_dialog.xoffset + 5 * 8 * video.scale;
+		hotspots[HS_SSTATE_EXIT].hit_y = save_state_dialog.yoffset + 14.5 * 8 * video.scale;
+		hotspots[HS_SSTATE_EXIT].hit_w = 4 * 8 * video.scale;
+		hotspots[HS_SSTATE_EXIT].hit_h = 2 * 8 * video.scale;
+		/* Set-up hl_x/y/w/h */
+		for (count = HS_SSTATE_EXIT; count <= HS_SSTATE_EXIT; count++) {
 			hotspots[count].hl_x = hotspots[count].hit_x;
 			hotspots[count].hl_y = hotspots[count].hit_y + 0.5 * 8 * video.scale;
 			hotspots[count].hl_w = hotspots[count].hit_w;
@@ -703,6 +758,15 @@ void hotspots_update(void) {
 			if (hotspots[count].gid == HS_GRP_LDFILE) hotspots[count].flags &= ~HS_PROP_VISIBLE;
 	}
 
+	/* Update the save state dialog hotspots */
+	if (save_state_dialog.state) {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_SSTATE) hotspots[count].flags |= HS_PROP_VISIBLE;
+	} else {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_SSTATE) hotspots[count].flags &= ~HS_PROP_VISIBLE;
+	}
+
 	/* Update the virtual keyboard hotspots */
 	if (vkeyb.state) {
 		for (count = 0; count < MAX_HOTSPOTS; count++)
@@ -779,7 +843,8 @@ void hotspots_render(void) {
 				}
 				/* Choose a suitable colour (pressed overrides selected) */
 				if (hotspots[count].gid == HS_GRP_LOAD || 
-					hotspots[count].gid == HS_GRP_LDFILE) {
+					hotspots[count].gid == HS_GRP_LDFILE || 
+					hotspots[count].gid == HS_GRP_SSTATE) {
 					if (pressed) {
 						colour = colours.hs_load_pressed;
 					} else {

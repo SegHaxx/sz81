@@ -246,37 +246,37 @@ void sdl_keyboard_init(void) {
 	ctrl_remaps[index].remap_id = SDLK_a;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	/* Active within ldfile/runopts */
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	/* Active within ldfile/sstate/runopts */
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_W;
 
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_E;
 
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RETURN;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_HIT;
 
-	/* Active within runopts only */
-	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+	/* Active within sstate/runopts */
+	ctrl_remaps[++index].components = COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_UP;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_N;
 
-	ctrl_remaps[++index].components = COMP_RUNOPTS_ALL;
+	ctrl_remaps[++index].components = COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_DOWN;
@@ -303,6 +303,27 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].id = GP2X_SELECT;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F3;
+
+
+			/* TEMP TEMP temp temp for testing */
+			/* TEMP TEMP temp temp for testing */
+			/* TEMP TEMP temp temp for testing */
+			/* TEMP TEMP temp temp for testing */
+			/* TEMP TEMP temp temp for testing */
+			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE | COMP_VKEYB;
+			ctrl_remaps[index].protected = FALSE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_VOL_DN;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_F4;
+
+			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE | COMP_VKEYB;
+			ctrl_remaps[index].protected = FALSE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_VOL_UP;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_F5;
+
 
 			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
@@ -400,7 +421,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_id = SDLK_a;
 			ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-			/* Active within ldfile only */
+			/* Active within ldfile only  */
 			ctrl_remaps[++index].components = COMP_LDFILE;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -415,7 +436,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_DOWN;
 
-			/* Active within load/ldfile/vkeyb/ctb/runopts */
+			/* Active within load/ldfile/sstate/vkeyb/ctb/runopts */
 			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -423,28 +444,28 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
-			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_N;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_N;
 
-			ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_S;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_S;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_W;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
@@ -466,7 +487,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-			ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
@@ -634,7 +655,7 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_DOWN;
 
-					/* Active within load/ldfile/vkeyb/ctb/runopts */
+					/* Active within load/ldfile/sstate/vkeyb/ctb/runopts */
 					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
@@ -642,28 +663,28 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_REMAP;
 
-					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 12;	/* Up */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_N;
 
-					ctrl_remaps[++index].components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 13;	/* Down */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_S;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 10;	/* Left */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_W;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 11;	/* Right */
@@ -685,7 +706,7 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-					ctrl_remaps[++index].components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 3;	/* X */
@@ -1201,6 +1222,8 @@ void manage_cursor_input(void) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 		} else if (get_active_component() == COMP_LDFILE) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_LDFILE);
+		} else if (get_active_component() == COMP_SSTATE) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_SSTATE);
 		} else if (get_active_component() == COMP_VKEYB || get_active_component() == COMP_CTB) {
 			if ((hs_currently_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
 				hs_currently_selected = get_selected_hotspot(HS_GRP_CTB);
@@ -1220,6 +1243,7 @@ void manage_cursor_input(void) {
 				virtualevent.button.state = SDL_PRESSED;
 				if (get_active_component() & COMP_RUNOPTS_ALL ||
 					get_active_component() == COMP_LDFILE ||
+					get_active_component() == COMP_SSTATE ||
 					get_active_component() == COMP_VKEYB ||
 					get_active_component() == COMP_CTB ||
 					get_active_component() == COMP_LOAD) {
@@ -1246,7 +1270,18 @@ void manage_cursor_input(void) {
 				}
 			} else if (id == CURSOR_N) {
 				/* Move the selector up */
-				if (vkeyb.state) {
+				if (save_state_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_N);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected >= HS_SSTATE_SLOT0 &&
+						hs_currently_selected <= HS_SSTATE_SLOT2) {
+						hotspots[HS_SSTATE_EXIT].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_SSTATE_EXIT) {
+						hotspots[HS_SSTATE_SLOT7].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					}
+				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_CTB_EXIT && 
@@ -1356,7 +1391,18 @@ void manage_cursor_input(void) {
 				}
 			} else if (id == CURSOR_S) {
 				/* Move the selector down */
-				if (vkeyb.state) {
+				if (save_state_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_S);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_SSTATE_EXIT) {
+						hotspots[HS_SSTATE_SLOT1].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_SSTATE_SLOT6 &&
+						hs_currently_selected <= HS_SSTATE_SLOT8) {
+						hotspots[HS_SSTATE_EXIT].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
+					}
+				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_VKEYB_SHIFT &&
@@ -1476,6 +1522,18 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (--hs_currently_selected < HS_LDFILE_LOAD) hs_currently_selected = HS_LDFILE_EXIT;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+				} else if (save_state_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_SSTATE_SLOT0 ||
+						hs_currently_selected == HS_SSTATE_SLOT3 ||
+						hs_currently_selected == HS_SSTATE_SLOT6) {
+						hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected < HS_SSTATE_EXIT) {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					}
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1574,6 +1632,18 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (++hs_currently_selected > HS_LDFILE_EXIT) hs_currently_selected = HS_LDFILE_LOAD;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+				} else if (save_state_dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_SSTATE_SLOT2 ||
+						hs_currently_selected == HS_SSTATE_SLOT5 ||
+						hs_currently_selected == HS_SSTATE_SLOT8) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected < HS_SSTATE_EXIT) {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					}
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -2655,7 +2725,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_o;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_W;
 							} else {
@@ -2668,7 +2738,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_p;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_E;
 							} else {
@@ -2687,7 +2757,7 @@ void runopts_transit(int state) {
 								components = COMP_LDFILE;
 								remap_id = SDLK_UP;
 							} else if (count == 3) {
-								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_N;
 							} else {
@@ -2706,7 +2776,7 @@ void runopts_transit(int state) {
 								components = COMP_LDFILE;
 								remap_id = SDLK_DOWN;
 							} else if (count == 3) {
-								components = COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_S;
 							} else {
@@ -2739,7 +2809,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_RETURN;
 							} else if (count == 1) {
-								components = COMP_LOAD | COMP_LDFILE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_HIT;
 							} else {

@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define MAX_HOTSPOTS 172
+#define MAX_HOTSPOTS 190
 
 /* Hotspot group IDs */
 #define HS_GRP_EMU 1
@@ -29,7 +29,8 @@
 #define HS_GRP_RUNOPTS3 128
 #define HS_GRP_RUNOPTS_ALL (HS_GRP_RUNOPTS0 | HS_GRP_RUNOPTS1 | HS_GRP_RUNOPTS2 | HS_GRP_RUNOPTS3)
 #define HS_GRP_LDFILE 256
-#define HS_GRP_ALL ((HS_GRP_LDFILE - 1) | HS_GRP_LDFILE)
+#define HS_GRP_SSTATE 512
+#define HS_GRP_ALL ((HS_GRP_SSTATE - 1) | HS_GRP_SSTATE)
 
 /* Hotspot IDs (hotspots[] indexes which are also zorders) */
 #define HS_EMU_EMU 0
@@ -140,6 +141,17 @@
 #define HS_LDFILE_LIST19 169
 #define HS_LDFILE_LOAD 170
 #define HS_LDFILE_EXIT 171
+#define HS_SSTATE_SSTATE 179
+#define HS_SSTATE_SLOT0 180
+#define HS_SSTATE_SLOT1 181
+#define HS_SSTATE_SLOT2 182
+#define HS_SSTATE_SLOT3 183
+#define HS_SSTATE_SLOT4 184
+#define HS_SSTATE_SLOT5 185
+#define HS_SSTATE_SLOT6 186
+#define HS_SSTATE_SLOT7 187
+#define HS_SSTATE_SLOT8 188
+#define HS_SSTATE_EXIT 189
 
 /* Hotspot properties */
 #define HS_PROP_ONOFF 1
