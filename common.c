@@ -58,7 +58,11 @@ int load_hook=1,save_hook=1;
 int vsync_visuals=0;
 int invert_screen=0;
 
+#ifdef SZ81	/* Added by Thunor */
+int signal_int_flag=0;
+#else
 volatile int signal_int_flag=0;
+#endif
 volatile int exit_program_flag=0;
 int interrupted=0;
 int nmigen=0,hsyncgen=0,vsync=0;

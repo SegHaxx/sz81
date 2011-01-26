@@ -67,20 +67,38 @@
 #define COMP_ALL ((COMP_SSTATE - 1) | COMP_SSTATE)
 
 /* Emulator variables I require access to */
-extern int refresh_screen;
-extern int load_selector_state;
-extern int interrupted;
-extern volatile int signal_int_flag;
-extern char *zxpfilename;
-extern int sound, sound_vsync;
-extern int sound_ay, sound_ay_type;
-extern int sound_stereo, sound_stereo_acb;
-extern unsigned char mem[];
+/* Variables from the top of z80.c */
+extern unsigned long tstates, frames;
+extern int liney;
+extern int vsy;
+extern unsigned long linestart;
+extern int vsync_toggle, vsync_lasttoggle;
+/* Variables liberated from the top of mainloop */
 extern unsigned char a, f, b, c, d, e, h, l;
 extern unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
 extern unsigned short pc;
 extern unsigned short ix, iy, sp;
 extern unsigned char radjust;
+extern unsigned long nextlinetime, linegap, lastvsyncpend;
+extern unsigned char ixoriy, new_ixoriy;
+extern unsigned char intsample;
+extern unsigned char op;
+extern int ulacharline;
+extern int nmipend, intpend, vsyncpend, vsynclen;
+extern int hsyncskip;
+extern int framewait;
+/* Variables from the top of common.c */
+extern unsigned char mem[];
+extern int sound, sound_vsync;
+extern int sound_ay, sound_ay_type;
+extern int signal_int_flag;
+extern int interrupted;
+extern int nmigen, hsyncgen, vsync;
+extern char *zxpfilename;
+extern int load_selector_state;
+extern int refresh_screen;
+/* Variables from the top of sound.c */
+extern int sound_stereo, sound_stereo_acb;
 
 /* Variables */
 char startdir[256];

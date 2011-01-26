@@ -52,6 +52,7 @@
 /* Save file methods */
 #define SAVE_FILE_METHOD_NAMEDSAVE 1
 #define SAVE_FILE_METHOD_UNNAMEDSAVE 2
+#define SAVE_FILE_METHOD_STATESAVE 3
 
 /* 16KB was fine for everything but the Wiz is currently experiencing
  * linear buffer overflow and so I'm quadrupling it for the Wiz only */
@@ -130,8 +131,8 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len);
 void sdl_sound_frame(unsigned char *data, int len);
 void sdl_sound_end(void);
 int sdl_filetype_casecmp(char *filename, char *filetype);
-int sdl_load_file(int prognameaddr, int method);
-int sdl_save_file(int prognameaddr, int method);
+int sdl_load_file(int parameter, int method);
+int sdl_save_file(int parameter, int method);
 
 
 

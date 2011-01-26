@@ -140,6 +140,8 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len) {
  * from interfering with what we're doing here */
 
 void sdl_sound_frame(unsigned char *data, int len) {
+	static int ovfcnt = 0;
+	
 	SDL_LockAudio();
 	while (len--) {
 		sdl_sound.buffer[sdl_sound.buffer_end++] = *(data++);
@@ -147,7 +149,7 @@ void sdl_sound_frame(unsigned char *data, int len) {
 		if (sdl_sound.buffer_end == sdl_sound.buffer_start) {
 			sdl_sound.buffer_start++;
 			if (sdl_sound.buffer_start >= SOUND_BUFFER_SIZE) sdl_sound.buffer_start = 0;
-			fprintf(stderr, "%s: Sound buffer overflow\n", __func__);
+			if (ovfcnt++ < 10) fprintf(stderr, "%s: Sound buffer overflow\n", __func__);
 		}
 	}
 	SDL_UnlockAudio();

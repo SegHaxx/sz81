@@ -55,10 +55,18 @@ unsigned char scrnbmp_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8]; /* written */
 unsigned char scrnbmp[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];	/* displayed */
 unsigned char scrnbmp_old[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];
 						/* checked against for diffs */
+
+#ifdef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
+int liney=0;
+int vsy=0;
+unsigned long linestart=0;
+int vsync_toggle=0,vsync_lasttoggle=0;
+#else
 static int liney=0;
 static int vsy=0;
 static unsigned long linestart=0;
 static int vsync_toggle=0,vsync_lasttoggle=0;
+#endif
 
 int ay_reg=0;
 
@@ -110,24 +118,15 @@ for(y=vsy;y<ny;y++)
 }
 
 
-#ifdef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
-unsigned char a, f, b, c, d, e, h, l;
-unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
-unsigned short pc;
-unsigned short ix, iy, sp;
-unsigned char radjust;
-#endif
-
-
+#ifndef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
 void mainloop()
 {
-#ifndef SZ81	/* Added by Thunor */
+#endif
 unsigned char a, f, b, c, d, e, h, l;
 unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
 unsigned short pc;
 unsigned short ix, iy, sp;
 unsigned char radjust;
-#endif
 unsigned long nextlinetime=0,linegap=208,lastvsyncpend=0;
 unsigned char ixoriy, new_ixoriy;
 unsigned char intsample=0;
@@ -136,6 +135,17 @@ int ulacharline=0;
 int nmipend=0,intpend=0,vsyncpend=0,vsynclen=0;
 int hsyncskip=0;
 int framewait=0;
+
+#ifdef SZ81	/* Added by Thunor */
+void mainloop()
+{
+nextlinetime=0; linegap=208; lastvsyncpend=0;
+intsample=0;
+ulacharline=0;
+nmipend=0; intpend=0; vsyncpend=0; vsynclen=0;
+hsyncskip=0;
+framewait=0;
+#endif
 
 a=f=b=c=d=e=h=l=a1=f1=b1=c1=d1=e1=h1=l1=i=iff1=iff2=im=r=0;
 ixoriy=new_ixoriy=0;

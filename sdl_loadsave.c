@@ -34,18 +34,19 @@ char *strzx80_to_ascii(int memaddr);
  * and create it if it's not found to exist. It will then scan it looking
  * for savsta1.ss{o|p} to savsta9.ss{o|p} */
 
-void save_state_dialog_slots_populate(void) {
+int save_state_dialog_slots_populate(void) {
 	struct dirent *direntry;
 	char foldername[256];
+	char parentname[256];
+	int retval = FALSE;
+	int count, index;
 	DIR *dirstream;
-	int count;
 
 	/* Wipe the slots ready for fresh data */
 	for (count = 0; count < 9; count++)
 		save_state_dialog.slots[count] = 0;
 
 	/* Build a path to the currently loaded program's save state folder */
-
 	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
 		strcpy(foldername, LOCAL_DATA_DIR);
 	#else
@@ -56,11 +57,17 @@ void save_state_dialog_slots_populate(void) {
 	strcatdelimiter(foldername);
 	strcat(foldername, LOCAL_SAVSTA_DIR);
 	strcatdelimiter(foldername);
+	index = strlen(foldername);
+	foldername[index] = file_dialog_basename(load_file_dialog.loaded)[0];
+	foldername[index + 1] = 0;
+	strcpy(parentname, foldername);
+	strcatdelimiter(foldername);
 	strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
 
 	/* Firstly attempt to open the folder */
 	if ((dirstream = opendir(foldername)) == NULL) {
-		/* It doesn't yet exist so attempt to create it */
+		/* Path doesn't yet exist so attempt to create it */
+		mkdir(parentname, 0755);
 		mkdir(foldername, 0755);
 		/* Attempt to open the newly created folder */
 		dirstream = opendir(foldername);
@@ -81,12 +88,12 @@ void save_state_dialog_slots_populate(void) {
 		}
 		closedir(dirstream);
 	} else {
+		retval = TRUE;
 		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
 			foldername);
 	}
-	/* for (count = 0; count < 9; count++)
-		printf("%i", save_state_dialog.slots[count]);
-	printf("\n");	temp temp */
+
+	return retval;
 }
 
 /***************************************************************************
@@ -94,21 +101,24 @@ void save_state_dialog_slots_populate(void) {
  ***************************************************************************/
 /* This function replaces z81's save_p.
  * 
- * On entry: if method = SAVE_FILE_METHOD_NAMEDSAVE then prognameaddr holds
- *             the contents of the hl register pair which points to the area
- *             in the ZX81's memory that contains the program name.
- *           for all other methods prognameaddr is ignored.
+ * On entry: if method = SAVE_FILE_METHOD_NAMEDSAVE then parameter holds
+ *               the contents of the hl register pair which points to the
+ *               area in the ZX81's memory that contains the program name.
+ *           if method = SAVE_FILE_METHOD_STATESAVE then parameter holds
+ *               the slot number 0 to 8.
+ *           for all other methods parameter is ignored.
  *  On exit: returns TRUE on error
  *           else FALSE */
 
-int sdl_save_file(int prognameaddr, int method) {
+int sdl_save_file(int parameter, int method) {
 	char fullpath[256], filename[256];
 	struct MSG_Box msg_box;
 	int retval = FALSE;
+	int index;
 	FILE *fp;
 	#ifndef __amigaos4__
-		int index, idxend, vars;
 		struct tm *timestruct;
+		int idxend, vars;
 		time_t rightnow;
 	#endif
 
@@ -122,7 +132,7 @@ int sdl_save_file(int prognameaddr, int method) {
 			strcatdelimiter(fullpath);
 		#endif
 		/* Add translated program name */
-		strcat(fullpath, strzx81_to_ascii(prognameaddr));
+		strcat(fullpath, strzx81_to_ascii(parameter));
 		/* Add a file extension if one hasn't already been affixed */
 		if (sdl_filetype_casecmp(fullpath, ".p") != 0 &&
 			sdl_filetype_casecmp(fullpath, ".81") != 0)
@@ -187,27 +197,123 @@ int sdl_save_file(int prognameaddr, int method) {
 				sdl_filetype_casecmp(fullpath, ".80") != 0)
 				strcat(fullpath, ".o");
 		}
+	} else if (method == SAVE_FILE_METHOD_STATESAVE) {
+		/* Build a path to the currently loaded program's save state folder */
+		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+			strcpy(fullpath, LOCAL_DATA_DIR);
+		#else
+			strcpy(fullpath, getenv ("HOME"));
+			strcatdelimiter(fullpath);
+			strcat(fullpath, LOCAL_DATA_DIR);
+		#endif
+		strcatdelimiter(fullpath);
+		strcat(fullpath, LOCAL_SAVSTA_DIR);
+		strcatdelimiter(fullpath);
+		index = strlen(fullpath);
+		fullpath[index] = file_dialog_basename(load_file_dialog.loaded)[0];
+		fullpath[index + 1] = 0;
+		strcatdelimiter(fullpath);
+		strcat(fullpath, file_dialog_basename(load_file_dialog.loaded));
+		strcatdelimiter(fullpath);
+		/* Form an appropriate filename */
+		if (*sdl_emulator.model == MODEL_ZX80) {
+			sprintf(filename, "savsta%i.sso", parameter + 1);
+		} else if (*sdl_emulator.model == MODEL_ZX81) {
+			sprintf(filename, "savsta%i.ssp", parameter + 1);
+		}
+		/* Append filename to fullpath */
+		strcat(fullpath, filename);
 	}
 
 	if (!retval) {
 		/* Attempt to open the file */
 		if ((fp = fopen(fullpath, "wb")) != NULL) {
-			/* Write up to and including E_LINE */
-			if (*sdl_emulator.model == MODEL_ZX80) {
-				fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
-			} else if (*sdl_emulator.model == MODEL_ZX81) {
-				fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+			if (method == SAVE_FILE_METHOD_STATESAVE) {
+				/* Printer variables are reinitialised when a new file
+				 * is opened on output so saving them is futile.
+				 * Saving keyports and sound variables is unneccessary */
+
+				/* The entire contents of memory */
+				fwrite(mem, sizeof(unsigned char), 64 * 1024, fp);
+
+				/* Variables from the top of z80.c */
+				fwrite(&tstates, sizeof(unsigned long), 1, fp);
+				fwrite(&frames, sizeof(unsigned long), 1, fp);
+				fwrite(&liney, sizeof(int), 1, fp);
+				fwrite(&vsy, sizeof(int), 1, fp);
+				fwrite(&linestart, sizeof(unsigned long), 1, fp);
+				fwrite(&vsync_toggle, sizeof(int), 1, fp);
+				fwrite(&vsync_lasttoggle, sizeof(int), 1, fp);
+
+				/* Variables liberated from the top of mainloop */
+				fwrite(&a, sizeof(unsigned char), 1, fp);
+				fwrite(&f, sizeof(unsigned char), 1, fp);
+				fwrite(&b, sizeof(unsigned char), 1, fp); 
+				fwrite(&c, sizeof(unsigned char), 1, fp);
+				fwrite(&d, sizeof(unsigned char), 1, fp); 
+				fwrite(&e, sizeof(unsigned char), 1, fp);
+				fwrite(&h, sizeof(unsigned char), 1, fp); 
+				fwrite(&l, sizeof(unsigned char), 1, fp);
+				fwrite(&r, sizeof(unsigned char), 1, fp);
+				fwrite(&a1, sizeof(unsigned char), 1, fp); 
+				fwrite(&f1, sizeof(unsigned char), 1, fp);
+				fwrite(&b1, sizeof(unsigned char), 1, fp); 
+				fwrite(&c1, sizeof(unsigned char), 1, fp);
+				fwrite(&d1, sizeof(unsigned char), 1, fp); 
+				fwrite(&e1, sizeof(unsigned char), 1, fp);
+				fwrite(&h1, sizeof(unsigned char), 1, fp); 
+				fwrite(&l1, sizeof(unsigned char), 1, fp);
+				fwrite(&i, sizeof(unsigned char), 1, fp); 
+				fwrite(&iff1, sizeof(unsigned char), 1, fp); 
+				fwrite(&iff2, sizeof(unsigned char), 1, fp);
+				fwrite(&im, sizeof(unsigned char), 1, fp); 
+				fwrite(&pc, sizeof(unsigned short), 1, fp); 
+				fwrite(&ix, sizeof(unsigned short), 1, fp); 
+				fwrite(&iy, sizeof(unsigned short), 1, fp);
+				fwrite(&sp, sizeof(unsigned short), 1, fp);
+				fwrite(&radjust, sizeof(unsigned char), 1, fp);
+				fwrite(&nextlinetime, sizeof(unsigned long), 1, fp);
+				fwrite(&linegap, sizeof(unsigned long), 1, fp);
+				fwrite(&lastvsyncpend, sizeof(unsigned long), 1, fp);
+				fwrite(&ixoriy, sizeof(unsigned char), 1, fp);
+				fwrite(&new_ixoriy, sizeof(unsigned char), 1, fp);
+				fwrite(&intsample, sizeof(unsigned char), 1, fp);
+				fwrite(&op, sizeof(unsigned char), 1, fp);
+				fwrite(&ulacharline, sizeof(int), 1, fp);
+				fwrite(&nmipend, sizeof(int), 1, fp);
+				fwrite(&intpend, sizeof(int), 1, fp);
+				fwrite(&vsyncpend, sizeof(int), 1, fp);
+				fwrite(&vsynclen, sizeof(int), 1, fp);
+				fwrite(&hsyncskip, sizeof(int), 1, fp);
+				fwrite(&framewait, sizeof(int), 1, fp);
+
+				/* Variables from the top of common.c */
+				fwrite(&interrupted, sizeof(int), 1, fp);
+				fwrite(&nmigen, sizeof(int), 1, fp);
+				fwrite(&hsyncgen, sizeof(int), 1, fp);
+				fwrite(&vsync, sizeof(int), 1, fp);
+
+			} else {
+				/* Write up to and including E_LINE */
+				if (*sdl_emulator.model == MODEL_ZX80) {
+					fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
+				} else if (*sdl_emulator.model == MODEL_ZX81) {
+					fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+				}
+				/* Copy fullpath across to the load file dialog as
+				 * then we have a record of what was last saved */
+				strcpy(load_file_dialog.loaded, fullpath);
 			}
 			/* Close the file now as we've finished with it */
 			fclose(fp);
-
-			/* Copy fullpath across to the load file dialog as
-			 * then we have a record of what was last saved */
-			strcpy(load_file_dialog.loaded, fullpath);
 		} else {
 			retval = TRUE;
 			/* Warn the user via the GUI that the save failed */
-			strcpy(msg_box.title, "Save");
+			if (method == SAVE_FILE_METHOD_STATESAVE) {
+				strcpy(msg_box.title, "Save State");
+			} else {
+				strcpy(msg_box.title, "Save");
+			}
 			strcpy(msg_box.text, "Failed");
 			msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 			message_box_manager(MSG_BOX_SHOW, &msg_box);
@@ -215,8 +321,10 @@ int sdl_save_file(int prognameaddr, int method) {
 	}
 
 	if (!retval) {
-		/* Reinitialise the load file dialog's directory list */
-		load_file_dialog_dirlist_init();
+		if (method != SAVE_FILE_METHOD_STATESAVE) {
+			/* Reinitialise the load file dialog's directory list */
+			load_file_dialog_dirlist_init();
+		}
 	}
 
 	return retval;
@@ -227,19 +335,21 @@ int sdl_save_file(int prognameaddr, int method) {
  ***************************************************************************/
 /* This function replaces z81's load_p.
  * 
- * On entry: if method = LOAD_FILE_METHOD_NAMEDLOAD then prognameaddr holds
- *             the contents of the hl register pair which points to the area
- *             in the ZX81's memory that contains the program name.
- *           for all other methods prognameaddr is ignored.
+ * On entry: if method = LOAD_FILE_METHOD_NAMEDLOAD then parameter holds
+ *               the contents of the hl register pair which points to the
+ *               area in the ZX81's memory that contains the program name.
+ *           if method = LOAD_FILE_METHOD_STATELOAD then parameter holds
+ *               the slot number 0 to 8.
+ *           for all other methods parameter is ignored.
  *  On exit: returns TRUE on error
  *           else FALSE */
 
-int sdl_load_file(int prognameaddr, int method) {
+int sdl_load_file(int parameter, int method) {
 	char fullpath[256], filename[256];
 	struct MSG_Box msg_box;
 	int retval = FALSE;
+	int count, index;
 	int ramsize;
-	int count;
 	FILE *fp;
 
 	/* If requested, read and set the preset method instead */
@@ -308,6 +418,32 @@ int sdl_load_file(int prognameaddr, int method) {
 		} else {
 			retval = TRUE;
 		}
+	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
+		/* Build a path to the currently loaded program's save state folder */
+		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+			strcpy(fullpath, LOCAL_DATA_DIR);
+		#else
+			strcpy(fullpath, getenv ("HOME"));
+			strcatdelimiter(fullpath);
+			strcat(fullpath, LOCAL_DATA_DIR);
+		#endif
+		strcatdelimiter(fullpath);
+		strcat(fullpath, LOCAL_SAVSTA_DIR);
+		strcatdelimiter(fullpath);
+		index = strlen(fullpath);
+		fullpath[index] = file_dialog_basename(load_file_dialog.loaded)[0];
+		fullpath[index + 1] = 0;
+		strcatdelimiter(fullpath);
+		strcat(fullpath, file_dialog_basename(load_file_dialog.loaded));
+		strcatdelimiter(fullpath);
+		/* Form an appropriate filename */
+		if (*sdl_emulator.model == MODEL_ZX80) {
+			sprintf(filename, "savsta%i.sso", parameter + 1);
+		} else if (*sdl_emulator.model == MODEL_ZX81) {
+			sprintf(filename, "savsta%i.ssp", parameter + 1);
+		}
+		/* Append filename to fullpath */
+		strcat(fullpath, filename);
 	}
 
 	if (!retval) {
@@ -317,7 +453,7 @@ int sdl_load_file(int prognameaddr, int method) {
 				 * in uppercase as program files are obtained in either */
 
 				/* Get translated program name */
-				strcpy(filename, strzx81_to_ascii(prognameaddr));
+				strcpy(filename, strzx81_to_ascii(parameter));
 				/* Add a file extension if one hasn't already been affixed */
 				if (sdl_filetype_casecmp(filename, ".p") != 0 &&
 					sdl_filetype_casecmp(filename, ".81") != 0)
@@ -340,109 +476,171 @@ int sdl_load_file(int prognameaddr, int method) {
 
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {
+				if (method == LOAD_FILE_METHOD_STATELOAD) {
+					/* Printer variables are reinitialised when a new file
+					 * is opened on output so saving them is futile.
+					 * Saving keyports and sound variables is unneccessary */
 
-				if (method == LOAD_FILE_METHOD_AUTOLOAD || 
-					method == LOAD_FILE_METHOD_FORCEDLOAD) {
-					/* To duplicate these values: in mainloop in z80.c around
-					 * line 189, change #if 0 to #if 1 and recompile. Run
-					 * the emulator, load a suitably sized program by typing
-					 * LOAD or LOAD "something" and view the console output.
-					 * 
-					 * It's likely I've been a bit too thorough recording these
-					 * values because I know from looking at the ZX81 ROM that
-					 * DE points to the program name in memory which would get
-					 * overwritten on LOAD and make it redundant, and HL and A
-					 * are modified soon after anyway, but there's no harm done.
-					 * 
-					 * Note that the ZX81's RAMTOP won't be greater than 0x8000
-					 * unless POKEd by the user.
-					 */
-					if (*sdl_emulator.model == MODEL_ZX80) {
-						/* Registers (common values) */
-						a = 0x00; f = 0x44; b = 0x00; c = 0x00;
-						d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
-						pc = 0x0283;
-						ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
-						a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
-						d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
-						iff1 = 0x00; iff2 = 0x00; im = 0x02;
-						radjust = 0x6a;
-						/* Machine Stack (common values) */
-						if (sdl_emulator.ramsize >= 16) {
-							sp = 0x8000 - 4;
-						} else {
-							sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
-						}
-						mem[sp + 0] = 0x47;
-						mem[sp + 1] = 0x04;
-						mem[sp + 2] = 0xba;
-						mem[sp + 3] = 0x3f;
-						/* Now override if RAM configuration changes things
-						 * (there's a possibility these changes are unimportant) */
-						if (sdl_emulator.ramsize == 16) {
-							mem[sp + 2] = 0x22;
-						}
-					} else if (*sdl_emulator.model == MODEL_ZX81) {
-						/* Registers (common values) */
-						a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
-						d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
-						pc = 0x0207;
-						ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
-						a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
-						d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
-						iff1 = 0; iff2 = 0; im = 2;
-						radjust = 0xa4;
-						/* GOSUB Stack (common values) */
-						if (sdl_emulator.ramsize >= 16) {
-							sp = 0x8000 - 4;
-						} else {
-							sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
-						}
-						mem[sp + 0] = 0x76;
-						mem[sp + 1] = 0x06;
-						mem[sp + 2] = 0x00;
-						mem[sp + 3] = 0x3e;
-						/* Now override if RAM configuration changes things
-						 * (there's a possibility these changes are unimportant) */
-						if (sdl_emulator.ramsize >= 4) {
-							d = 0x43; h = 0x43;
-							a1 = 0xec; b1 = 0x81; c1 = 0x02;
-							radjust = 0xa9;
-						}
-						/* System variables */
-						mem[0x4000] = 0xff;				/* ERR_NR */
-						mem[0x4001] = 0x80;				/* FLAGS */
-						mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
-						mem[0x4003] = sp >> 8;			/* ERR_SP hi */
-						mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
-						mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
-						mem[0x4006] = 0x00;				/* MODE */
-						mem[0x4007] = 0xfe;				/* PPC lo */
-						mem[0x4008] = 0xff;				/* PPC hi */
-					}
-				}
+					/* The entire contents of memory */
+					fread(mem, sizeof(unsigned char), 64 * 1024, fp);
 
-				/* Read in up to 48K of data */
-				if (sdl_emulator.ramsize > 48) {
-					ramsize = 48;
+					/* Variables from the top of z80.c */
+					fread(&tstates, sizeof(unsigned long), 1, fp);
+					fread(&frames, sizeof(unsigned long), 1, fp);
+					fread(&liney, sizeof(int), 1, fp);
+					fread(&vsy, sizeof(int), 1, fp);
+					fread(&linestart, sizeof(unsigned long), 1, fp);
+					fread(&vsync_toggle, sizeof(int), 1, fp);
+					fread(&vsync_lasttoggle, sizeof(int), 1, fp);
+
+					/* Variables liberated from the top of mainloop */
+					fread(&a, sizeof(unsigned char), 1, fp);
+					fread(&f, sizeof(unsigned char), 1, fp);
+					fread(&b, sizeof(unsigned char), 1, fp); 
+					fread(&c, sizeof(unsigned char), 1, fp);
+					fread(&d, sizeof(unsigned char), 1, fp); 
+					fread(&e, sizeof(unsigned char), 1, fp);
+					fread(&h, sizeof(unsigned char), 1, fp); 
+					fread(&l, sizeof(unsigned char), 1, fp);
+					fread(&r, sizeof(unsigned char), 1, fp);
+					fread(&a1, sizeof(unsigned char), 1, fp); 
+					fread(&f1, sizeof(unsigned char), 1, fp);
+					fread(&b1, sizeof(unsigned char), 1, fp); 
+					fread(&c1, sizeof(unsigned char), 1, fp);
+					fread(&d1, sizeof(unsigned char), 1, fp); 
+					fread(&e1, sizeof(unsigned char), 1, fp);
+					fread(&h1, sizeof(unsigned char), 1, fp); 
+					fread(&l1, sizeof(unsigned char), 1, fp);
+					fread(&i, sizeof(unsigned char), 1, fp); 
+					fread(&iff1, sizeof(unsigned char), 1, fp); 
+					fread(&iff2, sizeof(unsigned char), 1, fp);
+					fread(&im, sizeof(unsigned char), 1, fp); 
+					fread(&pc, sizeof(unsigned short), 1, fp); 
+					fread(&ix, sizeof(unsigned short), 1, fp); 
+					fread(&iy, sizeof(unsigned short), 1, fp);
+					fread(&sp, sizeof(unsigned short), 1, fp);
+					fread(&radjust, sizeof(unsigned char), 1, fp);
+					fread(&nextlinetime, sizeof(unsigned long), 1, fp);
+					fread(&linegap, sizeof(unsigned long), 1, fp);
+					fread(&lastvsyncpend, sizeof(unsigned long), 1, fp);
+					fread(&ixoriy, sizeof(unsigned char), 1, fp);
+					fread(&new_ixoriy, sizeof(unsigned char), 1, fp);
+					fread(&intsample, sizeof(unsigned char), 1, fp);
+					fread(&op, sizeof(unsigned char), 1, fp);
+					fread(&ulacharline, sizeof(int), 1, fp);
+					fread(&nmipend, sizeof(int), 1, fp);
+					fread(&intpend, sizeof(int), 1, fp);
+					fread(&vsyncpend, sizeof(int), 1, fp);
+					fread(&vsynclen, sizeof(int), 1, fp);
+					fread(&hsyncskip, sizeof(int), 1, fp);
+					fread(&framewait, sizeof(int), 1, fp);
+
+					/* Variables from the top of common.c */
+					fread(&interrupted, sizeof(int), 1, fp);
+					fread(&nmigen, sizeof(int), 1, fp);
+					fread(&hsyncgen, sizeof(int), 1, fp);
+					fread(&vsync, sizeof(int), 1, fp);
+
 				} else {
-					ramsize = sdl_emulator.ramsize;
-				}
-				if (*sdl_emulator.model == MODEL_ZX80) {
-					fread(mem + 0x4000, 1, ramsize * 1024, fp);
-				} else if (*sdl_emulator.model == MODEL_ZX81) {
-					fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
-				}
+					if (method == LOAD_FILE_METHOD_AUTOLOAD || 
+						method == LOAD_FILE_METHOD_FORCEDLOAD) {
+						/* To duplicate these values: in mainloop in z80.c around
+						 * line 189, change #if 0 to #if 1 and recompile. Run
+						 * the emulator, load a suitably sized program by typing
+						 * LOAD or LOAD "something" and view the console output.
+						 * 
+						 * It's likely I've been a bit too thorough recording these
+						 * values because I know from looking at the ZX81 ROM that
+						 * DE points to the program name in memory which would get
+						 * overwritten on LOAD and make it redundant, and HL and A
+						 * are modified soon after anyway, but there's no harm done.
+						 * 
+						 * Note that the ZX81's RAMTOP won't be greater than 0x8000
+						 * unless POKEd by the user.
+						 */
+						if (*sdl_emulator.model == MODEL_ZX80) {
+							/* Registers (common values) */
+							a = 0x00; f = 0x44; b = 0x00; c = 0x00;
+							d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
+							pc = 0x0283;
+							ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
+							a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
+							d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
+							iff1 = 0x00; iff2 = 0x00; im = 0x02;
+							radjust = 0x6a;
+							/* Machine Stack (common values) */
+							if (sdl_emulator.ramsize >= 16) {
+								sp = 0x8000 - 4;
+							} else {
+								sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+							}
+							mem[sp + 0] = 0x47;
+							mem[sp + 1] = 0x04;
+							mem[sp + 2] = 0xba;
+							mem[sp + 3] = 0x3f;
+							/* Now override if RAM configuration changes things
+							 * (there's a possibility these changes are unimportant) */
+							if (sdl_emulator.ramsize == 16) {
+								mem[sp + 2] = 0x22;
+							}
+						} else if (*sdl_emulator.model == MODEL_ZX81) {
+							/* Registers (common values) */
+							a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
+							d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
+							pc = 0x0207;
+							ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
+							a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
+							d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
+							iff1 = 0; iff2 = 0; im = 2;
+							radjust = 0xa4;
+							/* GOSUB Stack (common values) */
+							if (sdl_emulator.ramsize >= 16) {
+								sp = 0x8000 - 4;
+							} else {
+								sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+							}
+							mem[sp + 0] = 0x76;
+							mem[sp + 1] = 0x06;
+							mem[sp + 2] = 0x00;
+							mem[sp + 3] = 0x3e;
+							/* Now override if RAM configuration changes things
+							 * (there's a possibility these changes are unimportant) */
+							if (sdl_emulator.ramsize >= 4) {
+								d = 0x43; h = 0x43;
+								a1 = 0xec; b1 = 0x81; c1 = 0x02;
+								radjust = 0xa9;
+							}
+							/* System variables */
+							mem[0x4000] = 0xff;				/* ERR_NR */
+							mem[0x4001] = 0x80;				/* FLAGS */
+							mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
+							mem[0x4003] = sp >> 8;			/* ERR_SP hi */
+							mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
+							mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
+							mem[0x4006] = 0x00;				/* MODE */
+							mem[0x4007] = 0xfe;				/* PPC lo */
+							mem[0x4008] = 0xff;				/* PPC hi */
+						}
+					}
 
+					/* Read in up to 48K of data */
+					if (sdl_emulator.ramsize > 48) {
+						ramsize = 48;
+					} else {
+						ramsize = sdl_emulator.ramsize;
+					}
+					if (*sdl_emulator.model == MODEL_ZX80) {
+						fread(mem + 0x4000, 1, ramsize * 1024, fp);
+					} else if (*sdl_emulator.model == MODEL_ZX81) {
+						fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
+					}
+					/* Copy fullpath across to the load file dialog as
+					 * then we have a record of what was last loaded */
+					strcpy(load_file_dialog.loaded, fullpath);
+				}
 				/* Close the file now as we've finished with it */
 				fclose(fp);
-
-				/* Copy fullpath across to the load file dialog as
-				 * then we have a record of what was last loaded */
-				strcpy(load_file_dialog.loaded, fullpath);
-
 				break;
-
 			} else {
 				if (!(method == LOAD_FILE_METHOD_NAMEDLOAD && count == 0)) {
 					retval = TRUE;
@@ -456,9 +654,14 @@ int sdl_load_file(int prognameaddr, int method) {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__, fullpath);
 			} else if (method == LOAD_FILE_METHOD_NAMEDLOAD || 
 				method == LOAD_FILE_METHOD_SELECTLOAD || 
-				method == LOAD_FILE_METHOD_FORCEDLOAD) {
+				method == LOAD_FILE_METHOD_FORCEDLOAD || 
+				method == LOAD_FILE_METHOD_STATELOAD) {
 				/* Warn the user via the GUI that the load failed */
-				strcpy(msg_box.title, "Load");
+				if (method == LOAD_FILE_METHOD_STATELOAD) {
+					strcpy(msg_box.title, "Load State");
+				} else {
+					strcpy(msg_box.title, "Load");
+				}
 				strcpy(msg_box.text, "Failed");
 				msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
@@ -466,8 +669,10 @@ int sdl_load_file(int prognameaddr, int method) {
 		}
 	}
 
-	/* We've finished with the load file dialog now */
-	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
+	if (method != LOAD_FILE_METHOD_STATELOAD) {
+		/* We've finished with the load file dialog now */
+		load_file_dialog.method = LOAD_FILE_METHOD_NONE;
+	}
 
 	return retval;
 }
@@ -492,30 +697,6 @@ void load_file_dialog_dirlist_init(void) {
 
 	load_file_dialog.dirlist_top = 0;
 	load_file_dialog.dirlist_selected = 0;
-}
-
-/***************************************************************************
- * Append Directory Delimiter to String                                    *
- ***************************************************************************/
-/* This will append a directory delimiter to a string if one doesn't already
- * exist.
- * The point of this function is to make it easier to change the delimiter
- * character for other platforms. See also #define DIR_DELIMITER_CHAR.
- * 
- * On entry: char *toappendto = the string to append to
- *  On exit: toappendto will have had a delimiter appended if required  */
-
-void strcatdelimiter(char *toappendto) {
-	static char delimiter[2] = {DIR_DELIMITER_CHAR, 0};
-
-	#if defined(__amigaos4__)
-		if (toappendto[strlen(toappendto) - 1] != ':' &&
-			toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
-			strcat(toappendto, delimiter);
-	#else
-		if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
-			strcat(toappendto, delimiter);
-	#endif
 }
 
 /***************************************************************************
@@ -617,6 +798,30 @@ char *strzx80_to_ascii(int memaddr) {
 }
 
 /***************************************************************************
+ * Append Directory Delimiter to String                                    *
+ ***************************************************************************/
+/* This will append a directory delimiter to a string if one doesn't already
+ * exist.
+ * The point of this function is to make it easier to change the delimiter
+ * character for other platforms. See also #define DIR_DELIMITER_CHAR.
+ * 
+ * On entry: char *toappendto = the string to append to
+ *  On exit: toappendto will have had a delimiter appended if required  */
+
+void strcatdelimiter(char *toappendto) {
+	static char delimiter[2] = {DIR_DELIMITER_CHAR, 0};
+
+	#if defined(__amigaos4__)
+		if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR &&
+			toappendto[strlen(toappendto) - 1] != ':')
+			strcat(toappendto, delimiter);
+	#else
+		if (toappendto[strlen(toappendto) - 1] != DIR_DELIMITER_CHAR)
+			strcat(toappendto, delimiter);
+	#endif
+}
+
+/***************************************************************************
  * File Dialog Basename                                                    *
  ***************************************************************************/
 /* This will return the basename of a path e.g. "/moo/bah/" returns "bah".
@@ -627,23 +832,21 @@ char *strzx80_to_ascii(int memaddr) {
  *  On exit: returns a pointer to a string containing the extracted basename
  *               (the root directory is returned as "/" not "") */
 
-/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
-/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
-/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
-/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
-/* NEEDS UPDATING TO COPE WITH ':' AS ROOT temp temp */
+/* REQUIRES UPDATING for the Amiga but I'm not yet certain how it works temp temp */
 
 char *file_dialog_basename(char *dir) {
 	static char basename[256];
 	int index;
 
 	strcpy(basename, "");
-	
+
 	if ((index = strlen(dir))) {
-		/* Move leftwards past trailing delimiters */
-		while (index > 0 && dir[index - 1] == DIR_DELIMITER_CHAR) index--;
-		/* Move leftwards up to a delimiter or zero */
-		while (index > 0 && dir[index - 1] != DIR_DELIMITER_CHAR) index--;
+		/* Move leftwards past trailing delimiters up to root or zero */
+		while (index && dir[index - 1] == DIR_DELIMITER_CHAR) index--;
+
+		/* Move leftwards up to a delimiter, root or zero */
+		while (index && dir[index - 1] != DIR_DELIMITER_CHAR) index--;
+
 		/* Copy from this point */
 		strcpy(basename, dir + index);
 	}
@@ -668,6 +871,8 @@ char *file_dialog_basename(char *dir) {
  *           char *direntry = the relative directory to change to,
  *               examples "(home)", "(..)", "home", ".."
  *  On exit: char *dir will be updated */
+
+/* REQUIRES UPDATING for the Amiga but I'm not yet certain how it works temp temp */
 
 void file_dialog_cd(char *dir, char *direntry) {
 	char filename[256];

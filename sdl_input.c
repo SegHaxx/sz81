@@ -128,6 +128,7 @@ void toggle_vkeyb_state(void);
 void manage_runopts_input(void);
 void toggle_runopts_state(void);
 void manage_ldfile_input(void);
+void manage_sstate_input(void);
 
 
 /***************************************************************************
@@ -303,27 +304,6 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].id = GP2X_SELECT;
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F3;
-
-
-			/* TEMP TEMP temp temp for testing */
-			/* TEMP TEMP temp temp for testing */
-			/* TEMP TEMP temp temp for testing */
-			/* TEMP TEMP temp temp for testing */
-			/* TEMP TEMP temp temp for testing */
-			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE | COMP_VKEYB;
-			ctrl_remaps[index].protected = FALSE;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_VOL_DN;
-			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-			ctrl_remaps[index].remap_id = SDLK_F4;
-
-			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE | COMP_VKEYB;
-			ctrl_remaps[index].protected = FALSE;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_VOL_UP;
-			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-			ctrl_remaps[index].remap_id = SDLK_F5;
-
 
 			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
@@ -1077,6 +1057,10 @@ int keyboard_update(void) {
 				/* Manage COMP_LDFILE input */
 				if (get_active_component() == COMP_LDFILE)
 					manage_ldfile_input();
+
+				/* Manage COMP_SSTATE input */
+				if (get_active_component() == COMP_SSTATE)
+					manage_sstate_input();
 
 				/* Manage COMP_EMU and COMP_ALL input */
 				manage_all_input();
@@ -2481,6 +2465,49 @@ void toggle_ldfile_state(void) {
 				vkeyb.state = last_vkeyb_state;	/* Restore vkeyb state */
 			}
 		#endif
+	}
+}
+
+/***************************************************************************
+ * Manage Save State Dialog Input                                          *
+ ***************************************************************************/
+
+void manage_sstate_input(void) {
+	struct MSG_Box msg_box;
+	int found = FALSE;
+
+	/* Note that I'm currently ignoring modifier states */
+	if (device == DEVICE_KEYBOARD) {
+		if (id >= SDLK_1 && id <= SDLK_9) {
+			if (state == SDL_PRESSED) {
+				if (save_state_dialog.mode == SSTATE_MODE_SAVE) {
+					/* Save a save state file */
+					if (!sdl_save_file(id - SDLK_1, SAVE_FILE_METHOD_STATESAVE))
+						found = TRUE;
+				} else if (save_state_dialog.mode == SSTATE_MODE_LOAD) {
+					/* Load a save state file if it exists */
+					if (save_state_dialog.slots[id - SDLK_1]) {
+						if (!sdl_load_file(id - SDLK_1, LOAD_FILE_METHOD_STATELOAD))
+							found = TRUE;
+					} else {
+						strcpy(msg_box.title, "Load State");
+						strcpy(msg_box.text, "Empty slot");
+						msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+						message_box_manager(MSG_BOX_SHOW, &msg_box);
+					}
+				}
+			}
+		}
+		if (found) {
+			/* Disallow this keypress to be recorded within the keyboard
+			 * buffer so as to prevent the paused but otherwise live
+			 * emulator from receiving it. Ideally the machine wouldn't
+			 * even read the keyboard when paused (sdl_main.c:check_events)
+			 * but that's another job for another day */
+			device = UNDEFINED;
+			/* Hide the dialog as we've finished with it */
+			toggle_sstate_state(0);
+		}
 	}
 }
 

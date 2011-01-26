@@ -1,3 +1,7 @@
+2011-01-26 Thunor <thunorsif_at_hotmail.com>
+* Added a save state system (F4/F5) although awaiting integration into
+  the control bar.
+
 2011-01-16 Thunor <thunorsif_at_hotmail.com>
 * Replaced z81's save_p: ZX80 files can now be named by default as date
   and time stamped or extracted from a xxxx REM SAVE "progname" line.

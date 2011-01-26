@@ -221,7 +221,7 @@ int sdl_video_setmode(void) {
 
 	/* Set-up the save state dialog's screen offset */
 	save_state_dialog.xoffset = (video.screen->w - 15 * 8 * video.scale) / 2;
-	save_state_dialog.yoffset = (video.screen->h - 17.5 * 8 * video.scale) / 2;
+	save_state_dialog.yoffset = (video.screen->h - 17 * 8 * video.scale) / 2;
 
 	/* Set-up the fonts */
 	if (fonts_init()) exit(1);
@@ -409,8 +409,8 @@ void sdl_video_update(void) {
 		srcx = save_state_dialog.xoffset;
 		srcy = save_state_dialog.yoffset;
 		/* Draw the vertical bars */
-		dstrect.x = srcx; dstrect.y = srcy + 1.5 * 8 * video.scale;
-		dstrect.w = 4 * video.scale; dstrect.h = 13 * 8 * video.scale;
+		dstrect.x = srcx; dstrect.y = srcy + 1 * 8 * video.scale;
+		dstrect.w = 0.5 * 8 * video.scale; dstrect.h = 13 * 8 * video.scale;
 		for (count = 0; count < 4; count++) {
 			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
@@ -419,14 +419,14 @@ void sdl_video_update(void) {
 			dstrect.x += 4.5 * 8 * video.scale;
 		}
 		/* Draw the horizontal bars */
-		dstrect.x = srcx; dstrect.y = srcy + 8 * video.scale;
-		dstrect.w = 14 * 8 * video.scale; dstrect.h = 4 * video.scale;
-		for (count = 0; count < 4; count++) {
+		dstrect.x = srcx; dstrect.y = srcy + 5 * 8 * video.scale;
+		dstrect.w = 14 * 8 * video.scale; dstrect.h = 0.5 * 8 * video.scale;
+		for (count = 0; count < 3; count++) {
 			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
 				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
-			if (count < 3) dstrect.y += 4.5 * 8 * video.scale;
+			if (count < 2) dstrect.y += 4.5 * 8 * video.scale;
 		}
 		dstrect.y += 1.5 * 8 * video.scale;
 		if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
@@ -439,10 +439,10 @@ void sdl_video_update(void) {
 				dstrect.x = srcx + 14 * 8 * video.scale;
 				dstrect.y = srcy + 8 * video.scale;
 				dstrect.w = 8 * video.scale;
-				dstrect.h =  15.5 * 8 * video.scale;
+				dstrect.h =  15 * 8 * video.scale;
 			} else {
 				dstrect.x = srcx + 8 * video.scale;
-				dstrect.y = srcy + 16.5 * 8 * video.scale;
+				dstrect.y = srcy + 16 * 8 * video.scale;
 				dstrect.w = 14 * 8 * video.scale; 
 				dstrect.h = 8 * video.scale;
 			}
@@ -465,7 +465,7 @@ void sdl_video_update(void) {
 		/* Draw the controls */
 		strcpy(text, "     Exit     ");
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
-		dstrect.x = srcx; dstrect.y = srcy + 15 * 8 * video.scale;
+		dstrect.x = srcx; dstrect.y = srcy + 14.5 * 8 * video.scale;
 		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
@@ -473,9 +473,9 @@ void sdl_video_update(void) {
 		}
 		SDL_FreeSurface(renderedtext);
 		/* Draw the slot backgrounds */
-		dstrect.y = srcy + 1.5 * 8 * video.scale;
+		dstrect.y = srcy + 1 * 8 * video.scale;
 		for (ypos = 0; ypos < 3; ypos++) {
-			dstrect.x = srcx + 4 * video.scale;
+			dstrect.x = srcx + 0.5 * 8 * video.scale;
 			for (xpos = 0; xpos < 3; xpos++) {
 				if (!save_state_dialog.slots[ypos * 3 + xpos]) {
 					colourRGB = bg_colourRGB;
@@ -494,9 +494,9 @@ void sdl_video_update(void) {
 		/* Draw the slot text */
 		for (ypos = 0; ypos < 3; ypos++) {
 			for (xpos = 0; xpos < 3; xpos++) {
-				dstrect.y = srcy + 1.5 * 8 * video.scale + ypos * 4.5 * 8 * video.scale;
+				dstrect.y = srcy + 1 * 8 * video.scale + ypos * 4.5 * 8 * video.scale;
 				for (ybyte = 0; ybyte < 8; ybyte++) {
-					dstrect.x = srcx + 4 * video.scale + xpos * 4.5 * 8 * video.scale;
+					dstrect.x = srcx + 0.5 * 8 * video.scale + xpos * 4.5 * 8 * video.scale;
 					for (xmask = 0x80; xmask >= 1; xmask >>= 1) {
 						if (save_state_dialog_text[(ypos * 3 + xpos) * 8 + ybyte] & xmask) {
 							if (!save_state_dialog.slots[ypos * 3 + xpos]) {
@@ -504,15 +504,15 @@ void sdl_video_update(void) {
 							} else {
 								colourRGB = bg_colourRGB;
 							}
-							dstrect.w = 4 * video.scale; dstrect.h = 4 * video.scale;
+							dstrect.w = 0.5 * 8 * video.scale; dstrect.h = 0.5 * 8 * video.scale;
 							if (SDL_FillRect(video.screen, &dstrect, colourRGB) < 0) {
 								fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 								exit(1);
 							}
 						}
-						dstrect.x += 4 * video.scale;
+						dstrect.x += 0.5 * 8 * video.scale;
 					}
-					dstrect.y += 4 * video.scale;
+					dstrect.y += 0.5 * 8 * video.scale;
 				}
 			}
 		}

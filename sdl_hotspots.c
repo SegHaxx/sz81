@@ -388,7 +388,7 @@ void hotspots_resize(int gid) {
 		hotspots[HS_SSTATE_SSTATE].hit_x = save_state_dialog.xoffset;
 		hotspots[HS_SSTATE_SSTATE].hit_y = save_state_dialog.yoffset;
 		hotspots[HS_SSTATE_SSTATE].hit_w = 14 * 8 * video.scale;
-		hotspots[HS_SSTATE_SSTATE].hit_h = 16.5 * 8 * video.scale;
+		hotspots[HS_SSTATE_SSTATE].hit_h = 16 * 8 * video.scale;
 		for (count = 0; count < 3; count++) {
 			hotspots[HS_SSTATE_SLOT0 + count].hit_x = 
 				hotspots[HS_SSTATE_SLOT3 + count].hit_x = 
@@ -398,7 +398,7 @@ void hotspots_resize(int gid) {
 			hotspots[HS_SSTATE_SLOT0 + count * 3].hit_y = 
 				hotspots[HS_SSTATE_SLOT1 + count * 3].hit_y = 
 				hotspots[HS_SSTATE_SLOT2 + count * 3].hit_y = 
-				save_state_dialog.yoffset + 1.5 * 8 * video.scale + 
+				save_state_dialog.yoffset + 1 * 8 * video.scale + 
 				count * 4.5 * 8 * video.scale;
 			hotspots[HS_SSTATE_SLOT0 + count].hit_w = 
 				hotspots[HS_SSTATE_SLOT3 + count].hit_w = 
@@ -409,7 +409,7 @@ void hotspots_resize(int gid) {
 				4 * 8 * video.scale;
 		}
 		hotspots[HS_SSTATE_EXIT].hit_x = save_state_dialog.xoffset + 5 * 8 * video.scale;
-		hotspots[HS_SSTATE_EXIT].hit_y = save_state_dialog.yoffset + 14.5 * 8 * video.scale;
+		hotspots[HS_SSTATE_EXIT].hit_y = save_state_dialog.yoffset + 14 * 8 * video.scale;
 		hotspots[HS_SSTATE_EXIT].hit_w = 4 * 8 * video.scale;
 		hotspots[HS_SSTATE_EXIT].hit_h = 2 * 8 * video.scale;
 		/* Set-up hl_x/y/w/h */
