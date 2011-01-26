@@ -23,6 +23,12 @@
 /* Variables */
 
 /* Function prototypes */
+void fwrite_unsigned_short_little_endian(unsigned short *source, FILE *fp);
+void fwrite_int_little_endian(int *source, FILE *fp);
+void fwrite_unsigned_long_little_endian(unsigned long *source, FILE *fp);
+void fread_unsigned_short_little_endian(unsigned short *target, FILE *fp);
+void fread_int_little_endian(int *target, FILE *fp);
+void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp);
 char *strtoupper(char *original);
 char *strzx81_to_ascii(int memaddr);
 char *strzx80_to_ascii(int memaddr);
@@ -231,67 +237,79 @@ int sdl_save_file(int parameter, int method) {
 			if (method == SAVE_FILE_METHOD_STATESAVE) {
 				/* Printer variables are reinitialised when a new file
 				 * is opened on output so saving them is futile.
-				 * Saving keyports and sound variables is unneccessary */
+				 * Saving keyports and sound variables is unneccessary.
+				 * 
+				 * To make these files platform independent I'm saving
+				 * and restoring everything by the byte in little-endian
+				 * format. These are the integer sizes on my development
+				 * computer (GNU/Linux 32bit):
+				 * 
+				 * sizeof(long) = 4 bytes
+				 * sizeof(int) = 4 bytes
+				 * sizeof(short) = 2 bytes
+				 * sizeof(char) = 1 byte */
 
 				/* The entire contents of memory */
-				fwrite(mem, sizeof(unsigned char), 64 * 1024, fp);
+				fwrite(mem, 1, 64 * 1024, fp);	/* unsigned char */
 
 				/* Variables from the top of z80.c */
-				fwrite(&tstates, sizeof(unsigned long), 1, fp);
-				fwrite(&frames, sizeof(unsigned long), 1, fp);
-				fwrite(&liney, sizeof(int), 1, fp);
-				fwrite(&vsy, sizeof(int), 1, fp);
-				fwrite(&linestart, sizeof(unsigned long), 1, fp);
-				fwrite(&vsync_toggle, sizeof(int), 1, fp);
-				fwrite(&vsync_lasttoggle, sizeof(int), 1, fp);
+				fwrite_unsigned_long_little_endian(&tstates, fp);
+				fwrite_unsigned_long_little_endian(&frames, fp);
+				fwrite_int_little_endian(&liney, fp);
+				fwrite_int_little_endian(&vsy, fp);
+				fwrite_unsigned_long_little_endian(&linestart, fp);
+				fwrite_int_little_endian(&vsync_toggle, fp);
+				fwrite_int_little_endian(&vsync_lasttoggle, fp);
 
 				/* Variables liberated from the top of mainloop */
-				fwrite(&a, sizeof(unsigned char), 1, fp);
-				fwrite(&f, sizeof(unsigned char), 1, fp);
-				fwrite(&b, sizeof(unsigned char), 1, fp); 
-				fwrite(&c, sizeof(unsigned char), 1, fp);
-				fwrite(&d, sizeof(unsigned char), 1, fp); 
-				fwrite(&e, sizeof(unsigned char), 1, fp);
-				fwrite(&h, sizeof(unsigned char), 1, fp); 
-				fwrite(&l, sizeof(unsigned char), 1, fp);
-				fwrite(&r, sizeof(unsigned char), 1, fp);
-				fwrite(&a1, sizeof(unsigned char), 1, fp); 
-				fwrite(&f1, sizeof(unsigned char), 1, fp);
-				fwrite(&b1, sizeof(unsigned char), 1, fp); 
-				fwrite(&c1, sizeof(unsigned char), 1, fp);
-				fwrite(&d1, sizeof(unsigned char), 1, fp); 
-				fwrite(&e1, sizeof(unsigned char), 1, fp);
-				fwrite(&h1, sizeof(unsigned char), 1, fp); 
-				fwrite(&l1, sizeof(unsigned char), 1, fp);
-				fwrite(&i, sizeof(unsigned char), 1, fp); 
-				fwrite(&iff1, sizeof(unsigned char), 1, fp); 
-				fwrite(&iff2, sizeof(unsigned char), 1, fp);
-				fwrite(&im, sizeof(unsigned char), 1, fp); 
-				fwrite(&pc, sizeof(unsigned short), 1, fp); 
-				fwrite(&ix, sizeof(unsigned short), 1, fp); 
-				fwrite(&iy, sizeof(unsigned short), 1, fp);
-				fwrite(&sp, sizeof(unsigned short), 1, fp);
-				fwrite(&radjust, sizeof(unsigned char), 1, fp);
-				fwrite(&nextlinetime, sizeof(unsigned long), 1, fp);
-				fwrite(&linegap, sizeof(unsigned long), 1, fp);
-				fwrite(&lastvsyncpend, sizeof(unsigned long), 1, fp);
-				fwrite(&ixoriy, sizeof(unsigned char), 1, fp);
-				fwrite(&new_ixoriy, sizeof(unsigned char), 1, fp);
-				fwrite(&intsample, sizeof(unsigned char), 1, fp);
-				fwrite(&op, sizeof(unsigned char), 1, fp);
-				fwrite(&ulacharline, sizeof(int), 1, fp);
-				fwrite(&nmipend, sizeof(int), 1, fp);
-				fwrite(&intpend, sizeof(int), 1, fp);
-				fwrite(&vsyncpend, sizeof(int), 1, fp);
-				fwrite(&vsynclen, sizeof(int), 1, fp);
-				fwrite(&hsyncskip, sizeof(int), 1, fp);
-				fwrite(&framewait, sizeof(int), 1, fp);
+				fwrite(&a, 1, 1, fp);	/* unsigned char */
+				fwrite(&f, 1, 1, fp);
+				fwrite(&b, 1, 1, fp); 
+				fwrite(&c, 1, 1, fp);
+				fwrite(&d, 1, 1, fp); 
+				fwrite(&e, 1, 1, fp);
+				fwrite(&h, 1, 1, fp); 
+				fwrite(&l, 1, 1, fp);
+				fwrite(&r, 1, 1, fp);
+				fwrite(&a1, 1, 1, fp); 
+				fwrite(&f1, 1, 1, fp);
+				fwrite(&b1, 1, 1, fp); 
+				fwrite(&c1, 1, 1, fp);
+				fwrite(&d1, 1, 1, fp); 
+				fwrite(&e1, 1, 1, fp);
+				fwrite(&h1, 1, 1, fp); 
+				fwrite(&l1, 1, 1, fp);
+				fwrite(&i, 1, 1, fp); 
+				fwrite(&iff1, 1, 1, fp); 
+				fwrite(&iff2, 1, 1, fp);
+				fwrite(&im, 1, 1, fp); 
+				fwrite_unsigned_short_little_endian(&pc, fp);
+				fwrite_unsigned_short_little_endian(&ix, fp);
+				fwrite_unsigned_short_little_endian(&iy, fp);
+				fwrite_unsigned_short_little_endian(&sp, fp);
+				fwrite(&radjust, 1, 1, fp);	/* unsigned char */
+				fwrite_unsigned_long_little_endian(&nextlinetime, fp);
+				fwrite_unsigned_long_little_endian(&linegap, fp);
+				fwrite_unsigned_long_little_endian(&lastvsyncpend, fp);
+				fwrite(&ixoriy, 1, 1, fp);	/* unsigned char */
+				fwrite(&new_ixoriy, 1, 1, fp);
+				fwrite(&intsample, 1, 1, fp);
+				fwrite(&op, 1, 1, fp);
+				fwrite_int_little_endian(&ulacharline, fp);
+				fwrite_int_little_endian(&nmipend, fp);
+				fwrite_int_little_endian(&intpend, fp);
+				fwrite_int_little_endian(&vsyncpend, fp);
+				fwrite_int_little_endian(&vsynclen, fp);
+				fwrite_int_little_endian(&hsyncskip, fp);
+				fwrite_int_little_endian(&framewait, fp);
 
 				/* Variables from the top of common.c */
-				fwrite(&interrupted, sizeof(int), 1, fp);
-				fwrite(&nmigen, sizeof(int), 1, fp);
-				fwrite(&hsyncgen, sizeof(int), 1, fp);
-				fwrite(&vsync, sizeof(int), 1, fp);
+				fwrite_int_little_endian(&interrupted, fp);
+				fwrite_int_little_endian(&nmigen, fp);
+				fwrite_int_little_endian(&hsyncgen, fp);
+				fwrite_int_little_endian(&vsync, fp);
+
+				/* 65654/0x10076 bytes to here */
 
 			} else {
 				/* Write up to and including E_LINE */
@@ -328,6 +346,83 @@ int sdl_save_file(int parameter, int method) {
 	}
 
 	return retval;
+}
+
+/***************************************************************************
+ * File Write Unsigned Short Little Endian                                 *
+ ***************************************************************************/
+
+void fwrite_unsigned_short_little_endian(unsigned short *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Write Int Little Endian                                            *
+ ***************************************************************************/
+
+void fwrite_int_little_endian(int *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Write Unsigned Long Little Endian                                  *
+ ***************************************************************************/
+
+void fwrite_unsigned_long_little_endian(unsigned long *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Read Unsigned Short Little Endian                                  *
+ ***************************************************************************/
+
+void fread_unsigned_short_little_endian(unsigned short *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+}
+
+/***************************************************************************
+ * File Read Int Little Endian                                             *
+ ***************************************************************************/
+
+void fread_int_little_endian(int *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
+}
+
+/***************************************************************************
+ * File Read Unsigned Long Little Endian                                   *
+ ***************************************************************************/
+
+void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
 }
 
 /***************************************************************************
@@ -479,67 +574,79 @@ int sdl_load_file(int parameter, int method) {
 				if (method == LOAD_FILE_METHOD_STATELOAD) {
 					/* Printer variables are reinitialised when a new file
 					 * is opened on output so saving them is futile.
-					 * Saving keyports and sound variables is unneccessary */
+					 * Saving keyports and sound variables is unneccessary.
+					 * 
+					 * To make these files platform independent I'm saving
+					 * and restoring everything by the byte in little-endian
+					 * format. These are the integer sizes on my development
+					 * computer (GNU/Linux 32bit):
+					 * 
+					 * sizeof(long) = 4 bytes
+					 * sizeof(int) = 4 bytes
+					 * sizeof(short) = 2 bytes
+					 * sizeof(char) = 1 byte */
 
 					/* The entire contents of memory */
-					fread(mem, sizeof(unsigned char), 64 * 1024, fp);
+					fread(mem, 1, 64 * 1024, fp);	/* unsigned char */
 
 					/* Variables from the top of z80.c */
-					fread(&tstates, sizeof(unsigned long), 1, fp);
-					fread(&frames, sizeof(unsigned long), 1, fp);
-					fread(&liney, sizeof(int), 1, fp);
-					fread(&vsy, sizeof(int), 1, fp);
-					fread(&linestart, sizeof(unsigned long), 1, fp);
-					fread(&vsync_toggle, sizeof(int), 1, fp);
-					fread(&vsync_lasttoggle, sizeof(int), 1, fp);
+					fread_unsigned_long_little_endian(&tstates, fp);
+					fread_unsigned_long_little_endian(&frames, fp);
+					fread_int_little_endian(&liney, fp);
+					fread_int_little_endian(&vsy, fp);
+					fread_unsigned_long_little_endian(&linestart, fp);
+					fread_int_little_endian(&vsync_toggle, fp);
+					fread_int_little_endian(&vsync_lasttoggle, fp);
 
 					/* Variables liberated from the top of mainloop */
-					fread(&a, sizeof(unsigned char), 1, fp);
-					fread(&f, sizeof(unsigned char), 1, fp);
-					fread(&b, sizeof(unsigned char), 1, fp); 
-					fread(&c, sizeof(unsigned char), 1, fp);
-					fread(&d, sizeof(unsigned char), 1, fp); 
-					fread(&e, sizeof(unsigned char), 1, fp);
-					fread(&h, sizeof(unsigned char), 1, fp); 
-					fread(&l, sizeof(unsigned char), 1, fp);
-					fread(&r, sizeof(unsigned char), 1, fp);
-					fread(&a1, sizeof(unsigned char), 1, fp); 
-					fread(&f1, sizeof(unsigned char), 1, fp);
-					fread(&b1, sizeof(unsigned char), 1, fp); 
-					fread(&c1, sizeof(unsigned char), 1, fp);
-					fread(&d1, sizeof(unsigned char), 1, fp); 
-					fread(&e1, sizeof(unsigned char), 1, fp);
-					fread(&h1, sizeof(unsigned char), 1, fp); 
-					fread(&l1, sizeof(unsigned char), 1, fp);
-					fread(&i, sizeof(unsigned char), 1, fp); 
-					fread(&iff1, sizeof(unsigned char), 1, fp); 
-					fread(&iff2, sizeof(unsigned char), 1, fp);
-					fread(&im, sizeof(unsigned char), 1, fp); 
-					fread(&pc, sizeof(unsigned short), 1, fp); 
-					fread(&ix, sizeof(unsigned short), 1, fp); 
-					fread(&iy, sizeof(unsigned short), 1, fp);
-					fread(&sp, sizeof(unsigned short), 1, fp);
-					fread(&radjust, sizeof(unsigned char), 1, fp);
-					fread(&nextlinetime, sizeof(unsigned long), 1, fp);
-					fread(&linegap, sizeof(unsigned long), 1, fp);
-					fread(&lastvsyncpend, sizeof(unsigned long), 1, fp);
-					fread(&ixoriy, sizeof(unsigned char), 1, fp);
-					fread(&new_ixoriy, sizeof(unsigned char), 1, fp);
-					fread(&intsample, sizeof(unsigned char), 1, fp);
-					fread(&op, sizeof(unsigned char), 1, fp);
-					fread(&ulacharline, sizeof(int), 1, fp);
-					fread(&nmipend, sizeof(int), 1, fp);
-					fread(&intpend, sizeof(int), 1, fp);
-					fread(&vsyncpend, sizeof(int), 1, fp);
-					fread(&vsynclen, sizeof(int), 1, fp);
-					fread(&hsyncskip, sizeof(int), 1, fp);
-					fread(&framewait, sizeof(int), 1, fp);
+					fread(&a, 1, 1, fp);	/* unsigned char */
+					fread(&f, 1, 1, fp);
+					fread(&b, 1, 1, fp); 
+					fread(&c, 1, 1, fp);
+					fread(&d, 1, 1, fp); 
+					fread(&e, 1, 1, fp);
+					fread(&h, 1, 1, fp); 
+					fread(&l, 1, 1, fp);
+					fread(&r, 1, 1, fp);
+					fread(&a1, 1, 1, fp); 
+					fread(&f1, 1, 1, fp);
+					fread(&b1, 1, 1, fp); 
+					fread(&c1, 1, 1, fp);
+					fread(&d1, 1, 1, fp); 
+					fread(&e1, 1, 1, fp);
+					fread(&h1, 1, 1, fp); 
+					fread(&l1, 1, 1, fp);
+					fread(&i, 1, 1, fp); 
+					fread(&iff1, 1, 1, fp); 
+					fread(&iff2, 1, 1, fp);
+					fread(&im, 1, 1, fp); 
+					fread_unsigned_short_little_endian(&pc, fp);
+					fread_unsigned_short_little_endian(&ix, fp);
+					fread_unsigned_short_little_endian(&iy, fp);
+					fread_unsigned_short_little_endian(&sp, fp);
+					fread(&radjust, 1, 1, fp);	/* unsigned char */
+					fread_unsigned_long_little_endian(&nextlinetime, fp);
+					fread_unsigned_long_little_endian(&linegap, fp);
+					fread_unsigned_long_little_endian(&lastvsyncpend, fp);
+					fread(&ixoriy, 1, 1, fp);	/* unsigned char */
+					fread(&new_ixoriy, 1, 1, fp);
+					fread(&intsample, 1, 1, fp);
+					fread(&op, 1, 1, fp);
+					fread_int_little_endian(&ulacharline, fp);
+					fread_int_little_endian(&nmipend, fp);
+					fread_int_little_endian(&intpend, fp);
+					fread_int_little_endian(&vsyncpend, fp);
+					fread_int_little_endian(&vsynclen, fp);
+					fread_int_little_endian(&hsyncskip, fp);
+					fread_int_little_endian(&framewait, fp);
 
 					/* Variables from the top of common.c */
-					fread(&interrupted, sizeof(int), 1, fp);
-					fread(&nmigen, sizeof(int), 1, fp);
-					fread(&hsyncgen, sizeof(int), 1, fp);
-					fread(&vsync, sizeof(int), 1, fp);
+					fread_int_little_endian(&interrupted, fp);
+					fread_int_little_endian(&nmigen, fp);
+					fread_int_little_endian(&hsyncgen, fp);
+					fread_int_little_endian(&vsync, fp);
+
+					/* 65654/0x10076 bytes to here */
 
 				} else {
 					if (method == LOAD_FILE_METHOD_AUTOLOAD || 
@@ -832,7 +939,7 @@ void strcatdelimiter(char *toappendto) {
  *  On exit: returns a pointer to a string containing the extracted basename
  *               (the root directory is returned as "/" not "") */
 
-/* REQUIRES UPDATING for the Amiga but I'm not yet certain how it works temp temp */
+/* REQUIRES UPDATING for the Amiga and M$DOS temp temp */
 
 char *file_dialog_basename(char *dir) {
 	static char basename[256];
@@ -872,7 +979,7 @@ char *file_dialog_basename(char *dir) {
  *               examples "(home)", "(..)", "home", ".."
  *  On exit: char *dir will be updated */
 
-/* REQUIRES UPDATING for the Amiga but I'm not yet certain how it works temp temp */
+/* REQUIRES UPDATING for the Amiga and M$DOS temp temp */
 
 void file_dialog_cd(char *dir, char *direntry) {
 	char filename[256];

@@ -1082,11 +1082,6 @@ int keyboard_update(void) {
 				/* Record the event within the keyboard buffer */
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
-
-					if (id >= MAX_KEYCODES) fprintf(stderr,
-						"%s: id=%i is too large for keyboard_buffer\n",
-						__func__, id);	/* temp temp */
-
 					if (state == SDL_PRESSED) {
 						keyboard_buffer[id] = SDL_PRESSED;
 						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_PRESSED;
@@ -1779,6 +1774,7 @@ void manage_all_input(void) {
 				 * manages emulator and component reinitialisation */
 				sdl_emulator.invert = !sdl_emulator.invert;
 				rcfile.rewrite = TRUE;
+				/* Force the emulator to redraw its screen output */
 				refresh_screen = 1;
 			}
 		} else if (id == SDLK_F9) {
@@ -2487,8 +2483,11 @@ void manage_sstate_input(void) {
 				} else if (save_state_dialog.mode == SSTATE_MODE_LOAD) {
 					/* Load a save state file if it exists */
 					if (save_state_dialog.slots[id - SDLK_1]) {
-						if (!sdl_load_file(id - SDLK_1, LOAD_FILE_METHOD_STATELOAD))
+						if (!sdl_load_file(id - SDLK_1, LOAD_FILE_METHOD_STATELOAD)) {
 							found = TRUE;
+							/* Force the emulator to redraw its screen output */
+							refresh_screen = 1;
+						}
 					} else {
 						strcpy(msg_box.title, "Load State");
 						strcpy(msg_box.text, "Empty slot");
