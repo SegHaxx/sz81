@@ -23,15 +23,38 @@
 /* Variables */
 
 /* Function prototypes */
+char *strtoupper(char *original);
+char *strzx81_to_ascii(int memaddr);
+char *strzx80_to_ascii(int memaddr);
 void fwrite_unsigned_short_little_endian(unsigned short *source, FILE *fp);
 void fwrite_int_little_endian(int *source, FILE *fp);
 void fwrite_unsigned_long_little_endian(unsigned long *source, FILE *fp);
 void fread_unsigned_short_little_endian(unsigned short *target, FILE *fp);
 void fread_int_little_endian(int *target, FILE *fp);
 void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp);
-char *strtoupper(char *original);
-char *strzx81_to_ascii(int memaddr);
-char *strzx80_to_ascii(int memaddr);
+
+
+/***************************************************************************
+ * Load File Dialog Directory List Initialise                              *
+ ***************************************************************************/
+/* This is called from multiple places */
+
+void load_file_dialog_dirlist_init(void) {
+	int filetypes;
+
+	if (*sdl_emulator.model == MODEL_ZX80) {
+		filetypes = DIRLIST_FILETYPE_ZX80;
+	} else {
+		filetypes = DIRLIST_FILETYPE_ZX81;
+	}
+
+	dirlist_populate(load_file_dialog.dir,
+		&load_file_dialog.dirlist, &load_file_dialog.dirlist_sizeof,
+		&load_file_dialog.dirlist_count, filetypes);
+
+	load_file_dialog.dirlist_top = 0;
+	load_file_dialog.dirlist_selected = 0;
+}
 
 /***************************************************************************
  * Save State Dialog Slots Populate                                        *
@@ -63,16 +86,28 @@ int save_state_dialog_slots_populate(void) {
 	strcatdelimiter(foldername);
 	strcat(foldername, LOCAL_SAVSTA_DIR);
 	strcatdelimiter(foldername);
-	index = strlen(foldername);
-	foldername[index] = file_dialog_basename(load_file_dialog.loaded)[0];
-	foldername[index + 1] = 0;
+
+	/* Here I'm going to create a single letter parent directory which
+	 * is the first letter of the program name. Due to some nonsense
+	 * experienced with my GP2X FAT32 Sandisk SD card creating m instead
+	 * of M, showing m in termula2x but M plugged into my card reader on
+	 * my Linux desktop computer I'm going to force the parent to lower-
+	 * case so that MazeaM.p will save as local/m/MazeaM.p and fingers-
+	 * crossed it'll universally work */
+	foldername[index = strlen(foldername)] = 
+		tolower(file_dialog_basename(load_file_dialog.loaded)[0]);
+	foldername[++index] = 0;
 	strcpy(parentname, foldername);
+
+	/* parentname will now be something like local/m and
+	 * foldername will now be something like local/m/MazeaM.p */
 	strcatdelimiter(foldername);
 	strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
 
 	/* Firstly attempt to open the folder */
 	if ((dirstream = opendir(foldername)) == NULL) {
-		/* Path doesn't yet exist so attempt to create it */
+		/* The path doesn't yet exist so attempt to create everything
+		 * from parentname and onwards */
 		mkdir(parentname, 0755);
 		mkdir(foldername, 0755);
 		/* Attempt to open the newly created folder */
@@ -215,9 +250,9 @@ int sdl_save_file(int parameter, int method) {
 		strcatdelimiter(fullpath);
 		strcat(fullpath, LOCAL_SAVSTA_DIR);
 		strcatdelimiter(fullpath);
-		index = strlen(fullpath);
-		fullpath[index] = file_dialog_basename(load_file_dialog.loaded)[0];
-		fullpath[index + 1] = 0;
+		fullpath[index = strlen(fullpath)] = 
+			tolower(file_dialog_basename(load_file_dialog.loaded)[0]);
+		fullpath[++index] = 0;
 		strcatdelimiter(fullpath);
 		strcat(fullpath, file_dialog_basename(load_file_dialog.loaded));
 		strcatdelimiter(fullpath);
@@ -238,6 +273,9 @@ int sdl_save_file(int parameter, int method) {
 				/* Printer variables are reinitialised when a new file
 				 * is opened on output so saving them is futile.
 				 * Saving keyports and sound variables is unneccessary.
+				 * signal_int_flag is being updated by the SDL timer
+				 * likely in another thread so no point in saving that.
+				 * refresh_screen I'm forcing to 1 anyway.
 				 * 
 				 * To make these files platform independent I'm saving
 				 * and restoring everything by the byte in little-endian
@@ -309,7 +347,7 @@ int sdl_save_file(int parameter, int method) {
 				fwrite_int_little_endian(&hsyncgen, fp);
 				fwrite_int_little_endian(&vsync, fp);
 
-				/* 65654/0x10076 bytes to here */
+				/* 65654/0x10076 bytes to here for 2.1.7 */
 
 			} else {
 				/* Write up to and including E_LINE */
@@ -346,83 +384,6 @@ int sdl_save_file(int parameter, int method) {
 	}
 
 	return retval;
-}
-
-/***************************************************************************
- * File Write Unsigned Short Little Endian                                 *
- ***************************************************************************/
-
-void fwrite_unsigned_short_little_endian(unsigned short *source, FILE *fp) {
-	unsigned char byteval;
-
-	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
-}
-
-/***************************************************************************
- * File Write Int Little Endian                                            *
- ***************************************************************************/
-
-void fwrite_int_little_endian(int *source, FILE *fp) {
-	unsigned char byteval;
-
-	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
-}
-
-/***************************************************************************
- * File Write Unsigned Long Little Endian                                  *
- ***************************************************************************/
-
-void fwrite_unsigned_long_little_endian(unsigned long *source, FILE *fp) {
-	unsigned char byteval;
-
-	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
-	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
-}
-
-/***************************************************************************
- * File Read Unsigned Short Little Endian                                  *
- ***************************************************************************/
-
-void fread_unsigned_short_little_endian(unsigned short *target, FILE *fp) {
-	unsigned char byteval;
-
-	*target = 0;
-	fread(&byteval, 1, 1, fp); *target |= byteval;
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
-}
-
-/***************************************************************************
- * File Read Int Little Endian                                             *
- ***************************************************************************/
-
-void fread_int_little_endian(int *target, FILE *fp) {
-	unsigned char byteval;
-
-	*target = 0;
-	fread(&byteval, 1, 1, fp); *target |= byteval;
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
-}
-
-/***************************************************************************
- * File Read Unsigned Long Little Endian                                   *
- ***************************************************************************/
-
-void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp) {
-	unsigned char byteval;
-
-	*target = 0;
-	fread(&byteval, 1, 1, fp); *target |= byteval;
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
-	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
 }
 
 /***************************************************************************
@@ -525,9 +486,9 @@ int sdl_load_file(int parameter, int method) {
 		strcatdelimiter(fullpath);
 		strcat(fullpath, LOCAL_SAVSTA_DIR);
 		strcatdelimiter(fullpath);
-		index = strlen(fullpath);
-		fullpath[index] = file_dialog_basename(load_file_dialog.loaded)[0];
-		fullpath[index + 1] = 0;
+		fullpath[index = strlen(fullpath)] = 
+			tolower(file_dialog_basename(load_file_dialog.loaded)[0]);
+		fullpath[++index] = 0;
 		strcatdelimiter(fullpath);
 		strcat(fullpath, file_dialog_basename(load_file_dialog.loaded));
 		strcatdelimiter(fullpath);
@@ -575,6 +536,9 @@ int sdl_load_file(int parameter, int method) {
 					/* Printer variables are reinitialised when a new file
 					 * is opened on output so saving them is futile.
 					 * Saving keyports and sound variables is unneccessary.
+					 * signal_int_flag is being updated by the SDL timer
+					 * likely in another thread so no point in saving that.
+					 * refresh_screen I'm forcing to 1 anyway.
 					 * 
 					 * To make these files platform independent I'm saving
 					 * and restoring everything by the byte in little-endian
@@ -646,7 +610,7 @@ int sdl_load_file(int parameter, int method) {
 					fread_int_little_endian(&hsyncgen, fp);
 					fread_int_little_endian(&vsync, fp);
 
-					/* 65654/0x10076 bytes to here */
+					/* 65654/0x10076 bytes to here for 2.1.7 */
 
 				} else {
 					if (method == LOAD_FILE_METHOD_AUTOLOAD || 
@@ -782,126 +746,6 @@ int sdl_load_file(int parameter, int method) {
 	}
 
 	return retval;
-}
-
-/***************************************************************************
- * Load File Dialog Directory List Initialise                              *
- ***************************************************************************/
-/* This is called from multiple places */
-
-void load_file_dialog_dirlist_init(void) {
-	int filetypes;
-
-	if (*sdl_emulator.model == MODEL_ZX80) {
-		filetypes = DIRLIST_FILETYPE_ZX80;
-	} else {
-		filetypes = DIRLIST_FILETYPE_ZX81;
-	}
-
-	dirlist_populate(load_file_dialog.dir,
-		&load_file_dialog.dirlist, &load_file_dialog.dirlist_sizeof,
-		&load_file_dialog.dirlist_count, filetypes);
-
-	load_file_dialog.dirlist_top = 0;
-	load_file_dialog.dirlist_selected = 0;
-}
-
-/***************************************************************************
- * String to Uppercase                                                     *
- ***************************************************************************/
-/* This will convert a string into a new uppercase string (the original
- * remains unchanged).
- * 
- * On entry: char *original = the string to convert
- *  On exit: returns a pointer to the converted string  */
-
-char *strtoupper(char *original) {
-	static char converted[256];
-	int index = 0;
-
-	do {
-		converted[index] = toupper(original[index]);
-	} while (original[index++] != 0);
-
-	return converted;
-}
-
-/***************************************************************************
- * Sinclair ZX81 String to ASCII String                                    *
- ***************************************************************************/
-/* This will translate a ZX81 string of characters into an ASCII equivalent.
- * All alphabetical characters are converted to lowercase.
- * Those characters that won't translate are replaced with underscores.
- * 
- * On entry: int memaddr = the string's address within mem[]
- *  On exit: returns a pointer to the translated string */
-
-char *strzx81_to_ascii(int memaddr) {
-	static unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(',
-		')', '>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
-	static char translated[256];
-	unsigned char sinchar;
-	char asciichar;
-	int index = 0;
-
-	do {
-		sinchar = mem[memaddr] & 0x7f;
-		if (sinchar == 0x00) {
-			asciichar = ' ';
-		} else if (sinchar >= 0x0b && sinchar <= 0x1b) {
-			asciichar = zx81table[sinchar - 0x0b];
-		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
-			asciichar = '0' + sinchar - 0x1c;
-		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
-			asciichar = 'a' + sinchar - 0x26;
-		} else {
-			asciichar = '_';
-		}
-		translated[index] = asciichar;
-		translated[index++ + 1] = 0;
-	} while (mem[memaddr++] < 0x80);
-
-	return translated;
-}
-
-/***************************************************************************
- * Sinclair ZX80 String to ASCII String                                    *
- ***************************************************************************/
-/* This will translate a ZX80 string of characters into an ASCII equivalent.
- * All alphabetical characters are converted to lowercase.
- * Those characters that won't translate are replaced with underscores.
- * 
- * On entry: int memaddr = the string's address within mem[]
- *  On exit: returns a pointer to the translated string */
-
-char *strzx80_to_ascii(int memaddr) {
-	static unsigned char zx81table[16] = {'_', '$', ':', '?', '(', ')',
-		'-', '+', '*', '/', '=', '>', '<', ';', ',', '.'};
-	static char translated[256];
-	unsigned char sinchar;
-	char asciichar;
-	int index = 0;
-
-	do {
-		sinchar = mem[memaddr] & 0x7f;
-		if (sinchar == 0x00) {
-			asciichar = ' ';
-		} else if (sinchar == 0x01) {
-			asciichar = '\"';
-		} else if (sinchar >= 0x0c && sinchar <= 0x1b) {
-			asciichar = zx81table[sinchar - 0x0c];
-		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
-			asciichar = '0' + sinchar - 0x1c;
-		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
-			asciichar = 'a' + sinchar - 0x26;
-		} else {
-			asciichar = '_';
-		}
-		translated[index] = asciichar;
-		translated[index++ + 1] = 0;
-	} while (mem[memaddr++] < 0x80);
-
-	return translated;
 }
 
 /***************************************************************************
@@ -1194,6 +1038,181 @@ int sdl_filetype_casecmp(char *filename, char *filetype) {
 		retval = TRUE;
 
 	return retval;
+}
+
+/***************************************************************************
+ * String to Uppercase                                                     *
+ ***************************************************************************/
+/* This will convert a string into a new uppercase string (the original
+ * remains unchanged).
+ * 
+ * On entry: char *original = the string to convert
+ *  On exit: returns a pointer to the converted string  */
+
+char *strtoupper(char *original) {
+	static char converted[256];
+	int index = 0;
+
+	do {
+		converted[index] = toupper(original[index]);
+	} while (original[index++] != 0);
+
+	return converted;
+}
+
+/***************************************************************************
+ * Sinclair ZX81 String to ASCII String                                    *
+ ***************************************************************************/
+/* This will translate a ZX81 string of characters into an ASCII equivalent.
+ * All alphabetical characters are converted to lowercase.
+ * Those characters that won't translate are replaced with underscores.
+ * 
+ * On entry: int memaddr = the string's address within mem[]
+ *  On exit: returns a pointer to the translated string */
+
+char *strzx81_to_ascii(int memaddr) {
+	static unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(',
+		')', '>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
+	static char translated[256];
+	unsigned char sinchar;
+	char asciichar;
+	int index = 0;
+
+	do {
+		sinchar = mem[memaddr] & 0x7f;
+		if (sinchar == 0x00) {
+			asciichar = ' ';
+		} else if (sinchar >= 0x0b && sinchar <= 0x1b) {
+			asciichar = zx81table[sinchar - 0x0b];
+		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
+			asciichar = '0' + sinchar - 0x1c;
+		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
+			asciichar = 'a' + sinchar - 0x26;
+		} else {
+			asciichar = '_';
+		}
+		translated[index] = asciichar;
+		translated[index++ + 1] = 0;
+	} while (mem[memaddr++] < 0x80);
+
+	return translated;
+}
+
+/***************************************************************************
+ * Sinclair ZX80 String to ASCII String                                    *
+ ***************************************************************************/
+/* This will translate a ZX80 string of characters into an ASCII equivalent.
+ * All alphabetical characters are converted to lowercase.
+ * Those characters that won't translate are replaced with underscores.
+ * 
+ * On entry: int memaddr = the string's address within mem[]
+ *  On exit: returns a pointer to the translated string */
+
+char *strzx80_to_ascii(int memaddr) {
+	static unsigned char zx81table[16] = {'_', '$', ':', '?', '(', ')',
+		'-', '+', '*', '/', '=', '>', '<', ';', ',', '.'};
+	static char translated[256];
+	unsigned char sinchar;
+	char asciichar;
+	int index = 0;
+
+	do {
+		sinchar = mem[memaddr] & 0x7f;
+		if (sinchar == 0x00) {
+			asciichar = ' ';
+		} else if (sinchar == 0x01) {
+			asciichar = '\"';
+		} else if (sinchar >= 0x0c && sinchar <= 0x1b) {
+			asciichar = zx81table[sinchar - 0x0c];
+		} else if (sinchar >= 0x1c && sinchar <= 0x25) {
+			asciichar = '0' + sinchar - 0x1c;
+		} else if (sinchar >= 0x26 && sinchar <= 0x3f) {
+			asciichar = 'a' + sinchar - 0x26;
+		} else {
+			asciichar = '_';
+		}
+		translated[index] = asciichar;
+		translated[index++ + 1] = 0;
+	} while (mem[memaddr++] < 0x80);
+
+	return translated;
+}
+
+/***************************************************************************
+ * File Write Unsigned Short Little Endian                                 *
+ ***************************************************************************/
+
+void fwrite_unsigned_short_little_endian(unsigned short *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Write Int Little Endian                                            *
+ ***************************************************************************/
+
+void fwrite_int_little_endian(int *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Write Unsigned Long Little Endian                                  *
+ ***************************************************************************/
+
+void fwrite_unsigned_long_little_endian(unsigned long *source, FILE *fp) {
+	unsigned char byteval;
+
+	byteval = *source & 0xff;			fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 8) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 16) & 0xff;	fwrite(&byteval, 1, 1, fp);
+	byteval = (*source >> 24) & 0xff;	fwrite(&byteval, 1, 1, fp);
+}
+
+/***************************************************************************
+ * File Read Unsigned Short Little Endian                                  *
+ ***************************************************************************/
+
+void fread_unsigned_short_little_endian(unsigned short *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+}
+
+/***************************************************************************
+ * File Read Int Little Endian                                             *
+ ***************************************************************************/
+
+void fread_int_little_endian(int *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
+}
+
+/***************************************************************************
+ * File Read Unsigned Long Little Endian                                   *
+ ***************************************************************************/
+
+void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp) {
+	unsigned char byteval;
+
+	*target = 0;
+	fread(&byteval, 1, 1, fp); *target |= byteval;
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
+	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
 }
 
 

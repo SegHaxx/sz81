@@ -305,6 +305,24 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F3;
 
+
+			/* temp temp vvvvv */
+			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_VOL_DN;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_F4;
+
+			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE;
+			ctrl_remaps[index].protected = TRUE;
+			ctrl_remaps[index].device = DEVICE_JOYSTICK;
+			ctrl_remaps[index].id = GP2X_VOL_UP;
+			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
+			ctrl_remaps[index].remap_id = SDLK_F5;
+			/* temp temp ^^^^^ */
+
+
 			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = FALSE;

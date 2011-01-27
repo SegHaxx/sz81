@@ -58,8 +58,8 @@ struct {
 } save_state_dialog;
 
 /* Function prototypes */
-int save_state_dialog_slots_populate(void);
 void load_file_dialog_dirlist_init(void);
+int save_state_dialog_slots_populate(void);
 void strcatdelimiter(char *toappendto);
 char *file_dialog_basename(char *dir);
 void file_dialog_cd(char *dir, char *direntry);
