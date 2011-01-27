@@ -305,24 +305,6 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_F3;
 
-
-			/* temp temp vvvvv */
-			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE;
-			ctrl_remaps[index].protected = TRUE;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_VOL_DN;
-			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-			ctrl_remaps[index].remap_id = SDLK_F4;
-
-			ctrl_remaps[++index].components = COMP_EMU | COMP_SSTATE;
-			ctrl_remaps[index].protected = TRUE;
-			ctrl_remaps[index].device = DEVICE_JOYSTICK;
-			ctrl_remaps[index].id = GP2X_VOL_UP;
-			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
-			ctrl_remaps[index].remap_id = SDLK_F5;
-			/* temp temp ^^^^^ */
-
-
 			/* Active within emulator only */
 			ctrl_remaps[++index].components = COMP_EMU;
 			ctrl_remaps[index].protected = FALSE;
@@ -456,14 +438,14 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_S;
 
-			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_W;
 			ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 			ctrl_remaps[index].remap_id = CURSOR_W;
 
-			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_JOY_E;
@@ -485,7 +467,7 @@ void sdl_keyboard_init(void) {
 			ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 			ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+			ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 			ctrl_remaps[index].protected = TRUE;
 			ctrl_remaps[index].device = DEVICE_JOYSTICK;
 			ctrl_remaps[index].id = GP2X_BTN_A;
@@ -675,14 +657,14 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_S;
 
-					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 10;	/* Left */
 					ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 					ctrl_remaps[index].remap_id = CURSOR_W;
 
-					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 11;	/* Right */
@@ -704,7 +686,7 @@ void sdl_keyboard_init(void) {
 					ctrl_remaps[index].remap_device = DEVICE_KEYBOARD;
 					ctrl_remaps[index].remap_id = SDLK_SPACE;
 
-					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+					ctrl_remaps[++index].components = COMP_ALL & ~COMP_EMU;
 					ctrl_remaps[index].protected = TRUE;
 					ctrl_remaps[index].device = DEVICE_JOYSTICK;
 					ctrl_remaps[index].id = 3;	/* X */
@@ -1282,24 +1264,24 @@ void manage_cursor_input(void) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_CTB_EXIT && 
-						hs_currently_selected <= HS_CTB_ALPHA_UP) {
+						hs_currently_selected <= HS_CTB_INVERSE) {
 						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_CTB_LDFILE) {
-						hotspots[HS_VKEYB_SHIFT + 8].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
-						hotspots[HS_VKEYB_SHIFT + 9].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_CTB_SSTATE_SAVE &&
+						hs_currently_selected <= HS_CTB_SSTATE_LOAD) {
+						hotspots[HS_VKEYB_SHIFT + 7].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_CTB_LDFILE &&
+						hs_currently_selected <= HS_CTB_RUNOPTS) {
+						hotspots[HS_VKEYB_SHIFT + 9 - (HS_CTB_RUNOPTS -
+							hs_currently_selected)].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_VKEYB_1 &&
 						hs_currently_selected <= HS_VKEYB_1 + 6) {
 						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_VKEYB_1 + 7) {
-						hotspots[HS_VKEYB_SHIFT + hs_currently_selected -
-							HS_VKEYB_1].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_VKEYB_1 + 8) {
-						hotspots[HS_CTB_LDFILE].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_VKEYB_1 + 9) {
-						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_VKEYB_1 + 7 &&
+						hs_currently_selected <= HS_VKEYB_1 + 9) {
+						hotspots[HS_CTB_RUNOPTS - (HS_VKEYB_1 + 9 -
+							hs_currently_selected)].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_VKEYB_Q) {
 						hotspots[hs_currently_selected - 10].flags |= HS_PROP_SELECTED;
 					}
@@ -1407,20 +1389,22 @@ void manage_cursor_input(void) {
 						hotspots[HS_CTB_EXIT + hs_currently_selected -
 							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 7) {
-						hotspots[HS_VKEYB_1 + hs_currently_selected -
-							HS_VKEYB_SHIFT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 8) {
-						hotspots[HS_CTB_LDFILE].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_VKEYB_SHIFT + 9) {
-						hotspots[HS_CTB_RUNOPTS].flags |= HS_PROP_SELECTED;
+						hotspots[HS_CTB_SSTATE_SAVE].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_VKEYB_SHIFT + 8 &&
+						hs_currently_selected <= HS_VKEYB_SHIFT + 9) {
+						hotspots[HS_CTB_RUNOPTS - (HS_VKEYB_SHIFT + 9 - 
+							hs_currently_selected)].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected >= HS_CTB_EXIT && 
-						hs_currently_selected <= HS_CTB_ALPHA_UP) {
+						hs_currently_selected <= HS_CTB_INVERSE) {
 						hotspots[HS_VKEYB_1 + hs_currently_selected -
 							HS_CTB_EXIT].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_CTB_LDFILE) {
-						hotspots[HS_VKEYB_1 + 8].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_CTB_RUNOPTS) {
-						hotspots[HS_VKEYB_1 + 9].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_CTB_SSTATE_SAVE &&
+						hs_currently_selected <= HS_CTB_SSTATE_LOAD) {
+						hotspots[HS_VKEYB_1 + 7].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected >= HS_CTB_LDFILE &&
+						hs_currently_selected <= HS_CTB_RUNOPTS) {
+						hotspots[HS_VKEYB_1 + 9 - (HS_CTB_RUNOPTS -
+							hs_currently_selected)].flags |= HS_PROP_SELECTED;
 					} else if (hs_currently_selected <= HS_VKEYB_A + 9) {
 						hotspots[hs_currently_selected + 10].flags |= HS_PROP_SELECTED;
 					}
@@ -2392,9 +2376,10 @@ void manage_ldfile_input(void) {
 				/* Is it a directory? */
 				if (*direntry == '(') {
 					*lastsubdir = 0;
-					if ((strcmp(direntry, "(..)") == 0) &&
-						(strcmp(file_dialog_basename(load_file_dialog.dir), "/") != 0))
-						/* Record the current subdirectory for later reselection */
+					if (strcmp(direntry, "(..)") == 0)
+						/* Record the current subdirectory for later reselection
+						 * (it might be root whatever that is represented by, but
+						 * it won't match anything especially wrapped in brackets) */
 						sprintf(lastsubdir, "(%s)", 
 							file_dialog_basename(load_file_dialog.dir));
 

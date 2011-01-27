@@ -40,9 +40,13 @@
 #define ICON_ALPHA_DN_Y 0
 #define ICON_ALPHA_UP_X 144
 #define ICON_ALPHA_UP_Y 0
-#define ICON_LDFILE_X 160
+#define ICON_SSTATE_SAVE_X 160
+#define ICON_SSTATE_SAVE_Y 0
+#define ICON_SSTATE_LOAD_X 176
+#define ICON_SSTATE_LOAD_Y 0
+#define ICON_LDFILE_X 192
 #define ICON_LDFILE_Y 0
-#define ICON_RUNOPTS_X 176
+#define ICON_RUNOPTS_X 208
 #define ICON_RUNOPTS_Y 0
 
 /* Variables */
@@ -1219,8 +1223,8 @@ int control_bar_init(void) {
 			dstrect.x += 17 * 2 * video.scale;
 			dstrect.w = 17 * 5 * video.scale + video.scale;
 		} else if (count == 3) {
-			dstrect.x += 17 * 8 * video.scale;
-			dstrect.w = (17 + 18) * video.scale;
+			dstrect.x += 17 * 6 * video.scale;
+			dstrect.w = (17 * 3 + 18) * video.scale;
 		}
 		if (SDL_FillRect(control_bar.scaled, &dstrect, SDL_MapRGB(video.screen->format,
 			colour >> 16 & 0xff, colour >> 8 & 0xff, colour & 0xff)) < 0) {
@@ -1231,7 +1235,7 @@ int control_bar_init(void) {
 	/* Blit the icons */
 	srcrect.w = srcrect.h = dstrect.w = dstrect.h = 16 * video.scale;
 	dstrect.y = video.scale;
-	for (count = 0; count < 9; count++) {
+	for (count = 0; count < 11; count++) {
 		if (count == 0) {
 			/* Exit */
 			srcrect.x = ICON_EXIT_X * video.scale; srcrect.y = ICON_EXIT_Y * video.scale;
@@ -1257,26 +1261,34 @@ int control_bar_init(void) {
 			}
 			dstrect.x = video.scale + 17 * 5 * video.scale; 
 		} else if (count == 4) {
+			/* Alpha down */
+			srcrect.x = ICON_ALPHA_DN_X * video.scale; srcrect.y = ICON_ALPHA_DN_Y * video.scale;
+			dstrect.x = video.scale + 17 * 6 * video.scale; 
+		} else if (count == 5) {
+			/* Alpha up */
+			srcrect.x = ICON_ALPHA_UP_X * video.scale; srcrect.y = ICON_ALPHA_UP_Y * video.scale;
+			dstrect.x = video.scale + 17 * 7 * video.scale; 
+		} else if (count == 6) {
 			/* Inverse screen */
 			if (sdl_emulator.invert) {
 				srcrect.x = ICON_INVERSE_X * video.scale; srcrect.y = ICON_INVERSE_Y * video.scale;
 			} else {
 				srcrect.x = ICON_NOTINVERSE_X * video.scale; srcrect.y = ICON_NOTINVERSE_Y * video.scale;
 			}
-			dstrect.x = video.scale + 17 * 6 * video.scale; 
-		} else if (count == 5) {
-			/* Alpha down */
-			srcrect.x = ICON_ALPHA_DN_X * video.scale; srcrect.y = ICON_ALPHA_DN_Y * video.scale;
-			dstrect.x = video.scale + 17 * 7 * video.scale; 
-		} else if (count == 6) {
-			/* Alpha up */
-			srcrect.x = ICON_ALPHA_UP_X * video.scale; srcrect.y = ICON_ALPHA_UP_Y * video.scale;
 			dstrect.x = video.scale + 17 * 8 * video.scale; 
 		} else if (count == 7) {
+			/* Save state */
+			srcrect.x = ICON_SSTATE_SAVE_X * video.scale; srcrect.y = ICON_SSTATE_SAVE_Y * video.scale;
+			dstrect.x = video.scale + 17 * 10 * video.scale; 
+		} else if (count == 8) {
+			/* Load state */
+			srcrect.x = ICON_SSTATE_LOAD_X * video.scale; srcrect.y = ICON_SSTATE_LOAD_Y * video.scale;
+			dstrect.x = video.scale + 17 * 11 * video.scale; 
+		} else if (count == 9) {
 			/* Load file */
 			srcrect.x = ICON_LDFILE_X * video.scale; srcrect.y = ICON_LDFILE_Y * video.scale;
 			dstrect.x = video.scale + 17 * 12 * video.scale; 
-		} else if (count == 8) {
+		} else if (count == 10) {
 			/* Runtime options */
 			srcrect.x = ICON_RUNOPTS_X * video.scale; srcrect.y = ICON_RUNOPTS_Y * video.scale;
 			dstrect.x = video.scale + 17 * 13 * video.scale; 

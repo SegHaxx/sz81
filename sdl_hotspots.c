@@ -176,9 +176,11 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_CTB_RESET].remap_id = SDLK_F12;
 	hotspots[HS_CTB_AUTOHIDE].remap_id = SDLK_F6;
 	hotspots[HS_CTB_SHIFT_TYPE].remap_id = SDLK_F7;
-	hotspots[HS_CTB_INVERSE].remap_id = SDLK_F8;
 	hotspots[HS_CTB_ALPHA_DN].remap_id = SDLK_HOME;
 	hotspots[HS_CTB_ALPHA_UP].remap_id = SDLK_END;
+	hotspots[HS_CTB_INVERSE].remap_id = SDLK_F8;
+	hotspots[HS_CTB_SSTATE_SAVE].remap_id = SDLK_F4;
+	hotspots[HS_CTB_SSTATE_LOAD].remap_id = SDLK_F5;
 	hotspots[HS_CTB_LDFILE].remap_id = SDLK_F3;
 	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_F2;
 
@@ -459,9 +461,11 @@ void hotspots_resize(int gid) {
 		hotspots[HS_CTB_RESET].hit_x = control_bar.xoffset + video.scale + 17 * 2 * video.scale;
 		hotspots[HS_CTB_AUTOHIDE].hit_x = control_bar.xoffset + video.scale + 17 * 4 * video.scale;
 		hotspots[HS_CTB_SHIFT_TYPE].hit_x = control_bar.xoffset + video.scale + 17 * 5 * video.scale;
-		hotspots[HS_CTB_INVERSE].hit_x = control_bar.xoffset + video.scale + 17 * 6 * video.scale;
-		hotspots[HS_CTB_ALPHA_DN].hit_x = control_bar.xoffset + video.scale + 17 * 7 * video.scale;
-		hotspots[HS_CTB_ALPHA_UP].hit_x = control_bar.xoffset + video.scale + 17 * 8 * video.scale;
+		hotspots[HS_CTB_ALPHA_DN].hit_x = control_bar.xoffset + video.scale + 17 * 6 * video.scale;
+		hotspots[HS_CTB_ALPHA_UP].hit_x = control_bar.xoffset + video.scale + 17 * 7 * video.scale;
+		hotspots[HS_CTB_INVERSE].hit_x = control_bar.xoffset + video.scale + 17 * 8 * video.scale;
+		hotspots[HS_CTB_SSTATE_SAVE].hit_x = control_bar.xoffset + video.scale + 17 * 10 * video.scale;
+		hotspots[HS_CTB_SSTATE_LOAD].hit_x = control_bar.xoffset + video.scale + 17 * 11 * video.scale;
 		hotspots[HS_CTB_LDFILE].hit_x = control_bar.xoffset + video.scale + 17 * 12 * video.scale;
 		hotspots[HS_CTB_RUNOPTS].hit_x = control_bar.xoffset + video.scale + 17 * 13 * video.scale;
 		/* Set-up hit_y/w/h */
