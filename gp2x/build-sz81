@@ -19,6 +19,8 @@ if test -a VERSION ; then
 
 				cp data/* ${TARGET}_${VERSION}_${TOOLCHAIN}/${PACKAGE_DATA_DIR}
 				cp games-etc/*.p games-etc/*.txt ${TARGET}_${VERSION}_${TOOLCHAIN}/games
+				cp games-etc/pipepanic/pipepanic.p games-etc/pipepanic/pipepanic.txt \
+					${TARGET}_${VERSION}_${TOOLCHAIN}/games
 
 				cp icon-${TARGET}-32.png ${TARGET}_${VERSION}_${TOOLCHAIN}/${TARGET}.png
 				cp ${TARGET} gp2x/${TARGET}.gpe ${TARGET}_${VERSION}_${TOOLCHAIN}

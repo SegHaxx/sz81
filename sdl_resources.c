@@ -62,9 +62,11 @@ struct {
  ***************************************************************************/
 
 void sdl_zxprinter_init(void) {
-	struct tm *timestruct;
-	time_t rightnow;
+	/*struct tm *timestruct;	Redundant
 	char unique[96];
+	time_t rightnow;*/
+	char unique[32];
+	int	nextnum;
 
 	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
 		strcpy(zxprinter.filename, LOCAL_DATA_DIR);
@@ -77,15 +79,17 @@ void sdl_zxprinter_init(void) {
 	strcat(zxprinter.filename, LOCAL_PRTOUT_DIR);
 	strcatdelimiter(zxprinter.filename);
 
-	/* Create a unique filename using the date and time */
-	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-	/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+	/* Create a unique filename using the date and time		Redundant
 	rightnow = time(NULL);
 	timestruct = localtime(&rightnow);
 	strftime(unique, sizeof(unique), "prtout%Y%m%d-%H%M%S.pbm", timestruct);
+	strcat(zxprinter.filename, unique);*/
+
+	/* Create a unique filename using the next highest number
+	 * (it'll return 0 if the directory couldn't be opened or 1 as
+	 * the base number when no files exist that match the pattern) */
+	nextnum = get_filename_next_highest(zxprinter.filename, "prtout%4d");
+	sprintf(unique, "prtout%04i.pbm", nextnum);
 	strcat(zxprinter.filename, unique);
 
 	/* Update z81's filename pointer */

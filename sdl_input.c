@@ -1041,6 +1041,12 @@ int keyboard_update(void) {
 							sdl_video_setmode();
 						}
 						found = TRUE;
+					} else if (id == SDLK_PRINT) {
+						/* Save a screenshot */
+						if (state == SDL_PRESSED) {
+							save_screenshot();
+						}
+						found = TRUE;
 					}
 					if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 				}

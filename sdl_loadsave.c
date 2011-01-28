@@ -92,7 +92,7 @@ int save_state_dialog_slots_populate(void) {
 	 * experienced with my GP2X FAT32 Sandisk SD card creating m instead
 	 * of M, showing m in termula2x but M plugged into my card reader on
 	 * my Linux desktop computer I'm going to force the parent to lower-
-	 * case so that MazeaM.p will save as local/m/MazeaM.p and fingers-
+	 * case so that MazezaM.p will save as local/m/MazezaM.p and fingers-
 	 * crossed it'll universally work */
 	foldername[index = strlen(foldername)] = 
 		tolower(file_dialog_basename(load_file_dialog.loaded)[0]);
@@ -100,7 +100,7 @@ int save_state_dialog_slots_populate(void) {
 	strcpy(parentname, foldername);
 
 	/* parentname will now be something like local/m and
-	 * foldername will now be something like local/m/MazeaM.p */
+	 * foldername will now be something like local/m/MazezaM.p */
 	strcatdelimiter(foldername);
 	strcat(foldername, file_dialog_basename(load_file_dialog.loaded));
 
@@ -158,9 +158,9 @@ int sdl_save_file(int parameter, int method) {
 	int index;
 	FILE *fp;
 	#ifndef __amigaos4__
-		struct tm *timestruct;
+		/*struct tm *timestruct;	Redundant
+		time_t rightnow;*/
 		int idxend, vars;
-		time_t rightnow;
 	#endif
 
 	if (method == SAVE_FILE_METHOD_NAMEDSAVE) {
@@ -218,15 +218,16 @@ int sdl_save_file(int parameter, int method) {
 				index++;
 			}
 			if (index == vars) {
-				/* Create a unique filename using the date and time */
-				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
-				/* I THINK I'LL CHANGE THIS TO A NEXT HIGHEST NUMBER TYPE SYSTEM temp temp */
+				/* Create a unique filename using the date and time		Redundant
 				rightnow = time(NULL);
 				timestruct = localtime(&rightnow);
-				strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);
+				strftime(filename, sizeof(filename), "zx80-%Y%m%d-%H%M%S.o", timestruct);*/
+
+				/* Create a unique filename using the next highest number
+				 * (it'll return 0 if the directory couldn't be opened or 1 as
+				 * the base number when no files exist that match the pattern) */
+				index = get_filename_next_highest(fullpath, "zx80prog%4d");
+				sprintf(filename, "zx80prog%04i.o", index);
 			}
 
 			/* Add program name */
@@ -1213,6 +1214,46 @@ void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp) {
 	fread(&byteval, 1, 1, fp); *target |= (byteval << 8);
 	fread(&byteval, 1, 1, fp); *target |= (byteval << 16);
 	fread(&byteval, 1, 1, fp); *target |= (byteval << 24);
+}
+
+/***************************************************************************
+ * Get Filename Next Highest                                               *
+ ***************************************************************************/
+/* This will scan a directory for files matching the pattern in format.
+ * 
+ * Examples would be "prtout%4d" to match "prtout0001.pbm" and 
+ * "zx80prog%4d" to match "zx80prog0001.o".
+ * 
+ * WARNING: Don't do what I initially did and use %i instead of %d else 
+ * you won't get past 0008 and it'll take you a while to understand why!
+ * 
+ * Search out the sscanf or scanf documentation to fully understand format
+ * and PLEASE NOTE that sscanf here is expecting max one value to read and
+ * store, so passing "%c%i" will segfault (use "%*c%i" - see scanf docs).
+ * 
+ * On entry: char *dir points to the directory to scan
+ *           char *format points to the pattern to match
+ *  On exit: returns 1 to 2147483647 on success
+ *           or 0 on opendir error */
+
+int get_filename_next_highest(char *dir, char *format) {
+	struct dirent *direntry;
+	int retval = 1, value;
+	DIR *dirstream;
+
+	if ((dirstream = opendir(dir)) != NULL) {
+		while ((direntry = readdir(dirstream))) {
+			if (sscanf(direntry->d_name, format, &value) == 1 &&
+				retval <= value) retval = value + 1;
+		}
+		closedir(dirstream);
+	} else {
+		retval = 0;
+		fprintf(stderr, "%s: Cannot read from directory %s\n", __func__,
+			dir);
+	}
+
+	return retval;
 }
 
 

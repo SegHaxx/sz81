@@ -49,6 +49,7 @@ void draw_shadow(SDL_Rect dstrect, int alpha);
 void cycle_resolutions(void);
 Uint32 adjust_colour_component(Uint32 rgb, Uint32 mask, int amount, int granulate);
 void set_joy_cfg_text(int textid);
+void save_screenshot(void);
 
 
 

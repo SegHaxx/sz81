@@ -1312,5 +1312,35 @@ void set_joy_cfg_text(int textid) {
 	}
 }
 
+/***************************************************************************
+ * Save Screenshot                                                         *
+ ***************************************************************************/
 
+void save_screenshot(void) {
+	char fullpath[256], filename[256];
+	int nextnum;
+
+	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+		strcpy(fullpath, LOCAL_DATA_DIR);
+	#else
+		strcpy(fullpath, getenv ("HOME"));
+		strcatdelimiter(fullpath);
+		strcat(fullpath, LOCAL_DATA_DIR);
+	#endif
+	strcatdelimiter(fullpath);
+	strcat(fullpath, LOCAL_SCNSHT_DIR);
+	strcatdelimiter(fullpath);
+
+	/* Create a unique filename using the next highest number
+	 * (it'll return 0 if the directory couldn't be opened or 1 as
+	 * the base number when no files exist that match the pattern) */
+	nextnum = get_filename_next_highest(fullpath, "scnsht%4d");
+	sprintf(filename, "scnsht%04i.bmp", nextnum);
+	strcat(fullpath, filename);
+
+	if (SDL_SaveBMP(video.screen, fullpath) < 0) {
+		fprintf(stderr, "%s: Cannot save screenshot: %s\n", __func__,
+			SDL_GetError());
+	}
+}
 

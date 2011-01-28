@@ -460,6 +460,9 @@ else
 
 void zxpopen(void)
 {
+#ifdef SZ81	/* Added by Thunor */
+static int failcnt = 0;
+#endif
 zxpstylus=zxpspeed=zxpheight=zxpnewspeed=0;
 zxppixel=-1;
 
@@ -468,6 +471,9 @@ if(!zxpfilename)
 
 if((zxpfile=fopen(zxpfilename,"wb"))==NULL)
   {
+#ifdef SZ81	/* Added by Thunor */
+  if (failcnt++ < 10) 
+#endif
   fprintf(stderr,"z81: couldn't open printer file, printing disabled\n");
   return;
   }
@@ -543,6 +549,7 @@ int i,j,d;
 if(!zxpfile) 
 #ifdef SZ81	/* Added by Chris */
 	zxpopen();
+    if(!zxpfile) return;
 #else
 	return;
 #endif

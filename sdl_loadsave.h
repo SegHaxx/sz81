@@ -65,6 +65,7 @@ char *file_dialog_basename(char *dir);
 void file_dialog_cd(char *dir, char *direntry);
 void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 	int *dirlist_count, int filetypes);
+int get_filename_next_highest(char *dir, char *format);
 
 
 

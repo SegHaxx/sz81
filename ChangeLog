@@ -1,3 +1,8 @@
+2011-01-28 Thunor <thunorsif_at_hotmail.com>
+* Added saving screenshots via PrtScn (SDLK_PRINT). For platforms that
+  don't have a PrtScn key, adding a ctrl_remap to sz81rc that remaps
+  an input control to SDLK_PRINT will enable access to this feature.
+
 2011-01-27 Thunor <thunorsif_at_hotmail.com>
 * Added save state and load state icons to the control bar.
 
