@@ -164,14 +164,18 @@ int sdl_save_file(int parameter, int method) {
 	#endif
 
 	if (method == SAVE_FILE_METHOD_NAMEDSAVE) {
+		/* Build a path from the last entered directory */
+		strcpy(fullpath, load_file_dialog.dir);
+		/* Add a directory delimiter if required */
+		strcatdelimiter(fullpath);
+#if 0
+		/* Add the local program dir.  This will only really work
+		 * on platforms that aren't changing load_file_dialog.dir */
 		#ifdef __amigaos4__
-			strcpy(fullpath, "");
-		#else
-			/* Build a path from the last entered directory */
-			strcpy(fullpath, load_file_dialog.dir);
-			/* Add a directory delimiter if required */
+			strcat(fullpath, LOCAL_PROGRM_DIR);
 			strcatdelimiter(fullpath);
 		#endif
+#endif
 		/* Add translated program name */
 		strcat(fullpath, strzx81_to_ascii(parameter));
 		/* Add a file extension if one hasn't already been affixed */
@@ -519,14 +523,18 @@ int sdl_load_file(int parameter, int method) {
 				/* Convert filename to uppercase on second attempt */
 				if (count == 1) strcpy(filename, strtoupper(filename));
 
+				/* Build a path from the last entered directory */
+				strcpy(fullpath, load_file_dialog.dir);
+				/* Add a directory delimiter if required */
+				strcatdelimiter(fullpath);
+#if 0
+				/* Add the local program dir.  This will only really work
+				 * on platforms that aren't changing load_file_dialog.dir */
 				#ifdef __amigaos4__
-					strcpy(fullpath, "");
-				#else
-					/* Build a path from the last entered directory */
-					strcpy(fullpath, load_file_dialog.dir);
-					/* Add a directory delimiter if required */
+					strcat(fullpath, LOCAL_PROGRM_DIR);
 					strcatdelimiter(fullpath);
 				#endif
+#endif
 				/* Add translated program name */
 				strcat(fullpath, filename);
 			}

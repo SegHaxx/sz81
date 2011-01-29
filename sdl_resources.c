@@ -107,7 +107,7 @@ void local_data_dir_init(void) {
 	int count;
 	
 	/* Create local data directory structure whilst ignoring errors */
-	for (count = 0; count < 4; count++) {
+	for (count = 0; count < 5; count++) {
 		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
 			strcpy(foldername, LOCAL_DATA_DIR);
 		#else
@@ -124,6 +124,9 @@ void local_data_dir_init(void) {
 		} else if (count == 3) {
 			strcatdelimiter(foldername);
 			strcat(foldername, LOCAL_SCNSHT_DIR);
+		} else if (count == 4) {
+			strcatdelimiter(foldername);
+			strcat(foldername, LOCAL_PROGRM_DIR);
 		}
 		mkdir(foldername, 0755);
 	}

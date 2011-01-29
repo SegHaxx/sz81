@@ -1,3 +1,7 @@
+2011-01-29 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
+* Create a useful program dir in LOCAL_DATA_DIR, and make the Amiga
+  version use it by default for all loads and saves.
+
 2011-01-28 Thunor <thunorsif_at_hotmail.com>
 * Added saving screenshots via PrtScn (SDLK_PRINT). For platforms that
   don't have a PrtScn key, adding a ctrl_remap to sz81rc that remaps

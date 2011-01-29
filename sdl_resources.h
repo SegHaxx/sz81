@@ -31,6 +31,7 @@
 #define LOCAL_PRTOUT_DIR "prtout"
 #define LOCAL_SAVSTA_DIR "savsta"
 #define LOCAL_SCNSHT_DIR "scnsht"
+#define LOCAL_PROGRM_DIR "progrm"
 
 /* Bitmap font IDs */
 #define BMF_FONT_ZX80 0

@@ -10,6 +10,8 @@
 #include "amiga.h"
 #include "common.h"
 #include "sdl.h"
+#include "sdl_loadsave.h"
+#include "sdl_resources.h"
 
 #include <proto/exec.h>
 #include <proto/dos.h>
@@ -116,6 +118,9 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 		wbarg--;
 		strcpy(sdl_com_line.filename, wbarg->wa_Name);
 	}
+
+	strcpy(load_file_dialog.dir, amiga_data_dir);
+	IDOS->AddPart(load_file_dialog.dir, LOCAL_PROGRM_DIR, sizeof(load_file_dialog.dir));
 }
 
 char *amiga_file_request(char *title, BOOL save)
@@ -132,7 +137,7 @@ char *amiga_file_request(char *title, BOOL save)
 		if(IAsl->AslRequestTags(freq,
 								ASLFR_TitleText, title,
                              	ASLFR_InitialPattern,&pattern,
-                          //   	ASLFR_InitialDrawer,path,
+                             	ASLFR_InitialDrawer, load_file_dialog.dir,
                              	ASLFR_DoPatterns,TRUE,
 								ASLFR_DoSaveMode, save,
                     			TAG_DONE))
