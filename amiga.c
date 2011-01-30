@@ -24,6 +24,8 @@ struct IconIFace *IIcon;
 struct Library *AslBase;
 struct AslIFace *IAsl;
 
+BOOL amiga_update_drawer = TRUE;
+
 static char USED ver[] = "\0$VER:sz81 " VERSION " (" DATE ")\0";
 
 int amiga_open_libs(void)
@@ -107,6 +109,11 @@ void amiga_read_tooltypes(struct WBStartup *WBenchMsg)
 			 	strcpy(amiga_data_dir, s);
 			}
 
+			if((s = IIcon->FindToolType(toolarray,"STATICLOADDIR")))
+			{
+				amiga_update_drawer = FALSE;
+			}
+
 			IIcon->FreeDiskObject(dobj);
 		}
 
@@ -145,6 +152,9 @@ char *amiga_file_request(char *title, BOOL save)
 			strlcpy(fname,freq->fr_Drawer,1024);	
 			IDOS->AddPart(fname,freq->fr_File,1024);
 			sel=1;
+
+			if(amiga_update_drawer)
+				strcpy(load_file_dialog.dir, freq->fr_Drawer);
 		}
 		IAsl->FreeAslRequest(freq);
 	}

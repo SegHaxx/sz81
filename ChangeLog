@@ -1,3 +1,7 @@
+2011-01-30 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
+* OS4 sz81 LOAD/SAVE now follows the last used directory.  Set tooltype
+  STATICLOADDIR to revert to previous behaviour.
+
 2011-01-29 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
 * Create a useful program dir in LOCAL_DATA_DIR, and make the Amiga
   version use it by default for all loads and saves.

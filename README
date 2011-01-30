@@ -113,13 +113,14 @@ For the Amiga:
     YRES=<240+>
 
     LOCALDATA=<dir to save user data> (default: PROGDIR:save)
+    STATICLOADDIR - LOAD/SAVE always uses <LOCALDATA>/progrm (default is
+                    to LOAD/SAVE from the directory last used)
 
     File Selector
     -------------
 
     The Amiga build uses standard ASL requesters instead of sz81's
-    built-in file selector.  It will also allow choosing a ZX80
-    file instead of being hard-coded to zx80prog.o
+    built-in file selector.
 
 For the Sharp Zaurus:
 
