@@ -1,3 +1,9 @@
+2011-01-30 Thunor <thunorsif_at_hotmail.com>
+* Added pausing the emulator via Pause (SDLK_PAUSE). For platforms that
+  don't have a Pause key, adding a ctrl_remap to sz81rc that remaps
+  an input control to SDLK_PAUSE will enable access to this feature.
+  The load/save state dialogs place the emulator on hold in any case.
+
 2011-01-30 Chris Young <chris_at_unsatisfactorysoftware.co.uk>
 * OS4 sz81 LOAD/SAVE now follows the last used directory.  Set tooltype
   STATICLOADDIR to revert to previous behaviour.

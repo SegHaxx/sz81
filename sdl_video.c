@@ -271,8 +271,8 @@ void sdl_video_update(void) {
 	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
 	int srcx, srcy, desx, desy, srcw, count, invertcolours;
 	Uint32 fg_colour, bg_colour, *screen_pixels_32;
+	SDL_Surface *renderedtext, *pausedbox;
 	int xpos, ypos, xmask, ybyte;
-	SDL_Surface *renderedtext;
 	Uint16 *screen_pixels_16;
 	char text[33], *direntry;
 	SDL_Rect dstrect;
@@ -402,6 +402,54 @@ void sdl_video_update(void) {
 		}
 
 		if (SDL_MUSTLOCK(video.screen)) SDL_UnlockSurface(video.screen);
+
+		/* Has the user paused the emulator? */
+		if (sdl_emulator.paused) {
+			/* Create an RGB surface to accommodate the paused message */
+			dstrect.w = 8 * 8 * video.scale; dstrect.h = 3 * 8 * video.scale;
+			pausedbox = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
+				video.screen->format->BitsPerPixel,
+				video.screen->format->Rmask, video.screen->format->Gmask,
+				video.screen->format->Bmask, video.screen->format->Amask);
+			if (pausedbox == NULL) {
+				fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
+					SDL_GetError ());
+				exit(1);
+			}
+			/* Fill the box with fg_colour */
+			if (SDL_FillRect(pausedbox, NULL, fg_colourRGB) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+					SDL_GetError ());
+				exit(1);
+			}
+			/* Render the text */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, " Paused ", bg_colour, fg_colour);
+			dstrect.x = 0; dstrect.y = 8 * video.scale;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			/* Blit it to the box */
+			if (SDL_BlitSurface (renderedtext, NULL, pausedbox, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+			/* Set the alpha for the entire surface */
+			if (SDL_SetAlpha(pausedbox, SDL_SRCALPHA, 170) < 0) {	/* 66% */
+				fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
+					SDL_GetError());
+				exit(1);
+			}
+			/* Blit it to the screen */
+			dstrect.x = video.screen->w / 2 - 8 * 8 * video.scale / 2;
+			dstrect.y = video.screen->h / 2 - 3 * 8 * video.scale / 2;
+			dstrect.w = 8 * 8 * video.scale; dstrect.h = 3 * 8 * video.scale;
+			if (SDL_BlitSurface (pausedbox, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+					SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(pausedbox);
+		}
+
 	}
 
 	/* Is the save state dialog being rendered? */

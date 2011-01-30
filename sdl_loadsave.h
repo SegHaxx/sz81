@@ -29,12 +29,6 @@
 #define SSTATE_MODE_LOAD 1
 
 /* Variables */
-struct MSG_Box {
-	char title[33];		/* The title bar text */
-	char text[33];		/* A single line message */
-	int timeout;		/* In ms */
-};
-
 struct {
 	int state;
 	int xoffset;

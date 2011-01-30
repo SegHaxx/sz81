@@ -53,10 +53,10 @@
 #define GP2X_BTN_JOY 0x12
 
 /* Variables */
-int device, id, mod_id, state;
 int last_runopts_comp = COMP_RUNOPTS0;
+int device, id, mod_id, state;
 SDL_Event event, virtualevent;
-struct MSG_Box msg_box;
+int last_vkeyb_state;
 int runopts_joy_cfg_id[12];
 
 char *keysyms[] = {
@@ -139,7 +139,6 @@ void manage_sstate_input(void);
 
 void sdl_keyboard_init(void) {
 	int count, index;
-	SDL_Event event;
 	
 	/* Erase the keyboard buffer */
 	for (count = 0; count < MAX_KEYCODES; count++)
@@ -762,6 +761,7 @@ int keyboard_update(void) {
 	int eventfound = FALSE, count, found;
 	int hs_vkeyb_ctb_selected;
 	int hs_runopts_selected;
+	struct MSG_Box msg_box;
 	int axis_end = 0;
 	SDLMod modstate;
 	#ifdef SDL_DEBUG_TIMING
@@ -1039,12 +1039,6 @@ int keyboard_update(void) {
 						if (state == SDL_PRESSED) {
 							cycle_resolutions();
 							sdl_video_setmode();
-						}
-						found = TRUE;
-					} else if (id == SDLK_PRINT) {
-						/* Save a screenshot */
-						if (state == SDL_PRESSED) {
-							save_screenshot();
 						}
 						found = TRUE;
 					}
@@ -1747,6 +1741,7 @@ void manage_cursor_input(void) {
  ***************************************************************************/
 
 void manage_all_input(void) {
+	struct MSG_Box msg_box;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -1814,6 +1809,16 @@ void manage_all_input(void) {
 					emulator_reset();
 				}
 			}
+		} else if (id == SDLK_PAUSE) {
+			/* Toggle emulator paused */
+			if (state == SDL_PRESSED) {
+				toggle_emulator_paused(FALSE);
+			}
+		} else if (id == SDLK_PRINT) {
+			/* Save a screenshot */
+			if (state == SDL_PRESSED) {
+				save_screenshot();
+			}
 		} else if (id == SDLK_ESCAPE) {
 			/* Exit the currently active component */
 			if (state == SDL_PRESSED) {
@@ -1861,6 +1866,29 @@ void manage_all_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			#endif
+		}
+	}
+}
+
+/***************************************************************************
+ * Toggle Emulator Paused                                                  *
+ ***************************************************************************/
+/* This is called from multiple places.
+ *
+ * On entry: int force = TRUE to force a toggle when called by the engine
+ *                       and the currently active component doesn't match */
+
+void toggle_emulator_paused(int force) {
+
+	if ((get_active_component() == COMP_VKEYB ||
+		get_active_component() == COMP_CTB ||
+		get_active_component() == COMP_EMU) ||
+		force) {
+		if (!sdl_emulator.paused) {
+			sdl_emulator.paused = TRUE;
+			emulator_hold(&sdl_emulator.paused);
+		} else {
+			sdl_emulator.paused = FALSE;
 		}
 	}
 }
@@ -2203,7 +2231,6 @@ void manage_runopts_input(void) {
 /* This is called from multiple places */
 
 void toggle_runopts_state(void) {
-	static int last_vkeyb_state = FALSE;
 	int count;
 
 	if (get_active_component() & COMP_RUNOPTS_ALL ||
@@ -2440,9 +2467,6 @@ void manage_ldfile_input(void) {
 /* This is called from multiple places */
 
 void toggle_ldfile_state(void) {
-	#ifndef __amigaos4__
-		static int last_vkeyb_state = FALSE;
-	#endif
 
 	if (get_active_component() == COMP_LDFILE ||
 		get_active_component() == COMP_VKEYB ||
@@ -2496,6 +2520,8 @@ void manage_sstate_input(void) {
 							found = TRUE;
 							/* Force the emulator to redraw its screen output */
 							refresh_screen = 1;
+							/* If the user paused the emulator then unpause it */
+							if (sdl_emulator.paused) toggle_emulator_paused(TRUE);
 						}
 					} else {
 						strcpy(msg_box.title, "Load State");
@@ -2508,10 +2534,8 @@ void manage_sstate_input(void) {
 		}
 		if (found) {
 			/* Disallow this keypress to be recorded within the keyboard
-			 * buffer so as to prevent the paused but otherwise live
-			 * emulator from receiving it. Ideally the machine wouldn't
-			 * even read the keyboard when paused (sdl_main.c:check_events)
-			 * but that's another job for another day */
+			 * buffer so as to prevent the on-hold but otherwise live
+			 * emulator from receiving it */
 			device = UNDEFINED;
 			/* Hide the dialog as we've finished with it */
 			toggle_sstate_state(0);
@@ -2525,7 +2549,6 @@ void manage_sstate_input(void) {
 /* This is called from multiple places */
 
 void toggle_sstate_state(int mode) {
-	static int last_vkeyb_state = FALSE;
 	struct MSG_Box msg_box;
 
 	if (get_active_component() == COMP_SSTATE ||
@@ -2543,7 +2566,7 @@ void toggle_sstate_state(int mode) {
 				save_state_dialog_slots_populate();
 				/* Wait for the user to select a slot or Exit
 				 * which will close the dialog */
-				emulator_pause(&save_state_dialog.state);
+				emulator_hold(&save_state_dialog.state);
 			} else {
 				if (mode == SSTATE_MODE_SAVE) {
 					strcpy(msg_box.title, "Save State");
@@ -2616,7 +2639,8 @@ void runopts_transit(int state) {
 	static int runopts_emulator_frameskip;
 	int protected, remap_device, remap_id, remap_mod_id;
 	int count, index, ctrl, found, components;
-	
+	struct MSG_Box msg_box;
+
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
 			/* Restore the original contents of these variables */

@@ -84,6 +84,7 @@ struct {
 	int ramsize;	/* 1, 2, 3, 4, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
 	int autoload;	/* Set to TRUE when auto-loading or forced-loading */
+	int paused;		/* This is toggled on/off when the user presses the Pause key */
 } sdl_emulator;
 
 struct {

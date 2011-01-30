@@ -124,7 +124,7 @@ extern void do_interrupt(void);
 int get_active_component(void);
 int runtime_options_which(void);
 void emulator_reset(void);
-int emulator_pause(int *condition);
+int emulator_hold(int *condition);
 void emulator_exit(void);
 Uint32 emulator_timer (Uint32 interval, void *param);
 

@@ -101,6 +101,7 @@ struct {
 } joy_cfg;
 
 /* Function prototypes */
+void toggle_emulator_paused(int force);
 void toggle_ldfile_state(void);
 void toggle_sstate_state(int mode);
 int runopts_is_a_reset_scheduled(void);

@@ -81,10 +81,7 @@ void check_events(void) {
 	keyboard_update();
 
 	/* ugly, but there's no pleasant way to do this */
-
-	/* sdl_emulator.state can be used to prevent the emulator
-	 * from receiving user input */
-	if (sdl_emulator.state) {
+	if (sdl_emulator.state && !sdl_emulator.paused) {
 		for (y = 0; y < 8; y++) {	/* 8 half-rows */
 			b = 0;					/* we set bits in b as appropriate */
 			switch (y) {			/* below comments given in order b1->b5 */

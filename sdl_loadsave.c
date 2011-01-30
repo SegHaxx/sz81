@@ -460,7 +460,7 @@ int sdl_load_file(int parameter, int method) {
 
 			/* Wait for the user to select Load or Exit
 			 * which will close the dialog */
-			emulator_pause(&load_file_dialog.state);
+			emulator_hold(&load_file_dialog.state);
 		#endif
 
 		/* If Load was selected then the method will have been updated */

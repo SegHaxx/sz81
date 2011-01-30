@@ -120,6 +120,7 @@ int sdl_init(void) {
 	sdl_emulator.state = TRUE;
 	sdl_emulator.speed = 20;		/* 1000ms/50Hz=20ms is the default */
 	sdl_emulator.autoload = FALSE;
+	sdl_emulator.paused = FALSE;
 	sdl_sound.state = FALSE;
 	video.redraw = TRUE;
 	vkeyb.state = FALSE;
@@ -528,27 +529,31 @@ Uint32 emulator_timer(Uint32 interval, void *param) {
 /***************************************************************************
  * Emulator Reset                                                          *
  ***************************************************************************/
+/* The mainloop is restarted via this function */
 
 void emulator_reset(void) {
 
 	/* Erase record of which program was last loaded/saved */
 	strcpy(load_file_dialog.loaded, "");
 
+	/* If the user paused the emulator then unpause it */
+	if (sdl_emulator.paused) toggle_emulator_paused(TRUE);
+
 	/* Restart mainloop on return */
 	interrupted = INTERRUPT_EMULATOR_RESET;
 }
 
 /***************************************************************************
- * Emulator Pause                                                          *
+ * Emulator Hold                                                           *
  ***************************************************************************/
-/* This will place the emulator into a holding position i.e. it will pause
- * until the condition changes or the user has initiated emulator exit.
+/* This will place the emulator into a holding position until the condition
+ * changes or the user has initiated emulator exit.
  * 
  * On entry: int *condition points to the variable to monitor
  *  On exit: returns TRUE if emulator exit detected
  *           else FALSE */
 
-int emulator_pause(int *condition) {
+int emulator_hold(int *condition) {
 	int origcond = *condition;
 	int retval = FALSE;
 

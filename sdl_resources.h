@@ -60,6 +60,12 @@
 /* Variables */
 SDL_Surface *wm_icon;
 
+struct MSG_Box {
+	char title[33];		/* The title bar text */
+	char text[33];		/* A single line message */
+	int timeout;		/* In ms */
+};
+
 struct {
 	char filename[256];
 	int rewrite;
