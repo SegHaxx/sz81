@@ -2272,41 +2272,40 @@ void manage_ldfile_input(void) {
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_SBPGUP) {
+		if (id == SDLK_SBPGUP || id == SDLK_SBPGDN) {
 			if (state == SDL_PRESSED) {
-				found = TRUE;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-
-				/* printf("SDLK_SBPGUP=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
-
+				/* Simulate pressing SDLK_PAGEUP/SDLK_PAGEDOWN */
+				virtualevent.type = SDL_KEYDOWN;
+				if (id == SDLK_SBPGUP) {
+					virtualevent.key.keysym.sym = SDLK_PAGEUP;
+				} else {
+					virtualevent.key.keysym.sym = SDLK_PAGEDOWN;
+				}
+				virtualevent.key.state = SDL_PRESSED;
+				SDL_PushEvent(&virtualevent);
 			} else {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-
-				/* printf("SDLK_SBPGUP=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
-
+				/* Simulate releasing SDLK_PAGEUP/SDLK_PAGEDOWN */
+				virtualevent.type = SDL_KEYUP;
+				if (id == SDLK_SBPGUP) {
+					virtualevent.key.keysym.sym = SDLK_PAGEUP;
+				} else {
+					virtualevent.key.keysym.sym = SDLK_PAGEDOWN;
+				}
+				virtualevent.key.state = SDL_RELEASED;
+				SDL_PushEvent(&virtualevent);
 			}
 		} else if (id == SDLK_SBHDLE) {
 			if (state == SDL_PRESSED) {
-				found = TRUE;
 
-				/* printf("SDLK_SBHDLE=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
-
-			} else {
-
-				/* printf("SDLK_SBHDLE=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
-
-			}
-		} else if (id == SDLK_SBPGDN) {
-			if (state == SDL_PRESSED) {
-				found = TRUE;
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-
-				/* printf("SDLK_SBPGDN=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
+				/* printf("x=%i  y=%i  %i\n", 
+					event.button.x, event.button.y, SDL_GetTicks());	temp temp */
 
 			} else {
-				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 
-				/* printf("SDLK_SBPGDN=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
+				/* printf("x=%i y=%i  %i\n", 
+					event.button.x, event.button.y, SDL_GetTicks());	temp temp */
 
 			}
 		} else if (id == SDLK_UP || id == SDLK_PAGEUP) {
@@ -2567,7 +2566,7 @@ void manage_sstate_input(void) {
 					} else {
 						strcpy(msg_box.title, "Load State");
 						strcpy(msg_box.text, "Empty slot");
-						msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+						msg_box.timeout = MSG_BOX_TIMEOUT_750;
 						message_box_manager(MSG_BOX_SHOW, &msg_box);
 					}
 				}

@@ -605,13 +605,13 @@ void sdl_video_update(void) {
 			count++) {
 			direntry = load_file_dialog.dirlist + 
 				load_file_dialog.dirlist_sizeof * count;
-			/* Truncate filenames longer than 32 chars */
-			if (strlen(direntry) < 33) {
+			/* Truncate filenames longer than 30 chars */
+			if (strlen(direntry) <= 30) {
 				strcpy(text, direntry);
 			} else {
-				strncpy(text, direntry, 16);
-				text[16] = '~'; text[17] = 0;
-				strcat(text, direntry + strlen(direntry) - 15);
+				strncpy(text, direntry, 15);
+				text[15] = '~'; text[16] = 0;
+				strcat(text, direntry + strlen(direntry) - 14);
 			}
 			/* Render the text highlighting the selected item */
 			if (count == load_file_dialog.dirlist_selected) {

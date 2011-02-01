@@ -168,7 +168,6 @@
 #define HS_PROP_VISIBLE 16
 #define HS_PROP_SELECTED 32
 #define HS_PROP_NAVIGABLE 64
-#define HS_PROP_ENABLED 128
 
 /* Variables */
 struct hotspot {
