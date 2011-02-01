@@ -66,6 +66,9 @@
 #define SDLK_MULTIDOWN 351
 /* Extended SDL keysyms used for other things */
 #define SDLK_ACCEPT 352
+#define SDLK_SBPGUP 353
+#define SDLK_SBHDLE 354
+#define SDLK_SBPGDN 355
 
 /* Variables */
 SDL_Joystick *joystick;

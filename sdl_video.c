@@ -25,7 +25,8 @@ unsigned char vga_graphmemory[64 * 1024];
 
 /* \x1 means that a value needs to be placed here.
  * \x2 means to invert the colours.
- * \x80 to \x95 are Sinclair graphics characters */
+ * \x80 to \x95 are Sinclair graphics characters.
+ * \x96 to \x97 are up and down </> equivalents */
 char *runtime_options_text0[24] = {
 	"\x2 Hardware Options           1/4 \x2",
 	"",
@@ -632,6 +633,63 @@ void sdl_video_update(void) {
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
 		dstrect.x = srcx; dstrect.y = srcy + 23 * 8 * video.scale;
 		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+		/* Draw the vertical scrollbar */
+		/* Up button */
+		strcpy(text, "\x96");
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = hotspots[HS_LDFILE_SBUP].hl_x;
+		dstrect.y = hotspots[HS_LDFILE_SBUP].hl_y;
+		dstrect.w = dstrect.h = 1 * 8 * video.scale;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+		/* Down button */
+		strcpy(text, "\x97");
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = hotspots[HS_LDFILE_SBDN].hl_x;
+		dstrect.y = hotspots[HS_LDFILE_SBDN].hl_y;
+		dstrect.w = dstrect.h = 1 * 8 * video.scale;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+		/* PgUp/PgDn i.e. the scrollbar background */
+		strcpy(text, "\x88");
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, fg_colour, bg_colour);
+		dstrect.x = hotspots[HS_LDFILE_SBPGUP].hl_x;
+		dstrect.w = dstrect.h = 1 * 8 * video.scale;
+		for (count = 0; count < 18; count++) {
+			dstrect.y = hotspots[HS_LDFILE_SBPGUP].hl_y + count * 8 * video.scale;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+		}
+		SDL_FreeSurface(renderedtext);
+		/* Scrollbar handle */
+		dstrect.x = hotspots[HS_LDFILE_SBHDLE].hl_x;
+		dstrect.y = hotspots[HS_LDFILE_SBHDLE].hl_y;
+		dstrect.w = hotspots[HS_LDFILE_SBHDLE].hl_w;
+		dstrect.h = hotspots[HS_LDFILE_SBHDLE].hl_h;
+		if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		/* Scrollbar handle middle */
+		strcpy(text, "=");
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = hotspots[HS_LDFILE_SBHDLE].hl_x;
+		dstrect.y = hotspots[HS_LDFILE_SBHDLE].hl_y + 
+			hotspots[HS_LDFILE_SBHDLE].hl_h / 2 - 0.5 * 8 * video.scale;
+		dstrect.w = dstrect.h = 1 * 8 * video.scale;
 		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
 			exit(1);

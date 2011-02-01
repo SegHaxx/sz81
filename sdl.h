@@ -29,7 +29,7 @@
 #include <SDL/SDL.h>
 
 /* Defines */
-#define MAX_KEYCODES 353	/* SDL stops at 322 and then I extend them */
+#define MAX_KEYCODES 356	/* SDL stops at 322 and then I extend them */
 
 /* Interrupt types */
 #define INTERRUPT_EMULATOR_RESET 3
@@ -74,7 +74,8 @@ struct {
 } sdl_com_line;
 
 struct {
-	int state;
+	int state;		/* FALSE=video output/keyboard input disabled, TRUE=all active */
+	int paused;		/* Via Pause key: TRUE=emulation on-hold, keyboard input disabled */
 	int xoffset;
 	int yoffset;
 	SDL_TimerID timer_id;
@@ -84,7 +85,6 @@ struct {
 	int ramsize;	/* 1, 2, 3, 4, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
 	int autoload;	/* Set to TRUE when auto-loading or forced-loading */
-	int paused;		/* This is toggled on/off when the user presses the Pause key */
 } sdl_emulator;
 
 struct {

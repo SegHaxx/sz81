@@ -20,7 +20,9 @@
 
 /* Defines */
 
+
 /* Variables */
+
 
 /* Function prototypes */
 
@@ -44,6 +46,7 @@ void sdl_hotspots_init(void) {
 		hotspots[count].flags |= HS_PROP_VISIBLE;
 		hotspots[count].flags |= HS_PROP_NAVIGABLE;
 		hotspots[count].flags |= HS_PROP_ONOFF;
+		hotspots[count].flags |= HS_PROP_ENABLED;
 		hotspots[count].remap_id = UNDEFINED;
 	}
 	
@@ -88,6 +91,11 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LDFILE_LIST17].remap_id = SDLK_ROW17;
 	hotspots[HS_LDFILE_LIST18].remap_id = SDLK_ROW18;
 	hotspots[HS_LDFILE_LIST19].remap_id = SDLK_ROW19;
+	hotspots[HS_LDFILE_SBHDLE].remap_id = SDLK_SBHDLE;
+	hotspots[HS_LDFILE_SBPGUP].remap_id = SDLK_SBPGUP;
+	hotspots[HS_LDFILE_SBPGDN].remap_id = SDLK_SBPGDN;
+	hotspots[HS_LDFILE_SBUP].remap_id = SDLK_UP;
+	hotspots[HS_LDFILE_SBDN].remap_id = SDLK_DOWN;
 	hotspots[HS_LDFILE_LOAD].remap_id = SDLK_ACCEPT;
 	hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LDFILE_EXIT].remap_id = SDLK_F3;
@@ -352,7 +360,7 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_LDFILE].hit_y = load_file_dialog.yoffset;
 		hotspots[HS_LDFILE_LDFILE].hit_w = 256 * video.scale;
 		hotspots[HS_LDFILE_LDFILE].hit_h = 192 * video.scale;
-		for (count = 0; count <= 19; count++) {
+		for (count = 0; count < LDFILE_LIST_H; count++) {
 			hotspots[HS_LDFILE_LIST00 + count].hit_x = load_file_dialog.xoffset;
 			hotspots[HS_LDFILE_LIST00 + count].hit_y = 
 				load_file_dialog.yoffset + (count + 2) * 8 * video.scale;
@@ -368,6 +376,104 @@ void hotspots_resize(int gid) {
 				hotspots[HS_LDFILE_LIST00 + count].hit_h = 0;
 			}
 		}
+		/* I've designed and coded different scrollbars before so I know
+		 * how frustrating they can be to set-up, but this really twisted
+		 * my melon man! I wasted an evening sitting in front of my computer
+		 * getting nowhere and eventually took the problem to bed with me
+		 * where I designed the algorithm from scratch on my Sharp Zaurus
+		 * relatively easily:
+		 * 
+		 * if count / 20 > 15
+		 *   sbunit = count / 15
+		 *   sbhdle.h = 3
+		 * else
+		 *   sbunit = 20
+		 *   if count / 20 >= 1
+		 *       sbhdle.h = (18 + 1) - count / 20
+		 *       if count % 20 > 1 sbhdle.h--
+		 *   else
+		 *     sbhdle.h = 18
+		 * 
+		 * sbhdle.y = (top + 20 - 1) / sbunit
+		 * 
+		 * That's the basic units, then you need to add screen offsets etc.
+		 * Note that I'm scrolling in units of 19, but the list is 20 high
+		 * so the "% 20 > 1" is for this reason. Nothing else is adjusted.
+		 * 
+		 * Up to 300 it's perfect, after that it lacks precision due to
+		 * a lack of scrollbar units (the handle reaches the limits fine
+		 * but there's a remainder of 15 left to scroll via other means
+		 * - no real issue and floats will fix it if it's worth doing).
+		 * */
+		hotspots[HS_LDFILE_SBHDLE].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hl_w = 1 * 8 * video.scale;
+
+		if (load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT > 15) {
+			load_file_dialog.pgscrunit = load_file_dialog.dirlist_count / 15;
+			hotspots[HS_LDFILE_SBHDLE].hl_h = 3;
+		} else {
+			load_file_dialog.pgscrunit = LDFILE_DEFAULT_PGSCRUNIT;
+			if (load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT >= 1) {
+				hotspots[HS_LDFILE_SBHDLE].hl_h = 
+					(18 + 1) - load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT;
+				if (load_file_dialog.dirlist_count % LDFILE_DEFAULT_PGSCRUNIT > 
+					LDFILE_LIST_H - LDFILE_DEFAULT_PGSCRUNIT) 
+					hotspots[HS_LDFILE_SBHDLE].hl_h--;
+			} else {
+				hotspots[HS_LDFILE_SBHDLE].hl_h = 18;
+			}
+		}
+		hotspots[HS_LDFILE_SBHDLE].hl_h *= 8 * video.scale;
+
+		hotspots[HS_LDFILE_SBHDLE].hl_y = load_file_dialog.yoffset + 3 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hl_y +=
+			(load_file_dialog.dirlist_top + LDFILE_DEFAULT_PGSCRUNIT - 1) / 
+			load_file_dialog.pgscrunit * 8 * video.scale;
+
+		hotspots[HS_LDFILE_SBHDLE].hit_x = hotspots[HS_LDFILE_SBHDLE].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hit_y = hotspots[HS_LDFILE_SBHDLE].hl_y;
+		hotspots[HS_LDFILE_SBHDLE].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hit_h = hotspots[HS_LDFILE_SBHDLE].hl_h;
+
+		hotspots[HS_LDFILE_SBPGUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hl_y = load_file_dialog.yoffset + 3 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hl_h = 
+			hotspots[HS_LDFILE_SBHDLE].hl_y - hotspots[HS_LDFILE_SBPGUP].hl_y;
+		hotspots[HS_LDFILE_SBPGUP].hit_x = hotspots[HS_LDFILE_SBPGUP].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hit_y = hotspots[HS_LDFILE_SBPGUP].hl_y;
+		hotspots[HS_LDFILE_SBPGUP].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hit_h = hotspots[HS_LDFILE_SBPGUP].hl_h;
+
+		hotspots[HS_LDFILE_SBPGDN].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGDN].hl_y = 
+			hotspots[HS_LDFILE_SBHDLE].hl_y + hotspots[HS_LDFILE_SBHDLE].hl_h;
+		hotspots[HS_LDFILE_SBPGDN].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGDN].hl_h = 
+			load_file_dialog.yoffset + 21 * 8 * video.scale - hotspots[HS_LDFILE_SBPGDN].hl_y;
+		hotspots[HS_LDFILE_SBPGDN].hit_x = hotspots[HS_LDFILE_SBPGDN].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBPGDN].hit_y = hotspots[HS_LDFILE_SBPGDN].hl_y;
+		hotspots[HS_LDFILE_SBPGDN].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGDN].hit_h = hotspots[HS_LDFILE_SBPGDN].hl_h;
+
+		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_h = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_x = hotspots[HS_LDFILE_SBUP].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_y = hotspots[HS_LDFILE_SBUP].hl_y - 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_h = 2 * 8 * video.scale;
+
+		hotspots[HS_LDFILE_SBDN].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hl_y = load_file_dialog.yoffset + 21 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hl_h = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hit_x = hotspots[HS_LDFILE_SBDN].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hit_y = hotspots[HS_LDFILE_SBDN].hl_y;
+		hotspots[HS_LDFILE_SBDN].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDN].hit_h = 2 * 8 * video.scale;
+
 		hotspots[HS_LDFILE_LOAD].hit_x = load_file_dialog.xoffset + 10 * 8 * video.scale;
 		hotspots[HS_LDFILE_LOAD].hit_y = load_file_dialog.yoffset + 22.5 * 8 * video.scale;
 		hotspots[HS_LDFILE_LOAD].hit_w = 4 * 8 * video.scale;

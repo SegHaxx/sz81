@@ -18,6 +18,9 @@
 /* Defines */
 #define DIR_DELIMITER_CHAR '/'
 
+#define LDFILE_DEFAULT_PGSCRUNIT 19
+#define LDFILE_LIST_H 20
+
 /* Directory List file types */
 #define DIRLIST_FILETYPE_HIDDEN 1
 #define DIRLIST_FILETYPE_ZX80 2
@@ -41,6 +44,7 @@ struct {
 	int dirlist_selected;	/* The selected item as an index into the list */
 	char loaded[256];		/* The fullpath of the most recently loaded/saved file */
 	int method;				/* The loading method to be implemented for certain methods */
+	int pgscrunit;
 } load_file_dialog;
 
 struct {

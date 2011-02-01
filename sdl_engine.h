@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <ctype.h>	/* Needed for toupper() only */
 #include <dirent.h>
+/* #include <math.h>	Needed for ceil() only 	Redundant */
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>

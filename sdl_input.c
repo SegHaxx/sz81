@@ -1833,6 +1833,9 @@ void manage_all_input(void) {
 					toggle_vkeyb_state();
 				} else if (get_active_component() == COMP_LOAD) {
 					/* This component is now redundant */
+				} else if (get_active_component() == COMP_EMU) {
+					/* If the user paused the emulator then unpause it */
+					if (sdl_emulator.paused) toggle_emulator_paused(FALSE);
 				}
 			}
 		} else if (id == SDLK_MINUS || id == SDLK_EQUALS) {
@@ -2269,16 +2272,53 @@ void manage_ldfile_input(void) {
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_UP || id == SDLK_PAGEUP) {
+		if (id == SDLK_SBPGUP) {
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+
+				/* printf("SDLK_SBPGUP=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
+
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+
+				/* printf("SDLK_SBPGUP=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
+
+			}
+		} else if (id == SDLK_SBHDLE) {
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+
+				/* printf("SDLK_SBHDLE=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
+
+			} else {
+
+				/* printf("SDLK_SBHDLE=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
+
+			}
+		} else if (id == SDLK_SBPGDN) {
+			if (state == SDL_PRESSED) {
+				found = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+
+				/* printf("SDLK_SBPGDN=SDL_PRESSED  %i\n", SDL_GetTicks());	temp temp */
+
+			} else {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+
+				/* printf("SDLK_SBPGDN=SDL_RELEASED  %i\n", SDL_GetTicks());	temp temp */
+
+			}
+		} else if (id == SDLK_UP || id == SDLK_PAGEUP) {
 			if (state == SDL_PRESSED) {
 				found = TRUE;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page up */
 				if (id == SDLK_PAGEUP) {
-					if (load_file_dialog.dirlist_selected - 19 < 0) {
+					if (load_file_dialog.dirlist_selected - LDFILE_DEFAULT_PGSCRUNIT < 0) {
 						load_file_dialog.dirlist_selected = 0;
 					} else {
-						load_file_dialog.dirlist_selected -= 19;
+						load_file_dialog.dirlist_selected -= LDFILE_DEFAULT_PGSCRUNIT;
 					}
 				/* Select the previous item */
 				} else {
@@ -2297,12 +2337,12 @@ void manage_ldfile_input(void) {
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page down */
 				if (id == SDLK_PAGEDOWN) {
-					if (load_file_dialog.dirlist_selected + 19 > 
+					if (load_file_dialog.dirlist_selected + LDFILE_DEFAULT_PGSCRUNIT > 
 						load_file_dialog.dirlist_count - 1) {
 						load_file_dialog.dirlist_selected = 
 						load_file_dialog.dirlist_count - 1;
 					} else {
-						load_file_dialog.dirlist_selected += 19;
+						load_file_dialog.dirlist_selected += LDFILE_DEFAULT_PGSCRUNIT;
 					}
 				/* Select the next item */
 				} else {
@@ -2452,8 +2492,9 @@ void manage_ldfile_input(void) {
 			if (load_file_dialog.dirlist_top > load_file_dialog.dirlist_selected) {
 				load_file_dialog.dirlist_top = load_file_dialog.dirlist_selected;
 			} else if (load_file_dialog.dirlist_top < 
-				load_file_dialog.dirlist_selected - 19) {
-				load_file_dialog.dirlist_top = load_file_dialog.dirlist_selected - 19;
+				load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1)) {
+				load_file_dialog.dirlist_top = 
+					load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1);
 			}
 			/* Resize hotspots to match new text */
 			hotspots_resize(HS_GRP_LDFILE);
