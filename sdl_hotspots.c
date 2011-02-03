@@ -85,12 +85,12 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LDFILE_LIST17].remap_id = SDLK_ROW17;
 	hotspots[HS_LDFILE_LIST18].remap_id = SDLK_ROW18;
 	hotspots[HS_LDFILE_LIST19].remap_id = SDLK_ROW19;
-	hotspots[HS_LDFILE_SBUP].remap_id = SDLK_UP;
+	hotspots[HS_LDFILE_SBUP].remap_id = SDLK_SBUP;
 	hotspots[HS_LDFILE_SBHDLE].remap_id = SDLK_SBHDLE;
 	hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_DRAGGABLE;
 	hotspots[HS_LDFILE_SBPGUP].remap_id = SDLK_SBPGUP;
 	hotspots[HS_LDFILE_SBPGDN].remap_id = SDLK_SBPGDN;
-	hotspots[HS_LDFILE_SBDN].remap_id = SDLK_DOWN;
+	hotspots[HS_LDFILE_SBDOWN].remap_id = SDLK_SBDOWN;
 	hotspots[HS_LDFILE_LOAD].remap_id = SDLK_ACCEPT;
 	hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LDFILE_EXIT].remap_id = SDLK_F3;
@@ -365,30 +365,40 @@ void hotspots_resize(int gid) {
 		 * where I designed the algorithm from scratch on my Sharp Zaurus
 		 * relatively easily:
 		 * 
-		 * if count / 20 > 15
+		 * if count / LDFILE_SBPGSCRUNIT > 15
 		 *   sbunit = count / 15
 		 *   sbhdle.h = 3
 		 * else
-		 *   sbunit = 20
-		 *   if count / 20 >= 1
-		 *       sbhdle.h = (18 + 1) - count / 20
-		 *       if count % 20 > 1 sbhdle.h--
+		 *   sbunit = LDFILE_SBPGSCRUNIT
+		 *   if count / LDFILE_SBPGSCRUNIT >= 1
+		 *       sbhdle.h = (18 + 1) - count / LDFILE_SBPGSCRUNIT
+		 *       if count % LDFILE_SBPGSCRUNIT > 1 sbhdle.h--
 		 *   else
 		 *     sbhdle.h = 18
 		 * 
-		 * sbhdle.y = (top + 20 - 1) / sbunit
+		 * if sbunit < 21
+		 *   sbhdle.y = (top + LDFILE_SBPGSCRUNIT - 1) / sbunit
+		 * else
+		 *   sbhdle.y = (top + LDFILE_SBPGSCRUNIT + 1) / sbunit
 		 * 
 		 * That's the basic units, then you need to add screen offsets etc.
 		 * Note that I'm scrolling in units of 19, but the list is 20 high
-		 * so the "% 20 > 1" is for this reason. Nothing else is adjusted.
+		 * so the "% LDFILE_SBPGSCRUNIT > 1" is for this reason.
 		 * 
-		 * Up to 300 it's perfect, after that it lacks precision due to
-		 * many factors, but I specifically want a ZX81 style scrollbar
-		 * using the ZX81's Sinclair char granularity so it satisfies its
-		 * requirements.
+		 * Setting-up sbhdle.y at the bottom has been tweaked. Originally
+		 * it was just the first line but then I found the second line to
+		 * compensate for the lack of precision when count >= 315 (21 * 15).
+		 * 
+		 * Something else that greatly helps is when dragging the handle,
+		 * designing it so that the user can request more pages than there
+		 * are remaining by not limiting the drag, and then validating it
+		 * so that the list can be pulled up into the extremities.
+		 * 
+		 * I specifically wanted a ZX81 style scrollbar using the ZX81's
+		 * Sinclair char granularity so it satisfies its requirements.
 		 * */
-		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + LDFILE_SBXOFFSET;
+		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + LDFILE_SBUPYOFFSET;
 		hotspots[HS_LDFILE_SBUP].hl_w = 1 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBUP].hl_h = 1 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBUP].hit_x = hotspots[HS_LDFILE_SBUP].hl_x - 4 * video.scale;
@@ -396,35 +406,40 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_SBUP].hit_w = 2 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBUP].hit_h = 2 * 8 * video.scale;
 
-		hotspots[HS_LDFILE_SBHDLE].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hl_x = load_file_dialog.xoffset + LDFILE_SBXOFFSET;
 		hotspots[HS_LDFILE_SBHDLE].hl_w = 1 * 8 * video.scale;
-		if (load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT > 15) {
-			load_file_dialog.pgscrunit = load_file_dialog.dirlist_count / 15;
+		if (load_file_dialog.dirlist_count / LDFILE_SBPGSCRUNIT > 15) {
+			load_file_dialog.sbpgscrunit = load_file_dialog.dirlist_count / 15;
 			hotspots[HS_LDFILE_SBHDLE].hl_h = 3;
 		} else {
-			load_file_dialog.pgscrunit = LDFILE_DEFAULT_PGSCRUNIT;
-			if (load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT >= 1) {
+			load_file_dialog.sbpgscrunit = LDFILE_SBPGSCRUNIT;
+			if (load_file_dialog.dirlist_count / LDFILE_SBPGSCRUNIT >= 1) {
 				hotspots[HS_LDFILE_SBHDLE].hl_h = 
-					(18 + 1) - load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT;
-				if (load_file_dialog.dirlist_count % LDFILE_DEFAULT_PGSCRUNIT > 
-					LDFILE_LIST_H - LDFILE_DEFAULT_PGSCRUNIT) 
+					(18 + 1) - load_file_dialog.dirlist_count / LDFILE_SBPGSCRUNIT;
+				if (load_file_dialog.dirlist_count % LDFILE_SBPGSCRUNIT > 1)
 					hotspots[HS_LDFILE_SBHDLE].hl_h--;
 			} else {
 				hotspots[HS_LDFILE_SBHDLE].hl_h = 18;
 			}
 		}
 		hotspots[HS_LDFILE_SBHDLE].hl_h *= 8 * video.scale;
-		hotspots[HS_LDFILE_SBHDLE].hl_y = load_file_dialog.yoffset + 3 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBHDLE].hl_y +=
-			(load_file_dialog.dirlist_top + LDFILE_DEFAULT_PGSCRUNIT - 1) / 
-			load_file_dialog.pgscrunit * 8 * video.scale;
+		hotspots[HS_LDFILE_SBHDLE].hl_y = load_file_dialog.yoffset + LDFILE_SBHDLEYOFFSET;
+		if (load_file_dialog.sbpgscrunit < 21) {
+			hotspots[HS_LDFILE_SBHDLE].hl_y +=
+				(load_file_dialog.dirlist_top + LDFILE_SBPGSCRUNIT - 1) / 
+				load_file_dialog.sbpgscrunit * 8 * video.scale;
+		} else {
+			hotspots[HS_LDFILE_SBHDLE].hl_y +=
+				(load_file_dialog.dirlist_top + LDFILE_SBPGSCRUNIT + 1) / 
+				load_file_dialog.sbpgscrunit * 8 * video.scale;
+		}
 		hotspots[HS_LDFILE_SBHDLE].hit_x = hotspots[HS_LDFILE_SBHDLE].hl_x - 4 * video.scale;
 		hotspots[HS_LDFILE_SBHDLE].hit_y = hotspots[HS_LDFILE_SBHDLE].hl_y;
 		hotspots[HS_LDFILE_SBHDLE].hit_w = 2 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBHDLE].hit_h = hotspots[HS_LDFILE_SBHDLE].hl_h;
 
-		hotspots[HS_LDFILE_SBPGUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBPGUP].hl_y = load_file_dialog.yoffset + 3 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGUP].hl_x = load_file_dialog.xoffset + LDFILE_SBXOFFSET;
+		hotspots[HS_LDFILE_SBPGUP].hl_y = load_file_dialog.yoffset + LDFILE_SBPGUPYOFFSET;
 		hotspots[HS_LDFILE_SBPGUP].hl_w = 1 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBPGUP].hl_h = 
 			hotspots[HS_LDFILE_SBHDLE].hl_y - hotspots[HS_LDFILE_SBPGUP].hl_y;
@@ -433,7 +448,7 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_SBPGUP].hit_w = 2 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBPGUP].hit_h = hotspots[HS_LDFILE_SBPGUP].hl_h;
 
-		hotspots[HS_LDFILE_SBPGDN].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBPGDN].hl_x = load_file_dialog.xoffset + LDFILE_SBXOFFSET;
 		hotspots[HS_LDFILE_SBPGDN].hl_y = 
 			hotspots[HS_LDFILE_SBHDLE].hl_y + hotspots[HS_LDFILE_SBHDLE].hl_h;
 		hotspots[HS_LDFILE_SBPGDN].hl_w = 1 * 8 * video.scale;
@@ -444,14 +459,14 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_SBPGDN].hit_w = 2 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBPGDN].hit_h = hotspots[HS_LDFILE_SBPGDN].hl_h;
 
-		hotspots[HS_LDFILE_SBDN].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hl_y = load_file_dialog.yoffset + 21 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hl_w = 1 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hl_h = 1 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hit_x = hotspots[HS_LDFILE_SBDN].hl_x - 4 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hit_y = hotspots[HS_LDFILE_SBDN].hl_y;
-		hotspots[HS_LDFILE_SBDN].hit_w = 2 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBDN].hit_h = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDOWN].hl_x = load_file_dialog.xoffset + LDFILE_SBXOFFSET;
+		hotspots[HS_LDFILE_SBDOWN].hl_y = load_file_dialog.yoffset + LDFILE_SBDOWNYOFFSET;
+		hotspots[HS_LDFILE_SBDOWN].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDOWN].hl_h = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDOWN].hit_x = hotspots[HS_LDFILE_SBDOWN].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBDOWN].hit_y = hotspots[HS_LDFILE_SBDOWN].hl_y;
+		hotspots[HS_LDFILE_SBDOWN].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBDOWN].hit_h = 2 * 8 * video.scale;
 
 		hotspots[HS_LDFILE_LOAD].hit_x = load_file_dialog.xoffset + 10 * 8 * video.scale;
 		hotspots[HS_LDFILE_LOAD].hit_y = load_file_dialog.yoffset + 22.5 * 8 * video.scale;

@@ -653,8 +653,8 @@ void sdl_video_update(void) {
 		/* Down button */
 		strcpy(text, "\x97");
 		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
-		dstrect.x = hotspots[HS_LDFILE_SBDN].hl_x;
-		dstrect.y = hotspots[HS_LDFILE_SBDN].hl_y;
+		dstrect.x = hotspots[HS_LDFILE_SBDOWN].hl_x;
+		dstrect.y = hotspots[HS_LDFILE_SBDOWN].hl_y;
 		dstrect.w = dstrect.h = 1 * 8 * video.scale;
 		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());

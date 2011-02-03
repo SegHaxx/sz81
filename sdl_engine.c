@@ -405,6 +405,9 @@ void sdl_component_executive(void) {
 	/* Monitor load file dialog's state */
 	if ((active_components & COMP_LDFILE) != (load_file_dialog.state * COMP_LDFILE)) {
 		if (load_file_dialog.state && vkeyb.state) vkeyb.state = FALSE;
+		if (load_file_dialog.state)
+			/* Resize hotspots and scrollbar to match new text */
+			hotspots_resize(HS_GRP_LDFILE);
 		video.redraw = TRUE;
 		found = TRUE;
 	}

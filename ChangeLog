@@ -1,3 +1,7 @@
+2011-02-03 Thunor <thunorsif_at_hotmail.com>
+* Added dragging ability to hotspots via SDL_DRAGGED state (very easy).
+* Added a ZX style scrollbar to the load file dialog for mouse control.
+
 2011-01-30 Thunor <thunorsif_at_hotmail.com>
 * Added pausing the emulator via Pause (SDLK_PAUSE). For platforms that
   don't have a Pause key, adding a ctrl_remap to sz81rc that remaps

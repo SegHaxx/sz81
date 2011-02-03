@@ -66,9 +66,11 @@
 #define SDLK_MULTIDOWN 351
 /* Extended SDL keysyms used for other things */
 #define SDLK_ACCEPT 352
-#define SDLK_SBPGUP 353
-#define SDLK_SBHDLE 354
-#define SDLK_SBPGDN 355
+#define SDLK_SBUP 353
+#define SDLK_SBPGUP 354
+#define SDLK_SBHDLE 355
+#define SDLK_SBPGDN 356
+#define SDLK_SBDOWN 357
 
 
 /* Variables */

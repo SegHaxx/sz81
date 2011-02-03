@@ -2316,55 +2316,43 @@ void manage_ldfile_input(void) {
 	char lastsubdir[256];
 	int foundsb = FALSE;
 	int found = FALSE;
-	int mousey, pages;
 	int count, index;
 	char *direntry;
+	int mousey;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_SBHDLE) {
+		if (id == SDLK_SBUP || id == SDLK_SBDOWN) {
+			if (state == SDL_PRESSED) {
+				foundsb = TRUE;
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				if (id == SDLK_SBUP) {
+					load_file_dialog.dirlist_top -= 1;
+				} else if (id == SDLK_SBDOWN) {
+					load_file_dialog.dirlist_top += 1;
+				}
+			} else if (state == SDL_RELEASED) {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+			}
+		} else if (id == SDLK_SBHDLE) {
 			if (state == SDL_PRESSED) {
 				SDL_GetMouseState(NULL, &mousey);	/* Ignore x, get y */
 				sbhdle_anchor_point = mousey - hotspots[HS_LDFILE_SBHDLE].hl_y;
 			} else if (state == SDL_DRAGGED) {
 				SDL_GetMouseState(NULL, &mousey);	/* Ignore x, get y */
 				/* The granularity is Sinclair chars so get count of
-				 * these units that the user has requested to move by */
+				 * these units that the user has requested to move by
+				 * (it might be invalid but we'll validate it later).
+				 * 
+				 * Also, this is all the code necessary! :D */
 				count = (mousey - (hotspots[HS_LDFILE_SBHDLE].hl_y + 
 					sbhdle_anchor_point)) / (8 * video.scale);
-				if (count < 0) {
-					/* We're moving upwards */
+				if (count != 0) {
 					foundsb = TRUE;
-					count = abs(count);
-					/* Get maximum pages that can be moved */
-					pages = (hotspots[HS_LDFILE_SBHDLE].hl_y - load_file_dialog.yoffset - 
-						(3 * 8 * video.scale)) / (8 * video.scale);
-					if (count > pages) count = pages;
-					/* Move the directory list top marker */
-					if (load_file_dialog.dirlist_top - count * load_file_dialog.pgscrunit < 0) {
-						load_file_dialog.dirlist_top = 0;
-					} else {
-						load_file_dialog.dirlist_top -= count * load_file_dialog.pgscrunit;
-					}
-				} else if (count > 0) {
-					/* We're moving downwards */
-					foundsb = TRUE;
-					/* Get maximum pages that can be moved */
-					pages = ((load_file_dialog.yoffset + (3 + 18) * 8 * video.scale) -
-						(hotspots[HS_LDFILE_SBHDLE].hl_y + hotspots[HS_LDFILE_SBHDLE].hl_h))
-						/ (8 * video.scale);
-					if (count > pages) count = pages;
-					/* Move the directory list top marker */
-					if (load_file_dialog.dirlist_top + count * load_file_dialog.pgscrunit > 
-						load_file_dialog.dirlist_count - LDFILE_LIST_H) {
-						load_file_dialog.dirlist_top = 
-						load_file_dialog.dirlist_count - LDFILE_LIST_H;
-					} else {
-						load_file_dialog.dirlist_top += count * load_file_dialog.pgscrunit;
-					}
+					load_file_dialog.dirlist_top += count * LDFILE_SBPGSCRUNIT;
 				}
 			}
-		} else if (id == SDLK_SBPGUP) {
+		} else if (id == SDLK_SBPGUP || id == SDLK_SBPGDN) {
 			if (state == SDL_PRESSED) {
 				foundsb = TRUE;
 				/* Before calling the key_repeat_manager I should point out something
@@ -2374,40 +2362,18 @@ void manage_ldfile_input(void) {
 				 * hotspots in a way I haven't done before and this isn't compatible with
 				 * what I'm doing here. Passing event to key_repeat_manager will repeat
 				 * the SDL_MOUSEBUTTONDOWN event that clicked the hotspot, and well, I
-				 * think you might guess what happens next with dynamic hotspots ;) It's
-				 * not a problem though as the engine is flexible and at least two things
-				 * can be done: I can generate a non-repeating virtualevent that triggers 
-				 * another repeating id (I've tried it and it works), or I can simply
-				 * change the contents of event as the event struct is only used within
-				 * the SDL_PollEvent loop. Generating a virtualevent seems to me to be
-				 * the long way round the houses when the event struct is finished with
-				 * and is exactly what we want, so I'm stating that I'm updating event */
-				event.type = SDL_KEYUP;
-				event.key.keysym.sym = id;
-				event.key.state = state;
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-				if (load_file_dialog.dirlist_top - load_file_dialog.pgscrunit < 0) {
-					load_file_dialog.dirlist_top = 0;
-				} else {
-					load_file_dialog.dirlist_top -= load_file_dialog.pgscrunit;
+				 * think you might guess what happens next with dynamic hotspots ;) So
+				 * instead I'm storing the information in virtualevent and passing that */
+				if (id == SDLK_SBPGUP) {
+					load_file_dialog.dirlist_top -= LDFILE_SBPGSCRUNIT;
+					virtualevent.type = SDL_KEYUP;
+				} else if (id == SDLK_SBPGDN) {
+					load_file_dialog.dirlist_top += LDFILE_SBPGSCRUNIT;
+					virtualevent.type = SDL_KEYDOWN;
 				}
-			} else if (state == SDL_RELEASED) {
-				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-			}
-		} else if (id == SDLK_SBPGDN) {
-			if (state == SDL_PRESSED) {
-				foundsb = TRUE;
-				event.type = SDL_KEYDOWN;
-				event.key.keysym.sym = id;
-				event.key.state = state;
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-				if (load_file_dialog.dirlist_top + load_file_dialog.pgscrunit > 
-					load_file_dialog.dirlist_count - LDFILE_LIST_H) {
-					load_file_dialog.dirlist_top = 
-					load_file_dialog.dirlist_count - LDFILE_LIST_H;
-				} else {
-					load_file_dialog.dirlist_top += load_file_dialog.pgscrunit;
-				}
+				virtualevent.key.keysym.sym = id;
+				virtualevent.key.state = state;
+				key_repeat_manager(KRM_FUNC_REPEAT, &virtualevent, COMP_LDFILE * id);
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -2417,18 +2383,10 @@ void manage_ldfile_input(void) {
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page up */
 				if (id == SDLK_PAGEUP) {
-					if (load_file_dialog.dirlist_selected - LDFILE_DEFAULT_PGSCRUNIT < 0) {
-						load_file_dialog.dirlist_selected = 0;
-					} else {
-						load_file_dialog.dirlist_selected -= LDFILE_DEFAULT_PGSCRUNIT;
-					}
+					load_file_dialog.dirlist_selected -= LDFILE_SBPGSCRUNIT;
 				/* Select the previous item */
 				} else {
-					if (load_file_dialog.dirlist_selected - 1 < 0) {
-						load_file_dialog.dirlist_selected = 0;
-					} else {
-						load_file_dialog.dirlist_selected -= 1;
-					}
+					load_file_dialog.dirlist_selected -= 1;
 				}
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -2439,22 +2397,10 @@ void manage_ldfile_input(void) {
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Page down */
 				if (id == SDLK_PAGEDOWN) {
-					if (load_file_dialog.dirlist_selected + LDFILE_DEFAULT_PGSCRUNIT > 
-						load_file_dialog.dirlist_count - 1) {
-						load_file_dialog.dirlist_selected = 
-						load_file_dialog.dirlist_count - 1;
-					} else {
-						load_file_dialog.dirlist_selected += LDFILE_DEFAULT_PGSCRUNIT;
-					}
+					load_file_dialog.dirlist_selected += LDFILE_SBPGSCRUNIT;
 				/* Select the next item */
 				} else {
-					if (load_file_dialog.dirlist_selected + 1 > 
-						load_file_dialog.dirlist_count - 1) {
-						load_file_dialog.dirlist_selected = 
-						load_file_dialog.dirlist_count - 1;
-					} else {
-						load_file_dialog.dirlist_selected += 1;
-					}
+					load_file_dialog.dirlist_selected += 1;
 				}
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -2464,11 +2410,7 @@ void manage_ldfile_input(void) {
 				found = TRUE;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Multiple rows up */
-				if (load_file_dialog.dirlist_selected - 3 < 0) {
-					load_file_dialog.dirlist_selected = 0;
-				} else {
-					load_file_dialog.dirlist_selected -= 3;
-				}
+				load_file_dialog.dirlist_selected -= 3;
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -2477,13 +2419,7 @@ void manage_ldfile_input(void) {
 				found = TRUE;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				/* Multiple rows down */
-				if (load_file_dialog.dirlist_selected + 3 > 
-					load_file_dialog.dirlist_count - 1) {
-					load_file_dialog.dirlist_selected = 
-					load_file_dialog.dirlist_count - 1;
-				} else {
-					load_file_dialog.dirlist_selected += 3;
-				}
+				load_file_dialog.dirlist_selected += 3;
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
@@ -2590,34 +2526,37 @@ void manage_ldfile_input(void) {
 			}
 		}
 		if (found) {
-			/* Adjust the list top marker */
-			if (load_file_dialog.dirlist_top > load_file_dialog.dirlist_selected) {
+			/* Adjust the selected item */
+			if (load_file_dialog.dirlist_selected > 
+				load_file_dialog.dirlist_count - 1)
+				load_file_dialog.dirlist_selected = 
+					load_file_dialog.dirlist_count - 1;
+			if (load_file_dialog.dirlist_selected < 0)
+				load_file_dialog.dirlist_selected = 0;
+			/* Adjust the list top marker to follow the selected item */
+			if (load_file_dialog.dirlist_top > load_file_dialog.dirlist_selected)
 				load_file_dialog.dirlist_top = load_file_dialog.dirlist_selected;
-			} else if (load_file_dialog.dirlist_top < 
-				load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1)) {
+			if (load_file_dialog.dirlist_top < 
+				load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1))
 				load_file_dialog.dirlist_top = 
 					load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1);
-			}
-			/* Resize hotspots to match new text */
+			/* Resize hotspots and scrollbar to match new text */
 			hotspots_resize(HS_GRP_LDFILE);
 		} else if (foundsb) {
-
-
-			printf("dirlist_top=%i dirlist_selected=%i\n", 
-				load_file_dialog.dirlist_top, load_file_dialog.dirlist_selected);//temp temp
-
-
-
-			/* Adjust the selected item */
+			/* Adjust the list top marker */
+			if (load_file_dialog.dirlist_top >
+				load_file_dialog.dirlist_count - LDFILE_LIST_H)
+				load_file_dialog.dirlist_top = 
+					load_file_dialog.dirlist_count - LDFILE_LIST_H;
+			if (load_file_dialog.dirlist_top < 0) load_file_dialog.dirlist_top = 0;
+			/* Adjust the selected item to follow the list top marker */
 			if (load_file_dialog.dirlist_selected >
-				load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1)) {
+				load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1))
 				load_file_dialog.dirlist_selected = 
 					load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1);
-			} else if (load_file_dialog.dirlist_selected < load_file_dialog.dirlist_top) {
+			if (load_file_dialog.dirlist_selected < load_file_dialog.dirlist_top)
 				load_file_dialog.dirlist_selected = load_file_dialog.dirlist_top;
-			}
-			/* Resize hotspots and move the scrollbar to its
-			 * new position which means we don't have to */
+			/* Resize hotspots and scrollbar to match new text */
 			hotspots_resize(HS_GRP_LDFILE);
 		}
 	}

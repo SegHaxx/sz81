@@ -18,8 +18,13 @@
 /* Defines */
 #define DIR_DELIMITER_CHAR '/'
 
-#define LDFILE_DEFAULT_PGSCRUNIT 19
 #define LDFILE_LIST_H 20
+#define LDFILE_SBPGSCRUNIT 19
+#define LDFILE_SBXOFFSET (31 * 8 * video.scale)
+#define LDFILE_SBUPYOFFSET (2 * 8 * video.scale)
+#define LDFILE_SBHDLEYOFFSET (3 * 8 * video.scale)
+#define LDFILE_SBPGUPYOFFSET (3 * 8 * video.scale)
+#define LDFILE_SBDOWNYOFFSET (21 * 8 * video.scale)
 
 /* Directory List file types */
 #define DIRLIST_FILETYPE_HIDDEN 1
@@ -44,7 +49,7 @@ struct {
 	int dirlist_selected;	/* The selected item as an index into the list */
 	char loaded[256];		/* The fullpath of the most recently loaded/saved file */
 	int method;				/* The loading method to be implemented for certain methods */
-	int pgscrunit;
+	int sbpgscrunit;
 } load_file_dialog;
 
 struct {

@@ -29,7 +29,7 @@
 #include <SDL/SDL.h>
 
 /* Defines */
-#define MAX_KEYCODES 356	/* SDL stops at 322 and then I extend them */
+#define MAX_KEYCODES 358	/* SDL stops at 322 and then I extend them */
 
 /* Interrupt types */
 #define INTERRUPT_EMULATOR_RESET 3
