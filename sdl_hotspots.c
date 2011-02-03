@@ -383,9 +383,9 @@ void hotspots_resize(int gid) {
 		 * so the "% 20 > 1" is for this reason. Nothing else is adjusted.
 		 * 
 		 * Up to 300 it's perfect, after that it lacks precision due to
-		 * a lack of scrollbar units (the handle reaches the limits fine
-		 * but there's a remainder of 15 left to scroll via other means
-		 * - no real issue and floats will fix it if it's worth doing).
+		 * many factors, but I specifically want a ZX81 style scrollbar
+		 * using the ZX81's Sinclair char granularity so it satisfies its
+		 * requirements.
 		 * */
 		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + 2 * 8 * video.scale;

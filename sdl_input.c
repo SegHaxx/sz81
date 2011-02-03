@@ -56,10 +56,26 @@
 #define GP2X_BTN_JOY 0x12
 
 /* Variables */
+/* This records the last runtime options component viewed i.e. the page,
+ * and it's required so that it can be restored automatically */
 int last_runopts_comp = COMP_RUNOPTS0;
+
+/* SDL_PollEvent will extract useful information from an event and store
+ * it in these variables which are then used throughout this file.
+ * Occasionally device is set to UNDEFINED so that the control is ignored */
 int device, id, mod_id, state;
+
+/* SDL_PollEvent fills event and if something useful was found the data
+ * is extracted to the above variables. event can be and is later used
+ * to pass information to the key_repeat_manager, but that is simply for
+ * convenience. virtualevent is used in several places to push custom
+ * events and so there is no reason why event cannot be reused either */
 SDL_Event event, virtualevent;
+
+/* The last vkeyb state is sometimes recorded so that it can be restored */
 int last_vkeyb_state;
+
+/* This is used by the joystick configurator to store control ids */
 int runopts_joy_cfg_id[12];
 
 char *keysyms[] = {
@@ -828,10 +844,6 @@ int keyboard_update(void) {
 							if (hotspots[count].gid != UNDEFINED &&
 								hotspots[count].flags & HS_PROP_VISIBLE &&
 								hotspots[count].flags & HS_PROP_DRAGGABLE &&
-								/*event.motion.x >= hotspots[count].hit_x &&	Redundant
-								event.motion.x < hotspots[count].hit_x + hotspots[count].hit_w &&
-								event.motion.y >= hotspots[count].hit_y &&
-								event.motion.y < hotspots[count].hit_y + hotspots[count].hit_h && */
 								hotspots[count].remap_id != UNDEFINED &&
 								keyboard_buffer[hotspots[count].remap_id] == SDL_PRESSED) {
 								device = DEVICE_KEYBOARD;
@@ -2334,9 +2346,6 @@ void manage_ldfile_input(void) {
 					} else {
 						load_file_dialog.dirlist_top -= count * load_file_dialog.pgscrunit;
 					}
-/*					load_file_dialog.dirlist_top = 	Redundant
-						load_file_dialog.dirlist_top - count * load_file_dialog.pgscrunit;
-					if (load_file_dialog.dirlist_top < 0) load_file_dialog.dirlist_top = 0;*/
 				} else if (count > 0) {
 					/* We're moving downwards */
 					foundsb = TRUE;
@@ -2353,12 +2362,6 @@ void manage_ldfile_input(void) {
 					} else {
 						load_file_dialog.dirlist_top += count * load_file_dialog.pgscrunit;
 					}
-/*					load_file_dialog.dirlist_top = 	Redundant
-						load_file_dialog.dirlist_top + count * load_file_dialog.pgscrunit;
-					if (load_file_dialog.dirlist_top >
-						load_file_dialog.dirlist_count - LDFILE_LIST_H)
-						load_file_dialog.dirlist_top = 
-							load_file_dialog.dirlist_count - LDFILE_LIST_H;*/
 				}
 			}
 		} else if (id == SDLK_SBPGUP) {
@@ -2366,10 +2369,22 @@ void manage_ldfile_input(void) {
 				foundsb = TRUE;
 				/* Before calling the key_repeat_manager I should point out something
 				 * important here that I've just discovered: I've been passing event
-				 * which is global to this file and holds the last event returned by
-				 * SDL_PollEvent. So far this has been fine, but I'm now manipulating
-				 * hotspots in a way I haven't done before and...tbc */
-				//hotspots[HS_LDFILE_SBHDLE].flags &= ~HS_PROP_VISIBLE;	//temp temp
+				 * which is global to this file and holds the last useful event returned
+				 * by SDL_PollEvent. So far this has been fine, but I'm now manipulating
+				 * hotspots in a way I haven't done before and this isn't compatible with
+				 * what I'm doing here. Passing event to key_repeat_manager will repeat
+				 * the SDL_MOUSEBUTTONDOWN event that clicked the hotspot, and well, I
+				 * think you might guess what happens next with dynamic hotspots ;) It's
+				 * not a problem though as the engine is flexible and at least two things
+				 * can be done: I can generate a non-repeating virtualevent that triggers 
+				 * another repeating id (I've tried it and it works), or I can simply
+				 * change the contents of event as the event struct is only used within
+				 * the SDL_PollEvent loop. Generating a virtualevent seems to me to be
+				 * the long way round the houses when the event struct is finished with
+				 * and is exactly what we want, so I'm stating that I'm updating event */
+				event.type = SDL_KEYUP;
+				event.key.keysym.sym = id;
+				event.key.state = state;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				if (load_file_dialog.dirlist_top - load_file_dialog.pgscrunit < 0) {
 					load_file_dialog.dirlist_top = 0;
@@ -2378,12 +2393,13 @@ void manage_ldfile_input(void) {
 				}
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-				//hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_VISIBLE;	//temp temp
 			}
 		} else if (id == SDLK_SBPGDN) {
 			if (state == SDL_PRESSED) {
 				foundsb = TRUE;
-				//hotspots[HS_LDFILE_SBHDLE].flags &= ~HS_PROP_VISIBLE;	//temp temp
+				event.type = SDL_KEYDOWN;
+				event.key.keysym.sym = id;
+				event.key.state = state;
 				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
 				if (load_file_dialog.dirlist_top + load_file_dialog.pgscrunit > 
 					load_file_dialog.dirlist_count - LDFILE_LIST_H) {
@@ -2394,7 +2410,6 @@ void manage_ldfile_input(void) {
 				}
 			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-				//hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_VISIBLE;	//temp temp
 			}
 		} else if (id == SDLK_UP || id == SDLK_PAGEUP) {
 			if (state == SDL_PRESSED) {
@@ -2586,6 +2601,13 @@ void manage_ldfile_input(void) {
 			/* Resize hotspots to match new text */
 			hotspots_resize(HS_GRP_LDFILE);
 		} else if (foundsb) {
+
+
+			printf("dirlist_top=%i dirlist_selected=%i\n", 
+				load_file_dialog.dirlist_top, load_file_dialog.dirlist_selected);//temp temp
+
+
+
 			/* Adjust the selected item */
 			if (load_file_dialog.dirlist_selected >
 				load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1)) {
@@ -3154,9 +3176,6 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		if (last_eventid != eventid)
 			key_repeat_manager(KRM_FUNC_RELEASE, NULL, eventid);
 		repeatevent = *event;
-
-		//printf("repeatevent.type=%i\n", repeatevent.type);//temp temp
-
 	}
 }
 
