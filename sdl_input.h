@@ -70,6 +70,7 @@
 #define SDLK_SBHDLE 354
 #define SDLK_SBPGDN 355
 
+
 /* Variables */
 SDL_Joystick *joystick;
 int joystick_dead_zone;

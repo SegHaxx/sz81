@@ -43,15 +43,13 @@ void sdl_hotspots_init(void) {
 		hotspots[count].hl_x = hotspots[count].hl_y = UNDEFINED;
 		hotspots[count].hl_w = hotspots[count].hl_h = UNDEFINED;
 		hotspots[count].flags = 0;
-		hotspots[count].flags |= HS_PROP_VISIBLE;
-		hotspots[count].flags |= HS_PROP_NAVIGABLE;
 		hotspots[count].flags |= HS_PROP_ONOFF;
+		hotspots[count].flags |= HS_PROP_VISIBLE;
 		hotspots[count].remap_id = UNDEFINED;
 	}
-	
+
 	/* Initialise root hotspots */
 	hotspots[HS_EMU_EMU].gid = HS_GRP_EMU;
-	hotspots[HS_EMU_EMU].flags &= ~HS_PROP_NAVIGABLE;
 	hotspots[HS_EMU_EMU].remap_id = SDLK_F1;
 
 	/* Initialise file selector hotspots */
@@ -65,11 +63,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LOAD_SPACE].remap_id = SDLK_SPACE;
 
 	/* Initialise load file dialog hotspots */
-	for (count = HS_LDFILE_LDFILE; count <= HS_LDFILE_EXIT; count++) {
+	for (count = HS_LDFILE_LDFILE; count <= HS_LDFILE_EXIT; count++)
 		hotspots[count].gid = HS_GRP_LDFILE;
-		if (count <= HS_LDFILE_LIST19) 
-			hotspots[count].flags &= ~HS_PROP_NAVIGABLE;
-	}
 	hotspots[HS_LDFILE_LIST00].remap_id = SDLK_ROW00;
 	hotspots[HS_LDFILE_LIST01].remap_id = SDLK_ROW01;
 	hotspots[HS_LDFILE_LIST02].remap_id = SDLK_ROW02;
@@ -90,20 +85,19 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_LDFILE_LIST17].remap_id = SDLK_ROW17;
 	hotspots[HS_LDFILE_LIST18].remap_id = SDLK_ROW18;
 	hotspots[HS_LDFILE_LIST19].remap_id = SDLK_ROW19;
+	hotspots[HS_LDFILE_SBUP].remap_id = SDLK_UP;
 	hotspots[HS_LDFILE_SBHDLE].remap_id = SDLK_SBHDLE;
+	hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_DRAGGABLE;
 	hotspots[HS_LDFILE_SBPGUP].remap_id = SDLK_SBPGUP;
 	hotspots[HS_LDFILE_SBPGDN].remap_id = SDLK_SBPGDN;
-	hotspots[HS_LDFILE_SBUP].remap_id = SDLK_UP;
 	hotspots[HS_LDFILE_SBDN].remap_id = SDLK_DOWN;
 	hotspots[HS_LDFILE_LOAD].remap_id = SDLK_ACCEPT;
 	hotspots[HS_LDFILE_LOAD].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_LDFILE_EXIT].remap_id = SDLK_F3;
 
 	/* Initialise save state dialog hotspots */
-	hotspots[HS_SSTATE_SSTATE].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_SSTATE_SSTATE; count <= HS_SSTATE_EXIT; count++) {
+	for (count = HS_SSTATE_SSTATE; count <= HS_SSTATE_EXIT; count++)
 		hotspots[count].gid = HS_GRP_SSTATE;
-	}
 	hotspots[HS_SSTATE_SLOT0].remap_id = SDLK_1;
 	hotspots[HS_SSTATE_SLOT0].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_SSTATE_SLOT1].remap_id = SDLK_2;
@@ -118,7 +112,6 @@ void sdl_hotspots_init(void) {
 
 	/* Initialise virtual keyboard hotspots */
 	hotspots[HS_VKEYB_VKEYB].gid = HS_GRP_VKEYB;
-	hotspots[HS_VKEYB_VKEYB].flags &= ~HS_PROP_NAVIGABLE;
 	for (count = 0; count < 10; count++) {
 		hotspots[HS_VKEYB_1 + count].gid = HS_GRP_VKEYB;
 		hotspots[HS_VKEYB_Q + count].gid = HS_GRP_VKEYB;
@@ -175,10 +168,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_VKEYB_SHIFT + 9].remap_id = SDLK_SPACE;
 
 	/* Initialise control bar hotspots */
-	hotspots[HS_CTB_CTB].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_CTB_CTB; count <= HS_CTB_RUNOPTS; count++) {
+	for (count = HS_CTB_CTB; count <= HS_CTB_RUNOPTS; count++)
 		hotspots[count].gid = HS_GRP_CTB;
-	}
 	hotspots[HS_CTB_EXIT].remap_id = SDLK_F10;
 	hotspots[HS_CTB_RESET].remap_id = SDLK_F12;
 	hotspots[HS_CTB_AUTOHIDE].remap_id = SDLK_F6;
@@ -192,10 +183,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_CTB_RUNOPTS].remap_id = SDLK_F2;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPTS0_RUNOPTS0].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPTS0_RUNOPTS0; count <= HS_RUNOPTS0_NEXT; count++) {
+	for (count = HS_RUNOPTS0_RUNOPTS0; count <= HS_RUNOPTS0_NEXT; count++)
 		hotspots[count].gid = HS_GRP_RUNOPTS0;
-	}
 	hotspots[HS_RUNOPTS0_ZX80].remap_id = SDLK_HOME;
 	hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS0_ZX81].remap_id = SDLK_END;
@@ -212,10 +201,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS0_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPTS1_RUNOPTS1].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPTS1_RUNOPTS1; count <= HS_RUNOPTS1_NEXT; count++) {
+	for (count = HS_RUNOPTS1_RUNOPTS1; count <= HS_RUNOPTS1_NEXT; count++)
 		hotspots[count].gid = HS_GRP_RUNOPTS1;
-	}
 	hotspots[HS_RUNOPTS1_DEVICE_NONE].remap_id = SDLK_1;
 	hotspots[HS_RUNOPTS1_DEVICE_NONE].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS1_DEVICE_AY].remap_id = SDLK_2;
@@ -229,10 +216,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS1_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPTS2_RUNOPTS2].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPTS2_RUNOPTS2; count <= HS_RUNOPTS2_NEXT; count++) {
+	for (count = HS_RUNOPTS2_RUNOPTS2; count <= HS_RUNOPTS2_NEXT; count++)
 		hotspots[count].gid = HS_GRP_RUNOPTS2;
-	}
 	hotspots[HS_RUNOPTS2_VOLUME_DN].remap_id = SDLK_MINUS;
 	hotspots[HS_RUNOPTS2_VOLUME_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS2_VOLUME_UP].remap_id = SDLK_EQUALS;
@@ -258,10 +243,8 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_RUNOPTS2_NEXT].remap_id = SDLK_PAGEDOWN;
 
 	/* Initialise runtime options hotspots */
-	hotspots[HS_RUNOPTS3_RUNOPTS3].flags &= ~HS_PROP_NAVIGABLE;
-	for (count = HS_RUNOPTS3_RUNOPTS3; count <= HS_RUNOPTS3_EXIT; count++) {
+	for (count = HS_RUNOPTS3_RUNOPTS3; count <= HS_RUNOPTS3_EXIT; count++)
 		hotspots[count].gid = HS_GRP_RUNOPTS3;
-	}
 	hotspots[HS_RUNOPTS3_JDEADZ_DN].remap_id = SDLK_HOME;
 	hotspots[HS_RUNOPTS3_JDEADZ_DN].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS3_JDEADZ_UP].remap_id = SDLK_END;
@@ -404,9 +387,17 @@ void hotspots_resize(int gid) {
 		 * but there's a remainder of 15 left to scroll via other means
 		 * - no real issue and floats will fix it if it's worth doing).
 		 * */
+		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_w = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hl_h = 1 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_x = hotspots[HS_LDFILE_SBUP].hl_x - 4 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_y = hotspots[HS_LDFILE_SBUP].hl_y - 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_w = 2 * 8 * video.scale;
+		hotspots[HS_LDFILE_SBUP].hit_h = 2 * 8 * video.scale;
+
 		hotspots[HS_LDFILE_SBHDLE].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBHDLE].hl_w = 1 * 8 * video.scale;
-
 		if (load_file_dialog.dirlist_count / LDFILE_DEFAULT_PGSCRUNIT > 15) {
 			load_file_dialog.pgscrunit = load_file_dialog.dirlist_count / 15;
 			hotspots[HS_LDFILE_SBHDLE].hl_h = 3;
@@ -423,12 +414,10 @@ void hotspots_resize(int gid) {
 			}
 		}
 		hotspots[HS_LDFILE_SBHDLE].hl_h *= 8 * video.scale;
-
 		hotspots[HS_LDFILE_SBHDLE].hl_y = load_file_dialog.yoffset + 3 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBHDLE].hl_y +=
 			(load_file_dialog.dirlist_top + LDFILE_DEFAULT_PGSCRUNIT - 1) / 
 			load_file_dialog.pgscrunit * 8 * video.scale;
-
 		hotspots[HS_LDFILE_SBHDLE].hit_x = hotspots[HS_LDFILE_SBHDLE].hl_x - 4 * video.scale;
 		hotspots[HS_LDFILE_SBHDLE].hit_y = hotspots[HS_LDFILE_SBHDLE].hl_y;
 		hotspots[HS_LDFILE_SBHDLE].hit_w = 2 * 8 * video.scale;
@@ -454,15 +443,6 @@ void hotspots_resize(int gid) {
 		hotspots[HS_LDFILE_SBPGDN].hit_y = hotspots[HS_LDFILE_SBPGDN].hl_y;
 		hotspots[HS_LDFILE_SBPGDN].hit_w = 2 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBPGDN].hit_h = hotspots[HS_LDFILE_SBPGDN].hl_h;
-
-		hotspots[HS_LDFILE_SBUP].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hl_y = load_file_dialog.yoffset + 2 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hl_w = 1 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hl_h = 1 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hit_x = hotspots[HS_LDFILE_SBUP].hl_x - 4 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hit_y = hotspots[HS_LDFILE_SBUP].hl_y - 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hit_w = 2 * 8 * video.scale;
-		hotspots[HS_LDFILE_SBUP].hit_h = 2 * 8 * video.scale;
 
 		hotspots[HS_LDFILE_SBDN].hl_x = load_file_dialog.xoffset + 31 * 8 * video.scale;
 		hotspots[HS_LDFILE_SBDN].hl_y = load_file_dialog.yoffset + 21 * 8 * video.scale;
@@ -937,8 +917,11 @@ void hotspots_render(void) {
 				ctrl_remapper.master_interval / 2) selected = FALSE;
 
 		#ifndef SDL_DEBUG_HOTSPOTS
-			if (pressed || (joystick && selected) || 
-				(hotspots[count].gid & HS_GRP_RUNOPTS_ALL && selected)) {
+			if (pressed || 
+				(joystick && selected) || 
+				(hotspots[count].gid & HS_GRP_RUNOPTS_ALL && selected) ||
+				(hotspots[count].gid & HS_GRP_LDFILE && selected) ||
+				(hotspots[count].gid & HS_GRP_SSTATE && selected)) {
 		#endif
 				/* Set the size of the hotspot's highlight.
 				 * If hl_x/y/w/h are all UNDEFINED then use hit_x/y/w/h instead */

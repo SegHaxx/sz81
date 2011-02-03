@@ -141,10 +141,10 @@
 #define HS_LDFILE_LIST17 167
 #define HS_LDFILE_LIST18 168
 #define HS_LDFILE_LIST19 169
-#define HS_LDFILE_SBHDLE 170
-#define HS_LDFILE_SBPGUP 171
-#define HS_LDFILE_SBPGDN 172
-#define HS_LDFILE_SBUP 173
+#define HS_LDFILE_SBUP 170
+#define HS_LDFILE_SBHDLE 171
+#define HS_LDFILE_SBPGUP 172
+#define HS_LDFILE_SBPGDN 173
 #define HS_LDFILE_SBDN 174
 #define HS_LDFILE_LOAD 175
 #define HS_LDFILE_EXIT 176
@@ -161,21 +161,22 @@
 #define HS_SSTATE_EXIT 189
 
 /* Hotspot properties */
-#define HS_PROP_ONOFF 1
-#define HS_PROP_STICKY 2
-#define HS_PROP_TOGGLE 4
-#define HS_PROP_STUCK 8
-#define HS_PROP_VISIBLE 16
+#define HS_PROP_ONOFF 1				/* The normal type: press on, release off */
+#define HS_PROP_STICKY 2			/* Press on to stick, press and release it or something else off */
+#define HS_PROP_TOGGLE 4			/* Press on to stick, press off */
+#define HS_PROP_STUCK 8				/* Sticky and toggle hotspots become stuck on */
+#define HS_PROP_VISIBLE 16			/* Invisible also equates to disabled */
 #define HS_PROP_SELECTED 32
-#define HS_PROP_NAVIGABLE 64
-
+#define HS_PROP_DRAGGABLE 64		/* Under normal operation, if a hotspot doesn't have an UNDEFINED
+									 * gid and is visible then it can process pressed or released
+									 * events, but this property enables additional motion events */
 /* Variables */
 struct hotspot {
-	int gid;			/* Group id for easy management */
-	int flags;			/* An OR'd combination of HS_PROP_ properties */
+	int gid;						/* Group id for easy management */
+	int flags;						/* An OR'd combination of HS_PROP_ properties */
 	int hit_x, hit_y, hit_w, hit_h;	/* Hit box */
 	int hl_x, hl_y, hl_w, hl_h;		/* Highlight box (if all UNDEFINED then use hitbox */
-	int remap_id;		/* The main destination control id (could be UNDEFINED) */
+	int remap_id;					/* The main destination control id (could be UNDEFINED) */
 };
 struct hotspot hotspots[MAX_HOTSPOTS];
 

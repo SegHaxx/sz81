@@ -23,6 +23,9 @@
 
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
+/* Extended SDL state definitions */
+#define SDL_DRAGGED 2
+
 /* Cursor (virtual) device control IDs */
 #define CURSOR_REMAP 32762
 #define CURSOR_N 32763
@@ -756,7 +759,7 @@ void sdl_keyboard_init(void) {
  * On exit: returns non-zero if there are keyboard events else 0 */
 
 int keyboard_update(void) {
-	static int skip_update = TRUE, last_hs_pressed[2];
+	static int skip_update = TRUE, skip_drag = TRUE, last_hs_pressed[2];
 	static int axisstates[MAX_JOY_AXES * 2], init = TRUE;
 	int eventfound = FALSE, count, found;
 	int hs_vkeyb_ctb_selected;
@@ -808,6 +811,35 @@ int keyboard_update(void) {
 					state = event.key.state;
 					break;
 				case SDL_MOUSEMOTION:
+					/* Added in 2.1.7: if a hotspot has the draggable property set
+					 * then it can additionally experience mouse motion events.
+					 * It's implemented here by setting SDL_DRAGGED as the state,
+					 * therefore any control/hotspot processing code should expect
+					 * to receive SDL_PRESSED, SDL_RELEASED and SDL_DRAGGED states.
+					 * 
+					 * Note that I'm dropping many of the SDL_MOUSEMOTION events
+					 * because by default this is running at 50Hz / 2 and they are
+					 * far too numerous and flood the event queue and this system */
+					if (skip_drag++ >= 4) {
+						skip_drag = 0;
+						count = last_hs_pressed[0];
+						if (count == UNDEFINED) count = last_hs_pressed[1];
+						if (count != UNDEFINED) {
+							if (hotspots[count].gid != UNDEFINED &&
+								hotspots[count].flags & HS_PROP_VISIBLE &&
+								hotspots[count].flags & HS_PROP_DRAGGABLE &&
+								/*event.motion.x >= hotspots[count].hit_x &&	Redundant
+								event.motion.x < hotspots[count].hit_x + hotspots[count].hit_w &&
+								event.motion.y >= hotspots[count].hit_y &&
+								event.motion.y < hotspots[count].hit_y + hotspots[count].hit_h && */
+								hotspots[count].remap_id != UNDEFINED &&
+								keyboard_buffer[hotspots[count].remap_id] == SDL_PRESSED) {
+								device = DEVICE_KEYBOARD;
+								id = hotspots[count].remap_id;
+								state = SDL_DRAGGED;
+							}
+						}
+					}
 					break;
 				case SDL_MOUSEBUTTONUP:
 				case SDL_MOUSEBUTTONDOWN:
@@ -871,11 +903,11 @@ int keyboard_update(void) {
 							}
 						}
 						if (!found) device = UNDEFINED;	/* Ignore id */
-					} else if (event.button.button % 128 == SDL_BUTTON_WHEELUP ||
-						event.button.button % 128 == SDL_BUTTON_WHEELDOWN) {
+					} else if (event.button.button == SDL_BUTTON_WHEELUP ||
+						event.button.button == SDL_BUTTON_WHEELDOWN) {
 						/* Remap mouse wheel movement to SDLK_MULTIUP & SDLK_MULTIDOWN */
 						device = DEVICE_KEYBOARD;
-						if (event.button.button % 128 == SDL_BUTTON_WHEELUP) {
+						if (event.button.button == SDL_BUTTON_WHEELUP) {
 							id = SDLK_MULTIUP;
 						} else {
 							id = SDLK_MULTIDOWN;
@@ -983,7 +1015,7 @@ int keyboard_update(void) {
 			if (show_input_id && device != UNDEFINED) {
 				if (state == SDL_PRESSED) {
 					current_input_id = id;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					current_input_id = UNDEFINED;
 				}
 			}
@@ -1079,13 +1111,16 @@ int keyboard_update(void) {
 					}
 				}
 			
-				/* Record the event within the keyboard buffer */
+				/* Record the SDL_PRESSED and SDL_RELEASED events within the
+				 * keyboard buffer (eventfound is set to TRUE for SDL_DRAGGED
+				 * so we can drop out of this function and the event can be
+				 * processed, but we don't need to store drag events) */
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
 					if (state == SDL_PRESSED) {
 						keyboard_buffer[id] = SDL_PRESSED;
 						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_PRESSED;
-					} else {
+					} else if (state == SDL_RELEASED) {
 						keyboard_buffer[id] = SDL_RELEASED;
 						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_RELEASED;
 					}
@@ -1716,7 +1751,7 @@ void manage_cursor_input(void) {
 			/* Update the joycfg text if the cursor was moved there */
 			if (id == CURSOR_N || id == CURSOR_S || id == CURSOR_W || id == CURSOR_E)
 				set_joy_cfg_text(JOY_CFG_TEXT_DEFAULT_SETTINGS);
-		} else {	/* SDL_RELEASED */
+		} else if (state == SDL_RELEASED) {
 			if (id == CURSOR_HIT) {
 				/* Release a previous press (it's not important where) */
 				virtualevent.type = SDL_MOUSEBUTTONUP;
@@ -1865,7 +1900,7 @@ void manage_all_input(void) {
 					msg_box.timeout = MSG_BOX_TIMEOUT_1500;
 					message_box_manager(MSG_BOX_SHOW, &msg_box);
 					rcfile.rewrite = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			#endif
@@ -1936,7 +1971,7 @@ void manage_vkeyb_input(void) {
 					vkeyb.alpha += 16;
 				}
 				rcfile.rewrite = TRUE;
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		}
@@ -2010,7 +2045,7 @@ void manage_runopts_input(void) {
 					} else {
 						if (sdl_key_repeat.delay < 520) sdl_key_repeat.delay += 10;
 					}
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			} else if (runtime_options[3].state) {
@@ -2022,7 +2057,7 @@ void manage_runopts_input(void) {
 					} else {
 						if (joystick_dead_zone < 98) joystick_dead_zone += 2;
 					}
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2055,7 +2090,7 @@ void manage_runopts_input(void) {
 							runopts_emulator_ramsize = 56;
 						}
 					}
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			} else if (runtime_options[2].state) {
@@ -2067,7 +2102,7 @@ void manage_runopts_input(void) {
 					} else {
 						if (sdl_key_repeat.interval < 520) sdl_key_repeat.interval += 10;
 					}
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2082,7 +2117,7 @@ void manage_runopts_input(void) {
 						} else {
 							if (runopts_emulator_speed > 10) runopts_emulator_speed -= 10;
 						}
-					} else {
+					} else if (state == SDL_RELEASED) {
 						key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 					}
 				#endif
@@ -2106,7 +2141,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_1) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2130,7 +2165,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_3) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2156,7 +2191,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_5) amount = -8;
 					colours.emu_fg = adjust_colour_component(colours.emu_fg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2168,7 +2203,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_7) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0xff0000, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2180,7 +2215,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_9) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x00ff00, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2194,7 +2229,7 @@ void manage_runopts_input(void) {
 					} else {
 						if (sdl_emulator.frameskip < MAX_FRAMESKIP) sdl_emulator.frameskip++;
 					}
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			} else if (runtime_options[2].state) {
@@ -2204,7 +2239,7 @@ void manage_runopts_input(void) {
 					amount = 8; if (id == SDLK_LEFTBRACKET) amount = -8;
 					colours.emu_bg = adjust_colour_component(colours.emu_bg, 0x0000ff, amount, TRUE);
 					video.redraw = TRUE;
-				} else {
+				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
@@ -2265,48 +2300,101 @@ void toggle_runopts_state(void) {
  ***************************************************************************/
 
 void manage_ldfile_input(void) {
+	static int sbhdle_anchor_point = 0;
 	char lastsubdir[256];
+	int foundsb = FALSE;
 	int found = FALSE;
+	int mousey, pages;
 	int count, index;
 	char *direntry;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
-		if (id == SDLK_SBPGUP || id == SDLK_SBPGDN) {
+		if (id == SDLK_SBHDLE) {
 			if (state == SDL_PRESSED) {
-				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
-				/* Simulate pressing SDLK_PAGEUP/SDLK_PAGEDOWN */
-				virtualevent.type = SDL_KEYDOWN;
-				if (id == SDLK_SBPGUP) {
-					virtualevent.key.keysym.sym = SDLK_PAGEUP;
-				} else {
-					virtualevent.key.keysym.sym = SDLK_PAGEDOWN;
+				SDL_GetMouseState(NULL, &mousey);	/* Ignore x, get y */
+				sbhdle_anchor_point = mousey - hotspots[HS_LDFILE_SBHDLE].hl_y;
+			} else if (state == SDL_DRAGGED) {
+				SDL_GetMouseState(NULL, &mousey);	/* Ignore x, get y */
+				/* The granularity is Sinclair chars so get count of
+				 * these units that the user has requested to move by */
+				count = (mousey - (hotspots[HS_LDFILE_SBHDLE].hl_y + 
+					sbhdle_anchor_point)) / (8 * video.scale);
+				if (count < 0) {
+					/* We're moving upwards */
+					foundsb = TRUE;
+					count = abs(count);
+					/* Get maximum pages that can be moved */
+					pages = (hotspots[HS_LDFILE_SBHDLE].hl_y - load_file_dialog.yoffset - 
+						(3 * 8 * video.scale)) / (8 * video.scale);
+					if (count > pages) count = pages;
+					/* Move the directory list top marker */
+					if (load_file_dialog.dirlist_top - count * load_file_dialog.pgscrunit < 0) {
+						load_file_dialog.dirlist_top = 0;
+					} else {
+						load_file_dialog.dirlist_top -= count * load_file_dialog.pgscrunit;
+					}
+/*					load_file_dialog.dirlist_top = 	Redundant
+						load_file_dialog.dirlist_top - count * load_file_dialog.pgscrunit;
+					if (load_file_dialog.dirlist_top < 0) load_file_dialog.dirlist_top = 0;*/
+				} else if (count > 0) {
+					/* We're moving downwards */
+					foundsb = TRUE;
+					/* Get maximum pages that can be moved */
+					pages = ((load_file_dialog.yoffset + (3 + 18) * 8 * video.scale) -
+						(hotspots[HS_LDFILE_SBHDLE].hl_y + hotspots[HS_LDFILE_SBHDLE].hl_h))
+						/ (8 * video.scale);
+					if (count > pages) count = pages;
+					/* Move the directory list top marker */
+					if (load_file_dialog.dirlist_top + count * load_file_dialog.pgscrunit > 
+						load_file_dialog.dirlist_count - LDFILE_LIST_H) {
+						load_file_dialog.dirlist_top = 
+						load_file_dialog.dirlist_count - LDFILE_LIST_H;
+					} else {
+						load_file_dialog.dirlist_top += count * load_file_dialog.pgscrunit;
+					}
+/*					load_file_dialog.dirlist_top = 	Redundant
+						load_file_dialog.dirlist_top + count * load_file_dialog.pgscrunit;
+					if (load_file_dialog.dirlist_top >
+						load_file_dialog.dirlist_count - LDFILE_LIST_H)
+						load_file_dialog.dirlist_top = 
+							load_file_dialog.dirlist_count - LDFILE_LIST_H;*/
 				}
-				virtualevent.key.state = SDL_PRESSED;
-				SDL_PushEvent(&virtualevent);
-			} else {
-				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
-				/* Simulate releasing SDLK_PAGEUP/SDLK_PAGEDOWN */
-				virtualevent.type = SDL_KEYUP;
-				if (id == SDLK_SBPGUP) {
-					virtualevent.key.keysym.sym = SDLK_PAGEUP;
-				} else {
-					virtualevent.key.keysym.sym = SDLK_PAGEDOWN;
-				}
-				virtualevent.key.state = SDL_RELEASED;
-				SDL_PushEvent(&virtualevent);
 			}
-		} else if (id == SDLK_SBHDLE) {
+		} else if (id == SDLK_SBPGUP) {
 			if (state == SDL_PRESSED) {
-
-				/* printf("x=%i  y=%i  %i\n", 
-					event.button.x, event.button.y, SDL_GetTicks());	temp temp */
-
-			} else {
-
-				/* printf("x=%i y=%i  %i\n", 
-					event.button.x, event.button.y, SDL_GetTicks());	temp temp */
-
+				foundsb = TRUE;
+				/* Before calling the key_repeat_manager I should point out something
+				 * important here that I've just discovered: I've been passing event
+				 * which is global to this file and holds the last event returned by
+				 * SDL_PollEvent. So far this has been fine, but I'm now manipulating
+				 * hotspots in a way I haven't done before and...tbc */
+				//hotspots[HS_LDFILE_SBHDLE].flags &= ~HS_PROP_VISIBLE;	//temp temp
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				if (load_file_dialog.dirlist_top - load_file_dialog.pgscrunit < 0) {
+					load_file_dialog.dirlist_top = 0;
+				} else {
+					load_file_dialog.dirlist_top -= load_file_dialog.pgscrunit;
+				}
+			} else if (state == SDL_RELEASED) {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				//hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_VISIBLE;	//temp temp
+			}
+		} else if (id == SDLK_SBPGDN) {
+			if (state == SDL_PRESSED) {
+				foundsb = TRUE;
+				//hotspots[HS_LDFILE_SBHDLE].flags &= ~HS_PROP_VISIBLE;	//temp temp
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * id);
+				if (load_file_dialog.dirlist_top + load_file_dialog.pgscrunit > 
+					load_file_dialog.dirlist_count - LDFILE_LIST_H) {
+					load_file_dialog.dirlist_top = 
+					load_file_dialog.dirlist_count - LDFILE_LIST_H;
+				} else {
+					load_file_dialog.dirlist_top += load_file_dialog.pgscrunit;
+				}
+			} else if (state == SDL_RELEASED) {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
+				//hotspots[HS_LDFILE_SBHDLE].flags |= HS_PROP_VISIBLE;	//temp temp
 			}
 		} else if (id == SDLK_UP || id == SDLK_PAGEUP) {
 			if (state == SDL_PRESSED) {
@@ -2327,7 +2415,7 @@ void manage_ldfile_input(void) {
 						load_file_dialog.dirlist_selected -= 1;
 					}
 				}
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_DOWN || id == SDLK_PAGEDOWN) {
@@ -2353,7 +2441,7 @@ void manage_ldfile_input(void) {
 						load_file_dialog.dirlist_selected += 1;
 					}
 				}
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_MULTIUP) {
@@ -2366,7 +2454,7 @@ void manage_ldfile_input(void) {
 				} else {
 					load_file_dialog.dirlist_selected -= 3;
 				}
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_MULTIDOWN) {
@@ -2381,7 +2469,7 @@ void manage_ldfile_input(void) {
 				} else {
 					load_file_dialog.dirlist_selected += 3;
 				}
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_HOME) {
@@ -2436,7 +2524,7 @@ void manage_ldfile_input(void) {
 						break;
 					}
 				}
-			} else {
+			} else if (state == SDL_RELEASED) {
 				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_ACCEPT) {
@@ -2496,6 +2584,18 @@ void manage_ldfile_input(void) {
 					load_file_dialog.dirlist_selected - (LDFILE_LIST_H - 1);
 			}
 			/* Resize hotspots to match new text */
+			hotspots_resize(HS_GRP_LDFILE);
+		} else if (foundsb) {
+			/* Adjust the selected item */
+			if (load_file_dialog.dirlist_selected >
+				load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1)) {
+				load_file_dialog.dirlist_selected = 
+					load_file_dialog.dirlist_top + (LDFILE_LIST_H - 1);
+			} else if (load_file_dialog.dirlist_selected < load_file_dialog.dirlist_top) {
+				load_file_dialog.dirlist_selected = load_file_dialog.dirlist_top;
+			}
+			/* Resize hotspots and move the scrollbar to its
+			 * new position which means we don't have to */
 			hotspots_resize(HS_GRP_LDFILE);
 		}
 	}
@@ -3054,6 +3154,9 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
 		if (last_eventid != eventid)
 			key_repeat_manager(KRM_FUNC_RELEASE, NULL, eventid);
 		repeatevent = *event;
+
+		//printf("repeatevent.type=%i\n", repeatevent.type);//temp temp
+
 	}
 }
 
