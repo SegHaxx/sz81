@@ -146,7 +146,7 @@ int sdl_init(void) {
 	strcpy(load_file_dialog.loaded, "");
 	load_file_dialog.method = LOAD_FILE_METHOD_NONE;
 	/* Populate the load file dialog's directory List */
-	load_file_dialog_dirlist_init();
+	load_file_dialog_dirlist_populate(FALSE);
 	save_state_dialog.state = FALSE;
 
 	/* Initialise SDL */
@@ -329,8 +329,8 @@ void sdl_component_executive(void) {
 		sdl_emulator_model = *sdl_emulator.model;
 		/* Change the virtual keyboard */
 		vkeyb_init();
-		/* Reinitialise the load file dialog's directory list */
-		load_file_dialog_dirlist_init();
+		/* Repopulate the load file dialog's directory list */
+		load_file_dialog_dirlist_populate(FALSE);
 		/* Resize relevant hotspots */
 		hotspots_resize(HS_GRP_VKEYB | HS_GRP_LDFILE);
 		/* Reset the emulator */
@@ -422,12 +422,20 @@ void sdl_component_executive(void) {
 	for (count = 0; count < MAX_RUNTIME_OPTIONS; count++) {
 		if ((active_components & (COMP_RUNOPTS0 << count)) !=
 			(runtime_options[count].state * (COMP_RUNOPTS0 << count))) {
-			if ((runtime_options_which() < MAX_RUNTIME_OPTIONS) && vkeyb.state)
-				vkeyb.state = FALSE;
-			/* Update the joycfg text */
-			set_joy_cfg_text(0);
-			video.redraw = TRUE;
-			found = TRUE;
+			if ((runtime_options_which() < MAX_RUNTIME_OPTIONS)) {
+				if (vkeyb.state) vkeyb.state = FALSE;
+				/* Update the joycfg text */
+				set_joy_cfg_text(0);
+				/* It's a runopts page change so don't reset PgUp/PgDn
+				 * (this requires that we don't reset any key repeat) */
+				keyboard_buffer_reset(FALSE, SDLK_PAGEUP, SDLK_PAGEDOWN);
+				/* Update hotspot states */
+				hotspots_update();
+			} else {
+				/* It's a runopts exit so use the normal code below */
+				video.redraw = TRUE;
+				found = TRUE;
+			}
 			break;
 		}
 	}
@@ -439,7 +447,7 @@ void sdl_component_executive(void) {
 	}
 
 	if (found) {
-		keyboard_buffer_reset(FALSE);
+		keyboard_buffer_reset(FALSE, 0, 0);
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 		/* Update hotspot states */
 		hotspots_update();

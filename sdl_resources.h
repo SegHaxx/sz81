@@ -54,7 +54,7 @@
 #define MSG_BOX_KILL 2
 
 /* Message box timeouts in ms */
-#define MSG_BOX_TIMEOUT_1500 1500
+#define MSG_BOX_TIMEOUT_1250 1250
 #define MSG_BOX_TIMEOUT_750 750
 
 /* Variables */

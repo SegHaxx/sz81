@@ -1909,7 +1909,7 @@ void manage_all_input(void) {
 					}
 					strcpy(msg_box.title, "Sound");
 					sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
-					msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+					msg_box.timeout = MSG_BOX_TIMEOUT_750;
 					message_box_manager(MSG_BOX_SHOW, &msg_box);
 					rcfile.rewrite = TRUE;
 				} else if (state == SDL_RELEASED) {
@@ -2024,6 +2024,7 @@ void manage_runopts_input(void) {
 		} else if (id == SDLK_PAGEUP || id == SDLK_PAGEDOWN) {
 			/* < Back and Next > */
 			if (state == SDL_PRESSED) {
+				key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 				if (id == SDLK_PAGEUP) {
 					if ((index = runtime_options_which()) > 0) {
 						runtime_options[index].state = FALSE;
@@ -2037,6 +2038,8 @@ void manage_runopts_input(void) {
 						last_runopts_comp = get_active_component();
 					}
 				}
+			} else if (state == SDL_RELEASED) {
+				key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 			}
 		} else if (id == SDLK_HOME || id == SDLK_END) {
 			if (runtime_options[0].state) {
@@ -2363,7 +2366,8 @@ void manage_ldfile_input(void) {
 				 * what I'm doing here. Passing event to key_repeat_manager will repeat
 				 * the SDL_MOUSEBUTTONDOWN event that clicked the hotspot, and well, I
 				 * think you might guess what happens next with dynamic hotspots ;) So
-				 * instead I'm storing the information in virtualevent and passing that */
+				 * instead I'm creating a virtualevent by storing the hotspot's remap_id
+				 * and passing that */
 				if (id == SDLK_SBPGUP) {
 					load_file_dialog.dirlist_top -= LDFILE_SBPGSCRUNIT;
 					virtualevent.type = SDL_KEYUP;
@@ -2496,8 +2500,8 @@ void manage_ldfile_input(void) {
 
 					/* Update the directory string */
 					file_dialog_cd(load_file_dialog.dir, direntry);
-					/* Reinitialise the list */
-					load_file_dialog_dirlist_init();
+					/* Repopulate the list */
+					load_file_dialog_dirlist_populate(FALSE);
 
 					if (*lastsubdir) {
 						/* Auto-select the previously recorded subdirectory */
@@ -2675,7 +2679,7 @@ void toggle_sstate_state(int mode) {
 					strcpy(msg_box.title, "Load State");
 				}
 				strcpy(msg_box.text, "LOAD/SAVE first");
-				msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+				msg_box.timeout = MSG_BOX_TIMEOUT_1250;
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
 			}
 		} else {
@@ -2772,7 +2776,7 @@ void runopts_transit(int state) {
 	} else if (state == TRANSIT_SAVE) {
 		strcpy(msg_box.title, "Options");
 		strcpy(msg_box.text, "Changes saved");
-		msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+		msg_box.timeout = MSG_BOX_TIMEOUT_750;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST
@@ -3128,16 +3132,17 @@ void key_repeat_manager(int funcid, SDL_Event *event, int eventid) {
  * 
  * Resetting SHIFT is optional and is not required under normal operation.
  * 
- * On entry: shift_reset = TRUE to additionally reset SHIFT */
+ * On entry: shift_reset = TRUE to additionally reset SHIFT
+ *           exclude1 and/or exclude2 can be used to exclude controls */
 
-void keyboard_buffer_reset(int shift_reset) {
+void keyboard_buffer_reset(int shift_reset, int exclude1, int exclude2) {
 	int keycode;
-	
+
 	for (keycode = 0; keycode < MAX_KEYCODES; keycode++) {
-		if ((keycode != SDLK_LSHIFT) ||
-			(keycode == SDLK_LSHIFT && shift_reset)) {
+		if ((keycode == SDLK_LSHIFT && shift_reset) ||
+			(!(exclude1 && keycode == exclude1) &&
+			!(exclude2 && keycode == exclude2)))
 			keyboard_buffer[keycode] = SDL_RELEASED;
-		}
 	}
 }
 

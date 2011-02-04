@@ -35,11 +35,14 @@ void fread_unsigned_long_little_endian(unsigned long *target, FILE *fp);
 
 
 /***************************************************************************
- * Load File Dialog Directory List Initialise                              *
+ * Load File Dialog Directory List Populate                                *
  ***************************************************************************/
-/* This is called from multiple places */
+/* This is called from multiple places.
+ * 
+ * On entry: int refresh = TRUE if this is just a directory refresh
+ *                         else FALSE */
 
-void load_file_dialog_dirlist_init(void) {
+void load_file_dialog_dirlist_populate(int refresh) {
 	int filetypes;
 
 	if (*sdl_emulator.model == MODEL_ZX80) {
@@ -48,12 +51,16 @@ void load_file_dialog_dirlist_init(void) {
 		filetypes = DIRLIST_FILETYPE_ZX81;
 	}
 
+	/* Repopulate the load file dialog's directory list */
 	dirlist_populate(load_file_dialog.dir,
 		&load_file_dialog.dirlist, &load_file_dialog.dirlist_sizeof,
 		&load_file_dialog.dirlist_count, filetypes);
 
-	load_file_dialog.dirlist_top = 0;
-	load_file_dialog.dirlist_selected = 0;
+	/* If this is just a refresh then don't reset these */
+	if (!refresh) {
+		load_file_dialog.dirlist_top = 0;
+		load_file_dialog.dirlist_selected = 0;
+	}
 }
 
 /***************************************************************************
@@ -376,15 +383,15 @@ int sdl_save_file(int parameter, int method) {
 				strcpy(msg_box.title, "Save");
 			}
 			strcpy(msg_box.text, "Failed");
-			msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+			msg_box.timeout = MSG_BOX_TIMEOUT_1250;
 			message_box_manager(MSG_BOX_SHOW, &msg_box);
 		}
 	}
 
 	if (!retval) {
 		if (method != SAVE_FILE_METHOD_STATESAVE) {
-			/* Reinitialise the load file dialog's directory list */
-			load_file_dialog_dirlist_init();
+			/* Refresh the load file dialog's directory list */
+			load_file_dialog_dirlist_populate(TRUE);
 		}
 	}
 
@@ -743,7 +750,7 @@ int sdl_load_file(int parameter, int method) {
 					strcpy(msg_box.title, "Load");
 				}
 				strcpy(msg_box.text, "Failed");
-				msg_box.timeout = MSG_BOX_TIMEOUT_1500;
+				msg_box.timeout = MSG_BOX_TIMEOUT_1250;
 				message_box_manager(MSG_BOX_SHOW, &msg_box);
 			}
 		}
