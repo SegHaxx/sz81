@@ -2776,7 +2776,7 @@ void runopts_transit(int state) {
 	} else if (state == TRANSIT_SAVE) {
 		strcpy(msg_box.title, "Options");
 		strcpy(msg_box.text, "Changes saved");
-		msg_box.timeout = MSG_BOX_TIMEOUT_750;
+		msg_box.timeout = MSG_BOX_TIMEOUT_1250;
 		message_box_manager(MSG_BOX_SHOW, &msg_box);
 		rcfile.rewrite = TRUE;
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST

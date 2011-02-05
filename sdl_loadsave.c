@@ -832,47 +832,51 @@ char *file_dialog_basename(char *dir) {
  * File Dialog Change Directory                                            *
  ***************************************************************************/
 /* This function will update a target directory string with another source
- * string which could be a relative subdirectory or parent directory.
+ * string which could be a relative subdirectory or parent directory "..".
  * The source directory can be wrapped within brackets which will be removed
- * if found. Multiple directory delimiters are supported e.g. "/moo//bah".
+ * if found e.g. "(sz81)", "sz81", "(..)", "..".
+ * 
+ * This function is not expecting dir to have a trailing directory delimiter
+ * unless it represents *nix root. C functions don't add these and neither
+ * do sz81 functions so I'm choosing not to handle them.
  * 
  * On entry: char *dir = the directory string to update
- *           char *direntry = the relative directory to change to,
- *               examples "(home)", "(..)", "home", ".."
+ *           char *direntry = the relative directory to change to
  *  On exit: char *dir will be updated */
 
-/* REQUIRES UPDATING for the Amiga and M$DOS temp temp */
-
 void file_dialog_cd(char *dir, char *direntry) {
-	char filename[256];
+	char foldername[256];
 	int index;
 
 	/* Copy the direntry and strip the surrounding brackets if found */
 	if (*direntry == '(') {
-		strcpy(filename, direntry + 1);
-		filename[strlen(filename) - 1] = 0;
+		strcpy(foldername, direntry + 1);
+		foldername[strlen(foldername) - 1] = 0;
 	} else {
-		strcpy(filename, direntry);
+		strcpy(foldername, direntry);
 	}
 
 	/* Is this the parent directory? */
-	if (strcmp(filename, "..") == 0) {
+	if (strcmp(foldername, "..") == 0) {
 		/* Go back to the parent directory */
-		index = strlen(dir) - 1;
-		while (index > 0) {
-			if (dir[index] == DIR_DELIMITER_CHAR) {
-				while (index > 0 && dir[index] == DIR_DELIMITER_CHAR) {
-					dir[index--] = 0;
-				}
-				break;
-			}
-			dir[index--] = 0;
+		if ((index = strlen(dir))) {
+			/* Truncate leftwards up to a delimiter, root or nothing */
+			while (index >= 1 && 
+				dir[index - 1] != DIR_DELIMITER_CHAR
+			#if defined(__amigaos4__)
+				&& dir[index - 1] != ':'
+			#endif
+				) dir[--index] = 0;
+
+			/* Do we need to cut the directory delimiter? */
+			if (index >= 2 && dir[index - 1] == DIR_DELIMITER_CHAR)
+				dir[--index] = 0;
 		}
 	} else {
 		/* It's a subdirectory */
 		/* Add a directory delimiter if required */
 		strcatdelimiter(dir);
-		strcat(dir, filename);
+		strcat(dir, foldername);
 	}
 }
 
