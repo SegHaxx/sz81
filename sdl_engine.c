@@ -181,7 +181,7 @@ int sdl_init(void) {
 
 	/* Set-up the local data directory */
 	local_data_dir_init();
-				
+
 	return FALSE;
 }
 

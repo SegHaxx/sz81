@@ -791,39 +791,41 @@ void strcatdelimiter(char *toappendto) {
 /***************************************************************************
  * File Dialog Basename                                                    *
  ***************************************************************************/
-/* This will return the basename of a path e.g. "/moo/bah/" returns "bah".
- * It works exactly the same way as the *nix basename command and supports
- * multiple directory delimiters such as "/moo//bah//".
+/* This will return the basename of a path e.g. "/moo/bah" returns "bah".
+ * The paths being passed are coming from getcwd or something other than
+ * user written so it is not expecting a trailing directory delimiter.
+ * getcwd for example will not add a trailing delimiter unless the path
+ * is at the root, therefore that's how it will be interpreted here.
  * 
  * On entry: char *dir = the path to extract the basename from
- *  On exit: returns a pointer to a string containing the extracted basename
- *               (the root directory is returned as "/" not "") */
-
-/* REQUIRES UPDATING for the Amiga and M$DOS temp temp */
+ *  On exit: returns a pointer to a string containing the extracted basename */
 
 char *file_dialog_basename(char *dir) {
 	static char basename[256];
 	int index;
 
-	strcpy(basename, "");
+	strcpy(basename, dir);	/* We'll work with a copy */
 
 	if ((index = strlen(dir))) {
-		/* Move leftwards past trailing delimiters up to root or zero */
-		while (index && dir[index - 1] == DIR_DELIMITER_CHAR) index--;
+		/* Move leftwards up to a delimiter, root or nothing */
+		while (index >= 1 && 
+			basename[index - 1] != DIR_DELIMITER_CHAR
+		#if defined(__amigaos4__)
+			&& basename[index - 1] != ':'
+		#endif
+			) index--;
 
-		/* Move leftwards up to a delimiter, root or zero */
-		while (index && dir[index - 1] != DIR_DELIMITER_CHAR) index--;
-
-		/* Copy from this point */
-		strcpy(basename, dir + index);
+		/* Do we need to return root? */
+		if (index >= 1 && basename[index] == 0 &&
+		#if defined(__amigaos4__)
+			basename[index - 1] == ':'
+		#else
+			basename[index - 1] == DIR_DELIMITER_CHAR
+		#endif
+			) index--;
 	}
 
-	/* Cut trailing delimiters from our copy */
-	if ((index = strlen(basename) - 1))
-		while (index && basename[index] == DIR_DELIMITER_CHAR)
-			basename[index--] = 0;
-
-	return basename;
+	return basename + index;
 }
 
 /***************************************************************************
