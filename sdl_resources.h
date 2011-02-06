@@ -19,7 +19,6 @@
 #define MAX_FONTS 4
 
 /* Local resources */
-
 #if defined(__amigaos4__)
 	#define LOCAL_DATA_DIR amiga_data_dir
 #elif defined(PLATFORM_GP2X)
@@ -49,18 +48,18 @@
 #define ROM_ZX80 "zx80.rom"
 #define ROM_ZX81 "zx81.rom"
 
-/* Notification box manager function IDs */
-#define NFN_BOX_SHOW 1
-#define NFN_BOX_KILL 2
+/* Notification manager function IDs */
+#define NOTIFICATION_SHOW 1
+#define NOTIFICATION_KILL 2
 
-/* Notification box timeouts in ms */
-#define NFN_BOX_TIMEOUT_1250 1250
-#define NFN_BOX_TIMEOUT_750 750
+/* Notification timeouts in ms */
+#define NOTIFICATION_TIMEOUT_1250 1250
+#define NOTIFICATION_TIMEOUT_750 750
 
 /* Variables */
 SDL_Surface *wm_icon;
 
-struct NFN_Box {
+struct Notification {
 	char title[33];		/* The title bar text */
 	char text[33];		/* A single line message */
 	int timeout;		/* In ms */
@@ -130,7 +129,7 @@ int vkeyb_init(void);
 int vkeyb_alpha_apply(void);
 int sz81icons_init(void);
 int control_bar_init(void);
-void notification_manager(int funcid, struct NFN_Box *nfn_box);
+void notification_show(int funcid, struct Notification *notification);
 
 
 

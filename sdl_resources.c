@@ -1364,100 +1364,144 @@ int sdl_zxroms_init(void) {
 }
 
 /***************************************************************************
- * Notification Manager                                                    *
+ * Notification Show                                                       *
  ***************************************************************************/
-/* This manages the construction, destruction and rendering of a notification
- * box. It'll pop-up over everything in the middle of the screen in a way that
- * doesn't interfere with the currently active component.
+/* This manages the construction, destruction and rendering of a notification.
+ * It'll pop-up over everything in the middle of the screen in a way that
+ * doesn't interfere with the currently active component before timing-out.
  * 
- * struct NFN_Box {
+ * If a new notification is to be shown when there's already an existing one
+ * that is yet to timeout, then the existing one is overwritten and this
+ * behaviour is useful for [re]displaying changing values such as when the
+ * user is pressing the volume up or down control. It gives the impression
+ * that it's the same notification when in fact it's a series of different
+ * ones.
+ * 
+ * struct Notification {
  *     char title[33];    The title bar text
  *     char text[33];     A single line message
- *     int timeout;       In ms
+ *     int timeout;       In ms (see defines in sdl_resources.h)
  * };
  * 
- * On entry: funcid = NFN_BOX_SHOW with
- *                    nfn_box pointing to the box to show
- *           funcid = NFN_BOX_SHOW with
- *                    nfn_box = NULL to show an existing box
- *           funcid = NFN_BOX_KILL to kill an existing box */
+ * On entry: funcid = NOTIFICATION_SHOW with notification pointing to a
+ *                        filled notification struct that will be copied
+ *                        and stored internally here i.e. the original
+ *                        can be destroyed afterwards
+ *           funcid = NOTIFICATION_SHOW with notification = NULL to show
+ *                        an existing notification (this is only used by
+ *                        the system when rendering)
+ *           funcid = NOTIFICATION_KILL to kill an existing notification
+ *                        (there's really not much use for this if the
+ *                        timeouts are sensibly quick, and in fact it
+ *                        hasn't been used yet) */
 
-void notification_manager(int funcid, struct NFN_Box *nfn_box) {
-	static struct NFN_Box the_box;
+void notification_show(int funcid, struct Notification *notification) {
+	Uint32 fg_colour, bg_colour, fg_colourRGB, bg_colourRGB;
+	int window_x, window_y, window_w, window_h;
+	static struct Notification the_nfn;
+	SDL_Surface *renderedtext;
 	static Uint32 last_time;
 	static int init = TRUE;
-	int window_x, window_y, window_w, window_h;
-	Uint32 colour, fg_colour, bg_colour;
-	SDL_Surface *renderedtext;
 	SDL_Rect dstrect;
 	int count;
 
 	if (init) {
-		init = FALSE;
-		the_box.title[0] = 0; the_box.text[0] = 0; the_box.timeout = 0;
+		init = FALSE; the_nfn.title[0] = 0;
+		the_nfn.text[0] = 0; the_nfn.timeout = 0;
 	}
 
-	if (funcid == NFN_BOX_SHOW && nfn_box != NULL) {
-		/* Initialise a new box / overwrite an existing box */
-		the_box = *nfn_box;
-		last_time = SDL_GetTicks();
-	} else if (funcid == NFN_BOX_SHOW && nfn_box == NULL) {
-		/* Show an existing box */
-		if (the_box.timeout > 0) {
-			/* Prepare the colours we shall be using */
+	if (funcid == NOTIFICATION_SHOW && notification != NULL) {
+
+		/* Initialise a new notification / overwrite an existing one */
+		the_nfn = *notification; last_time = SDL_GetTicks();
+
+	} else if (funcid == NOTIFICATION_KILL) {
+
+		/* Kill an existing notification */
+		the_nfn.timeout = 0;
+
+	} else if (funcid == NOTIFICATION_SHOW && notification == NULL) {
+
+		/* Show an existing notification */
+		if (the_nfn.timeout > 0) {
+
+			/* Prepare the colours we shall be using (these remain unchanged
+			 * throughout) */
 			if (!sdl_emulator.invert) {
+				fg_colourRGB = SDL_MapRGB(video.screen->format, 
+					colours.emu_fg >> 16 & 0xff, colours.emu_fg >> 8 & 0xff,
+					colours.emu_fg & 0xff);
+				bg_colourRGB = SDL_MapRGB(video.screen->format, 
+					colours.emu_bg >> 16 & 0xff, colours.emu_bg >> 8 & 0xff,
+					colours.emu_bg & 0xff);
 				fg_colour = colours.emu_fg; bg_colour = colours.emu_bg;
 			} else {
+				fg_colourRGB = SDL_MapRGB(video.screen->format, 
+					colours.emu_bg >> 16 & 0xff, colours.emu_bg >> 8 & 0xff,
+					colours.emu_bg & 0xff);
+				bg_colourRGB = SDL_MapRGB(video.screen->format,
+					colours.emu_fg >> 16 & 0xff, colours.emu_fg >> 8 & 0xff,
+					colours.emu_fg & 0xff);
 				fg_colour = colours.emu_bg; bg_colour = colours.emu_fg;
 			}
+
 			/* window_x/y/w/h will be the reference coords of the window
 			 * that everything else will be relative to */
-			if (strlen(the_box.title) > strlen(the_box.text)) {
-				window_w = (strlen(the_box.title) + 2) * 8 * video.scale;
+			if (strlen(the_nfn.title) > strlen(the_nfn.text)) {
+				window_w = (strlen(the_nfn.title) + 2) * 8 * video.scale;
 			} else {
-				window_w = (strlen(the_box.text) + 2) * 8 * video.scale;
+				window_w = (strlen(the_nfn.text) + 2) * 8 * video.scale;
 			}
 			window_h = 4.5 * 8 * video.scale;
 			window_x = video.screen->w / 2 - (window_w + 8 * video.scale) / 2;
 			window_y = video.screen->h / 2 - (window_h + 8 * video.scale) / 2;
+
 			/* Draw the window background */
 			dstrect.x = window_x; dstrect.y = window_y; 
 			dstrect.w = window_w; dstrect.h = window_h; 
-			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
-				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
-				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, 
+					SDL_GetError ());
 				exit(1);
 			}
-			/* Invert the colours */
-			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
-			/* Write the title */
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.title, fg_colour, bg_colour);
-			dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y;
+
+			/* Write the title in the centre of the title bar */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_nfn.title, 
+				bg_colour, fg_colour);
+			dstrect.x = window_x + window_w / 2 - renderedtext->w / 2;
+			dstrect.y = window_y;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
+					SDL_GetError ());
 				exit(1);
 			}
 			SDL_FreeSurface(renderedtext);
+
 			/* Draw the window interior */
-			dstrect.x = window_x + 4 * video.scale; dstrect.y = window_y + 8 * video.scale;
-			dstrect.w = window_w - 8 * video.scale; dstrect.h = window_h - 1.5 * 8 * video.scale; 
-			if (SDL_FillRect(video.screen, &dstrect, SDL_MapRGB(video.screen->format,
-				fg_colour >> 16 & 0xff, fg_colour >> 8 & 0xff, fg_colour & 0xff)) < 0) {
-				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			dstrect.x = window_x + 4 * video.scale; 
+			dstrect.y = window_y + 8 * video.scale;
+			dstrect.w = window_w - 8 * video.scale; 
+			dstrect.h = window_h - 1.5 * 8 * video.scale; 
+			if (SDL_FillRect(video.screen, &dstrect, bg_colourRGB) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, 
+					SDL_GetError ());
 				exit(1);
 			}
-			/* Invert the colours */
-			colour = fg_colour; fg_colour = bg_colour; bg_colour = colour;
-			/* Write the text */
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_box.text, fg_colour, bg_colour);
-			dstrect.x = window_x + 8 * video.scale; dstrect.y = window_y + 2 * 8 * video.scale;
+
+			/* Write the text left justified */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, the_nfn.text,
+				fg_colour, bg_colour);
+			dstrect.x = window_x + 8 * video.scale; 
+			dstrect.y = window_y + 2 * 8 * video.scale;
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
 			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, 
+					SDL_GetError ());
 				exit(1);
 			}
 			SDL_FreeSurface(renderedtext);
+
 			/* Draw the right-hand and bottom shadows */
 			for (count = 0; count < 2; count++) {
 				/* I want to document some odd behaviour that I experienced here
@@ -1484,33 +1528,15 @@ void notification_manager(int funcid, struct NFN_Box *nfn_box) {
 				}
 				draw_shadow(dstrect, 64);	/* 25% */
 			}
+
 			/* Decrement the timeout */			
-			the_box.timeout -= SDL_GetTicks() - last_time;
+			the_nfn.timeout -= SDL_GetTicks() - last_time;
 			last_time = SDL_GetTicks();
+
 		}
-	} else if (funcid == NFN_BOX_KILL) {
-		/* Kill an existing box */
-		the_box.timeout = 0;
 	}
 }
 
-/***************************************************************************
- * Dialog Box Manager                                                      *
- ***************************************************************************/
-
-void dialog_box_manager() {
-
-
-
-
-
-
-
-
-
-
-
-}
 
 
 

@@ -160,7 +160,7 @@ int save_state_dialog_slots_populate(void) {
 
 int sdl_save_file(int parameter, int method) {
 	char fullpath[256], filename[256];
-	struct NFN_Box nfn_box;
+	struct Notification notification;
 	int retval = FALSE;
 	int index;
 	FILE *fp;
@@ -378,13 +378,13 @@ int sdl_save_file(int parameter, int method) {
 			retval = TRUE;
 			/* Warn the user via the GUI that the save failed */
 			if (method == SAVE_FILE_METHOD_STATESAVE) {
-				strcpy(nfn_box.title, "Save State");
+				strcpy(notification.title, "Save State");
 			} else {
-				strcpy(nfn_box.title, "Save");
+				strcpy(notification.title, "Save");
 			}
-			strcpy(nfn_box.text, "Failed");
-			nfn_box.timeout = NFN_BOX_TIMEOUT_1250;
-			notification_manager(NFN_BOX_SHOW, &nfn_box);
+			strcpy(notification.text, "Failed");
+			notification.timeout = NOTIFICATION_TIMEOUT_1250;
+			notification_show(NOTIFICATION_SHOW, &notification);
 		}
 	}
 
@@ -414,7 +414,7 @@ int sdl_save_file(int parameter, int method) {
 
 int sdl_load_file(int parameter, int method) {
 	char fullpath[256], filename[256];
-	struct NFN_Box nfn_box;
+	struct Notification notification;
 	int retval = FALSE;
 	int count, index;
 	int ramsize;
@@ -745,13 +745,13 @@ int sdl_load_file(int parameter, int method) {
 				method == LOAD_FILE_METHOD_STATELOAD) {
 				/* Warn the user via the GUI that the load failed */
 				if (method == LOAD_FILE_METHOD_STATELOAD) {
-					strcpy(nfn_box.title, "Load State");
+					strcpy(notification.title, "Load State");
 				} else {
-					strcpy(nfn_box.title, "Load");
+					strcpy(notification.title, "Load");
 				}
-				strcpy(nfn_box.text, "Failed");
-				nfn_box.timeout = NFN_BOX_TIMEOUT_1250;
-				notification_manager(NFN_BOX_SHOW, &nfn_box);
+				strcpy(notification.text, "Failed");
+				notification.timeout = NOTIFICATION_TIMEOUT_1250;
+				notification_show(NOTIFICATION_SHOW, &notification);
 			}
 		}
 	}

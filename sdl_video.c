@@ -908,8 +908,8 @@ void sdl_video_update(void) {
 	/* Render visible hotspots now */
 	hotspots_render();
 
-	/* Render an existing notification box */
-	notification_manager(NFN_BOX_SHOW, NULL);
+	/* Render an existing notification */
+	notification_show(NOTIFICATION_SHOW, NULL);
 
 	/* If the user wants to see the input ids then show
 	 * the currently pressed control id on-screen */
