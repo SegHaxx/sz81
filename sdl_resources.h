@@ -49,18 +49,18 @@
 #define ROM_ZX80 "zx80.rom"
 #define ROM_ZX81 "zx81.rom"
 
-/* Message box manager function IDs */
-#define MSG_BOX_SHOW 1
-#define MSG_BOX_KILL 2
+/* Notification box manager function IDs */
+#define NFN_BOX_SHOW 1
+#define NFN_BOX_KILL 2
 
-/* Message box timeouts in ms */
-#define MSG_BOX_TIMEOUT_1250 1250
-#define MSG_BOX_TIMEOUT_750 750
+/* Notification box timeouts in ms */
+#define NFN_BOX_TIMEOUT_1250 1250
+#define NFN_BOX_TIMEOUT_750 750
 
 /* Variables */
 SDL_Surface *wm_icon;
 
-struct MSG_Box {
+struct NFN_Box {
 	char title[33];		/* The title bar text */
 	char text[33];		/* A single line message */
 	int timeout;		/* In ms */
@@ -130,7 +130,7 @@ int vkeyb_init(void);
 int vkeyb_alpha_apply(void);
 int sz81icons_init(void);
 int control_bar_init(void);
-void message_box_manager(int funcid, struct MSG_Box *msg_box);
+void notification_manager(int funcid, struct NFN_Box *nfn_box);
 
 
 

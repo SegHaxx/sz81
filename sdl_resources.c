@@ -1364,26 +1364,26 @@ int sdl_zxroms_init(void) {
 }
 
 /***************************************************************************
- * Message Box Manager                                                     *
+ * Notification Manager                                                    *
  ***************************************************************************/
-/* This recreates and draws an existing message box in the middle of the
- * screen every frame. It is recreated because the fg/bg colours or the
- * resolution could have changed in the meantime - not that it's a problem.
+/* This manages the construction, destruction and rendering of a notification
+ * box. It'll pop-up over everything in the middle of the screen in a way that
+ * doesn't interfere with the currently active component.
  * 
- * struct MSG_Box {
+ * struct NFN_Box {
  *     char title[33];    The title bar text
  *     char text[33];     A single line message
  *     int timeout;       In ms
  * };
  * 
- * On entry: funcid = MSG_BOX_SHOW with
- *                    msg_box pointing to the msg_box to show
- *           funcid = MSG_BOX_SHOW with
- *                    msg_box = NULL to show an existing msgbox
- *           funcid = MSG_BOX_KILL to kill an existing msgbox */
+ * On entry: funcid = NFN_BOX_SHOW with
+ *                    nfn_box pointing to the box to show
+ *           funcid = NFN_BOX_SHOW with
+ *                    nfn_box = NULL to show an existing box
+ *           funcid = NFN_BOX_KILL to kill an existing box */
 
-void message_box_manager(int funcid, struct MSG_Box *msg_box) {
-	static struct MSG_Box the_box;
+void notification_manager(int funcid, struct NFN_Box *nfn_box) {
+	static struct NFN_Box the_box;
 	static Uint32 last_time;
 	static int init = TRUE;
 	int window_x, window_y, window_w, window_h;
@@ -1397,12 +1397,12 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 		the_box.title[0] = 0; the_box.text[0] = 0; the_box.timeout = 0;
 	}
 
-	if (funcid == MSG_BOX_SHOW && msg_box != NULL) {
-		/* Initialise a new msgbox / overwrite an existing msgbox */
-		the_box = *msg_box;
+	if (funcid == NFN_BOX_SHOW && nfn_box != NULL) {
+		/* Initialise a new box / overwrite an existing box */
+		the_box = *nfn_box;
 		last_time = SDL_GetTicks();
-	} else if (funcid == MSG_BOX_SHOW && msg_box == NULL) {
-		/* Show an existing msgbox */
+	} else if (funcid == NFN_BOX_SHOW && nfn_box == NULL) {
+		/* Show an existing box */
 		if (the_box.timeout > 0) {
 			/* Prepare the colours we shall be using */
 			if (!sdl_emulator.invert) {
@@ -1488,10 +1488,31 @@ void message_box_manager(int funcid, struct MSG_Box *msg_box) {
 			the_box.timeout -= SDL_GetTicks() - last_time;
 			last_time = SDL_GetTicks();
 		}
-	} else if (funcid == MSG_BOX_KILL) {
-		/* Kill an existing msgbox */
+	} else if (funcid == NFN_BOX_KILL) {
+		/* Kill an existing box */
 		the_box.timeout = 0;
 	}
 }
+
+/***************************************************************************
+ * Dialog Box Manager                                                      *
+ ***************************************************************************/
+
+void dialog_box_manager() {
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
 
 

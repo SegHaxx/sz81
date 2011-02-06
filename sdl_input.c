@@ -780,7 +780,7 @@ int keyboard_update(void) {
 	int eventfound = FALSE, count, found;
 	int hs_vkeyb_ctb_selected;
 	int hs_runopts_selected;
-	struct MSG_Box msg_box;
+	struct NFN_Box nfn_box;
 	int axis_end = 0;
 	SDLMod modstate;
 	#ifdef SDL_DEBUG_TIMING
@@ -1194,14 +1194,14 @@ int keyboard_update(void) {
 								}
 							}
 							/* Notify the user of the outcome */
-							strcpy(msg_box.title, "Remap");
+							strcpy(nfn_box.title, "Remap");
 							if (found) {
-								strcpy(msg_box.text, "Accepted");
+								strcpy(nfn_box.text, "Accepted");
 							} else {
-								strcpy(msg_box.text, "Cancelled");
+								strcpy(nfn_box.text, "Cancelled");
 							}
-							msg_box.timeout = MSG_BOX_TIMEOUT_750;
-							message_box_manager(MSG_BOX_SHOW, &msg_box);
+							nfn_box.timeout = NFN_BOX_TIMEOUT_750;
+							notification_manager(NFN_BOX_SHOW, &nfn_box);
 						} else if (runtime_options[3].state) {
 							/* Locate currently selected hotspot for group RUNOPTS3 */
 							hs_runopts_selected = get_selected_hotspot(HS_GRP_RUNOPTS3);
@@ -1788,7 +1788,7 @@ void manage_cursor_input(void) {
  ***************************************************************************/
 
 void manage_all_input(void) {
-	struct MSG_Box msg_box;
+	struct NFN_Box nfn_box;
 
 	/* Note that I'm currently ignoring modifier states */
 	if (device == DEVICE_KEYBOARD) {
@@ -1907,10 +1907,10 @@ void manage_all_input(void) {
 								sound_ay_setvol();
 						}
 					}
-					strcpy(msg_box.title, "Sound");
-					sprintf(msg_box.text, "Volume:%i", sdl_sound.volume);
-					msg_box.timeout = MSG_BOX_TIMEOUT_750;
-					message_box_manager(MSG_BOX_SHOW, &msg_box);
+					strcpy(nfn_box.title, "Sound");
+					sprintf(nfn_box.text, "Volume:%i", sdl_sound.volume);
+					nfn_box.timeout = NFN_BOX_TIMEOUT_750;
+					notification_manager(NFN_BOX_SHOW, &nfn_box);
 					rcfile.rewrite = TRUE;
 				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -2607,7 +2607,7 @@ void toggle_ldfile_state(void) {
  ***************************************************************************/
 
 void manage_sstate_input(void) {
-	struct MSG_Box msg_box;
+	struct NFN_Box nfn_box;
 	int found = FALSE;
 
 	/* Note that I'm currently ignoring modifier states */
@@ -2629,10 +2629,10 @@ void manage_sstate_input(void) {
 							if (sdl_emulator.paused) toggle_emulator_paused(TRUE);
 						}
 					} else {
-						strcpy(msg_box.title, "Load State");
-						strcpy(msg_box.text, "Empty slot");
-						msg_box.timeout = MSG_BOX_TIMEOUT_750;
-						message_box_manager(MSG_BOX_SHOW, &msg_box);
+						strcpy(nfn_box.title, "Load State");
+						strcpy(nfn_box.text, "Empty slot");
+						nfn_box.timeout = NFN_BOX_TIMEOUT_750;
+						notification_manager(NFN_BOX_SHOW, &nfn_box);
 					}
 				}
 			}
@@ -2654,7 +2654,7 @@ void manage_sstate_input(void) {
 /* This is called from multiple places */
 
 void toggle_sstate_state(int mode) {
-	struct MSG_Box msg_box;
+	struct NFN_Box nfn_box;
 
 	if (get_active_component() == COMP_SSTATE ||
 		get_active_component() == COMP_VKEYB ||
@@ -2674,13 +2674,13 @@ void toggle_sstate_state(int mode) {
 				emulator_hold(&save_state_dialog.state);
 			} else {
 				if (mode == SSTATE_MODE_SAVE) {
-					strcpy(msg_box.title, "Save State");
+					strcpy(nfn_box.title, "Save State");
 				} else {
-					strcpy(msg_box.title, "Load State");
+					strcpy(nfn_box.title, "Load State");
 				}
-				strcpy(msg_box.text, "LOAD/SAVE first");
-				msg_box.timeout = MSG_BOX_TIMEOUT_1250;
-				message_box_manager(MSG_BOX_SHOW, &msg_box);
+				strcpy(nfn_box.text, "LOAD/SAVE first");
+				nfn_box.timeout = NFN_BOX_TIMEOUT_1250;
+				notification_manager(NFN_BOX_SHOW, &nfn_box);
 			}
 		} else {
 			save_state_dialog.state = FALSE;
@@ -2744,7 +2744,7 @@ void runopts_transit(int state) {
 	static int runopts_emulator_frameskip;
 	int protected, remap_device, remap_id, remap_mod_id;
 	int count, index, ctrl, found, components;
-	struct MSG_Box msg_box;
+	struct NFN_Box nfn_box;
 
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
@@ -2774,10 +2774,10 @@ void runopts_transit(int state) {
 		runopts_joystick_dead_zone = joystick_dead_zone;
 		for (count = 0; count < 12; count++) runopts_joy_cfg_id[count] = UNDEFINED;
 	} else if (state == TRANSIT_SAVE) {
-		strcpy(msg_box.title, "Options");
-		strcpy(msg_box.text, "Changes saved");
-		msg_box.timeout = MSG_BOX_TIMEOUT_1250;
-		message_box_manager(MSG_BOX_SHOW, &msg_box);
+		strcpy(nfn_box.title, "Options");
+		strcpy(nfn_box.text, "Changes saved");
+		nfn_box.timeout = NFN_BOX_TIMEOUT_1250;
+		notification_manager(NFN_BOX_SHOW, &nfn_box);
 		rcfile.rewrite = TRUE;
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST
 			/* Update the emulation speed */
