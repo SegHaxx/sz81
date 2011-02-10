@@ -612,7 +612,7 @@ void emulator_exit(void) {
 	 * for writing to sz81rc so that they can choose to discard changes */
 	if (rcfile.rewrite) {
 		dialog.text[0] = "Write to";
-		dialog.text[1] = "sz81rc?";
+		dialog.text[1] = RESOURCE_FILE "?";
 		dialog.text[2] = NULL;	/* There MUST be a terminating NULL pointer */
 		dialog.title = "Exit";
 		dialog.flags = DIALOG_ICON_QUESTION |

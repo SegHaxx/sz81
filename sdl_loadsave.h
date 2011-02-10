@@ -16,7 +16,11 @@
  */
 
 /* Defines */
-#define DIR_DELIMITER_CHAR '/'
+#if defined(_WIN32)
+	#define DIR_DELIMITER_CHAR '\\'
+#else
+	#define DIR_DELIMITER_CHAR '/'
+#endif
 
 #define LDFILE_LIST_H 20
 #define LDFILE_SBPGSCRUNIT 19

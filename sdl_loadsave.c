@@ -83,7 +83,7 @@ int save_state_dialog_slots_populate(void) {
 		save_state_dialog.slots[count] = 0;
 
 	/* Build a path to the currently loaded program's save state folder */
-	#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+	#if defined(PLATFORM_GP2X) || defined(__amigaos4__) || defined(_WIN32)
 		strcpy(foldername, LOCAL_DATA_DIR);
 	#else
 		strcpy(foldername, getenv ("HOME"));
@@ -252,7 +252,7 @@ int sdl_save_file(int parameter, int method) {
 		}
 	} else if (method == SAVE_FILE_METHOD_STATESAVE) {
 		/* Build a path to the currently loaded program's save state folder */
-		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+		#if defined(PLATFORM_GP2X) || defined(__amigaos4__) || defined(_WIN32)
 			strcpy(fullpath, LOCAL_DATA_DIR);
 		#else
 			strcpy(fullpath, getenv ("HOME"));
@@ -488,7 +488,7 @@ int sdl_load_file(int parameter, int method) {
 		}
 	} else if (method == LOAD_FILE_METHOD_STATELOAD) {
 		/* Build a path to the currently loaded program's save state folder */
-		#if defined(PLATFORM_GP2X) || defined(__amigaos4__)
+		#if defined(PLATFORM_GP2X) || defined(__amigaos4__) || defined(_WIN32)
 			strcpy(fullpath, LOCAL_DATA_DIR);
 		#else
 			strcpy(fullpath, getenv ("HOME"));
@@ -863,14 +863,18 @@ void file_dialog_cd(char *dir, char *direntry) {
 			/* Truncate leftwards up to a delimiter, root or nothing */
 			while (index >= 1 && 
 				dir[index - 1] != DIR_DELIMITER_CHAR
-			#if defined(__amigaos4__)
+			#if defined(__amigaos4__) || defined(_WIN32)
 				&& dir[index - 1] != ':'
 			#endif
 				) dir[--index] = 0;
 
 			/* Do we need to cut the directory delimiter? */
-			if (index >= 2 && dir[index - 1] == DIR_DELIMITER_CHAR)
-				dir[--index] = 0;
+			if (index >= 2 && 
+				dir[index - 1] == DIR_DELIMITER_CHAR
+			#if defined(_WIN32)
+				&& dir[index - 2] != ':'
+			#endif
+				) dir[--index] = 0;
 		}
 	} else {
 		/* It's a subdirectory */
