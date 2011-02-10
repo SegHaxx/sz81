@@ -1229,11 +1229,10 @@ int keyboard_update(void) {
 /* When there's a situation whereby the path splits or converges then I use
  * this intuitive system: down the left, up the right.
  * 
- * This function annoys me since it looks as though it could do with
- * automating, but it is in fact dealing with every possible route that
- * can be taken from every hotspot and the patterns have been identified
- * and the code compressed anyway. Also the arrangement of the joycfg
- * joypad buttons doesn't relate to the array indices */
+ * This function is dealing with every possible route that can be taken
+ * from every hotspot and the patterns have been identified and the code
+ * compressed. The arrangement of the joycfg joypad buttons doesn't relate
+ * to the array indices which adds a fair bit of code, but what can you do */
 
 void manage_cursor_input(void) {
 	int hs_currently_selected = 0;
@@ -1243,8 +1242,8 @@ void manage_cursor_input(void) {
 		/* Locate currently selected hotspot for active component (there can be only one) */
 		if (get_active_component() == COMP_DIALOG) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_DIALOG);
-		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
-			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
+		} else if (get_active_component() == COMP_LOAD) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
 		} else if (get_active_component() == COMP_LDFILE) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_LDFILE);
 		} else if (get_active_component() == COMP_SSTATE) {
@@ -1252,13 +1251,16 @@ void manage_cursor_input(void) {
 		} else if (get_active_component() == COMP_VKEYB || get_active_component() == COMP_CTB) {
 			if ((hs_currently_selected = get_selected_hotspot(HS_GRP_VKEYB)) == MAX_HOTSPOTS)
 				hs_currently_selected = get_selected_hotspot(HS_GRP_CTB);
-		} else if (get_active_component() == COMP_LOAD) {
-			hs_currently_selected = get_selected_hotspot(HS_GRP_LOAD);
+		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 		}
 
 		/* Process the events */
 		if (state == SDL_PRESSED) {
 			if (id == CURSOR_HIT) {
+				/**************************
+				 * Cursor hit             *
+				 * ************************/
 				/* Remap the virtual cursor event to a mouse button event
 				 * which will hit a hotspot and generate a keyboard event.
 				 * I'm adding 128 to the mouse button index to make them
@@ -1266,13 +1268,7 @@ void manage_cursor_input(void) {
 				virtualevent.type = SDL_MOUSEBUTTONDOWN;
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
-				if (get_active_component() == COMP_DIALOG ||
-					get_active_component() & COMP_RUNOPTS_ALL ||
-					get_active_component() == COMP_LDFILE ||
-					get_active_component() == COMP_SSTATE ||
-					get_active_component() == COMP_VKEYB ||
-					get_active_component() == COMP_CTB ||
-					get_active_component() == COMP_LOAD) {
+				if (get_active_component() != COMP_EMU) {
 					virtualevent.button.x = hotspots[hs_currently_selected].hit_x +
 						hotspots[hs_currently_selected].hit_w / 2;
 					virtualevent.button.y = hotspots[hs_currently_selected].hit_y +
@@ -1280,6 +1276,9 @@ void manage_cursor_input(void) {
 					SDL_PushEvent(&virtualevent);
 				}
 			} else if (id == CURSOR_REMAP) {
+				/**************************
+				 * Cursor remap           *
+				 * ************************/
 				/* Initiate joystick control remapping if a joystick is present */
 				if (joystick) {
 					if (vkeyb.state) {
@@ -1295,8 +1294,10 @@ void manage_cursor_input(void) {
 					}
 				}
 			} else if (id == CURSOR_N) {
-				/* Move the selector up */
-				if (save_state_dialog.state) {
+				/**************************
+				 * Move the selector up   *
+				 * ************************/
+				if (get_active_component() == COMP_SSTATE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_SSTATE_SLOT0 &&
@@ -1307,7 +1308,8 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
 					}
-				} else if (vkeyb.state) {
+				} else if (get_active_component() == COMP_VKEYB || 
+					get_active_component() == COMP_CTB) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_CTB_EXIT && 
@@ -1332,7 +1334,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected >= HS_VKEYB_Q) {
 						hotspots[hs_currently_selected - 10].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[0].state) {
+				} else if (get_active_component() == COMP_RUNOPTS0) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
@@ -1351,7 +1353,7 @@ void manage_cursor_input(void) {
 							hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 						}
 					#endif
-				} else if (runtime_options[1].state) {
+				} else if (get_active_component() == COMP_RUNOPTS1) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS1_DEVICE_NONE) {
@@ -1362,7 +1364,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[2].state) {
+				} else if (get_active_component() == COMP_RUNOPTS2) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_DN) {
@@ -1379,7 +1381,7 @@ void manage_cursor_input(void) {
 						hs_currently_selected <= HS_RUNOPTS2_NEXT) {
 						hotspots[hs_currently_selected - 4].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[3].state) {
+				} else if (get_active_component() == COMP_RUNOPTS3) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_N);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_DN) {
@@ -1416,8 +1418,10 @@ void manage_cursor_input(void) {
 					}
 				}
 			} else if (id == CURSOR_S) {
-				/* Move the selector down */
-				if (save_state_dialog.state) {
+				/**************************
+				 * Move the selector down *
+				 * ************************/
+				if (get_active_component() == COMP_SSTATE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_SSTATE_EXIT) {
@@ -1428,7 +1432,8 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 3].flags |= HS_PROP_SELECTED;
 					}
-				} else if (vkeyb.state) {
+				} else if (get_active_component() == COMP_VKEYB || 
+					get_active_component() == COMP_CTB) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_VKEYB_SHIFT &&
@@ -1455,7 +1460,7 @@ void manage_cursor_input(void) {
 					} else if (hs_currently_selected <= HS_VKEYB_A + 9) {
 						hotspots[hs_currently_selected + 10].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[0].state) {
+				} else if (get_active_component() == COMP_RUNOPTS0) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_SAVE) {
@@ -1474,7 +1479,7 @@ void manage_cursor_input(void) {
 							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
 						}
 					#endif
-				} else if (runtime_options[1].state) {
+				} else if (get_active_component() == COMP_RUNOPTS1) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected >= HS_RUNOPTS1_BACK &&
@@ -1485,7 +1490,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[2].state) {
+				} else if (get_active_component() == COMP_RUNOPTS2) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS2_BACK ||
@@ -1503,7 +1508,7 @@ void manage_cursor_input(void) {
 						hs_currently_selected <= HS_RUNOPTS2_BGC_B_UP) {
 						hotspots[hs_currently_selected + 4].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[3].state) {
+				} else if (get_active_component() == COMP_RUNOPTS3) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_S);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS3_BACK ||
@@ -1539,18 +1544,42 @@ void manage_cursor_input(void) {
 					}
 				}
 			} else if (id == CURSOR_W) {
-				/* Move the selector left */
-				if (load_selector_state) {
+				/**************************
+				 * Move the selector left *
+				 * ************************/
+				if (get_active_component() == COMP_DIALOG) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					do {
+						if (hs_currently_selected == HS_DIALOG_BUTTON0) {
+							hs_currently_selected += 2;
+						} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
+							hs_currently_selected--;
+						} else if (hs_currently_selected == HS_DIALOG_BUTTON2) {
+							hs_currently_selected--;
+						}
+					} while (hotspots[hs_currently_selected].remap_id == UNDEFINED);
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					/*if (hs_currently_selected == HS_DIALOG_BUTTON0) {	Redundant
+						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
+							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+						} else {
+							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+						}
+					} else {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					}*/
+				} else if (get_active_component() == COMP_LOAD) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (--hs_currently_selected < HS_LOAD_Q) hs_currently_selected = HS_LOAD_SPACE;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-				} else if (load_file_dialog.state) {
+				} else if (get_active_component() == COMP_LDFILE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (--hs_currently_selected < HS_LDFILE_LOAD) hs_currently_selected = HS_LDFILE_EXIT;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-				} else if (save_state_dialog.state) {
+				} else if (get_active_component() == COMP_SSTATE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_SSTATE_SLOT0 ||
@@ -1562,19 +1591,8 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
-				} else if (dialog.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_W);
-					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_DIALOG_BUTTON0) {
-						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
-							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
-						} else {
-							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-						}
-					} else {
-						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
-					}
-				} else if (vkeyb.state) {
+				} else if (get_active_component() == COMP_VKEYB || 
+					get_active_component() == COMP_CTB) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hotspots[hs_currently_selected].gid == HS_GRP_CTB) {
@@ -1591,7 +1609,7 @@ void manage_cursor_input(void) {
 							hotspots[--hs_currently_selected].flags |= HS_PROP_SELECTED;
 						}
 					}
-				} else if (runtime_options[0].state) {
+				} else if (get_active_component() == COMP_RUNOPTS0) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
@@ -1604,7 +1622,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[1].state) {
+				} else if (get_active_component() == COMP_RUNOPTS1) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected < HS_RUNOPTS1_BACK) {
@@ -1614,7 +1632,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[2].state) {
+				} else if (get_active_component() == COMP_RUNOPTS2) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_DN || 
@@ -1629,7 +1647,7 @@ void manage_cursor_input(void) {
 					} else { 
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[3].state) {
+				} else if (get_active_component() == COMP_RUNOPTS3) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_DN) {
@@ -1661,18 +1679,45 @@ void manage_cursor_input(void) {
 					}
 				}
 			} else if (id == CURSOR_E) {
-				/* Move the selector right */
-				if (load_selector_state) {
+				/**************************
+				 * Move the selector right *
+				 * ************************/
+				if (get_active_component() == COMP_DIALOG) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					do {
+						if (hs_currently_selected == HS_DIALOG_BUTTON0) {
+							hs_currently_selected++;
+						} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
+							hs_currently_selected++;
+						} else if (hs_currently_selected == HS_DIALOG_BUTTON2) {
+							hs_currently_selected -= 2;
+						}
+					} while (hotspots[hs_currently_selected].remap_id == UNDEFINED);
+					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					/*hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;	Redundant
+					if (hs_currently_selected == HS_DIALOG_BUTTON2) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
+						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
+							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+						} else {
+							hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+						}
+					} else {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+					}*/
+				} else if (get_active_component() == COMP_LOAD) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (++hs_currently_selected > HS_LOAD_SPACE) hs_currently_selected = HS_LOAD_Q;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-				} else if (load_file_dialog.state) {
+				} else if (get_active_component() == COMP_LDFILE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LDFILE * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (++hs_currently_selected > HS_LDFILE_EXIT) hs_currently_selected = HS_LDFILE_LOAD;
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-				} else if (save_state_dialog.state) {
+				} else if (get_active_component() == COMP_SSTATE) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_SSTATE * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_SSTATE_SLOT2 ||
@@ -1684,21 +1729,8 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
-				} else if (dialog.state) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_E);
-					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
-					if (hs_currently_selected == HS_DIALOG_BUTTON2) {
-						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
-						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
-							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-						} else {
-							hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
-						}
-					} else {
-						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-					}
-				} else if (vkeyb.state) {
+				} else if (get_active_component() == COMP_VKEYB || 
+					get_active_component() == COMP_CTB) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hotspots[hs_currently_selected].gid == HS_GRP_CTB) {
@@ -1715,7 +1747,7 @@ void manage_cursor_input(void) {
 							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 						}
 					}
-				} else if (runtime_options[0].state) {
+				} else if (get_active_component() == COMP_RUNOPTS0) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX81 ||
@@ -1728,7 +1760,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[1].state) {
+				} else if (get_active_component() == COMP_RUNOPTS1) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS1 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected < HS_RUNOPTS1_BACK) {
@@ -1738,7 +1770,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[2].state) {
+				} else if (get_active_component() == COMP_RUNOPTS2) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS2_VOLUME_UP || 
@@ -1754,7 +1786,7 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
-				} else if (runtime_options[3].state) {
+				} else if (get_active_component() == COMP_RUNOPTS3) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS3 * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS3_JDEADZ_UP) {

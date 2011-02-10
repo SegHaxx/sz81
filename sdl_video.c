@@ -205,9 +205,9 @@ int sdl_video_setmode(void) {
 	if (video.xres <= 256 * video.scale) {
 		sdl_emulator.xoffset = 0 - 32 * video.scale;
 	} else {
-		sdl_emulator.xoffset = (video.xres - 320 *  video.scale) / 2;
+		sdl_emulator.xoffset = (video.xres - 320 * video.scale) / 2;
 	}
-	sdl_emulator.yoffset = (video.yres - 200 *  video.scale) / 2;
+	sdl_emulator.yoffset = (video.yres - 200 * video.scale) / 2;
 
 	#ifdef SDL_DEBUG_VIDEO
 		printf("%s: sdl_emulator.xoffset=%i sdl_emulator.yoffset=%i\n", 
@@ -282,8 +282,8 @@ void sdl_video_update(void) {
 	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
 	int srcx, srcy, desx, desy, srcw, count, offset, invertcolours;
 	Uint32 fg_colour, bg_colour, *screen_pixels_32;
-	SDL_Surface *renderedtext, *pausedbox;
 	int xpos, ypos, xmask, ybyte;
+	SDL_Surface *renderedtext;
 	Uint16 *screen_pixels_16;
 	char text[33], *direntry;
 	SDL_Rect dstrect;
@@ -416,49 +416,23 @@ void sdl_video_update(void) {
 
 		/* Has the user paused the emulator? */
 		if (sdl_emulator.paused) {
-			/* Create an RGB surface to accommodate the paused message */
+			/* Draw the shadow */
 			dstrect.w = 8 * 8 * video.scale; dstrect.h = 3 * 8 * video.scale;
-			pausedbox = SDL_CreateRGBSurface(SDL_SWSURFACE, dstrect.w, dstrect.h,
-				video.screen->format->BitsPerPixel,
-				video.screen->format->Rmask, video.screen->format->Gmask,
-				video.screen->format->Bmask, video.screen->format->Amask);
-			if (pausedbox == NULL) {
-				fprintf(stderr, "%s: Cannot create RGB surface: %s\n", __func__, 
-					SDL_GetError ());
-				exit(1);
-			}
-			/* Fill the box with fg_colour */
-			if (SDL_FillRect(pausedbox, NULL, fg_colourRGB) < 0) {
-				fprintf(stderr, "%s: FillRect error: %s\n", __func__,
-					SDL_GetError ());
-				exit(1);
-			}
-			/* Render the text */
-			renderedtext = BMF_RenderText(BMF_FONT_ZX82, " Paused ", bg_colour, fg_colour);
-			dstrect.x = 0; dstrect.y = 8 * video.scale;
+			dstrect.x = (video.screen->w - dstrect.w) / 2;
+			dstrect.y = (video.screen->h - dstrect.h) / 2;
+			draw_shadow(dstrect, 170);	/* 66% */
+			/* Render the text using a transparent background */
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, " Paused ", colours.emu_bg,
+				colours.colour_key);
 			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
-			/* Blit it to the box */
-			if (SDL_BlitSurface (renderedtext, NULL, pausedbox, &dstrect) < 0) {
+			dstrect.x = (video.screen->w - dstrect.w) / 2;
+			dstrect.y = (video.screen->h - dstrect.h) / 2;
+			/* Blit it to the screen */
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
 				exit(1);
 			}
 			SDL_FreeSurface(renderedtext);
-			/* Set the alpha for the entire surface */
-			if (SDL_SetAlpha(pausedbox, SDL_SRCALPHA, 170) < 0) {	/* 66% */
-				fprintf(stderr, "%s: Cannot set surface alpha: %s\n", __func__,
-					SDL_GetError());
-				exit(1);
-			}
-			/* Blit it to the screen */
-			dstrect.x = video.screen->w / 2 - 8 * 8 * video.scale / 2;
-			dstrect.y = video.screen->h / 2 - 3 * 8 * video.scale / 2;
-			dstrect.w = 8 * 8 * video.scale; dstrect.h = 3 * 8 * video.scale;
-			if (SDL_BlitSurface (pausedbox, NULL, video.screen, &dstrect) < 0) {
-				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__,
-					SDL_GetError ());
-				exit(1);
-			}
-			SDL_FreeSurface(pausedbox);
 		}
 
 	}
@@ -1089,9 +1063,9 @@ void sdl_video_update(void) {
 		} else {
 			renderedtext = BMF_RenderText(BMF_FONT_ZX81, text, bg_colour, fg_colour);
 		}
-		dstrect.x = video.screen->w / 2 - renderedtext->w / 2;
-		dstrect.y = video.screen->h / 2 - renderedtext->h / 2;
 		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		dstrect.x = (video.screen->w - dstrect.w) / 2;
+		dstrect.y = (video.screen->h - dstrect.h) / 2;
 		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
 			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
 			exit(1);

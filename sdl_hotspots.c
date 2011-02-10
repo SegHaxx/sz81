@@ -1043,8 +1043,8 @@ void hotspots_render(void) {
 	SDL_Rect dstrect;
 	Uint32 colour;
 
-	/* COMP_ IDs match HS_GRP_ IDs so this can be used here, but
-	 * perhaps in the future HS_GRP_ IDs should be made redundant */
+	/* COMP_ IDs match HS_GRP_ IDs so this can be used here, but perhaps in
+	 * the future HS_GRP_ IDs should be made redundant; I'll mark it temp temp */
 	active_component = get_active_component();
 
 	/* Highlight any hotspots that are currently visible that have IDs
