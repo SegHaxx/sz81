@@ -17,6 +17,7 @@
 
 /* Defines */
 #define MAX_FONTS 4
+#define MAX_DIALOG_ROWS 19
 
 /* Local resources */
 #if defined(__amigaos4__)
@@ -48,7 +49,7 @@
 #define ROM_ZX80 "zx80.rom"
 #define ROM_ZX81 "zx81.rom"
 
-/* Notification manager function IDs */
+/* Notification function IDs */
 #define NOTIFICATION_SHOW 1
 #define NOTIFICATION_KILL 2
 
@@ -56,14 +57,40 @@
 #define NOTIFICATION_TIMEOUT_1250 1250
 #define NOTIFICATION_TIMEOUT_750 750
 
+/* Dialog properties */
+#define DIALOG_ICON_EXCLAMATION 1
+#define DIALOG_ICON_INFORMATION 2
+#define DIALOG_ICON_QUESTION 4
+#define DIALOG_ICON_STOP 8
+#define DIALOG_BUTTONS_YES_NO 16
+#define DIALOG_BUTTONS_YES_NO_CANCEL 32
+#define DIALOG_BUTTONS_OK_CANCEL 64
+#define DIALOG_DEFAULT_YES 128
+#define DIALOG_DEFAULT_OK 256
+#define DIALOG_DEFAULT_NO 512
+#define DIALOG_DEFAULT_CANCEL 1024
+
+
 /* Variables */
 SDL_Surface *wm_icon;
 
 struct Notification {
-	char title[33];		/* The title bar text */
-	char text[33];		/* A single line message */
+	char title[31];		/* The title bar text */
+	char text[31];		/* A single line message */
 	int timeout;		/* In ms */
 };
+
+struct {
+	int state;
+	int flags;			/* An OR'd combination of DIALOG_ properties */
+	int retval;			/* The remap_id of the button pressed */
+	int xoffset;
+	int yoffset;
+	int width;
+	int height;
+	char *title;					/* The title bar text */
+	char *text[MAX_DIALOG_ROWS];	/* A multi-line message */
+} dialog;
 
 struct {
 	char filename[256];
@@ -130,6 +157,7 @@ int vkeyb_alpha_apply(void);
 int sz81icons_init(void);
 int control_bar_init(void);
 void notification_show(int funcid, struct Notification *notification);
+
 
 
 

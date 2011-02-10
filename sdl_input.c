@@ -142,6 +142,7 @@ int keycodes[] = {
 /* Function prototypes */
 void manage_cursor_input(void);
 void manage_all_input(void);
+void manage_dialog_input(void);
 void manage_vkeyb_input(void);
 void toggle_vkeyb_state(void);
 void manage_runopts_input(void);
@@ -265,22 +266,22 @@ void sdl_keyboard_init(void) {
 	ctrl_remaps[index].remap_id = SDLK_a;
 	ctrl_remaps[index].remap_mod_id = SDLK_LSHIFT;
 
-	/* Active within ldfile/sstate/runopts */
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
+	/* Active within dialog/ldfile/sstate/runopts */
+	ctrl_remaps[++index].components = COMP_DIALOG | COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_LEFT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_W;
 
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[++index].components = COMP_DIALOG | COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RIGHT;
 	ctrl_remaps[index].remap_device = DEVICE_CURSOR;
 	ctrl_remaps[index].remap_id = CURSOR_E;
 
-	ctrl_remaps[++index].components = COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
+	ctrl_remaps[++index].components = COMP_DIALOG | COMP_LDFILE | COMP_SSTATE | COMP_RUNOPTS_ALL;
 	ctrl_remaps[index].protected = TRUE;
 	ctrl_remaps[index].device = DEVICE_KEYBOARD;
 	ctrl_remaps[index].id = SDLK_RETURN;
@@ -1089,24 +1090,20 @@ int keyboard_update(void) {
 					if (found) device = UNDEFINED;	/* Ignore id and mod_id */
 				}
 
-				/* Manage COMP_RUNOPTSx input */
-				if (get_active_component() & COMP_RUNOPTS_ALL)
+				/* Manage component specific input */
+				if (get_active_component() == COMP_DIALOG) {
+					manage_dialog_input();
+				} else if (get_active_component() & COMP_RUNOPTS_ALL) {
 					manage_runopts_input();
-				
-				/* Manage COMP_VKEYB and COMP_CTB input */
-				if (get_active_component() == COMP_VKEYB ||
-					get_active_component() == COMP_CTB)
-					manage_vkeyb_input();
-
-				/* Manage COMP_LDFILE input */
-				if (get_active_component() == COMP_LDFILE)
-					manage_ldfile_input();
-
-				/* Manage COMP_SSTATE input */
-				if (get_active_component() == COMP_SSTATE)
+				} else if (get_active_component() == COMP_SSTATE) {
 					manage_sstate_input();
-
-				/* Manage COMP_EMU and COMP_ALL input */
+				} else if (get_active_component() == COMP_LDFILE) {
+					manage_ldfile_input();
+				} else if (get_active_component() == COMP_VKEYB ||
+					get_active_component() == COMP_CTB) {
+					manage_vkeyb_input();
+				}
+				/* Manage general input */
 				manage_all_input();
 
 				/* Make sure that stuck sticky and toggle hotspots are not released
@@ -1244,7 +1241,9 @@ void manage_cursor_input(void) {
 	if (device == DEVICE_CURSOR) {
 
 		/* Locate currently selected hotspot for active component (there can be only one) */
-		if (get_active_component() & COMP_RUNOPTS_ALL) {
+		if (get_active_component() == COMP_DIALOG) {
+			hs_currently_selected = get_selected_hotspot(HS_GRP_DIALOG);
+		} else if (get_active_component() & COMP_RUNOPTS_ALL) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 		} else if (get_active_component() == COMP_LDFILE) {
 			hs_currently_selected = get_selected_hotspot(HS_GRP_LDFILE);
@@ -1267,7 +1266,8 @@ void manage_cursor_input(void) {
 				virtualevent.type = SDL_MOUSEBUTTONDOWN;
 				virtualevent.button.button = 128 + SDL_BUTTON_LEFT;
 				virtualevent.button.state = SDL_PRESSED;
-				if (get_active_component() & COMP_RUNOPTS_ALL ||
+				if (get_active_component() == COMP_DIALOG ||
+					get_active_component() & COMP_RUNOPTS_ALL ||
 					get_active_component() == COMP_LDFILE ||
 					get_active_component() == COMP_SSTATE ||
 					get_active_component() == COMP_VKEYB ||
@@ -1562,6 +1562,18 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
 					}
+				} else if (dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_W);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_DIALOG_BUTTON0) {
+						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
+							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
+						} else {
+							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+						}
+					} else {
+						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+					}
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1671,6 +1683,20 @@ void manage_cursor_input(void) {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					} else {
 						hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
+					}
+				} else if (dialog.state) {
+					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_DIALOG * CURSOR_E);
+					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
+					if (hs_currently_selected == HS_DIALOG_BUTTON2) {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
+						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
+							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
+						} else {
+							hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
+						}
+					} else {
+						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
 					}
 				} else if (vkeyb.state) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_VKEYB * CURSOR_E);
@@ -1830,16 +1856,22 @@ void manage_all_input(void) {
 		} else if (id == SDLK_F9) {
 			/* Simulate a control remapper press */
 			if (state == SDL_PRESSED) {
-				device = DEVICE_CURSOR; id = CURSOR_REMAP;
-				manage_cursor_input();
+				if (get_active_component() == COMP_RUNOPTS3 ||
+					get_active_component() == COMP_VKEYB ||
+					get_active_component() == COMP_CTB) {
+					device = DEVICE_CURSOR; id = CURSOR_REMAP;
+					manage_cursor_input();
+				}
 			}
 		} else if (id == SDLK_F10) {
 			/* Exit the emulator */
 			if (state == SDL_PRESSED) {
-				emulator_exit();
+				if (get_active_component() != COMP_DIALOG) {
+					emulator_exit();
+				}
 			}
 		} else if (id == SDLK_F11) {
-			#if !defined (PLATFORM_GP2X) && !defined (PLATFORM_ZAURUS)
+			#if !defined(PLATFORM_GP2X) && !defined(PLATFORM_ZAURUS)
 				/* Toggle fullscreen on supported platforms */
 				if (state == SDL_PRESSED) {
 					video.fullscreen ^= SDL_FULLSCREEN;
@@ -1859,7 +1891,9 @@ void manage_all_input(void) {
 		} else if (id == SDLK_PAUSE) {
 			/* Toggle emulator paused */
 			if (state == SDL_PRESSED) {
-				toggle_emulator_paused(FALSE);
+				if (get_active_component() != COMP_DIALOG) {
+					toggle_emulator_paused(FALSE);
+				}
 			}
 		} else if (id == SDLK_PRINT) {
 			/* Save a screenshot */
@@ -1869,7 +1903,9 @@ void manage_all_input(void) {
 		} else if (id == SDLK_ESCAPE) {
 			/* Exit the currently active component */
 			if (state == SDL_PRESSED) {
-				if (get_active_component() & COMP_RUNOPTS_ALL) {
+				if (get_active_component() == COMP_DIALOG) {
+					/* Ignore escape for this component */
+				} else if (get_active_component() & COMP_RUNOPTS_ALL) {
 					toggle_runopts_state();
 				} else if (get_active_component() == COMP_SSTATE) {
 					toggle_sstate_state(0);
@@ -1889,29 +1925,31 @@ void manage_all_input(void) {
 			/* Adjust the volume */
 			#ifdef OSS_SOUND_SUPPORT
 				if (state == SDL_PRESSED) {
-					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
-					if (id == SDLK_MINUS) {
-						if (sdl_sound.volume > 0) {
-							sdl_sound.volume -= 2;
-							if (sdl_sound.state && 
-								(sdl_sound.device == DEVICE_QUICKSILVA ||
-								sdl_sound.device == DEVICE_ZONX)) 
-								sound_ay_setvol();
+					if (get_active_component() != COMP_DIALOG) {
+						key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
+						if (id == SDLK_MINUS) {
+							if (sdl_sound.volume > 0) {
+								sdl_sound.volume -= 2;
+								if (sdl_sound.state && 
+									(sdl_sound.device == DEVICE_QUICKSILVA ||
+									sdl_sound.device == DEVICE_ZONX)) 
+									sound_ay_setvol();
+							}
+						} else {
+							if (sdl_sound.volume < 128) {
+								sdl_sound.volume += 2;
+								if (sdl_sound.state && 
+									(sdl_sound.device == DEVICE_QUICKSILVA ||
+									sdl_sound.device == DEVICE_ZONX)) 
+									sound_ay_setvol();
+							}
 						}
-					} else {
-						if (sdl_sound.volume < 128) {
-							sdl_sound.volume += 2;
-							if (sdl_sound.state && 
-								(sdl_sound.device == DEVICE_QUICKSILVA ||
-								sdl_sound.device == DEVICE_ZONX)) 
-								sound_ay_setvol();
-						}
+						strcpy(notification.title, "Sound");
+						sprintf(notification.text, "Volume:%i", sdl_sound.volume);
+						notification.timeout = NOTIFICATION_TIMEOUT_750;
+						notification_show(NOTIFICATION_SHOW, &notification);
+						rcfile.rewrite = TRUE;
 					}
-					strcpy(notification.title, "Sound");
-					sprintf(notification.text, "Volume:%i", sdl_sound.volume);
-					notification.timeout = NOTIFICATION_TIMEOUT_750;
-					notification_show(NOTIFICATION_SHOW, &notification);
-					rcfile.rewrite = TRUE;
 				} else if (state == SDL_RELEASED) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
@@ -1939,6 +1977,26 @@ void toggle_emulator_paused(int force) {
 			emulator_hold(&sdl_emulator.paused);
 		} else {
 			sdl_emulator.paused = FALSE;
+		}
+	}
+}
+
+/***************************************************************************
+ * Manage Dialog Input                                                     *
+ ***************************************************************************/
+
+void manage_dialog_input(void) {
+
+	/* Note that I'm currently ignoring modifier states */
+	if (device == DEVICE_KEYBOARD) {
+		if ((hotspots[HS_DIALOG_BUTTON0].remap_id != UNDEFINED &&
+			hotspots[HS_DIALOG_BUTTON0].remap_id == id) ||
+			(hotspots[HS_DIALOG_BUTTON1].remap_id != UNDEFINED &&
+			hotspots[HS_DIALOG_BUTTON1].remap_id == id) ||
+			(hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED &&
+			hotspots[HS_DIALOG_BUTTON2].remap_id == id)) {
+			dialog.retval = id;
+			dialog.state = FALSE;
 		}
 	}
 }
@@ -2889,7 +2947,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_o;
 							} else if (count == 1) {
-								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_W;
 							} else {
@@ -2902,7 +2960,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_p;
 							} else if (count == 1) {
-								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_E;
 							} else {
@@ -2973,7 +3031,7 @@ void runopts_transit(int state) {
 								protected = FALSE;
 								remap_id = SDLK_RETURN;
 							} else if (count == 1) {
-								components = COMP_ALL & ~COMP_EMU;	//COMP_LOAD | COMP_LDFILE | COMP_SSTATE | COMP_VKEYB | COMP_RUNOPTS_ALL;
+								components = COMP_ALL & ~COMP_EMU;
 								remap_device = DEVICE_CURSOR;
 								remap_id = CURSOR_HIT;
 							} else {

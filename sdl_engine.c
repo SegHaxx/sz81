@@ -43,8 +43,8 @@ void clean_up_before_exit(void);
 
 int sdl_init(void) {
 	int count;
-	#if defined (PLATFORM_GP2X)
-	#elif defined (PLATFORM_ZAURUS)
+	#if defined(PLATFORM_GP2X)
+	#elif defined(PLATFORM_ZAURUS)
 	#else
 		char filename[256];
 	#endif
@@ -148,6 +148,10 @@ int sdl_init(void) {
 	/* Populate the load file dialog's directory List */
 	load_file_dialog_dirlist_populate(FALSE);
 	save_state_dialog.state = FALSE;
+	dialog.state = FALSE;
+	dialog.flags = 0;
+	dialog.title = "";	/* strlen doesn't like NULLs ;) */
+	dialog.text[0] = NULL;
 
 	/* Initialise SDL */
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) {
@@ -160,8 +164,8 @@ int sdl_init(void) {
 
 	/* Set WM icon and title if required for platform before
 	 * setting a video mode as per SDL docs instructions */
-	#if defined (PLATFORM_GP2X)
-	#elif defined (PLATFORM_ZAURUS)
+	#if defined(PLATFORM_GP2X)
+	#elif defined(PLATFORM_ZAURUS)
 	#else
 		strcpy(filename, PACKAGE_DATA_DIR);
 		strcatdelimiter(filename);
@@ -446,6 +450,15 @@ void sdl_component_executive(void) {
 		found = TRUE;
 	}
 
+	/* Monitor dialog's state */
+	if ((active_components & COMP_DIALOG) != (dialog.state * COMP_DIALOG)) {
+		if (dialog.state)
+			/* Resize hotspots to match new dialog */
+			hotspots_resize(HS_GRP_DIALOG);
+		video.redraw = TRUE;
+		found = TRUE;
+	}
+
 	if (found) {
 		keyboard_buffer_reset(FALSE, 0, 0);
 		key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
@@ -462,6 +475,7 @@ void sdl_component_executive(void) {
 		active_components |= COMP_RUNOPTS0 << runtime_options_which();
 	if (load_file_dialog.state) active_components |= COMP_LDFILE;
 	if (save_state_dialog.state) active_components |= COMP_SSTATE;
+	if (dialog.state) active_components |= COMP_DIALOG;
 
 }
 
@@ -470,6 +484,9 @@ void sdl_component_executive(void) {
  ***************************************************************************/
 /* This returns the main currently active component.
  * 
+ * COMP_DIALOG will be active above another active component so this needs
+ * to be detected first.
+ * 
  * COMP_EMU is inactive when another fullscreen component is covering it but
  * not when the vkeyb or save state dialog is active, so COMP_EMU's state
  * should be detected last otherwise it can override something else */
@@ -477,7 +494,9 @@ void sdl_component_executive(void) {
 int get_active_component(void) {
 	int retval;
 
-	if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
+	if (dialog.state) {
+		retval = COMP_DIALOG;
+	} else if (runtime_options_which() < MAX_RUNTIME_OPTIONS) {
 		retval = COMP_RUNOPTS0 << runtime_options_which();
 	} else if (save_state_dialog.state) {
 		retval = COMP_SSTATE;
@@ -588,6 +607,21 @@ int emulator_hold(int *condition) {
  ***************************************************************************/
 
 void emulator_exit(void) {
+
+	/* If the rcfile is scheduled for writing then get user confirmation
+	 * for writing to sz81rc so that they can choose to discard changes */
+	if (rcfile.rewrite) {
+		dialog.text[0] = "Write to";
+		dialog.text[1] = "sz81rc?";
+		dialog.text[2] = NULL;	/* There MUST be a terminating NULL pointer */
+		dialog.title = "Exit";
+		dialog.flags = DIALOG_ICON_QUESTION |
+			DIALOG_BUTTONS_YES_NO |
+			DIALOG_DEFAULT_YES;
+		dialog.state = TRUE;
+		emulator_hold(&dialog.state);
+		if (dialog.retval == SDLK_n) rcfile.rewrite = FALSE;
+	}
 
 	/* If runopts is active then restore variables else the rcfile might
 	 * be flagged for saving and it'll erroneously save the previewed ones */

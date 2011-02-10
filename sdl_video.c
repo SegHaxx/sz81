@@ -139,7 +139,7 @@ char *runtime_options_text3[24] = {
 	"\x90\x2<\x2\x85" "Back   Save    Exit          "
 };
 
-char save_state_dialog_text[72] = {
+char save_state_dialog_icons[72] = {
 	0x00, 0x18, 0x28, 0x08, 0x08, 0x08, 0x3e, 0x00,
 	0x00, 0x3c, 0x42, 0x02, 0x3c, 0x40, 0x7e, 0x00,
 	0x00, 0x3c, 0x42, 0x0c, 0x02, 0x42, 0x3c, 0x00,
@@ -150,6 +150,14 @@ char save_state_dialog_text[72] = {
 	0x00, 0x3c, 0x42, 0x3c, 0x42, 0x42, 0x3c, 0x00,
 	0x00, 0x3c, 0x42, 0x42, 0x3e, 0x02, 0x3c, 0x00
 };
+
+char dialog_icons[32] = {
+	0x00, 0x10, 0x10, 0x10, 0x10, 0x00, 0x10, 0x00,
+	0x00, 0x10, 0x00, 0x30, 0x10, 0x10, 0x38, 0x00,
+	0x00, 0x3c, 0x42, 0x04, 0x08, 0x00, 0x08, 0x00,
+	0x00, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x00
+};
+
 
 /* Function prototypes */
 
@@ -189,7 +197,7 @@ int sdl_video_setmode(void) {
 	#endif
 
 	/* Hide the mouse pointer for certain devices */
-	#if defined (PLATFORM_GP2X) || defined (PLATFORM_ZAURUS)
+	#if defined(PLATFORM_GP2X) || defined(PLATFORM_ZAURUS)
 		SDL_ShowCursor(SDL_DISABLE);
 	#endif
 	
@@ -223,6 +231,8 @@ int sdl_video_setmode(void) {
 	/* Set-up the save state dialog's screen offset */
 	save_state_dialog.xoffset = (video.screen->w - 15 * 8 * video.scale) / 2;
 	save_state_dialog.yoffset = (video.screen->h - 17 * 8 * video.scale) / 2;
+
+	/* The dynamic dialog's screen offset is set-up in hotspots_resize */
 
 	/* Set-up the fonts */
 	if (fonts_init()) exit(1);
@@ -270,7 +280,7 @@ unsigned char *vga_getgraphmem(void) {
 
 void sdl_video_update(void) {
 	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
-	int srcx, srcy, desx, desy, srcw, count, invertcolours;
+	int srcx, srcy, desx, desy, srcw, count, offset, invertcolours;
 	Uint32 fg_colour, bg_colour, *screen_pixels_32;
 	SDL_Surface *renderedtext, *pausedbox;
 	int xpos, ypos, xmask, ybyte;
@@ -547,7 +557,7 @@ void sdl_video_update(void) {
 				for (ybyte = 0; ybyte < 8; ybyte++) {
 					dstrect.x = srcx + 0.5 * 8 * video.scale + xpos * 4.5 * 8 * video.scale;
 					for (xmask = 0x80; xmask >= 1; xmask >>= 1) {
-						if (save_state_dialog_text[(ypos * 3 + xpos) * 8 + ybyte] & xmask) {
+						if (save_state_dialog_icons[(ypos * 3 + xpos) * 8 + ybyte] & xmask) {
 							if (!save_state_dialog.slots[ypos * 3 + xpos]) {
 								colourRGB = fg_colourRGB;
 							} else {
@@ -902,6 +912,165 @@ void sdl_video_update(void) {
 				}
 				dstrect.x += 8 * video.scale;
 			}
+		}
+	}
+
+	/* Is the dialog being rendered? */
+	if (dialog.state) {
+		srcx = dialog.xoffset;
+		srcy = dialog.yoffset;
+		/* Draw the title and navigation bars */
+		dstrect.x = srcx; dstrect.y = srcy;
+		dstrect.w = dialog.width - 1 * 8 * video.scale;
+		dstrect.h = 1 * 8 * video.scale;
+		for (count = 0; count < 2; count++) {
+			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			dstrect.y += dialog.height - 3 * 8 * video.scale;
+			dstrect.h += 1 * 8 * video.scale;
+		}
+		/* Draw the interior */
+		dstrect.x = srcx + 0.5 * 8 * video.scale;
+		dstrect.y = srcy + 1 * 8 * video.scale;
+		dstrect.w = dialog.width - 2 * 8 * video.scale;
+		dstrect.h = dialog.height - 4 * 8 * video.scale;
+		if (SDL_FillRect(video.screen, &dstrect, bg_colourRGB) < 0) {
+			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		/* Draw the outer vertical bars */
+		dstrect.x = srcx; dstrect.y = srcy + 1 * 8 * video.scale;
+		dstrect.w = 0.5 * 8 * video.scale;
+		dstrect.h = dialog.height - 4 * 8 * video.scale;
+		for (count = 0; count < 2; count++) {
+			if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+				fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			dstrect.x += dialog.width - 1.5 * 8 * video.scale;
+		}
+		/* Draw the right and bottom icon bars */
+		dstrect.x = srcx + 4.5 * 8 * video.scale;
+		dstrect.y = srcy + 1 * 8 * video.scale; dstrect.w = 0.5 * 8 * video.scale;
+		dstrect.h = 4 * 8 * video.scale;
+		if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		dstrect.x = srcx + 0.5 * 8 * video.scale;
+		dstrect.y = srcy + 5 * 8 * video.scale;
+		dstrect.w = 4.5 * 8 * video.scale;
+		/* dstrect.h = 0.5 * 8 * video.scale;	Thin */
+		dstrect.h = dialog.height - 8 * 8 * video.scale;	/* Full */
+		if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		/* Draw the icon */
+		if (dialog.flags & DIALOG_ICON_EXCLAMATION) {
+			offset = 0 * 8;
+		} else if (dialog.flags & DIALOG_ICON_INFORMATION) {
+			offset = 1 * 8;
+		} else if (dialog.flags & DIALOG_ICON_QUESTION) {
+			offset = 2 * 8;
+		} else /*if (dialog.flags & DIALOG_ICON_STOP)*/ {
+			offset = 3 * 8;
+		}
+		dstrect.y = srcy + 1 * 8 * video.scale;
+		for (ybyte = 0; ybyte < 8; ybyte++) {
+			dstrect.x = srcx + 0.5 * 8 * video.scale;
+			for (xmask = 0x80; xmask >= 1; xmask >>= 1) {
+				if (dialog_icons[offset + ybyte] & xmask) {
+					dstrect.w = dstrect.h = 0.5 * 8 * video.scale;
+					if (SDL_FillRect(video.screen, &dstrect, fg_colourRGB) < 0) {
+						fprintf(stderr, "%s: FillRect error: %s\n", __func__,
+							SDL_GetError ());
+						exit(1);
+					}
+				}
+				dstrect.x += 0.5 * 8 * video.scale;
+			}
+			dstrect.y += 0.5 * 8 * video.scale;
+		}
+		/* Write the title */
+		strcpy(text, dialog.title);
+		renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+		dstrect.x = srcx + (dialog.width - 1 * 8 * video.scale) / 2 - 
+			renderedtext->w / 2; dstrect.y = srcy;
+		dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+		if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+			fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+			exit(1);
+		}
+		SDL_FreeSurface(renderedtext);
+		/* Write the text */
+		dstrect.x = srcx + 6 * 8 * video.scale;
+		dstrect.y = srcy + 2 * 8 * video.scale;
+		for (count = 0; count < MAX_DIALOG_ROWS; count++) {
+			if (dialog.text[count] != NULL) {
+				renderedtext = BMF_RenderText(BMF_FONT_ZX82, dialog.text[count],
+					fg_colour, bg_colour);
+				dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+				if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+					fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, 
+						SDL_GetError ());
+					exit(1);
+				}
+				SDL_FreeSurface(renderedtext);
+				dstrect.y += 1 * 8 * video.scale;
+			} else {
+				break;
+			}
+		}
+		/* Draw the controls */
+		for (count = 0; count < 3; count++) {
+			if (count == 0) {
+				if ((dialog.flags & DIALOG_BUTTONS_YES_NO) || 
+					(dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL)) {
+					strcpy(text, "Yes");
+				} else if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+					strcpy(text, "OK");
+				}
+			} else if (count == 1) {
+				if ((dialog.flags & DIALOG_BUTTONS_YES_NO) || 
+					(dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL)) {
+					strcpy(text, "No");
+				} else if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+					strcpy(text, "Cancel");
+				}
+			} else if (count == 2) {
+				if (dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL) {
+					strcpy(text, "Cancel");
+				} else {
+					break;
+				}
+			}
+			renderedtext = BMF_RenderText(BMF_FONT_ZX82, text, bg_colour, fg_colour);
+			dstrect.x = hotspots[HS_DIALOG_BUTTON0 + count].hl_x;
+			dstrect.y = hotspots[HS_DIALOG_BUTTON0 + count].hl_y;
+			dstrect.w = renderedtext->w; dstrect.h = renderedtext->h;
+			if (SDL_BlitSurface (renderedtext, NULL, video.screen, &dstrect) < 0) {
+				fprintf(stderr, "%s: BlitSurface error: %s\n", __func__, SDL_GetError ());
+				exit(1);
+			}
+			SDL_FreeSurface(renderedtext);
+		}
+		/* Draw the right-hand and bottom shadows */
+		for (count = 0; count < 2; count++) {
+			if (count == 0) {
+				dstrect.x = srcx + dialog.width - 1 * 8 * video.scale;
+				dstrect.y = srcy + 1 * 8 * video.scale;
+				dstrect.w = 1 * 8 * video.scale;
+				dstrect.h =  dialog.height - 1 * 8 * video.scale;
+			} else {
+				dstrect.x = srcx + 1 * 8 * video.scale;
+				dstrect.y = srcy + dialog.height - 1 * 8 * video.scale;
+				dstrect.w = dialog.width - 2 * 8 * video.scale;
+				dstrect.h = 1 * 8 * video.scale;
+			}
+			draw_shadow(dstrect, 64);	/* 25% */
 		}
 	}
 

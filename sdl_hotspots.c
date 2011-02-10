@@ -110,6 +110,11 @@ void sdl_hotspots_init(void) {
 	hotspots[HS_SSTATE_SLOT8].remap_id = SDLK_9;
 	hotspots[HS_SSTATE_EXIT].remap_id = SDLK_F4;
 
+	/* Initialise dialog hotspots */
+	for (count = HS_DIALOG_DIALOG; count <= HS_DIALOG_BUTTON2; count++)
+		hotspots[count].gid = HS_GRP_DIALOG;
+	/* The dynamic dialog hotspots are set-up in hotspots_resize */
+
 	/* Initialise virtual keyboard hotspots */
 	hotspots[HS_VKEYB_VKEYB].gid = HS_GRP_VKEYB;
 	for (count = 0; count < 10; count++) {
@@ -297,7 +302,7 @@ void hotspots_vkeyb_shift_init(void) {
  * On entry: gid = on or more OR'd group IDs */
 
 void hotspots_resize(int gid) {
-	int count;
+	int count, width, height;
 
 	if (gid & HS_GRP_EMU) {
 		/* Resize root hotspots */
@@ -520,6 +525,116 @@ void hotspots_resize(int gid) {
 			hotspots[count].hl_y = hotspots[count].hit_y + 0.5 * 8 * video.scale;
 			hotspots[count].hl_w = hotspots[count].hit_w;
 			hotspots[count].hl_h = hotspots[count].hit_h - 1 * 8 * video.scale;
+		}
+	}
+
+	if (gid & HS_GRP_DIALOG) {
+		/* Resize the dialog hotspots */
+		hotspots[HS_DIALOG_DIALOG].hit_x = 0;
+		hotspots[HS_DIALOG_DIALOG].hit_y = 0;
+		hotspots[HS_DIALOG_DIALOG].hit_w = video.screen->w;
+		hotspots[HS_DIALOG_DIALOG].hit_h = video.screen->h;
+		/* The dialog component requires resizing before we can continue.
+		 * Calculate the width required for the icon, text and borders */
+		dialog.width = 7.5 * 8 * video.scale;
+		width = height = 0;
+		for (count = 0; count < MAX_DIALOG_ROWS; count++) {
+			if (dialog.text[count] != NULL) {
+				height++;
+				if (width < strlen(dialog.text[count]))
+					width = strlen(dialog.text[count]);
+			} else {
+				break;
+			}
+		}
+		dialog.width += width * 8 * video.scale;
+		/* Calculate the width required for the title and borders */
+		width = 2 * 8 * video.scale;
+		width += strlen(dialog.title) * 8 * video.scale;
+		if (dialog.width < width) dialog.width = width;
+		/* Calculate the width required for the buttons and borders */
+		width = 2 * 8 * video.scale;
+		if (dialog.flags & DIALOG_BUTTONS_YES_NO) {
+			width += 7 * 8 * video.scale;
+		} else if (dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL) {
+			width += 15 * 8 * video.scale;
+		} else if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+			width += 10 * 8 * video.scale;
+		}
+		if (dialog.width < width) dialog.width = width;
+		/* Calculate the height required */
+		dialog.height = 7 * 8 * video.scale;
+		if (height > 2) dialog.height += (height - 2) * 8 * video.scale;
+		/* Include the shadows */
+		dialog.width += 1 * 8 * video.scale;
+		dialog.height += 1 * 8 * video.scale;
+		/* Set-up the dialog's screen offset */
+		dialog.xoffset = (video.screen->w - dialog.width) / 2;
+		dialog.yoffset = (video.screen->h - dialog.height) / 2;
+		/* At this point, width holds the accumulated button width
+		 * plus a space at both ends.
+		 * Set-up hl_x/y/w/h and some other stuff while we're here */
+		for (count = HS_DIALOG_BUTTON0; count <= HS_DIALOG_BUTTON2; count++) {
+			hotspots[count].hl_x = hotspots[count].hl_y = 
+				hotspots[count].hl_w = hotspots[count].hl_h = 0;
+			hotspots[count].flags &= ~HS_PROP_SELECTED;
+			hotspots[count].remap_id = UNDEFINED;
+		}
+		hotspots[HS_DIALOG_BUTTON0].hl_x = 
+			dialog.xoffset + (dialog.width - 1 * 8 * video.scale) / 2 - 
+			(width - 2 * 8 * video.scale) / 2;
+		hotspots[HS_DIALOG_BUTTON0].hl_y = 
+			hotspots[HS_DIALOG_BUTTON1].hl_y = 
+			hotspots[HS_DIALOG_BUTTON2].hl_y = 
+			dialog.yoffset + dialog.height - 2.5 * 8 * video.scale;
+		if ((dialog.flags & DIALOG_BUTTONS_YES_NO) || 
+			(dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL)) {
+			hotspots[HS_DIALOG_BUTTON1].hl_x = 
+				hotspots[HS_DIALOG_BUTTON0].hl_x + 5 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON2].hl_x = 
+				hotspots[HS_DIALOG_BUTTON1].hl_x + 4 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON0].hl_w = 3 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON1].hl_w = 2 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON2].hl_w = 6 * 8 * video.scale;
+		} else if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+			hotspots[HS_DIALOG_BUTTON1].hl_x = 
+				hotspots[HS_DIALOG_BUTTON0].hl_x + 4 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON0].hl_w = 2 * 8 * video.scale;
+			hotspots[HS_DIALOG_BUTTON1].hl_w = 6 * 8 * video.scale;
+		}
+		hotspots[HS_DIALOG_BUTTON0].hl_h = 
+			hotspots[HS_DIALOG_BUTTON1].hl_h = 
+			hotspots[HS_DIALOG_BUTTON2].hl_h = 1 * 8 * video.scale;
+		/* Set-up hit_x/y/w/h */
+		for (count = HS_DIALOG_BUTTON0; count <= HS_DIALOG_BUTTON2; count++) {
+			hotspots[count].hit_x = hotspots[count].hl_x;
+			hotspots[count].hit_y = hotspots[count].hl_y - 0.5 * 8 * video.scale;
+			hotspots[count].hit_w = hotspots[count].hl_w;
+			hotspots[count].hit_h = hotspots[count].hl_h + 1 * 8 * video.scale;
+		}
+		/* Set-up the default selected button */
+		if ((dialog.flags & DIALOG_DEFAULT_YES) || (dialog.flags & DIALOG_DEFAULT_OK)) {
+			hotspots[HS_DIALOG_BUTTON0].flags |= HS_PROP_SELECTED;
+		} else if (dialog.flags & DIALOG_DEFAULT_NO) {
+			hotspots[HS_DIALOG_BUTTON1].flags |= HS_PROP_SELECTED;
+		} else if (dialog.flags & DIALOG_DEFAULT_CANCEL) {
+			if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+				hotspots[HS_DIALOG_BUTTON1].flags |= HS_PROP_SELECTED;
+			} else if (dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL) {
+				hotspots[HS_DIALOG_BUTTON2].flags |= HS_PROP_SELECTED;
+			}
+		}
+		/* Set-up the button remap_id's */
+		if (dialog.flags & DIALOG_BUTTONS_YES_NO) {
+			hotspots[HS_DIALOG_BUTTON0].remap_id = SDLK_y;
+			hotspots[HS_DIALOG_BUTTON1].remap_id = SDLK_n;
+		} else if (dialog.flags & DIALOG_BUTTONS_YES_NO_CANCEL) {
+			hotspots[HS_DIALOG_BUTTON0].remap_id = SDLK_y;
+			hotspots[HS_DIALOG_BUTTON1].remap_id = SDLK_n;
+			hotspots[HS_DIALOG_BUTTON2].remap_id = SDLK_c;
+		} else if (dialog.flags & DIALOG_BUTTONS_OK_CANCEL) {
+			hotspots[HS_DIALOG_BUTTON0].remap_id = SDLK_o;
+			hotspots[HS_DIALOG_BUTTON1].remap_id = SDLK_c;
 		}
 	}
 
@@ -871,6 +986,15 @@ void hotspots_update(void) {
 			if (hotspots[count].gid == HS_GRP_SSTATE) hotspots[count].flags &= ~HS_PROP_VISIBLE;
 	}
 
+	/* Update the dialog hotspots */
+	if (dialog.state) {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_DIALOG) hotspots[count].flags |= HS_PROP_VISIBLE;
+	} else {
+		for (count = 0; count < MAX_HOTSPOTS; count++)
+			if (hotspots[count].gid == HS_GRP_DIALOG) hotspots[count].flags &= ~HS_PROP_VISIBLE;
+	}
+
 	/* Update the virtual keyboard hotspots */
 	if (vkeyb.state) {
 		for (count = 0; count < MAX_HOTSPOTS; count++)
@@ -915,14 +1039,23 @@ void hotspots_render(void) {
 	int count, surround, alpha;
 	SDL_Surface *highlight;
 	int selected, pressed;
+	int active_component;
 	SDL_Rect dstrect;
 	Uint32 colour;
+
+	/* COMP_ IDs match HS_GRP_ IDs so this can be used here, but
+	 * perhaps in the future HS_GRP_ IDs should be made redundant */
+	active_component = get_active_component();
 
 	/* Highlight any hotspots that are currently visible that have IDs
 	 * that are recorded as being pressed, and selected hotspots if applicable */
 	for (count = 0; count < MAX_HOTSPOTS; count++) {
-		if (hotspots[count].gid != UNDEFINED && hotspots[count].flags & HS_PROP_VISIBLE &&
-			hotspots[count].gid != HS_GRP_EMU && hotspots[count].remap_id != UNDEFINED) {
+		if (hotspots[count].gid != UNDEFINED &&
+			hotspots[count].gid != HS_GRP_EMU &&
+			(hotspots[count].gid == active_component ||
+			(hotspots[count].gid == HS_GRP_CTB && active_component == HS_GRP_VKEYB)) &&
+			hotspots[count].flags & HS_PROP_VISIBLE &&
+			hotspots[count].remap_id != UNDEFINED) {
 
 			pressed = keyboard_buffer[hotspots[count].remap_id];
 			selected = hotspots[count].flags & HS_PROP_SELECTED;
@@ -932,11 +1065,13 @@ void hotspots_render(void) {
 				ctrl_remapper.master_interval / 2) selected = FALSE;
 
 		#ifndef SDL_DEBUG_HOTSPOTS
-			if (pressed || 
-				(joystick && selected) || 
+			if (pressed ||
+				(hotspots[count].gid == HS_GRP_DIALOG && selected) ||
 				(hotspots[count].gid & HS_GRP_RUNOPTS_ALL && selected) ||
-				(hotspots[count].gid & HS_GRP_LDFILE && selected) ||
-				(hotspots[count].gid & HS_GRP_SSTATE && selected)) {
+				(hotspots[count].gid == HS_GRP_SSTATE && selected) ||
+				(hotspots[count].gid == HS_GRP_LDFILE && selected) ||
+				(hotspots[count].gid == HS_GRP_VKEYB && selected && joystick) ||
+				(hotspots[count].gid == HS_GRP_CTB && selected && joystick)) {
 		#endif
 				/* Set the size of the hotspot's highlight.
 				 * If hl_x/y/w/h are all UNDEFINED then use hit_x/y/w/h instead */
@@ -949,15 +1084,7 @@ void hotspots_render(void) {
 					hl_w = hotspots[count].hl_w; hl_h = hotspots[count].hl_h;
 				}
 				/* Choose a suitable colour (pressed overrides selected) */
-				if (hotspots[count].gid == HS_GRP_LOAD || 
-					hotspots[count].gid == HS_GRP_LDFILE || 
-					hotspots[count].gid == HS_GRP_SSTATE) {
-					if (pressed) {
-						colour = colours.hs_load_pressed;
-					} else {
-						colour = colours.hs_load_selected;
-					}
-				} else if (hotspots[count].gid == HS_GRP_VKEYB) {
+				if (hotspots[count].gid == HS_GRP_VKEYB) {
 					if (hotspots[count].flags & HS_PROP_TOGGLE &&
 						hotspots[count].flags & HS_PROP_STUCK) {
 						/* If it's stuck it must be pressed */
@@ -994,7 +1121,11 @@ void hotspots_render(void) {
 						colour = colours.hs_options_selected;
 					}
 				} else {
-					colour = UNDEFINED;
+					if (pressed) {
+						colour = colours.hs_load_pressed;
+					} else {
+						colour = colours.hs_load_selected;
+					}
 				}
 				#ifdef SDL_DEBUG_HOTSPOTS	/* Ooh, pretty Christmas Lights Edition(tm) ;) */
 					colour = (rand() % 256) << 16 | (rand() % 256) << 8 | rand() % 256;

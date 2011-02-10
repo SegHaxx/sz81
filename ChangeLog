@@ -1,3 +1,7 @@
+2011-02-10 Thunor <thunorsif_at_hotmail.com>
+* Added a dynamic modal dialog.
+* Added an exit dialog to confirm writing to sz81rc.
+
 2011-02-03 Thunor <thunorsif_at_hotmail.com>
 * Added dragging ability to hotspots via SDL_DRAGGED state (very easy).
 * Added a ZX style scrollbar to the load file dialog for mouse control.

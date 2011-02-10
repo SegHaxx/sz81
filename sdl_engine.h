@@ -64,7 +64,8 @@
 #define COMP_RUNOPTS_ALL (COMP_RUNOPTS0 | COMP_RUNOPTS1 | COMP_RUNOPTS2 | COMP_RUNOPTS3)
 #define COMP_LDFILE 256
 #define COMP_SSTATE 512
-#define COMP_ALL ((COMP_SSTATE - 1) | COMP_SSTATE)
+#define COMP_DIALOG 1024
+#define COMP_ALL ((COMP_DIALOG - 1) | COMP_DIALOG)
 
 /* Emulator variables I require access to */
 /* Variables from the top of z80.c */

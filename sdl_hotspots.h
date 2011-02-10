@@ -16,7 +16,7 @@
  */
 
 /* Defines */
-#define MAX_HOTSPOTS 190
+#define MAX_HOTSPOTS 199
 
 /* Hotspot group IDs */
 #define HS_GRP_EMU 1
@@ -30,7 +30,8 @@
 #define HS_GRP_RUNOPTS_ALL (HS_GRP_RUNOPTS0 | HS_GRP_RUNOPTS1 | HS_GRP_RUNOPTS2 | HS_GRP_RUNOPTS3)
 #define HS_GRP_LDFILE 256
 #define HS_GRP_SSTATE 512
-#define HS_GRP_ALL ((HS_GRP_SSTATE - 1) | HS_GRP_SSTATE)
+#define HS_GRP_DIALOG 1024
+#define HS_GRP_ALL ((HS_GRP_DIALOG - 1) | HS_GRP_DIALOG)
 
 /* Hotspot IDs (hotspots[] indexes which are also zorders) */
 #define HS_EMU_EMU 0
@@ -159,6 +160,10 @@
 #define HS_SSTATE_SLOT7 187
 #define HS_SSTATE_SLOT8 188
 #define HS_SSTATE_EXIT 189
+#define HS_DIALOG_DIALOG 195
+#define HS_DIALOG_BUTTON0 196
+#define HS_DIALOG_BUTTON1 197
+#define HS_DIALOG_BUTTON2 198
 
 /* Hotspot properties */
 #define HS_PROP_ONOFF 1				/* The normal type: press on, release off */

@@ -415,6 +415,8 @@ void sdl_rcfile_read(void) {
 					read_ctrl_remaps[index].components |= COMP_LDFILE;
 				if (strstr(value, "COMP_SSTATE") != NULL)
 					read_ctrl_remaps[index].components |= COMP_SSTATE;
+				if (strstr(value, "COMP_DIALOG") != NULL)
+					read_ctrl_remaps[index].components |= COMP_DIALOG;
 				if (strstr(value, "COMP_VKEYB") != NULL)
 					read_ctrl_remaps[index].components |= COMP_VKEYB;
 				if (strstr(value, "COMP_CTB") != NULL)
@@ -822,6 +824,10 @@ void rcfile_write(void) {
 				if (ctrl_remaps[count].components & COMP_SSTATE) {
 					if (found) strcat(value, " | ");
 					strcat(value, "COMP_SSTATE"); found = TRUE;
+				}				
+				if (ctrl_remaps[count].components & COMP_DIALOG) {
+					if (found) strcat(value, " | ");
+					strcat(value, "COMP_DIALOG"); found = TRUE;
 				}				
 				if (ctrl_remaps[count].components & COMP_VKEYB) {
 					if (found) strcat(value, " | ");
@@ -1536,9 +1542,4 @@ void notification_show(int funcid, struct Notification *notification) {
 		}
 	}
 }
-
-
-
-
-
 
