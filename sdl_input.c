@@ -1,4 +1,4 @@
-/* sz81 Copyright (C) 2007-2010 Thunor <thunorsif@hotmail.com>
+/* sz81 Copyright (C) 2007-2011 Thunor <thunorsif@hotmail.com>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1560,15 +1560,6 @@ void manage_cursor_input(void) {
 						}
 					} while (hotspots[hs_currently_selected].remap_id == UNDEFINED);
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-					/*if (hs_currently_selected == HS_DIALOG_BUTTON0) {	Redundant
-						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
-							hotspots[hs_currently_selected + 2].flags |= HS_PROP_SELECTED;
-						} else {
-							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-						}
-					} else {
-						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
-					}*/
 				} else if (get_active_component() == COMP_LOAD) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_W);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
@@ -1695,18 +1686,6 @@ void manage_cursor_input(void) {
 						}
 					} while (hotspots[hs_currently_selected].remap_id == UNDEFINED);
 					hotspots[hs_currently_selected].flags |= HS_PROP_SELECTED;
-					/*hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;	Redundant
-					if (hs_currently_selected == HS_DIALOG_BUTTON2) {
-						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
-					} else if (hs_currently_selected == HS_DIALOG_BUTTON1) {
-						if (hotspots[HS_DIALOG_BUTTON2].remap_id != UNDEFINED) {
-							hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-						} else {
-							hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
-						}
-					} else {
-						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
-					}*/
 				} else if (get_active_component() == COMP_LOAD) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_LOAD * CURSOR_E);
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;

@@ -1,6 +1,6 @@
 /* z81/xz81, Linux console and X ZX81/ZX80 emulators.
  * Copyright (C) 1994 Ian Collier. z81 changes (C) 1995-2004 Russell Marks.
- * sz81 Copyright (C) 2007-2010 Thunor <thunorsif@hotmail.com>
+ * sz81 Copyright (C) 2007-2011 Thunor <thunorsif@hotmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

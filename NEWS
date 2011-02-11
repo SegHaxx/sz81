@@ -3,16 +3,16 @@
 * Added forced (non-LOAD) program loading via a load file dialog
 * Added a save state system for saving and loading sz81 save states
 * Moved command-line emulation options to GUI runtime options
-* Added RAM configurations of 1, 2, 3, 4, 16, 32, 48 and 56K
-* Added a writable 8K to 16K memory region via the 56K option
-* Added user defined graphics (UDG) support via the 8K to 16K region
+* Added support for 1 to 4, 16, 32, 48 and 56K RAM (UDG now works)
 * Added the ability to save screenshots via PrtScn (SDLK_PRINT)
 * Added support for o, 80, p and 81 program file types
 * Added autoloading of ZX80 program files in addition to the ZX81
+* Added sequential filenaming for ZX80, printer and screenshot files
+* Added a ZX80 BASIC xxxx REM SAVE "progname" filenaming hack
 * Added an emulator pause feature via Pause (SDLK_PAUSE)
-* Added mouse wheel support and used within the load file dialog
+* Added mouse wheel support, used within the load file dialog
 * Added a machine code PipePanic game and a machine code template
-* Added the GNU GPL Open80 and Open81 source code and ROMs
+* Added the GNU GPL'd Open80 and Open81 source code and ROMs
 * Added Win32 support via the _WIN32 preprocessor macro
 * Applied several graphical and usability tweaks
 * Fixed a couple of bugs

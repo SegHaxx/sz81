@@ -1,4 +1,4 @@
-/* sz81 Copyright (C) 2007-2010 Thunor <thunorsif@hotmail.com>
+/* sz81 Copyright (C) 2007-2011 Thunor <thunorsif@hotmail.com>
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -924,6 +924,17 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 	/* Record the current working directory before changing it to dir
 	 * (I've found that stat doesn't work unless the dir is changed) */
 	strcpy(cwd, ""); getcwd(cwd, 256); cwd[255] = 0; chdir(dir);
+
+	/* NOTE TO PORTERS: eventually you'll hit root ('/' on *nix, ':' on
+	 * __amigaos4__, '\' on _WIN32 and as I'm developing this on Linux I
+	 * can't populate the list with drive specifiers etc., so possibly
+	 * you could have a virtual area above root that you fill yourself,
+	 * or you could populate the root list with "(c:)", "(d:)" etc. and
+	 * when the user selects one, you could change to that drive and set
+	 * dir equal to root. Other functions you should take a look at are
+	 * file_dialog_cd, the code within sdl_input.c:2555 that extracts the
+	 * directory from the list to change to and file_dialog_basename. And
+	 * DIR_DELIMITER_CHAR and strcatdelimiter are useful. That's it :) */
 
 	if ((dirstream = opendir(dir))) {
 
