@@ -235,8 +235,8 @@ For the GPH GP2X/Wiz:
     to enable a program to be restored to the same state at some other
     point in the future. So, after loading a game and playing the first
     level or two you find that your lunch break is over and you'd like
-    to save the current position within the game to continue with later
-    when the boss isn't there. Simply activate the save state dialog by
+    to save your current position within the game to continue with later
+    when distraction beckons - simply activate the save state dialog by
     pressing F4 or selecting it from the control bar and choose a slot.
     Slots that are inverse have an existing state already stored there
     (from the same program) so either choose a new slot or overwrite an
