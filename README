@@ -22,8 +22,36 @@ Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ************************************************************************
 
 
-Description
-===========
+Table of Contents
+=================
+
+1.Description
+    Features
+2.Controls
+    For the PC
+    For the Amiga
+    For the Sharp Zaurus
+    For the GPH GP2X/Wiz
+3.Operation
+    General GUI Navigation
+    Loading a Program File
+    Saving a Program File
+    Saving and Loading State Files
+    Configuring a Joystick
+    Remapping Joystick Controls
+    Using the ZX Printer
+    Exiting sz81
+4.Compilation and Installation
+    For desktop Linux
+    For the Amiga
+    For the Sharp Zaurus
+    For the GPH GP2X/Wiz
+5.Thanks
+6.Contacting Us
+
+
+1.Description
+=============
 
 sz81 is a Sinclair ZX80/ZX81 emulator very much based upon the work of
 Ian Collier's xz80 and Russell Marks's z81 but employing the highly
@@ -49,8 +77,8 @@ Features:
  * Maximum porting potential since it only requires SDL
 
 
-Controls
-========
+2.Controls
+==========
 
 For the PC:
 
@@ -63,11 +91,11 @@ For the PC:
     F11           - Toggle between fullscreen and a window
     F9            - Activate the control remapper for remapping
                     joystick controls to keyboard controls
-    PrtScn        - Save a screenshot to the local scrsht folder
+    PrtScn        - Save a screenshot to the local scnsht folder
     Pause         - Place emulation on hold but not the GUI
 
     Clicking the screen (or F1) brings up the virtual keyboard and the
-    control bar giving access to several very useful features. These
+    control bar enabling access to several very useful features. These
     are listed below alongside their keyboard equivalents :-
 
     Exit          - Exit emulator (F10)
@@ -78,7 +106,7 @@ For the PC:
     Invert Screen - Toggle between not inverse and inverse video (F8)
     Save State    - Toggle the save state dialog if available (F4)
     Load State    - Toggle the load state dialog if available (F5)
-    Load File     - Toggle the load file dialog (F3)                    
+    Load File     - Toggle the load file dialog (F3)
     Options       - Toggle the runtime options (F2)
 
 For the Amiga:
@@ -134,8 +162,8 @@ For the GPH GP2X/Wiz:
     See PC controls for an explanation of the control bar.
 
 
-Operation
-=========
+3.Operation
+===========
 
     General GUI Navigation
     ----------------------
@@ -200,49 +228,77 @@ Operation
 
     Saving and Loading State Files
     ------------------------------
-    
-    
-    
-    
-    
-    
-    
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    
+    sz81 supports the saving and later reloading of images that are most
+    commonly known as save state files. They are simply files containing
+    dumps of the emulated machine's memory and the emulator's variables
+    to enable a program to be restored to the same state at some other
+    point in the future. So, after loading a game and playing the first
+    level or two you find that your lunch break is over and you'd like
+    to save the current position within the game to continue with later
+    when the boss isn't there. Simply activate the save state dialog by
+    pressing F4 or selecting it from the control bar and choose a slot.
+    Slots that are inverse have an existing state already stored there
+    (from the same program) so either choose a new slot or overwrite an
+    existing one. This can be achieved by clicking a slot with the mouse
+    or stylus, moving the selector and pressing enter (selector hit) or
+    pressing a number from 1 to 9.
+
+    Loading a save state file requires that the original game is loaded
+    first and then the load state dialog can be activated with F5 or via
+    the control bar. Then simply choose one of the previous slots that
+    you've saved to and away you go.
+
     Configuring a Joystick
     ----------------------
-    If you have a digital or analogue joystick plugged in and you'd
-    like to use it then open the runtime options (ESCAPE from within
-    the emulator or select the rightmost icon on the control bar) and
-    utilise the joystick configurator using either the cursor keys and
-    enter, directly with the mouse or the joystick once configured.
-    Select a control on the graphical joystick representation (the
-    selector will blink) and follow the instructions configuring as
-    many of the controls as you possibly can for optimum usability.
+    If you have a digital or analogue joystick plugged in and you'd like
+    to use it then open the runtime options (F2 from within the emulator
+    or select the control bar icon) and employ the joystick configurator
+    using either the cursor keys and enter, the mouse or stylus or the
+    joystick once configured. Select a control on the graphical joystick
+    representation (the selector will blink) and follow the instructions
+    configuring as many of the controls as you possibly can for optimum
+    usability.
 
-    Remapping Joystick Controls 
+    Remapping Joystick Controls
     ---------------------------
-    When the virtual keyboard is visible, position the selector over
-    the function that you would like to assign to a joystick control
-    and press the control remapper (the selector will blink). Then
-    press a joystick control to remap the function to the control.
+    With the virtual keyboard and control bar visible, position the
+    selector over the function that you'd like to assign to a joystick
+    control and press the control remapper (the selector will blink).
+    Then press a joystick control to remap the function to the control.
     Existing controls that have been remapped are active within the
-    emulator (you cannot remap GUI controls) and new controls are
+    emulator (you cannot remap GUI controls) whilst new controls are
     universally active. It is possible to include the SHIFT modifier
     within the control as long as it is active before you initiate
     remapping. To cancel remapping press the control remapper again.
 
+    Using the ZX Printer
+    --------------------
+    Emulated printer output is currently written to sequentially named
+    pbm image files stored within the local prtout folder. A new file is
+    created when either of the ZX81's LLIST or LPRINT commands are used
+    and then closed when the emulator is reset or sz81 exited.
 
-Installation
-============
+    Exiting sz81
+    ------------
+    Upon exiting, if you have modified any of the configurable options
+    you will be presented with a dialog requesting that you confirm
+    writing the changes to the configuration file (sz81rc, sz81.ini).
+    If you choose "No" then the changes will be discarded. This is
+    useful for when you have configured the emulator just how you like
+    it and don't want to commit unimportant modifications.
+    
+
+4.Compilation and Installation
+==============================
 
 Extract the sz81 source package and change into the extracted directory.
 
 For desktop Linux:
 
-    Comment/uncomment the PREFIX BINDIR DOCDIR PACKAGE_DATA_DIR group
-    at the top of the Makefile depending on whether you want to do a
-    local install, system-wide install or run from the source folder
-    (default) and then type :-
+    Comment/uncomment the PREFIX BINDIR DOCDIR PACKAGE_DATA_DIR group at
+    the top of the Makefile depending on whether you want to do a local
+    install, system-wide install or run from the source folder (default)
+    and then type :-
 
     make clean
     make
@@ -269,9 +325,6 @@ For the Sharp Zaurus (requires SDK):
 
 For the GPH GP2X/Wiz (requires SDK):
 
-    Thanks go to Mr 2X and Neil L from the gp32x.com forums for
-    assisting with testing the Wiz build.
-
     make clean
     (For the GPH toolchain execute the following line only)
     make -f Makefile.gp2x
@@ -284,12 +337,20 @@ For the GPH GP2X/Wiz (requires SDK):
     contents onto your SD card.
 
 
-Contacting Us
-=============
+5.Thanks
+========
+
+Thanks got to Mr 2X and Neil L from the gp32x.com forums for assisting
+with testing the Wiz build.
+
+
+6.Contacting Us
+===============
 
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2011-02-xx
+2011-02-11
+
 
 
