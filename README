@@ -46,8 +46,9 @@ Table of Contents
     For the Amiga
     For the Sharp Zaurus
     For the GPH GP2X/Wiz
-5.Thanks
-6.Contacting Us
+5.Porting to Other Platforms
+6.Thanks
+7.Contacting Us
 
 
 1.Description
@@ -285,7 +286,7 @@ For the GPH GP2X/Wiz:
     writing the changes to the configuration file (sz81rc, sz81.ini).
     If you choose "No" then the changes will be discarded. This is
     useful for when you have configured the emulator just how you like
-    it and don't want to commit unimportant modifications.
+    it and don't wish to disturb it with unimportant modifications.
     
 
 4.Compilation and Installation
@@ -337,20 +338,29 @@ For the GPH GP2X/Wiz (requires SDK):
     contents onto your SD card.
 
 
-5.Thanks
+5.Porting to Other Platforms
+============================
+
+This project requires SDL only, runs centred within any resolution, can
+be scaled-up up to 3x, can be operated entirely with a keyboard, mouse
+or joystick, ships with *nix, AmigaOS4 and Win32 source code support by
+default and should port easily to many different platforms and devices.
+
+
+6.Thanks
 ========
 
-Thanks got to Mr 2X and Neil L from the gp32x.com forums for assisting
+Thanks go to Mr 2X and Neil L from the gp32x.com forums for assisting
 with testing the Wiz build.
 
 
-6.Contacting Us
+7.Contacting Us
 ===============
 
 Please visit the project's support page at
 http://sourceforge.net/projects/sz81/support
 
-2011-02-11
+2011-02-13
 
 
 

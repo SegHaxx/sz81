@@ -1,4 +1,4 @@
-2011-02-xx
+2011-02-13
 * 2.1.7 released
 * Added forced (non-LOAD) program loading via a load file dialog
 * Added a save state system for saving and loading sz81 save states
