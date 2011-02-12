@@ -75,8 +75,8 @@ install:
 	cp $(TARGET) $(BINDIR)
 	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
-	if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
-	if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
 	
 uninstall:
 	@echo "Uninstalling is not currently implemented."
