@@ -1,3 +1,9 @@
+Please see NEWS for a summary of changes since the last release suitable
+for announcements.
+
+2011-02-13 Thunor <thunorsif_at_hotmail.com>
+* Version 2.1.7 released (r202)
+
 2011-02-10 Thunor <thunorsif_at_hotmail.com>
 * Added a dynamic modal dialog.
 * Added an exit dialog to confirm writing to sz81rc.
