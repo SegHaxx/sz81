@@ -40,6 +40,9 @@ Table of Contents
     Configuring a Joystick
     Remapping Joystick Controls
     Using the ZX Printer
+    The Configuration File
+      show_input_id
+      ctrl_remap
     Exiting sz81
 4.Compilation and Installation
     For desktop Linux
@@ -279,6 +282,37 @@ For the GPH GP2X/Wiz:
     created when either of the ZX81's LLIST or LPRINT commands are used
     and then closed when the emulator is reset or sz81 exited.
 
+    The Configuration File
+    ----------------------
+    Located within the local folder is the auto-generated configuration
+    file sz81rc (or sz81.ini). It is possible to tweak sz81's operation
+    by editing the contents of this file but the majority of people will
+    leave it as is. Right at the top is show_input_id which can be set
+    to TRUE to show input device id's (SDL_keysym's) which is useful if
+    you are configuring an input device and would like to know the id's
+    of the buttons. Additionally the entire control set is stored within
+    this file and controls can be edited, added or removed. For example
+    there is no print screen (SDLK_PRINT) key on a handheld device with
+    no keyboard and so by default the user cannot take screenshots, but
+    if they have a spare input button and they know its id then they can
+    by adding the following ctrl_remap:
+
+        ctrl_remap.components=COMP_ALL
+        ctrl_remap.protected=TRUE
+        ctrl_remap.device=DEVICE_JOYSTICK        // or DEVICE_KEYBOARD
+        ctrl_remap.id=19                         // 19 is an example
+        ctrl_remap.remap_device=DEVICE_KEYBOARD
+        ctrl_remap.remap_id=SDLK_PRINT
+        ctrl_remap.remap_mod_id=
+
+    Simply put, this ctrl_remap active across all program components,
+    protected from being modified by the control remapper, will cause
+    the joystick button with the id of 19 to be intercepted and a PrtScn
+    keyboard key event generated in its place. remap_mod_id can be used
+    to generate an additional event and this is how backspace generates
+    SHIFT + 0 within the emulator. I recommend looking at sdl_input.c
+    and sdl_input.h to understand this system in more detail.
+
     Exiting sz81
     ------------
     Upon exiting, if you have modified any of the configurable options
@@ -287,7 +321,7 @@ For the GPH GP2X/Wiz:
     If you choose "No" then the changes will be discarded. This is
     useful for when you have configured the emulator just how you like
     it and don't wish to disturb it with unimportant modifications.
-    
+
 
 4.Compilation and Installation
 ==============================
