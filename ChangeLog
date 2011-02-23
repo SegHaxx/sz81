@@ -1,6 +1,10 @@
 Please see NEWS for a summary of changes since the last release suitable
 for announcements.
 
+2011-02-23 Thunor <thunorsif_at_hotmail.com>
+* Fixed a bug in keyboard_buffer_reset whereby SHIFT was being reset
+  when it shouldn't have been.
+
 2011-02-13 Thunor <thunorsif_at_hotmail.com>
 * Version 2.1.7 released (r202)
 

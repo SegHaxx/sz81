@@ -3208,10 +3208,13 @@ void keyboard_buffer_reset(int shift_reset, int exclude1, int exclude2) {
 	int keycode;
 
 	for (keycode = 0; keycode < MAX_KEYCODES; keycode++) {
-		if ((keycode == SDLK_LSHIFT && shift_reset) ||
-			(!(exclude1 && keycode == exclude1) &&
-			!(exclude2 && keycode == exclude2)))
+		if ((exclude1 && keycode == exclude1) ||
+			(exclude2 && keycode == exclude2) ||
+			(keycode == SDLK_LSHIFT && !shift_reset)) {
+			/* Do nothing */
+		} else {
 			keyboard_buffer[keycode] = SDL_RELEASED;
+		}
 	}
 }
 
