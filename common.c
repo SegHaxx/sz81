@@ -41,11 +41,13 @@
 extern void sdl_set_redraw_video();
 #endif
 
+#ifndef Win32
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#endif
 
 #include "common.h"
 #include "sound.h"
@@ -59,7 +61,7 @@ extern ZX81 zx81;
 #ifdef ZXMORE
 unsigned char mem[0x100000];
 #else
-unsigned char mem[0x10000];
+unsigned char mem[0x20000]; /* allows for shadow RAM */
 #endif
 unsigned char *helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
@@ -254,6 +256,10 @@ setitimer(ITIMER_REAL,&itv,NULL);
 }
 #endif
 
+void loadrombank(int offset)
+{
+  memcpy(mem,sdl_zx81rom.data+offset,8192);
+}
 
 void loadrom(void)
 {
@@ -278,11 +284,11 @@ return;
  * is simply copying the data into the ROM area afresh */
 if(zx80)
   {
-  memcpy(mem,sdl_zx80rom.data,4096);
+  memcpy(mem,sdl_zx80rom.data,sdl_zx80rom.state);
   }
 else
   {
-  memcpy(mem,sdl_zx81rom.data,8192);
+  memcpy(mem,sdl_zx81rom.data,sdl_zx81rom.state);
   }
 
 /* fill first 16k with extra copies of it */
@@ -613,6 +619,9 @@ if(load_hook)
 
 void zx81hacks()
 {
+#ifndef ZXPAND
+#ifndef ZXNU
+
 /* patch save routine */
 if(save_hook)
   {
@@ -627,6 +636,8 @@ if(load_hook)
   mem[0x348]=0xed; mem[0x349]=0xfc;
   mem[0x34a]=0xc3; mem[0x34b]=0x07; mem[0x34c]=0x02;
   }
+#endif
+#endif
 }
 
 #endif
@@ -768,6 +779,7 @@ if(zx81.machine==MACHINELAMBDA)
 
 /* initialise shared memory */
 
+#ifndef Win32
  if (rwsz81mem==1) {
 	 fdsz81mem = shm_open("/sz81mem", O_RDONLY, S_IRUSR | S_IWUSR);
 	 if (fdsz81mem < 0) {
@@ -788,17 +800,19 @@ if(zx81.machine==MACHINELAMBDA)
 		 if (sz81mem == MAP_FAILED) { perror("map"); exit(1); }
 	}
 }
+#endif
 
 }
 
 void exitmem()
 {
+#ifndef Win32
 	if (rwsz81mem) {
 		if (munmap(sz81mem, SHMSIZ) < 0) perror("munmap");
 		if (close(fdsz81mem < 0)) perror("close");
 		if (rwsz81mem==2) { if (shm_unlink("/sz81mem") < 0) perror("shm_unlink"); }
 	}
-
+#endif
 #ifdef ZXMORE
 	if (zxmmod) {
 		FILE *out;

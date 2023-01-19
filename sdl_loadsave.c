@@ -134,8 +134,13 @@ int save_state_dialog_slots_populate(void) {
 	if ((dirstream = opendir(foldername)) == NULL) {
 		/* The path doesn't yet exist so attempt to create everything
 		 * from parentname and onwards */
+#ifndef Win32
 		mkdir(parentname, 0755);
 		mkdir(foldername, 0755);
+#else
+		mkdir(parentname);
+		mkdir(foldername);
+#endif
 		/* Attempt to open the newly created folder */
 		dirstream = opendir(foldername);
 	}

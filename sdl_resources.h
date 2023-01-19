@@ -51,7 +51,15 @@
 #define IMG_SZ81_ICONS "sz81icons.bmp"
 
 #define ROM_ZX80 "zx80.rom"
+#ifdef ZXPAND
+#define ROM_ZX81 "zx81.zxpand.ovl"
+#else
+#ifdef ZXNU
+#define ROM_ZX81 "zxnu.rom"
+#else
 #define ROM_ZX81 "zx81.rom"
+#endif
+#endif 
 #define ASZMIC   "aszmic.rom"
 
 /* Notification function IDs */

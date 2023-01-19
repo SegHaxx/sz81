@@ -12,6 +12,17 @@ Notes for version 2.3.x:
   Otherwise, it initially contains copies of the ROM, but may be used, for
   example, for UDG.
 
+Notes for version 2.3.9:
+
+* Some ZXpand support added. Most commands work. Memory model selection
+  and disabling ZXpand do not yet work.
+  The original ZXpand emulation sources are at https://sourceforge.net/projects/eightyone-sinclair-emulator/
+  and were adapted to work under Linux and sz81.
+* Add -DZXNU in the Makefile for partial ZXNU support.
+  - A ROM with H4TH support is included (see ZX-TEAM forum).
+  - Some messages appear in the console.
+  - Also some partial VDRIVE support, enough to load H4TH programs.
+
 Notes for version 2.3.8:
 
 * Support has been added to enable/disable UDG CHAR16 support and WRX.

@@ -128,7 +128,11 @@ void local_data_dir_init(void) {
 			strcatdelimiter(foldername);
 			strcat(foldername, LOCAL_PROGRM_DIR);
 		}
+#ifndef Win32
 		mkdir(foldername, 0755);
+#else
+		mkdir(foldername);
+#endif
 	}
 }
 
@@ -1412,16 +1416,13 @@ int sdl_zxroms_init(void) {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__, filename);
 				if (count < 2) retval = TRUE;
 			} else {
-				/* Read in the data */
+				/* Read in the data, max. 64k */
 				if (count == 0) {
-					fread(sdl_zx80rom.data, 1, 4 * 1024, fp);
-					sdl_zx80rom.state = TRUE;
+					sdl_zx80rom.state = fread(sdl_zx80rom.data, 1, 64 * 1024, fp);
 				} else if (count == 1) {
-					fread(sdl_zx81rom.data, 1, 8 * 1024, fp);
-					sdl_zx81rom.state = TRUE;
+					sdl_zx81rom.state = fread(sdl_zx81rom.data, 1, 64 * 1024, fp);
 				} else if (count == 2) {
-					fread(sdl_aszmicrom.data, 1, 4 * 1024, fp);
-					sdl_aszmicrom.state = TRUE;
+					sdl_aszmicrom.state = fread(sdl_aszmicrom.data, 1, 4 * 1024, fp);
 				}
 				fclose(fp);
 			}

@@ -38,17 +38,20 @@ SDL_CONFIG?=sdl-config
 CFLAGS?=-O3
 CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -D_DZ80_EXCLUDE_SCRIPT
-# -DZXMORE
+# options:
+# -DZXPAND
+# -DZXNU
+# -DZXMORE (-DZXMSHMEM)
 # -DZXMROML=0xF8 -DZXMRAML=0x13
 
 LINK=$(CC)
-LDFLAGS=
-LIBS=`$(SDL_CONFIG) --libs` -Lsndrender -lsndrender -lrt
+#LDFLAGS=
+LIBS=`$(SDL_CONFIG) --libs` -lrt -Lsndrender -lsndrender -Lzxpand -lzxpand
 
 # You won't need to alter anything below
 all: $(SOURCES) $(TARGET)
 
-$(TARGET): $(OBJECTS) sndrender/libsndrender.a
+$(TARGET): $(OBJECTS) sndrender/libsndrender.a zxpand/libzxpand.a
 	g++ $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 %.o: %.c
@@ -56,6 +59,9 @@ $(TARGET): $(OBJECTS) sndrender/libsndrender.a
 
 sndrender/libsndrender.a: sndrender/sndbuffer.cpp sndrender/sndchip.cpp sndrender/sndcounter.cpp sndrender/sndrender.cpp sndrender/sndinterface.cpp
 	cd sndrender && $(MAKE)
+
+zxpand/libzxpand.a: zxpand/zxpand_emu.cpp zxpand/zxpandclass.cpp zxpand/smbsd.cpp zxpand/zxpandcom.cpp zxpand/usart.cpp zxpand/zxpandcore.cpp zxpand/js.cpp zxpand/wildcard.cpp zxpand/ff.cpp
+	cd zxpand && CXXFLAGS='$(CFLAGS) -Wno-trigraphs' $(MAKE)
 
 .PHONY: all clean install
 
@@ -71,6 +77,7 @@ open%:
 
 clean:
 	cd sndrender && $(MAKE) clean
+	cd zxpand && $(MAKE) clean
 	rm -f *.o *~ sz81 z80/*.o z80/*~ stzxfs
 
 install:
@@ -88,6 +95,9 @@ install:
 	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/aszmic.rom ]; then cp data/aszmic.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/h4th.rom ]; then cp data/h4th.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81font.rom ]; then cp data/zx81font.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81.zxpand.ovl ]; then cp data/zx81.zxpand.ovl $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zxnu.rom ]; then cp data/zxnu.rom $(PACKAGE_DATA_DIR); fi
 
 uninstall:
 	@echo "Uninstalling is not currently implemented."

@@ -97,7 +97,7 @@ struct {
 	int speed;		/* 5ms=400%, 10ms=200%, 20ms=100%, 30ms=66%, 40ms=50% */
 	int frameskip;	        /* 0 to MAX_FRAMESKIP */
 	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
-	int ramsize;	        /* 1, 2, 3, 4, 16, 32, 48 or 56K */
+	int ramsize;	        /* 1, 2, 3, 4, 16, 32, 48 or 56 */
 	int invert;		/* This should really be in video but it's easier to put it here */
 	int autoload;	        /* Set to TRUE when auto-loading or forced-loading */
 	int networking;         /* enable calls to WIZ chip emulation */
@@ -118,12 +118,12 @@ struct {
 
 struct {
 	int state;
-	unsigned char data[4 * 1024];
+	unsigned char data[64 * 1024];
 } sdl_zx80rom;
 
 struct {
 	int state;
-	unsigned char data[8 * 1024];
+	unsigned char data[64 * 1024];
 } sdl_zx81rom;
 
 struct {

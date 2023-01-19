@@ -15,6 +15,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <dirent.h>
+
 #define LASTINSTNONE  0
 #define LASTINSTINFE  1
 #define LASTINSTOUTFE 2
@@ -106,9 +108,22 @@ unsigned int zxmoffset=0;
 
 int zxmflash=0, zxmmod=0;
 
+#ifdef ZXNU
+int zxnu_latch=0;
+#endif
+
+extern void loadrombank(int offset);
+
 #ifdef SNDPRC
 extern int sp_on;
 extern void sp_start(int idx);
+#endif
+
+#ifdef ZXPAND
+extern void ZXpand_Update(int millis);
+extern void ZXpand_IO_Write(int addr, int data);
+extern int ZXpand_IO_ReadStatus();
+extern int ZXpand_IO_Read(int addr);
 #endif
 
 #ifdef ZXMORE
@@ -268,7 +283,7 @@ void disassemble(const unsigned int dAddr, const BYTE opcode)
                         printf("**** dZ80 error:  %s\n", dZ80_GetErrorText(err));
                         }
 /* Display the disassembled line, using the hex dump and disassembly buffers in the DISZ80 structure */
-#ifdef ZXMORE                
+#ifndef ZXMORE                
         printf(" %6ld %02X %02X %d %d %04X %04X %04X %04X %04X %04X %04X %04X%10s:  %s\n",
 	       tstates, zxmroml, zxmraml, zxmnmi, zxmvideo, dAddr,
 	       z80.af.w, z80.bc.w, z80.de.w, z80.hl.w, z80.sp.w, z80.ix.w, z80.iy.w,
@@ -675,12 +690,28 @@ BYTE zx81_readbyte(int Address)
 
 BYTE zx81_opcode_fetch_org(int Address)
 {
+#ifdef ZXPAND
+        static int calls = 0;
+#endif
         int inv;
         int opcode, bit6, update=0;
 	BYTE data;
 #ifndef ZXMORE
         BYTE data2;
 #endif
+
+#ifdef ZXPAND
+// very rough timing here;
+// assuming a 1mhz call rate it will be 1ms every 1000 calls.
+
+        ++calls;
+        if (calls == 1000)
+        {
+                calls = 0;
+                ZXpand_Update(1);
+        }
+#endif
+
 #ifdef ZXMORE
         if (!zxmvideo || Address<zx81.m1not)
 #else
@@ -819,8 +850,8 @@ BYTE zx81_opcode_fetch_org(int Address)
 
                 if (z80.i<64 || (z80.i>=128 && z80.i<192 && zx81.chrgen==CHRGENCHR16))
                 {
-                        if (zx81.extfont || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
-                                data= font[(data<<3) | rowcounter];
+                        if ((zx81.extfont && z80.i==0x1e) || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
+                                data=font[(data<<3) + rowcounter];
                         else    data=zxm_readbyte((((z80.i&254)<<8) + (data<<3)) + rowcounter);
                 }
                 else data=255;
@@ -1143,6 +1174,12 @@ void zx81_writeport(int Address, int Data, int *tstates)
                 configbyte=Data;
                 break;
 
+#ifdef ZXPAND
+        case 0x07:
+                ZXpand_IO_Write(Address>>8, Data);
+                break;
+#endif
+
         case 0x0f:
 #ifdef SNDPRC
 		if (SelectAYReg >= 15) {
@@ -1290,6 +1327,138 @@ void zx81_writeport(int Address, int Data, int *tstates)
         if (!LastInstruction) LastInstruction=LASTINSTOUTFF;
 }
 
+#ifdef ZXNU
+void vdrive_dir(char *buf)
+{
+	DIR *d;
+	struct dirent *dir;
+
+	*buf = '\0';
+	
+	d = opendir(".");
+	if (d) {
+	    while ((dir = readdir(d)) != NULL) {
+		strcat(buf,dir->d_name);
+	        strcat(buf," ");
+	    }
+	    closedir(d);
+	}
+}
+
+void vdrive(char *buf, int bufptr, int *binary)
+{
+	static FILE *f=NULL;
+	char *s = strtok(buf, " ");
+
+	if (*binary < 0) {
+		*binary = 0;
+		fwrite(buf, bufptr, 1, f);
+		strcpy(buf, ">\r");
+		return;
+	}
+	
+	if (!strcmp(s,"DIR")) {
+		vdrive_dir(buf);
+		strcat(buf,">\r");
+		return;
+	} else if (!strcmp(s,"WRF")) {
+		*binary = (buf[bufptr-2]<<8) + buf[bufptr-1];
+	} else if (!strcmp(s,"OPW")) {
+		s = strtok(NULL, " ");
+		f = fopen(s, "wb");
+	} else if (!strcmp(s,"RD")) {
+		s = strtok(NULL, " ");
+		f = fopen(s, "rb");
+		fread(buf, 512, 1, f);
+		fclose(f);
+		buf[512] = '>';
+		buf[513] = '\r';
+		return;
+	} else if (!strcmp(s,"CLF")) {
+		fclose(f);
+	} else {
+		strcpy(buf,"BAD COMMAND>\r");
+		return;
+	}
+
+	strcpy(buf, ">\r");
+}
+
+BYTE vdrive_io(BYTE b)
+{
+	static BYTE state;
+	static BYTE rw;
+	static BYTE n=0;
+	static BYTE br, bw, bs;
+	static char buf[0x1000];
+	static int bufptr=-1;
+	static int binary=0;
+
+	b &= 0x0f;
+	b |= 0x80;
+	
+	switch (b) {
+		case 0x8c: state=bw=bs=n=0;
+			   if (bufptr<0) { strcpy(buf,"VDRIVE On-Line>\r"); bufptr = 0; }
+			   break;
+		case 0x8f: if (state==0) {
+				state++;
+			   } else if (state==1) {
+				rw = 'R';
+				br = buf[bufptr++];
+				state++;
+			   } else if (state!=3) {
+				return 0xff;
+			   } else {
+				bw = (bw << 1) | 0x01;
+				bs = br & 0x80;
+				br <<= 1;
+				n++;
+				if (n==8) state++;
+			   }
+			   break;
+		case 0x8e: if (state==0) {
+				return 0xff;
+			   } else if (state==1) {
+				if (rw!='W') bufptr = 0;
+				rw = 'W';
+				state++;
+			   } else if (state==3) {
+				bw <<= 1;
+				bs = br & 0x80;
+				br <<= 1;
+				n++;
+				if (n==8) state++;
+			   } else {
+				state++;
+			   }
+			   break;
+		default: return 0xff;
+	}
+
+	if (state==4) {
+#if 0
+		printf("%04x %d %c %d %d %c %c %d %d %02x\n", z80.pc.w, state, rw, n, bufptr, br, ((bw>=0x20&&bw<0x80)?bw:0x20), bw, binary, z80.bc.b.h);
+#endif
+		if (rw=='W') {
+			if (!binary && (bw == '\r')) {
+				buf[bufptr] = '\0';
+				vdrive(buf, bufptr, &binary);
+				bufptr = 0;
+			} else {
+				buf[bufptr++] = bw;
+				if (binary && (binary==bufptr)) {
+					binary = -1;
+					vdrive(buf, bufptr, &binary);
+				        bufptr = 0;
+				}
+			}
+		}
+	}
+	return (state==3||state==4 ? bs : 0);
+}
+#endif
+
 BYTE zx81_readport(int Address, int *tstates)
 {
         static int beeper;
@@ -1310,11 +1479,28 @@ BYTE zx81_readport(int Address, int *tstates)
                 return zx81.Chroma81 ? 0 : 255;
         }
 
+#ifdef ZXPAND
+	if (l==0x07) return ZXpand_IO_Read(Address>>8);
+	else if (l==0x17) return ZXpand_IO_ReadStatus();
+#endif
+     
 #ifdef ZXMORE
 	if (l==0xf7) return read_usb();
 	if (l==0xf4) { zxmnmicounter = 52; }
 #endif
 
+#ifdef ZXNU
+	if (l==0x1e) {
+			printf("%c", z80.bc.b.h & 0x7f);
+			if (!(z80.bc.b.h & 0x80)) printf("\n");
+			return 255;
+		     }
+	if (l==0x5e) {
+			printf("%c", z80.bc.b.h & 0x7f);
+			return 255;
+		     }
+#endif
+		
 	if (!(Address&1)) {
                 LastInstruction=LASTINSTINFE;
 		setborder=1;
@@ -1357,6 +1543,11 @@ BYTE zx81_readport(int Address, int *tstates)
                 }
 
                 case 0x5f:
+#ifdef ZXNU
+			zxnu_latch = z80.bc.b.h;
+			loadrombank((zxnu_latch&0xc0) << 7);
+			return vdrive_io(z80.bc.b.h);
+#endif
                         if (zx81.truehires==HIRESMEMOTECH) {
 				MemotechMode=(Address>>8);
 				printf("Selecting MemotechMode %d...\n", MemotechMode);
@@ -1696,6 +1887,16 @@ void zx81_initialise(void)
 #endif
 #endif
 
+#ifdef ZXMORE
+	sdl_emulator.ramsize = 56;
+#endif
+#ifdef ZXNU
+	sdl_emulator.ramsize = 56;
+#endif
+#ifdef ZXPAND
+	sdl_emulator.ramsize = 32;
+#endif
+
 /* Configuration variables used in EightyOne code */
 
 	if (sdl_emulator.ramsize<=2) {
@@ -1720,7 +1921,11 @@ void zx81_initialise(void)
 	zx81.NTSC            = 0;
 	zx81.protectROM      = 1;
 	zx81.RAMTOP          = (sdl_emulator.ramsize < 16) ? (0x4000+sdl_emulator.ramsize*0x400-1) : ((sdl_emulator.ramsize < 48) ? ((sdl_emulator.ramsize == 32) ? 0xbfff : 0x7fff) : 0xffff);
-	zx81.ROMTOP          = zx80 ? 0x0fff : 0x1fff;
+#ifdef ZXNU
+	zx81.ROMTOP          = 0x1fff;
+#else
+	zx81.ROMTOP          = zx80 ? sdl_zx80rom.state-1 : sdl_zx81rom.state-1;
+#endif
 	zx81.speedup         = 0;
 	zx81.shadowROM       = 0;
 	zx81.simpleghost     = 0;
@@ -1766,6 +1971,17 @@ void zx81_initialise(void)
         VSYNC_state=HSYNC_state=0;
         MemotechMode=0;
 
+#ifdef ZXPAND
+	strcpy(filename, PACKAGE_DATA_DIR);
+	strcatdelimiter(filename);
+	strcat(filename, "zx81font.rom");
+        if ((fp = fopen(filename, "rb")) != NULL) {
+		fread(font, 1, 512, fp);
+		fclose(fp);
+	}
+	zx81.extfont = 1;
+#endif
+	
 /* Here are some alternatives to try (no fopen fail message!) */
 
 	//zx81.truehires = HIRESMEMOTECH;

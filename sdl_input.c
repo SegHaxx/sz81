@@ -2182,8 +2182,6 @@ void manage_runopts_input(void) {
 						} else if (runopts_emulator_ramsize == 48) {
 							runopts_emulator_ramsize = 32;
 						} else if (runopts_emulator_ramsize == 32) {
-							runopts_emulator_ramsize = 24;
-						} else if (runopts_emulator_ramsize == 24) {
 							runopts_emulator_ramsize = 16;
 						} else if (runopts_emulator_ramsize == 16) {
 							runopts_emulator_ramsize = 4;
@@ -2197,8 +2195,6 @@ void manage_runopts_input(void) {
 						} else if (runopts_emulator_ramsize == 4) {
 							runopts_emulator_ramsize = 16;
 						} else if (runopts_emulator_ramsize == 16) {
-							runopts_emulator_ramsize = 24;
-						} else if (runopts_emulator_ramsize == 24) {
 							runopts_emulator_ramsize = 32;
 						} else if (runopts_emulator_ramsize == 32) {
 							runopts_emulator_ramsize = 48;
@@ -2263,28 +2259,6 @@ void manage_runopts_input(void) {
 					key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);
 				}
 			}
-		} else if (id == SDLK_5 || id == SDLK_6) {
-			if (runtime_options[0].state) {
-				if (state == SDL_PRESSED) {
-					if (id == SDLK_5) {
-						runopts_emulator_wrx=HIRESDISABLED;
-					} else {
-						runopts_emulator_wrx=HIRESWRX;
-						runopts_emulator_chrgen=CHRGENSINCLAIR;
-					}
-				}
-			}
-		} else if (id == SDLK_7 || id == SDLK_8) {
-			if (runtime_options[0].state) {
-				if (state == SDL_PRESSED) {
-					if (id == SDLK_7) {
-						runopts_emulator_chrgen=CHRGENSINCLAIR;
-					} else {
-						runopts_emulator_chrgen=CHRGENCHR16;
-						runopts_emulator_wrx=HIRESDISABLED;
-					}
-				}
-			}
 		} else if (id == SDLK_3 || id == SDLK_4) {
 			if (runtime_options[0].state) {
 					if (state == SDL_PRESSED) {
@@ -2318,7 +2292,16 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_5 || id == SDLK_6) {
-			if (runtime_options[1].state) {
+			if (runtime_options[0].state) {
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_5) {
+						runopts_emulator_wrx=HIRESDISABLED;
+					} else {
+						runopts_emulator_wrx=HIRESWRX;
+						runopts_emulator_chrgen=CHRGENSINCLAIR;
+					}
+				}
+			} else if (runtime_options[1].state) {
 				#ifdef OSS_SOUND_SUPPORT
 					if (state == SDL_PRESSED) {
 						if (id == SDLK_5) {
@@ -2343,7 +2326,16 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_7 || id == SDLK_8) {
-			if (runtime_options[2].state) {
+			if (runtime_options[0].state) {
+				if (state == SDL_PRESSED) {
+					if (id == SDLK_7) {
+						runopts_emulator_chrgen=CHRGENSINCLAIR;
+					} else {
+						runopts_emulator_chrgen=CHRGENCHR16;
+						runopts_emulator_wrx=HIRESDISABLED;
+					}
+				}
+			} else if (runtime_options[2].state) {
 				/* Background colour red < and > */
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS2 * id);
