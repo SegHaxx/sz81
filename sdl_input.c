@@ -19,6 +19,25 @@
 #include "sdl_engine.h"
 #include "zx81.h"
 
+/* Variables */
+SDL_Joystick *joystick;
+int joystick_dead_zone;
+int show_input_id;
+int current_input_id;
+int runopts_emulator_speed;
+int runopts_emulator_model;
+int runopts_emulator_ramsize;
+int runopts_emulator_m1not;
+int runopts_emulator_wrx;
+int runopts_emulator_chrgen;
+int runopts_sound_device;
+int runopts_sound_stereo;
+int runopts_sound_ay_unreal;
+
+ctrlremap_ ctrl_remaps[MAX_CTRL_REMAPS];
+ctrl_remapper_ ctrl_remapper;
+joy_cfg_ joy_cfg;
+
 extern ZX81 zx81;
 
 /* Defines */

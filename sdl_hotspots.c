@@ -23,6 +23,7 @@
 
 /* Variables */
 
+hotspot_ hotspots[MAX_HOTSPOTS];
 
 /* Function prototypes */
 

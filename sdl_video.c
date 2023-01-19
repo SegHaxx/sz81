@@ -28,6 +28,13 @@ unsigned char vga_graphmemory[800 * 600];
 
 extern ZX81 zx81;
 
+char *runtime_options_text0[24];
+char *runtime_options_text1[24];
+char *runtime_options_text2[24];
+char *runtime_options_text3[24];
+
+video_ video;
+
 /* \x1 means that a value needs to be placed here.
  * \x2 means to invert the colours.
  * \x80 to \x95 are Sinclair graphics characters.

@@ -14,7 +14,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <unistd.h>
 #include <dirent.h>
 
 #define LASTINSTNONE  0
@@ -25,6 +25,12 @@
 
 #ifdef ZXMORE
 #define WAITMOD
+#endif
+
+#ifdef ZXNU
+#ifndef VDRIVE
+#define VDRIVE
+#endif
 #endif
 
 // #define VRCNTR
@@ -1347,98 +1353,426 @@ void zx81_writeport(int Address, int Data, int *tstates)
         if (!LastInstruction) LastInstruction=LASTINSTOUTFF;
 }
 
-#ifdef ZXNU
-void vdrive_dir(char *buf)
+#ifdef VDRIVE
+#define VDRDBG 0
+#define VDRVRB 0
+
+// TODO: CR has been added to the beginning of the DIR response;
+// should that be done for other commands as well?
+
+typedef unsigned char BYTE;
+
+// defaults (p.16)
+static int vd_mmode = 1;  // 1=ECS, 0=SCS
+static int vd_vbinary = 1; // 1=binary, 0=ASCII
+// further global variables
+static int vd_error = 0;
+static FILE *vd_fp = NULL;
+static int vd_nbytes = 0;
+
+void vdrive_failed(char *buf)
+{
+	if (vd_mmode)
+		strcpy(buf,"Command Failed\r");
+	else
+		strcpy(buf,"CF\r");
+	vd_error = 1;
+}
+
+void vdrive_open(char *buf)
+{
+	if (vd_mmode)
+		strcpy(buf,"File Open\r");
+	else
+		strcpy(buf,"FO\r");
+	vd_error = 2;
+}
+
+unsigned int vdrive_number(char *buf)
+{
+	unsigned int n;
+	union {
+		unsigned int n;
+		unsigned char b[4];
+	} u;
+	
+
+	if (vd_vbinary) {
+		u.b[0] = buf[3];
+		u.b[1] = buf[2];
+		u.b[2] = buf[1];
+		u.b[3] = buf[0];
+		n = u.n;
+	} else {
+		n = sscanf(buf, "%i", &n);
+		if (n != 1) vdrive_failed(buf);
+	}
+
+	return n;
+}
+
+int vdrive_dir(char *buf, char *p)
 {
 	DIR *d;
 	struct dirent *dir;
+	struct stat sbuf;
+	int n;
+	union {
+		unsigned int n;
+		unsigned char b[4];
+	} u;
 
-	*buf = '\0';
+	n = 0;
 	
+	if (p) {
+
+		if (!stat(p, &sbuf)) {
+			u.n = sbuf.st_size;
+			if (vd_vbinary) {
+				n = strlen(p);
+				sprintf(buf,"\r%s %c%c%c%c\r", p, u.b[0], u.b[1], u.b[2], u.b[3]);
+				n += 6;
+			} else {
+				sprintf(buf,"\r%s $%02x $%02x $%02x $%02x\r", p, u.b[0], u.b[1], u.b[2], u.b[3]);
+			}
+		} else {
+			vdrive_failed(buf);
+		}
+
+	} else {
+
 	d = opendir(".");
 	if (d) {
+	    strcpy(buf,"\r");
 	    while ((dir = readdir(d)) != NULL) {
 		strcat(buf,dir->d_name);
-	        strcat(buf," ");
+	        strcat(buf," \r");
 	    }
 	    closedir(d);
 	}
+
+	}
+
+	return n;
 }
 
-void vdrive(char *buf, int bufptr, int *binary)
+int vdrive_fs(char *buf)
 {
-	static FILE *f=NULL;
-	char *s = strtok(buf, " ");
+	int n;
+	union {
+		unsigned int n;
+		unsigned char b[4];
+	} u;
 
-	if (*binary < 0) {
-		*binary = 0;
-		fwrite(buf, bufptr, 1, f);
-		strcpy(buf, ">\r");
-		return;
+	n = 0;
+	
+	u.n = 0; // TODO
+	
+	if (vd_vbinary) {
+		sprintf(buf,"%c%c%c%c\r", u.b[0], u.b[1], u.b[2], u.b[3]);
+		n = 4;
+	} else {
+		sprintf(buf,"$%02x $%02x $%02x $%02x\r", u.b[0], u.b[1], u.b[2], u.b[3]);
+	}
+
+	return n;
+}
+
+int vdrive(char *buf, int bufptr)
+{
+	unsigned char cmd;
+	char *s=NULL, *p=NULL, *pp=NULL;
+	char pwd[128];
+	int prompt=1;
+	int n;
+
+#if (VDRDBG>=1)
+	printf("vdrive buf: %s\n", buf);
+#endif
+	vd_error = 0;
+
+	n = 0;
+
+	if (vd_nbytes < 0) {
+#if VDRVRB
+		printf("WRF %d\n", bufptr);
+#endif
+		vd_nbytes = 0;
+		fwrite(buf, bufptr, 1, vd_fp); // TODO: error check
+		strcpy(buf, ""); // will be handled shortly
+	}
+
+	if (!strcmp(buf,"")) {
+		if (vd_mmode==1)
+			strcpy(buf,"EMPTY");
+		else
+			buf[0] = 0;
 	}
 	
-	if (!strcmp(s,"DIR")) {
-		vdrive_dir(buf);
-		strcat(buf,">\r");
-		return;
-	} else if (!strcmp(s,"WRF")) {
-		*binary = (buf[bufptr-2]<<8) + buf[bufptr-1];
-	} else if (!strcmp(s,"OPW")) {
-		s = strtok(NULL, " ");
-		f = fopen(s, "wb");
-	} else if (!strcmp(s,"RD")) {
-		s = strtok(NULL, " ");
-		f = fopen(s, "rb");
-		fread(buf, 512, 1, f);
-		fclose(f);
-		buf[512] = '>';
-		buf[513] = '\r';
-		return;
-	} else if (!strcmp(s,"CLF")) {
-		fclose(f);
+	s = strtok(buf, " ");
+
+	if (vd_mmode==1) { // with ECS, translate commands to SCS
+
+		if (!s) cmd = 0x00;
+		else if (!strcasecmp(s,"EMPTY")) cmd = 0x00;
+		else if (!strcasecmp(s,"SCS")) cmd = 0x10;
+		else if (!strcasecmp(s,"ECS")) cmd = 0x11;
+		else if (!strcasecmp(s,"IPA")) cmd = 0x90;
+		else if (!strcasecmp(s,"IPH")) cmd = 0x91;
+		else if (!strcasecmp(s,"FWV")) cmd = 0x13;
+		else if (!strcmp(s,"E")) cmd = 0x45;
+		else if (!strcmp(s,"e")) cmd = 0x65;
+		else if (!strcasecmp(s,"DIR")) cmd = 0x01;
+		else if (!strcasecmp(s,"CD"))  cmd = 0x02;
+		else if (!strcasecmp(s,"RD"))  cmd = 0x04;
+		else if (!strcasecmp(s,"DLD")) cmd = 0x05;
+		else if (!strcasecmp(s,"MKD")) cmd = 0x06;
+		else if (!strcasecmp(s,"DLF")) cmd = 0x07;
+		else if (!strcasecmp(s,"WRF")) cmd = 0x08;
+		else if (!strcasecmp(s,"OPW")) cmd = 0x09;
+		else if (!strcasecmp(s,"CLF")) cmd = 0x0a;
+		else if (!strcasecmp(s,"RDF")) cmd = 0x0b;
+		else if (!strcasecmp(s,"REN")) cmd = 0x0c;
+		else if (!strcasecmp(s,"OPR")) cmd = 0x0e;
+		else if (!strcasecmp(s,"FS"))  cmd = 0x12;
+		else if (!strcasecmp(s,"FSE")) cmd = 0x93;
+		else if (!strcasecmp(s,"IDD")) cmd = 0x0f;
+		else if (!strcasecmp(s,"IDDE"))cmd = 0x94;
+		else if (!strcasecmp(s,"SEK")) cmd = 0x28;
+
+		else cmd = -1;
+
 	} else {
-		strcpy(buf,"BAD COMMAND>\r");
-		return;
+
+		if (!strcasecmp(buf,"SCS")) cmd = 0x10;
+		else if (!strcasecmp(buf,"ECS")) cmd = 0x11;
+		else cmd = buf[0];
 	}
 
-	strcpy(buf, ">\r");
+	if (cmd==0x08 || cmd==0x0b || cmd==0x28) { // WRF or RDF or SEK
+		if (vd_mmode)
+			vd_nbytes = vdrive_number(buf+4);
+		else
+			vd_nbytes = vdrive_number(buf+2);
+	}
+		
+	p = strtok(NULL, " ");
+	pp = strtok(NULL, " ");
+
+	if (cmd==0x08) return 0; // WRF is handled in a next call
+	
+	strcpy(buf, "");
+
+	switch (cmd)
+	{
+	case 0x00: // EMPTY
+		break;
+	case 0x10: // SCS
+		vd_mmode = 0;
+		break;
+	case 0x11: // ECS
+		vd_mmode = 1;
+		break;
+	case 0x90: // IPA
+		vd_vbinary = 0;
+		break;
+	case 0x91: // IPH
+		vd_vbinary = 1;
+		break;
+	case 0x13: // FWV
+		strcpy(buf,"\rsz81\r");
+		break;
+	case 0x45: // E (sync without prompt)
+#if VDRVRB
+		printf("Sync E\n");
+#endif
+		strcpy(buf,"E\r");
+		prompt = 0;
+		break;
+	case 0x65: // e (sync without prompt)
+#if VDRVRB
+		printf("Sync e\n");
+#endif
+		strcpy(buf,"e\r");
+		prompt = 0;
+		break;
+	case 0x01: // DIR
+#if VDRVRB
+		printf("DIR %s\n",p);
+#endif
+		n = vdrive_dir(buf,p);
+		break;
+	case 0x02: // CD
+		if (chdir(p)) vdrive_failed(buf);
+		break;
+	case 0x04: // RD
+		if (!vd_fp) {
+#if VDRVRB
+		        printf("RD %s\n", p);
+#endif
+			vd_fp = fopen(p, "rb");
+			if (vd_fp) {
+				n = fread(buf, 1, 0x10000, vd_fp);
+				fclose(vd_fp);
+			} else {
+				vdrive_failed(buf);
+			}
+			vd_fp = NULL;
+		} else {
+		       	vdrive_failed(buf);
+		}
+		break;
+	case 0x05: // DLD
+		if (rmdir(p)) vdrive_failed(buf);
+		break;
+	case 0x06: // MKD
+		if (mkdir(p,0755)) vdrive_failed(buf);
+		break;
+	case 0x07: // DLF
+		if (unlink(p)) vdrive_failed(buf);
+		break;
+	case 0x09: // OPW
+#if VDRVRB
+		printf("OPW %s\n", p);
+#endif
+		if (!vd_fp) {
+			if (!(vd_fp = fopen(p,"wb"))) vdrive_failed(buf);
+		} else {
+			vdrive_open(buf);
+		}
+		break;
+	case 0x0a: // CLF
+#if VDRVRB
+		printf("CLF %s\n", p);
+#endif
+		if (vd_fp) {
+			fclose(vd_fp);
+			vd_fp = NULL;
+		}
+		break;
+	case 0x0b: // RDF
+#if VDRVRB
+		printf("RDF %d\n", vd_nbytes);
+#endif
+		if (vd_fp) {
+			n = fread(buf, 1, vd_nbytes, vd_fp);
+			if (n != vd_nbytes) vdrive_failed(buf);
+			vd_nbytes = 0;
+		} else {
+			vdrive_failed(buf);
+		}
+		break;
+	case 0x0c: // REN
+		if (rename(p,pp)) vdrive_failed(buf);
+		break;
+	case 0x0e: // OPR
+#if VDRVRB
+		printf("OPR %s\n", p);
+#endif
+		if (!vd_fp) {
+			if (!(vd_fp = fopen(p,"rb"))) vdrive_failed(buf);
+		} else {
+			vdrive_open(buf);
+		}
+		break;
+	case 0x12: // FS
+	case 0x93: // FSE TODO
+		n = vdrive_fs(buf);		
+		break;
+	case 0x0f: // IDD
+	case 0x94: // IDDE
+		strcpy(buf,"Virtual Drive\r");
+		break;
+	case 0x28: // SEK
+#if VDRVRB
+		printf("SEK %d\n", vd_nbytes);
+#endif
+		if (vd_fp) {
+			if (fseek(vd_fp,vd_nbytes,SEEK_SET)) vdrive_failed(buf);
+		} else {
+			vdrive_failed(buf);
+		}
+		vd_nbytes = 0;
+		break;
+	default:
+		if (vd_mmode==1)
+			strcpy(buf,"Bad Command>\r");
+		else
+			strcpy(buf,"BC>\r");
+		vd_error = 3;
+	}
+
+	if (n == 0) n = strlen(buf);
+
+	if (!prompt) return n;
+	
+#if (VDRDBG>=1)
+	printf("vdrive cmd:%02x; parameter:%s; nbytes:%d n:%d\n", cmd, p, vd_nbytes, n);
+#endif
+	if (!vd_error) {
+		if (vd_mmode) {
+			getcwd(pwd,128);
+			sprintf(buf+n,"%s>\r",pwd);
+			n += strlen(pwd) + 2;
+		} else {
+			strcpy(buf+n, ">\r");
+			n += 2;
+		}
+	} else {
+		printf("vdrive error: %d\n",vd_error);
+		if (vd_error==1) perror("vdrive error");
+	}
+
+	return n;
 }
 
 BYTE vdrive_io(BYTE b)
 {
 	static BYTE state;
-	static BYTE rw;
+	static BYTE rw='R';
 	static BYTE n=0;
 	static BYTE br, bw, bs;
-	static char buf[0x1000];
+	static char buf[0x10000];
 	static int bufptr=-1;
-	static int binary=0;
+	static int len=0;
+	int binarg;
 
 	b &= 0x0f;
-	b |= 0x80;
-	
 	switch (b) {
-		case 0x8c: state=bw=bs=n=0;
-			   if (bufptr<0) { strcpy(buf,"VDRIVE On-Line>\r"); bufptr = 0; }
+		case 0x0c: state=bw=bs=n=0;
+			   if (bufptr<0) {
+				   strcpy(buf,"VDRIVE On-Line>\r");
+				   bufptr = 0;
+				   len = strlen(buf);
+			   }
 			   break;
-		case 0x8f: if (state==0) {
+		case 0x0f: if (state==0) {
 				state++;
+				return 0; // should be OK
 			   } else if (state==1) {
 				rw = 'R';
-				br = buf[bufptr++];
+				if (len>=0) {
+				    br = buf[bufptr];
+#if (VDRDBG>=3)
+				    printf("vdrive br: %d %d 0x%02x %c\n",bufptr,br,br,br);
+#endif
+				    bufptr++;
+				    len--;
+				}
 				state++;
-			   } else if (state!=3) {
-				return 0xff;
-			   } else {
+			   } else if (state==3) {
 				bw = (bw << 1) | 0x01;
 				bs = br & 0x80;
 				br <<= 1;
 				n++;
 				if (n==8) state++;
+			   } else {
+				state++;
 			   }
 			   break;
-		case 0x8e: if (state==0) {
-				return 0xff;
+		case 0x0e: if (state==0) {
+				state++;
+				return 0; // should be OK
 			   } else if (state==1) {
 				if (rw!='W') bufptr = 0;
 				rw = 'W';
@@ -1457,25 +1791,45 @@ BYTE vdrive_io(BYTE b)
 	}
 
 	if (state==4) {
-#if 0
-		printf("%04x %d %c %d %d %c %c %d %d %02x\n", z80.pc.w, state, rw, n, bufptr, br, ((bw>=0x20&&bw<0x80)?bw:0x20), bw, binary, z80.bc.b.h);
+#if (VDRDBG>=2)
+		printf("vdrive %d %c %d %d %d %c %c %d %d\n", state, rw, n, bufptr, len, br, ((bw>=0x20&&bw<0x80)?bw:0x20), bw, vd_nbytes);
 #endif
 		if (rw=='W') {
-			if (!binary && (bw == '\r')) {
+			binarg = (!strncasecmp(buf,"RDF ",4) || !strncasecmp(buf,"SEK ",4) || !strncasecmp(buf,"WRF ",4));
+			if (!vd_nbytes && (bw == '\r') && (!binarg || (binarg && (bufptr==8)))) {
 				buf[bufptr] = '\0';
-				vdrive(buf, bufptr, &binary);
+				len = vdrive(buf, bufptr);
 				bufptr = 0;
 			} else {
+#if (VDRDBG>=3)
+				printf("vdrive bw: %d %d 0x%02x %c\n",bufptr,bw,bw,bw);
+#endif
+//				if (vd_nbytes || bw<128 || vd_mmode==0) buf[bufptr++] = bw;
 				buf[bufptr++] = bw;
-				if (binary && (binary==bufptr)) {
-					binary = -1;
-					vdrive(buf, bufptr, &binary);
+				if (vd_nbytes && (vd_nbytes==bufptr)) {
+					vd_nbytes = -1;
+					len = vdrive(buf, bufptr);
 				        bufptr = 0;
 				}
 			}
 		}
 	}
-	return (state==3||state==4 ? bs : 0);
+
+	if (state==3 || state==4) {
+		return bs;
+	} else if (state==5) {
+		if (rw=='W') {
+		    bs = 0;
+		} else {
+		    bs = (len>=0 ? 0 : 0xff);
+		}
+#if (VDRDBG>=2)
+		printf("vdrive status: %d\n",bs);
+#endif
+		return bs;
+	}
+
+	return 0; // OK
 }
 #endif
 
@@ -1568,10 +1922,16 @@ BYTE zx81_readport(int Address, int *tstates)
                         return(config[configbyte]);
                 }
 
-                case 0x5f:
 #ifdef ZXNU
+                case 0x5f:
 			zxnu_latch = z80.bc.b.h;
 			loadrombank((zxnu_latch&0xc0) << 7);
+#else
+#ifdef VDRIVE
+		case 0x7f:
+#endif
+#endif
+#ifdef VDRIVE
 			return vdrive_io(z80.bc.b.h);
 #endif
                         if (zx81.truehires==HIRESMEMOTECH) {

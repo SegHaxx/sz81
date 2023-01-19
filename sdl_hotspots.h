@@ -182,14 +182,15 @@
 									 * gid and is visible then it can process pressed or released
 									 * events, but this property enables additional motion events */
 /* Variables */
-struct hotspot {
+typedef struct hotspot {
 	int gid;						/* Group id for easy management */
 	int flags;						/* An OR'd combination of HS_PROP_ properties */
 	int hit_x, hit_y, hit_w, hit_h;	/* Hit box */
 	int hl_x, hl_y, hl_w, hl_h;		/* Highlight box (if all UNDEFINED then use hitbox */
 	int remap_id;					/* The main destination control id (could be UNDEFINED) */
-};
-struct hotspot hotspots[MAX_HOTSPOTS];
+} hotspot_;
+
+extern hotspot_ hotspots[MAX_HOTSPOTS];
 
 /* Function prototypes */
 void hotspots_vkeyb_shift_init(void);

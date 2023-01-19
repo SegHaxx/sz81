@@ -34,6 +34,10 @@ extern ZX81 zx81;
 
 /* Variables */
 
+char startdir[256];
+
+runtimeoptions_ runtime_options[MAX_RUNTIME_OPTIONS];
+
 /* Function prototypes */
 void clean_up_before_exit(void);
 

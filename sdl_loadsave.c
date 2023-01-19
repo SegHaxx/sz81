@@ -22,6 +22,9 @@
 #include "zx81config.h"
 #include "zx81.h"
 
+load_file_dialog_ load_file_dialog;
+save_state_dialog_ save_state_dialog;
+
 extern MACHINE machine;
 extern ZX81 zx81;
 
@@ -1095,8 +1098,9 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 				*dirlist + *dirlist_sizeof * (count + 1)) > 0) {
 				swapped = TRUE;
 				strcpy(swap, *dirlist + *dirlist_sizeof * (count + 1));
-				strcpy(*dirlist + *dirlist_sizeof * (count + 1),
-					*dirlist + *dirlist_sizeof * count);
+				memmove(*dirlist + *dirlist_sizeof * (count + 1),
+					*dirlist + *dirlist_sizeof * count,
+					strlen(*dirlist + *dirlist_sizeof * count));
 				strcpy(*dirlist + *dirlist_sizeof * count, swap);
 			}
 		}

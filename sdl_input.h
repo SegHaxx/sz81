@@ -73,21 +73,21 @@
 #define SDLK_SBDOWN 357
 
 /* Variables */
-SDL_Joystick *joystick;
-int joystick_dead_zone;
-int show_input_id;
-int current_input_id;
-int runopts_emulator_speed;
-int runopts_emulator_model;
-int runopts_emulator_ramsize;
-int runopts_emulator_m1not;
-int runopts_emulator_wrx;
-int runopts_emulator_chrgen;
-int runopts_sound_device;
-int runopts_sound_stereo;
-int runopts_sound_ay_unreal;
+extern SDL_Joystick *joystick;
+extern int joystick_dead_zone;
+extern int show_input_id;
+extern int current_input_id;
+extern int runopts_emulator_speed;
+extern int runopts_emulator_model;
+extern int runopts_emulator_ramsize;
+extern int runopts_emulator_m1not;
+extern int runopts_emulator_wrx;
+extern int runopts_emulator_chrgen;
+extern int runopts_sound_device;
+extern int runopts_sound_stereo;
+extern int runopts_sound_ay_unreal;
 
-struct ctrlremap {
+typedef struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ IDs */
 	int protected;		/* TRUE to prevent this from being runtime modified */
 	int device;			/* The source device e.g. DEVICE_JOYSTICK */
@@ -95,19 +95,22 @@ struct ctrlremap {
 	int remap_device;	/* The destination device e.g. DEVICE_KEYBOARD */
 	int remap_id;		/* The main destination control id */
 	int remap_mod_id;	/* An additional modifier destination control id */
-};
-struct ctrlremap ctrl_remaps[MAX_CTRL_REMAPS];
+} ctrlremap_;
 
-struct {
+typedef struct {
 	int state;
 	int master_interval;
 	int interval;
-} ctrl_remapper;
+} ctrl_remapper_;
 
-struct {
+typedef struct {
 	int state;
 	char text[2][33];
-} joy_cfg;
+} joy_cfg_;
+
+extern ctrlremap_ ctrl_remaps[MAX_CTRL_REMAPS];
+extern ctrl_remapper_ ctrl_remapper;
+extern joy_cfg_ joy_cfg;
 
 /* Function prototypes */
 void toggle_emulator_paused(int force);

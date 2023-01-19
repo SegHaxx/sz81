@@ -998,8 +998,7 @@ if(sound_vsync)
     if(sound_stereo)
       *ptr++=sound_oldval;
     }
-  }
-else
+  } else
  /* must be AY then, so `zero' buffer ready for it */
  memset(sound_buf,128,sound_framesiz*(sound_stereo+1));
 

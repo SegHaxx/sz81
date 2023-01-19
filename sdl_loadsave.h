@@ -41,7 +41,7 @@
 #define SSTATE_MODE_LOAD 1
 
 /* Variables */
-struct {
+typedef struct {
 	int state;
 	int xoffset;
 	int yoffset;
@@ -54,15 +54,18 @@ struct {
 	char loaded[256];		/* The fullpath of the most recently loaded/saved file */
 	int method;				/* The loading method to be implemented for certain methods */
 	int sbpgscrunit;
-} load_file_dialog;
+} load_file_dialog_;
 
-struct {
+typedef struct {
 	int state;
 	int xoffset;
 	int yoffset;
 	int slots[9];		/* The slots currently saved to (existing state files) */
 	int mode;			/* Are we loading or saving */
-} save_state_dialog;
+} save_state_dialog_;
+
+extern load_file_dialog_ load_file_dialog;
+extern save_state_dialog_ save_state_dialog;
 
 /* Function prototypes */
 void load_file_dialog_dirlist_populate(int refresh);

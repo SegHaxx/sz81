@@ -18,6 +18,16 @@
 /* Includes */
 #include "sdl_engine.h"
 
+SDL_Surface *wm_icon;
+
+dialog_ dialog;
+rcfile_ rcfile;
+colourtable_ colours;
+bmpfont_ zx80font, zx81font, zx82font;	
+sz81icons_ sz81icons;
+vkeyb_ vkeyb;
+control_bar_ control_bar;
+
 /* Defines */
 /* Icon bitmap offsets that must be multiplied by video.scale */
 #define ICON_EXIT_X 0

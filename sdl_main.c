@@ -36,12 +36,22 @@
 void am_reset();
 #endif
 
+sdl_com_line_ sdl_com_line;
+sdl_emulator_ sdl_emulator;
+sdl_sound_ sdl_sound;
+sdl_zx80rom_ sdl_zx80rom;
+sdl_zx81rom_ sdl_zx81rom;
+sdl_aszmicrom_ sdl_aszmicrom;
+keyrepeat_ sdl_key_repeat;
+
 /* Defines */
 
 /* Variables */
 //int hsize = ZX_VID_VGA_WIDTH, vsize = ZX_VID_VGA_HEIGHT; // Sorry about that!
 int hsize = ZX_VID_X_WIDTH, vsize = ZX_VID_X_HEIGHT;
 unsigned char *vptr;
+
+int keyboard_buffer[MAX_KEYCODES];
 
 /* Function prototypes */
 

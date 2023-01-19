@@ -1,3 +1,8 @@
+2021-03-20
+* 2.3.11 unofficial version (by Erik Olofsen)
+* "multiple definition" building issue solved
+* Improved Vdrive emulation
+
 2019-04-22
 * 2.3.10 unofficial version (by Erik Olofsen)
 * Much improved WIZnet W5100 emulation

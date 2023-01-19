@@ -96,15 +96,16 @@ extern int refresh_screen;
 extern int sound_stereo, sound_stereo_acb, sound_ay_unreal;
 
 /* Variables */
-char startdir[256];
+extern char startdir[256];
 
-struct runtimeoptions {
+typedef struct runtimeoptions {
 	int state;
 	int xoffset;
 	int yoffset;
 	char **text;
-};
-struct runtimeoptions runtime_options[MAX_RUNTIME_OPTIONS];
+} runtimeoptions_;
+
+extern runtimeoptions_ runtime_options[MAX_RUNTIME_OPTIONS];
 
 /* Emulator functions I require access to */
 extern void initmem(void);

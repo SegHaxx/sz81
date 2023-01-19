@@ -85,7 +85,7 @@
 
 
 /* Variables */
-SDL_Surface *wm_icon;
+extern SDL_Surface *wm_icon;
 
 struct Notification {
 	char title[31];		/* The title bar text */
@@ -93,7 +93,7 @@ struct Notification {
 	int timeout;		/* In ms */
 };
 
-struct {
+typedef struct {
 	int state;
 	int flags;			/* An OR'd combination of DIALOG_ properties */
 	int retval;			/* The remap_id of the button pressed */
@@ -103,14 +103,14 @@ struct {
 	int height;
 	char *title;					/* The title bar text */
 	char *text[MAX_DIALOG_ROWS];	/* A multi-line message */
-} dialog;
+} dialog_;
 
-struct {
+typedef struct {
 	char filename[256];
 	int rewrite;
-} rcfile;
+} rcfile_;
 
-struct colourtable {
+typedef struct colourtable {
 	Uint32 colour_key;
 	Uint32 bmf_fg_default;
 	Uint32 emu_fg;
@@ -127,23 +127,21 @@ struct colourtable {
 	Uint32 hs_ctb_pressed;
 	Uint32 hs_options_selected;
 	Uint32 hs_options_pressed;
-};
-struct colourtable colours;
+} colourtable_;
 
-struct bmpfont {
+typedef struct bmpfont {
 	SDL_Surface *original;
 	SDL_Surface *scaled[MAX_FONTS];
 	Uint32 fg_colour[MAX_FONTS];
 	Uint32 requested[MAX_FONTS];
-};
-struct bmpfont zx80font, zx81font, zx82font;	
+} bmpfont_;
 
-struct {
+typedef struct {
 	SDL_Surface *original;
 	SDL_Surface *scaled;
-} sz81icons;
+} sz81icons_;
 
-struct {
+typedef struct {
 	SDL_Surface *zx80original;
 	SDL_Surface *zx81original;
 	SDL_Surface *scaled;
@@ -153,13 +151,21 @@ struct {
 	int alpha;
 	int autohide;		/* TRUE to hide on newline */
 	int toggle_shift;	/* TRUE for toggle, FALSE for sticky */
-} vkeyb;
+} vkeyb_;
 
-struct {
+typedef struct {
 	SDL_Surface *scaled;
 	int xoffset;
 	int yoffset;
-} control_bar;
+} control_bar_;
+
+extern dialog_ dialog;
+extern rcfile_ rcfile;
+extern colourtable_ colours;
+extern bmpfont_ zx80font, zx81font, zx82font;	
+extern sz81icons_ sz81icons;
+extern vkeyb_ vkeyb;
+extern control_bar_ control_bar;
 
 /* Function prototypes */
 void local_data_dir_init(void);

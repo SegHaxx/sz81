@@ -144,7 +144,7 @@ void PrepareDisInstruction(DISZ80 *d)
 int dZ80_Disassemble(DISZ80 *d)
 {
 	int 	i, err, skipped;
-	char	buf[256], num1[16], num2[16];
+	char	buf[512], num1[16], num2[16];
 
 	assert(d != NULL);
 
@@ -1752,7 +1752,7 @@ BYTE* AllocateMap(DISZ80 *d, const char *errorStr, unsigned int bytesWanted)
 int CreateOutputASMFile(DISZ80 *d)
 {
 	char	MsgBuf[_MAX_PATH + 80];
-	char	buf[256];
+	char	buf[512];
 	time_t	secs_now;
 	struct	tm *time_now;
 
@@ -1845,7 +1845,7 @@ int dZ80_AllocateOpMap(DISZ80 *d)
 
 int PrepareOpMap(DISZ80 *d)
 {
-	char	buf[256];
+	char	buf[512];
 	int		err;
 	FILE	*opStream;
 
