@@ -57,12 +57,12 @@ unsigned char scrnbmp_old[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];
 						/* checked against for diffs */
 
 #ifdef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
-int liney=0;
+int liney=0, lineyi=0;
 int vsy=0;
 unsigned long linestart=0;
 int vsync_toggle=0,vsync_lasttoggle=0;
 #else
-static int liney=0;
+static int liney=0, lineyi=0;
 static int vsy=0;
 static unsigned long linestart=0;
 static int vsync_toggle=0,vsync_lasttoggle=0;
@@ -70,6 +70,7 @@ static int vsync_toggle=0,vsync_lasttoggle=0;
 
 int ay_reg=0;
 
+static int linestate=0, linex=0, nrmvideo=1;
 
 #define LINEX 	((tstates-linestart)>>2)
 
@@ -240,12 +241,34 @@ while(1)
   new_ixoriy=0;
   intsample=1;
   op=fetch(pc&0x7fff);
+
+  if (pc&0x8000 && !(op&64) && linestate==0) {
+    nrmvideo = i<0x20 || radjust==0xdf;
+    linestate = 1;
+    linex = 5;
+    if (liney<ZX_VID_MARGIN) liney=ZX_VID_MARGIN;
+  } else if (linestate>=1) {
+    if (op&64) {
+      linestate = 0;
+      linex = ZX_VID_FULLWIDTH/8;
+      if (sdl_emulator.ramsize>=4 && !zx80) {
+        liney++;
+        lineyi=1;
+      }
+    } else {
+      linestate++;
+      linex++;
+    }
+  }
+
+  if (!nrmvideo) ulacharline = 0;
+
   if((pc&0x8000) && !(op&64))
     {
     int x,y,v;
     
     /* do the ULA's char-generating stuff */
-    x=LINEX;
+    x=linex;
     y=liney;
 /*    printf("ULA %3d,%3d = %02X\n",x,y,op);*/
     if(y>=0 && y<ZX_VID_FULLHEIGHT && x>=0 && x<ZX_VID_FULLWIDTH/8)
@@ -254,20 +277,14 @@ while(1)
        * stuff from the ULA's side, but the timing is messed up
        * at the moment so not worth it currently.
        */
-#if 0
-      if((tstates-linestart)==3)
-        v=mem[((i&0xfe)<<8)|radjust];
+      if (nrmvideo)
+        v=mem[((i&0xfe)<<8)|((op&63)<<3)|ulacharline];
       else
-#endif
-      /* Thunor: mem[] here is being read without memptr and therefore
-       * bypasses the address lines and reads directly from the array.
-       * My fixed equivalent is the next line down which uses fetch().
-        v=mem[((i&0xfe)<<8)|((op&63)<<3)|ulacharline]; */
-        v=fetch(((i&0xfe)<<8)|((op&63)<<3)|ulacharline);
+        v=mem[(i<<8)|(r&0x80)|(radjust&0x7f)];
       if(taguladisp) v^=128;
       scrnbmp_new[y*(ZX_VID_FULLWIDTH/8)+x]=((op&128)?~v:v);
       }
-    
+
     op=0;	/* the CPU sees a nop */
     }
 
@@ -343,7 +360,7 @@ while(1)
      * but if we just loaded/saved, wait for the first real frame instead
      * to avoid jumpiness.
      */
-    if(!vsync && tstates-lastvsyncpend>=tsmax && !framewait)
+    if(!vsync && tstates-lastvsyncpend>=tsmax*2 && !framewait)
       vsyncpend=1;
 
     /* but that won't ever happen if we always have vsync on -
@@ -361,7 +378,7 @@ while(1)
 
     if(!vsyncpend)
       {
-      liney++;
+      if (!lineyi) liney++;
       
       if(hsyncgen && !hsyncskip)
         {

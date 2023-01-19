@@ -213,7 +213,7 @@ sa.sa_flags=SA_RESTART;
 
 sigaction(SIGALRM,&sa,NULL);
 
-itv.it_interval.tv_sec=  tmp/1000;
+itv.it_interval.tv_sec=tmp/1000;
 itv.it_interval.tv_usec=(tmp%1000)*1000;
 itv.it_value.tv_sec=itv.it_interval.tv_sec;
 itv.it_value.tv_usec=itv.it_interval.tv_usec;
@@ -808,6 +808,13 @@ switch(l)
     return(ts|printer_inout(1,a));
   case 0xfd:
     nmigen=0;
+    if(vsync)
+      vsync_lower();
+    vsync=0;
+    hsyncgen=1;
+#ifdef OSS_SOUND_SUPPORT
+    sound_beeper(vsync);
+#endif
     break;
   case 0xfe:
     if(!zx80)
@@ -816,7 +823,7 @@ switch(l)
       break;
       }
     /* falls through, if zx80 */
-  case 0xff:	/* XXX should *any* out turn off vsync? */
+  case 0xff:	/* XXX should *any* out turn off vsync? [copied to 0xfd] */
     /* fill screen gap since last raising of vsync */
     if(vsync)
       vsync_lower();

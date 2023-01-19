@@ -1,3 +1,12 @@
+2014-04-13
+* 2.1.8 unoffical version (by Erik Olofsen) with provisional
+  patches to z80.c, edops.c, and common.c:
+  common.c: out at 0xfd should turn off vsync as well
+  edops.c: correction to extended instruction address
+  z80.c: check for display information (ideally the timing should be corrected),
+         use IR to get information, avoid early fake vsyncs
+* enabled the emulator speed option
+
 2011-02-13
 * 2.1.7 released
 * Added forced (non-LOAD) program loading via a load file dialog

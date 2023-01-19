@@ -34,7 +34,7 @@ VERSION=$(shell cat VERSION)
 #LDFLAGS=-pg
 SDL_CONFIG?=sdl-config
 CFLAGS?=-O3
-CFLAGS+=-Wall `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" \
+CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 
 LINK=$(CC)
 LDFLAGS=
@@ -62,7 +62,7 @@ open%:
 	fi
 
 clean:
-	rm -f *.o
+	rm -f *.o *~
 
 install:
 	@if [ "$(PREFIX)" = . ] ; then \
@@ -77,7 +77,7 @@ install:
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
 	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
-	
+
 uninstall:
 	@echo "Uninstalling is not currently implemented."
 
