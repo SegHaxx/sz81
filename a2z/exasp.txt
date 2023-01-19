@@ -1,0 +1,4 @@
+While EightyOne's pixel generation routine (zx81_do_scanline()) detects
+the number of tstates of 208 with ASZMIC, the number of tstates of 207 with
+the hires routine of the SP ROM is not detected. So for now, a hack is applied,
+using output port 3.

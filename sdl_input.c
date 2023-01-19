@@ -1014,6 +1014,7 @@ int keyboard_update(void) {
 					}
 					break;
 				case SDL_QUIT:
+					printf("SDL_QUIT\n");
 					/* Simulate an F10 press which will execute the exit code */
 					device = DEVICE_KEYBOARD;
 					id = SDLK_F10;
@@ -1035,8 +1036,8 @@ int keyboard_update(void) {
 
 			#ifdef SDL_DEBUG_EVENTS
 				if (device != UNDEFINED) {
-					printf("%s: device=%i: id=%i state=%i mod_id=%i\n",
-						__func__, device, id, state, mod_id);
+					printf("%s: event.type=%i; device=%i: id=%i state=%i mod_id=%i\n",
+					       __func__, event.type, device, id, state, mod_id);
 				}
 			#endif
 
@@ -2163,9 +2164,12 @@ void manage_runopts_input(void) {
 					if (id == SDLK_INSERT) {
 						if (runopts_emulator_ramsize == 56) {
 							runopts_emulator_ramsize = 48;
-						} else if (runopts_emulator_ramsize >= 32 &&
-							runopts_emulator_ramsize <= 48) {
-							runopts_emulator_ramsize -= 16;
+						} else if (runopts_emulator_ramsize == 48) {
+							runopts_emulator_ramsize = 32;
+						} else if (runopts_emulator_ramsize == 32) {
+							runopts_emulator_ramsize = 24;
+						} else if (runopts_emulator_ramsize == 24) {
+							runopts_emulator_ramsize = 16;
 						} else if (runopts_emulator_ramsize == 16) {
 							runopts_emulator_ramsize = 4;
 						} else if (runopts_emulator_ramsize > 1 &&
@@ -2177,9 +2181,12 @@ void manage_runopts_input(void) {
 							runopts_emulator_ramsize += 1;
 						} else if (runopts_emulator_ramsize == 4) {
 							runopts_emulator_ramsize = 16;
-						} else if (runopts_emulator_ramsize >= 16 &&
-							runopts_emulator_ramsize <= 32) {
-							runopts_emulator_ramsize += 16;
+						} else if (runopts_emulator_ramsize == 16) {
+							runopts_emulator_ramsize = 24;
+						} else if (runopts_emulator_ramsize == 24) {
+							runopts_emulator_ramsize = 32;
+						} else if (runopts_emulator_ramsize == 32) {
+							runopts_emulator_ramsize = 48;
 						} else if (runopts_emulator_ramsize == 48) {
 							runopts_emulator_ramsize = 56;
 						}
@@ -2207,9 +2214,11 @@ void manage_runopts_input(void) {
 					if (state == SDL_PRESSED) {
 						key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 						if (id == SDLK_1) {
-							if (runopts_emulator_speed < 40) runopts_emulator_speed += 10;
+							if (runopts_emulator_speed == 5) runopts_emulator_speed += 5;
+							else if (runopts_emulator_speed < 40) runopts_emulator_speed += 10;
 						} else {
 							if (runopts_emulator_speed > 10) runopts_emulator_speed -= 10;
+							else if (runopts_emulator_speed > 5) runopts_emulator_speed -= 5;
 						}
 					} else if (state == SDL_RELEASED) {
 						key_repeat_manager(KRM_FUNC_RELEASE, NULL, 0);

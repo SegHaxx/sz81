@@ -58,7 +58,9 @@ int sdl_init(void) {
 		video.xres = 640; video.yres = 480; video.scale = 2;
 		video.fullscreen = SDL_FULLSCREEN;
 	#else
-		video.xres = 640; video.yres = 480; video.scale = 2;
+		// TODO:  video.xres = 640; video.yres = 480; video.scale = 2;
+		// new default:
+		video.xres = 800; video.yres = 600; video.scale = 2;
 		video.fullscreen = FALSE;
 	#endif
 
@@ -113,6 +115,7 @@ int sdl_init(void) {
 	colours.hs_options_selected = 0x00ff00;
 	colours.hs_options_pressed = 0xffc000;
 	sdl_com_line.fullscreen = UNDEFINED;
+	sdl_com_line.networking = UNDEFINED;
 	sdl_com_line.scale = UNDEFINED;
 	sdl_com_line.xres = UNDEFINED;
 	sdl_com_line.yres = UNDEFINED;
@@ -208,12 +211,14 @@ int sdl_com_line_process(int argc, char *argv[]) {
 		for (count = 1; count < argc; count++) {
 			if (!strcmp (argv[count], "-f")) {
 				sdl_com_line.fullscreen = TRUE;
+			} else if (!strcmp (argv[count], "-n")) {
+				sdl_com_line.networking = TRUE;
 			} else if (!strcmp (argv[count], "-w")) {
 				sdl_com_line.fullscreen = FALSE;
 			} else if (sscanf (argv[count], "-%ix%i", 
 				&sdl_com_line.xres, &sdl_com_line.yres) == 2) {
-				if (sdl_com_line.xres < 240 || sdl_com_line.yres < 240) {
-					fprintf (stdout, "Invalid resolution: a minimum of 240x240 is required.\n");
+				if (sdl_com_line.xres < 400 || sdl_com_line.yres < 300) {
+					fprintf (stdout, "Invalid resolution: a minimum of 400x300 is required.\n");
 					return TRUE;
 				}
 			} else if (sdl_filetype_casecmp(argv[count], ".o") == 0 ||
@@ -226,9 +231,10 @@ int sdl_com_line_process(int argc, char *argv[]) {
 				fprintf (stdout,
 					"z81 2.1 - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n"
 					"sz81 " VERSION " (unofficial, see NEWS) - copyright (C) 2007-2011 Thunor and Chris Young.\n\n"
-					"usage: sz81 [-fhw] [-XRESxYRES] [filename.{o|p|80|81}]\n\n"
+					"usage: sz81 [-fhnw] [-XRESxYRES] [filename.{o|p|80|81}]\n\n"
 					"  -f  run the program fullscreen\n"
 					"  -h  this usage help\n"
+					"  -n  enable networking\n"
 					"  -w  run the program in a window\n"
 					"  -XRESxYRES e.g. -800x480\n\n");
 				return TRUE;
@@ -239,12 +245,13 @@ int sdl_com_line_process(int argc, char *argv[]) {
 	/* Process sz81's command line options */
 	if (sdl_com_line.fullscreen != UNDEFINED && sdl_com_line.fullscreen)
 		video.fullscreen = SDL_FULLSCREEN;
+	sdl_emulator.networking = sdl_com_line.networking==UNDEFINED ? FALSE : TRUE;
 	if (sdl_com_line.xres != UNDEFINED) {
 		/* Calculate the scale for the requested resolution */
-		if (sdl_com_line.xres / 240 > sdl_com_line.yres / 240) {
-			sdl_com_line.scale = sdl_com_line.yres / 240;
+		if (sdl_com_line.xres / 400 > sdl_com_line.yres / 300) {
+			sdl_com_line.scale = sdl_com_line.yres / 300;
 		} else {
-			sdl_com_line.scale = sdl_com_line.xres / 240;
+			sdl_com_line.scale = sdl_com_line.xres / 400;
 		}
 		video.scale = sdl_com_line.scale;
 		video.xres = sdl_com_line.xres;
@@ -353,6 +360,7 @@ void sdl_component_executive(void) {
 	#ifdef OSS_SOUND_SUPPORT
 		/* Monitor sound device and stereo changes */
 		if (sdl_sound_device != sdl_sound.device || sdl_sound_stereo != sdl_sound.stereo) {
+			sound_end();
 			/* Update stereo regardless */
 			sdl_sound_stereo = sdl_sound.stereo;
 			/* Only restart the mainloop if either the sound device 
@@ -549,8 +557,10 @@ void sdl_timer_init(void) {
 Uint32 emulator_timer(Uint32 interval, void *param) {
 	static int intervals = 0;
 
+	/* speed setting is partly done here, partly in sz81.c... */
+
 	intervals++;
-	if (intervals >= sdl_emulator.speed / 10) {
+	if (intervals >= (sdl_emulator.speed > 20 ? sdl_emulator.speed : 20) / 10) {
 		signal_int_flag = TRUE;
 		intervals = 0;
 	}
@@ -676,7 +686,7 @@ void clean_up_before_exit(void) {
 
 	if (wm_icon) SDL_FreeSurface(wm_icon);
 
-	w_exit();
+	if (sdl_emulator.networking) w_exit();
 
 	SDL_Quit();
 

@@ -228,7 +228,7 @@ void w_sendto(int so, int sn)
    lbuf = i2 - i1;
    for (i=0; i<lbuf; i++) {
      i1 &= W_BUFMSK;
-     buf[i] = w_mem[0x4000+sn*W_BUFSIZ+i1];
+     buf[i] = w_mem[0x4000+so*W_BUFSIZ+i1];
      i1++;
    }
 
@@ -537,10 +537,11 @@ void w_write(int port, int val)
 #endif
 			 w_socket(addr,val);
 			 break;
-	  case WIZ_MODE: if (w_mem[MR]!=val)
+	  case WIZ_MODE: if (w_mem[MR]!=val) {
 			   printf("w5100: changing operation mode (from 0x%02x to 0x%02x) not implemented...\n",
 			     w_mem[MR], val);
-	       	         exit(EXIT_FAILURE);
+	       	           exit(EXIT_FAILURE);
+			 }
 	}
 }
 

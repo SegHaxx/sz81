@@ -70,6 +70,7 @@ int keyboard_buffer[MAX_KEYCODES];
 
 struct {
 	int fullscreen;
+	int networking;
 	int scale;
 	int xres;
 	int yres;
@@ -84,11 +85,12 @@ struct {
 	SDL_TimerID timer_id;
 	int m1not;
 	int speed;		/* 5ms=400%, 10ms=200%, 20ms=100%, 30ms=66%, 40ms=50% */
-	int frameskip;	/* 0 to MAX_FRAMESKIP */
+	int frameskip;	        /* 0 to MAX_FRAMESKIP */
 	int *model;		/* Points to z81's zx80: 0=ZX81, 1=ZX80 */
-	int ramsize;	/* 1, 2, 3, 4, 16, 32, 48 or 56K */
+	int ramsize;	        /* 1, 2, 3, 4, 16, 32, 48 or 56K */
 	int invert;		/* This should really be in video but it's easier to put it here */
-	int autoload;	/* Set to TRUE when auto-loading or forced-loading */
+	int autoload;	        /* Set to TRUE when auto-loading or forced-loading */
+	int networking;         /* enable calls to WIZ chip emulation */
 } sdl_emulator;
 
 struct {
@@ -110,6 +112,11 @@ struct {
 	int state;
 	unsigned char data[8 * 1024];
 } sdl_zx81rom;
+
+struct {
+	int state;
+	unsigned char data[4 * 1024];
+} sdl_aszmicrom;
 
 struct keyrepeat {
 	int delay;

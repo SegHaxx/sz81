@@ -17,6 +17,16 @@
 
 /* Includes */
 #include "sdl_engine.h"
+#include "z80/z80.h"
+#include "z80/z80_macros.h"
+#include "zx81config.h"
+#include "zx81/zx81.h"
+
+extern MACHINE machine;
+extern ZX81 zx81;
+
+/* for state load/save */
+extern int NMI_generator, HSYNC_generator, rowcounter;
 
 /* Defines */
 
@@ -278,6 +288,8 @@ int sdl_save_file(int parameter, int method) {
 		strcat(fullpath, filename);
 	}
 
+printf("Creating file %s...\n",fullpath);
+
 	if (!retval) {
 		/* Attempt to open the file */
 		if ((fp = fopen(fullpath, "wb")) != NULL) {
@@ -302,62 +314,38 @@ int sdl_save_file(int parameter, int method) {
 				/* The entire contents of memory */
 				fwrite(mem, 1, 64 * 1024, fp);	/* unsigned char */
 
-				/* Variables from the top of z80.c */
-				fwrite_unsigned_long_little_endian(&tstates, fp);
-				fwrite_unsigned_long_little_endian(&frames, fp);
-				fwrite_int_little_endian(&liney, fp);
-				fwrite_int_little_endian(&vsy, fp);
-				fwrite_unsigned_long_little_endian(&linestart, fp);
-				fwrite_int_little_endian(&vsync_toggle, fp);
-				fwrite_int_little_endian(&vsync_lasttoggle, fp);
+				/* The processor */
+				fwrite(&A, 1, 1, fp);	/* unsigned char */
+				fwrite(&F, 1, 1, fp);
+				fwrite(&B, 1, 1, fp); 
+				fwrite(&C, 1, 1, fp);
+				fwrite(&D, 1, 1, fp); 
+				fwrite(&E, 1, 1, fp);
+				fwrite(&H, 1, 1, fp); 
+				fwrite(&L, 1, 1, fp);
+				fwrite(&A_, 1, 1, fp); 
+				fwrite(&F_, 1, 1, fp);
+				fwrite(&B_, 1, 1, fp); 
+				fwrite(&C_, 1, 1, fp);
+				fwrite(&D_, 1, 1, fp); 
+				fwrite(&E_, 1, 1, fp);
+				fwrite(&H_, 1, 1, fp); 
+				fwrite(&L_, 1, 1, fp);
+				fwrite(&I, 1, 1, fp); 
+				fwrite(&R, 1, 1, fp);
+				fwrite(&R7, 1, 1, fp);
+				fwrite(&IFF1, 1, 1, fp); 
+				fwrite(&IFF2, 1, 1, fp);
+				fwrite(&IM, 1, 1, fp); 
+				fwrite_unsigned_short_little_endian(&PC, fp);
+				fwrite_unsigned_short_little_endian(&IX, fp);
+				fwrite_unsigned_short_little_endian(&IY, fp);
+				fwrite_unsigned_short_little_endian(&SP, fp);
 
-				/* Variables liberated from the top of mainloop */
-				fwrite(&a, 1, 1, fp);	/* unsigned char */
-				fwrite(&f, 1, 1, fp);
-				fwrite(&b, 1, 1, fp); 
-				fwrite(&c, 1, 1, fp);
-				fwrite(&d, 1, 1, fp); 
-				fwrite(&e, 1, 1, fp);
-				fwrite(&h, 1, 1, fp); 
-				fwrite(&l, 1, 1, fp);
-				fwrite(&r, 1, 1, fp);
-				fwrite(&a1, 1, 1, fp); 
-				fwrite(&f1, 1, 1, fp);
-				fwrite(&b1, 1, 1, fp); 
-				fwrite(&c1, 1, 1, fp);
-				fwrite(&d1, 1, 1, fp); 
-				fwrite(&e1, 1, 1, fp);
-				fwrite(&h1, 1, 1, fp); 
-				fwrite(&l1, 1, 1, fp);
-				fwrite(&i, 1, 1, fp); 
-				fwrite(&iff1, 1, 1, fp); 
-				fwrite(&iff2, 1, 1, fp);
-				fwrite(&im, 1, 1, fp); 
-				fwrite_unsigned_short_little_endian(&pc, fp);
-				fwrite_unsigned_short_little_endian(&ix, fp);
-				fwrite_unsigned_short_little_endian(&iy, fp);
-				fwrite_unsigned_short_little_endian(&sp, fp);
-				fwrite(&radjust, 1, 1, fp);	/* unsigned char */
-				fwrite_unsigned_long_little_endian(&nextlinetime, fp);
-				fwrite_unsigned_long_little_endian(&linegap, fp);
-				fwrite_unsigned_long_little_endian(&lastvsyncpend, fp);
-				fwrite(&ixoriy, 1, 1, fp);	/* unsigned char */
-				fwrite(&new_ixoriy, 1, 1, fp);
-				fwrite(&intsample, 1, 1, fp);
-				fwrite(&op, 1, 1, fp);
-				fwrite_int_little_endian(&ulacharline, fp);
-				fwrite_int_little_endian(&nmipend, fp);
-				fwrite_int_little_endian(&intpend, fp);
-				fwrite_int_little_endian(&vsyncpend, fp);
-				fwrite_int_little_endian(&vsynclen, fp);
-				fwrite_int_little_endian(&hsyncskip, fp);
-				fwrite_int_little_endian(&framewait, fp);
-
-				/* Variables from the top of common.c */
-				fwrite_int_little_endian(&interrupted, fp);
-				fwrite_int_little_endian(&nmigen, fp);
-				fwrite_int_little_endian(&hsyncgen, fp);
-				fwrite_int_little_endian(&vsync, fp);
+				/* Hardware */
+				fwrite_int_little_endian(&NMI_generator, fp);
+				fwrite_int_little_endian(&HSYNC_generator, fp);
+				fwrite_int_little_endian(&rowcounter, fp);
 
 				/* 65654/0x10076 bytes to here for 2.1.7 */
 
@@ -526,8 +514,9 @@ int sdl_load_file(int parameter, int method) {
 				strcpy(filename, strzx81_to_ascii(parameter));
 				scp = strrchr(filename,';');
 				if (scp) {
+					addr = 0;
 					sscanf(scp+1,"%d",&addr);
-					if (!addr) scp = NULL; else strcpy(scp,"");
+					strcpy(scp,"");
 				}
 				/* Add a file extension if one hasn't already been affixed */
 				if (sdl_filetype_casecmp(filename, ".p") != 0 &&
@@ -554,7 +543,7 @@ int sdl_load_file(int parameter, int method) {
 			}
 
 
-printf("Opening file %s...\n",fullpath);
+			printf("Opening file %s...\n",fullpath);
 
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {
@@ -579,62 +568,38 @@ printf("Opening file %s...\n",fullpath);
 					/* The entire contents of memory */
 					fread(mem, 1, 64 * 1024, fp);	/* unsigned char */
 
-					/* Variables from the top of z80.c */
-					fread_unsigned_long_little_endian(&tstates, fp);
-					fread_unsigned_long_little_endian(&frames, fp);
-					fread_int_little_endian(&liney, fp);
-					fread_int_little_endian(&vsy, fp);
-					fread_unsigned_long_little_endian(&linestart, fp);
-					fread_int_little_endian(&vsync_toggle, fp);
-					fread_int_little_endian(&vsync_lasttoggle, fp);
+					/* The processor */
+					fread(&A, 1, 1, fp);	/* unsigned char */
+					fread(&F, 1, 1, fp);
+					fread(&B, 1, 1, fp); 
+					fread(&C, 1, 1, fp);
+					fread(&D, 1, 1, fp); 
+					fread(&E, 1, 1, fp);
+					fread(&H, 1, 1, fp); 
+					fread(&L, 1, 1, fp);
+					fread(&A_, 1, 1, fp); 
+					fread(&F_, 1, 1, fp);
+					fread(&B_, 1, 1, fp); 
+					fread(&C_, 1, 1, fp);
+					fread(&D_, 1, 1, fp); 
+					fread(&E_, 1, 1, fp);
+					fread(&H_, 1, 1, fp); 
+					fread(&L_, 1, 1, fp);
+					fread(&I, 1, 1, fp); 
+					fread(&R, 1, 1, fp);
+					fread(&R7, 1, 1, fp);
+					fread(&IFF1, 1, 1, fp); 
+					fread(&IFF2, 1, 1, fp);
+					fread(&IM, 1, 1, fp); 
+					fread_unsigned_short_little_endian(&PC, fp);
+					fread_unsigned_short_little_endian(&IX, fp);
+					fread_unsigned_short_little_endian(&IY, fp);
+					fread_unsigned_short_little_endian(&SP, fp);
 
-					/* Variables liberated from the top of mainloop */
-					fread(&a, 1, 1, fp);	/* unsigned char */
-					fread(&f, 1, 1, fp);
-					fread(&b, 1, 1, fp); 
-					fread(&c, 1, 1, fp);
-					fread(&d, 1, 1, fp); 
-					fread(&e, 1, 1, fp);
-					fread(&h, 1, 1, fp); 
-					fread(&l, 1, 1, fp);
-					fread(&r, 1, 1, fp);
-					fread(&a1, 1, 1, fp); 
-					fread(&f1, 1, 1, fp);
-					fread(&b1, 1, 1, fp); 
-					fread(&c1, 1, 1, fp);
-					fread(&d1, 1, 1, fp); 
-					fread(&e1, 1, 1, fp);
-					fread(&h1, 1, 1, fp); 
-					fread(&l1, 1, 1, fp);
-					fread(&i, 1, 1, fp); 
-					fread(&iff1, 1, 1, fp); 
-					fread(&iff2, 1, 1, fp);
-					fread(&im, 1, 1, fp); 
-					fread_unsigned_short_little_endian(&pc, fp);
-					fread_unsigned_short_little_endian(&ix, fp);
-					fread_unsigned_short_little_endian(&iy, fp);
-					fread_unsigned_short_little_endian(&sp, fp);
-					fread(&radjust, 1, 1, fp);	/* unsigned char */
-					fread_unsigned_long_little_endian(&nextlinetime, fp);
-					fread_unsigned_long_little_endian(&linegap, fp);
-					fread_unsigned_long_little_endian(&lastvsyncpend, fp);
-					fread(&ixoriy, 1, 1, fp);	/* unsigned char */
-					fread(&new_ixoriy, 1, 1, fp);
-					fread(&intsample, 1, 1, fp);
-					fread(&op, 1, 1, fp);
-					fread_int_little_endian(&ulacharline, fp);
-					fread_int_little_endian(&nmipend, fp);
-					fread_int_little_endian(&intpend, fp);
-					fread_int_little_endian(&vsyncpend, fp);
-					fread_int_little_endian(&vsynclen, fp);
-					fread_int_little_endian(&hsyncskip, fp);
-					fread_int_little_endian(&framewait, fp);
-
-					/* Variables from the top of common.c */
-					fread_int_little_endian(&interrupted, fp);
-					fread_int_little_endian(&nmigen, fp);
-					fread_int_little_endian(&hsyncgen, fp);
-					fread_int_little_endian(&vsync, fp);
+					/* Hardware */
+					fread_int_little_endian(&NMI_generator, fp);
+					fread_int_little_endian(&HSYNC_generator, fp);
+					fread_int_little_endian(&rowcounter, fp);
 
 					/* 65654/0x10076 bytes to here for 2.1.7 */
 
@@ -657,66 +622,66 @@ printf("Opening file %s...\n",fullpath);
 						 */
 						if (*sdl_emulator.model == MODEL_ZX80) {
 							/* Registers (common values) */
-							a = 0x00; f = 0x44; b = 0x00; c = 0x00;
-							d = 0x07; e = 0xae; h = 0x40; l = 0x2a;
-							pc = 0x0283;
-							ix = 0x0000; iy = 0x4000; i = 0x0e; r = 0xdd;
-							a1 = 0x00; f1 = 0x00; b1 = 0x00; c1 = 0x21;
-							d1 = 0xd8; e1 = 0xf0; h1 = 0xd8; l1 = 0xf0;
-							iff1 = 0x00; iff2 = 0x00; im = 0x02;
-							radjust = 0x6a;
+							A = 0x00; F = 0x44; B = 0x00; C = 0x00;
+							D = 0x07; E = 0xae; H = 0x40; L = 0x2a;
+							PC = 0x0283;
+							IX = 0x0000; IY = 0x4000; I = 0x0e; R7 = 0xdd;
+							A_ = 0x00; F_ = 0x00; B_ = 0x00; C_ = 0x21;
+							D_ = 0xd8; E_ = 0xf0; H_ = 0xd8; L_ = 0xf0;
+							IFF1 = 0x00; IFF2 = 0x00; IM = 1;
+						        R = 0x6a;
 							/* Machine Stack (common values) */
 							if (sdl_emulator.ramsize >= 16) {
-								sp = 0x8000 - 4;
+								SP = 0x8000 - 4;
 							} else {
-								sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+								SP = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
 							}
-							mem[sp + 0] = 0x47;
-							mem[sp + 1] = 0x04;
-							mem[sp + 2] = 0xba;
-							mem[sp + 3] = 0x3f;
+							mem[SP + 0] = 0x47;
+							mem[SP + 1] = 0x04;
+							mem[SP + 2] = 0xba;
+							mem[SP + 3] = 0x3f;
 							/* Now override if RAM configuration changes things
 							 * (there's a possibility these changes are unimportant) */
 							if (sdl_emulator.ramsize == 16) {
-								mem[sp + 2] = 0x22;
+								mem[SP + 2] = 0x22;
 							}
 						} else if (*sdl_emulator.model == MODEL_ZX81 && !scp) {
 							/* Registers (common values) */
-							a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
-							d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
-							pc = 0x0207;
-							ix = 0x0281; iy = 0x4000; i = 0x1e; r = 0xdd;
-							a1 = 0xf8; f1 = 0xa9; b1 = 0x00; c1 = 0x00;
-							d1 = 0x00; e1 = 0x2b; h1 = 0x00; l1 = 0x00;
-							iff1 = 0; iff2 = 0; im = 2;
-							radjust = 0xa4;
+							A = 0x0b; F = 0x00; B = 0x00; C = 0x02;
+							D = 0x40; E = 0x9b; H = 0x40; L = 0x99;
+							PC = zx81.machine==MACHINELAMBDA ? 0x0203 : 0x0207;
+							IX = 0x0281; IY = 0x4000; I = 0x1e; R7 = 0xdd;
+							A_ = 0xf8; F_ = 0xa9; B_ = 0x00; C_ = 0x00;
+							D_ = 0x00; E_ = 0x2b; H_ = 0x00; L_ = 0x00;
+							IFF1 = 0; IFF2 = 0; IM = 1;
+							R = 0xa4;
 							/* GOSUB Stack (common values) */
 							if (sdl_emulator.ramsize >= 16) {
-								sp = 0x8000 - 4;
+								SP = 0x8000 - 4;
 							} else {
-								sp = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
+								SP = 0x4000 - 4 + sdl_emulator.ramsize * 1024;
 							}
-							mem[sp + 0] = 0x76;
-							mem[sp + 1] = 0x06;
-							mem[sp + 2] = 0x00;
-							mem[sp + 3] = 0x3e;
+							mem[SP + 0] = 0x76;
+							mem[SP + 1] = 0x06;
+							mem[SP + 2] = 0x00;
+							mem[SP + 3] = 0x3e;
 							/* Now override if RAM configuration changes things
 							 * (there's a possibility these changes are unimportant) */
 							if (sdl_emulator.ramsize >= 4) {
-								d = 0x43; h = 0x43;
-								a1 = 0xec; b1 = 0x81; c1 = 0x02;
-								radjust = 0xa9;
+								D = 0x43; H = 0x43;
+								A_ = 0xec; B_ = 0x81; C_ = 0x02;
+								R = 0xa9;
 							}
 							/* System variables */
-							mem[0x4000] = 0xff;				/* ERR_NR */
-							mem[0x4001] = 0x80;				/* FLAGS */
-							mem[0x4002] = sp & 0xff;		/* ERR_SP lo */
-							mem[0x4003] = sp >> 8;			/* ERR_SP hi */
-							mem[0x4004] = (sp + 4) & 0xff;	/* RAMTOP lo */
-							mem[0x4005] = (sp + 4) >> 8;	/* RAMTOP hi */
-							mem[0x4006] = 0x00;				/* MODE */
-							mem[0x4007] = 0xfe;				/* PPC lo */
-							mem[0x4008] = 0xff;				/* PPC hi */
+							mem[0x4000] = 0xff;			/* ERR_NR */
+							mem[0x4001] = 0x80;			/* FLAGS */
+							mem[0x4002] = SP & 0xff;		/* ERR_SP lo */
+							mem[0x4003] = SP >> 8;			/* ERR_SP hi */
+							mem[0x4004] = (SP + 4) & 0xff;		/* RAMTOP lo */
+							mem[0x4005] = (SP + 4) >> 8;		/* RAMTOP hi */
+							mem[0x4006] = 0x00;			/* MODE */
+							mem[0x4007] = 0xfe;			/* PPC lo */
+							mem[0x4008] = 0xff;			/* PPC hi */
 						}
 					}
 
@@ -740,6 +705,9 @@ printf("Opening file %s...\n",fullpath);
 				}
 				/* Close the file now as we've finished with it */
 				fclose(fp);
+				if (scp && addr==0) {
+					z80_reset();
+				}
 				break;
 			} else {
 				if (!(method == LOAD_FILE_METHOD_NAMEDLOAD && count == 0)) {

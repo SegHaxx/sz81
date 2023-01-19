@@ -257,7 +257,9 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "emulator.speed=");
 			if (!strncmp(line, key, strlen(key))) {
 				strcpy(value, &line[strlen(key)]);
-				if (strcmp(value, "200") == 0) {
+				if (strcmp(value, "400") == 0) {
+					read_emulator_speed = 5;
+				} else if (strcmp(value, "200") == 0) {
 					read_emulator_speed = 10;
 				} else if (strcmp(value, "100") == 0) {
 					read_emulator_speed = 20;
@@ -595,12 +597,12 @@ void sdl_rcfile_read(void) {
 		if (read_emulator_ramsize != UNDEFINED) {
 			if (read_emulator_ramsize == 1 || read_emulator_ramsize == 2 ||
 				read_emulator_ramsize == 3 || read_emulator_ramsize == 4 ||
-				read_emulator_ramsize == 16 || read_emulator_ramsize == 32 ||
+				read_emulator_ramsize == 16 || read_emulator_ramsize == 24 || read_emulator_ramsize == 32 ||
 				read_emulator_ramsize == 48 || read_emulator_ramsize == 56) {
 				sdl_emulator.ramsize = read_emulator_ramsize;
 			} else {
 				fprintf(stderr, "%s: emulator.ramsize within rcfile is invalid: "
-					"try 1, 2, 3, 4, 16, 32, 48 or 56\n", __func__);
+					"try 1, 2, 3, 4, 16, 24, 32, 48 or 56\n", __func__);
 			}
 		}
 
@@ -716,7 +718,9 @@ void rcfile_write(void) {
 
 	/* sdl_emulator.speed */
 	strcpy(key, "emulator.speed"); strcpy(value, "");
-	if (sdl_emulator.speed == 10) {
+	if (sdl_emulator.speed == 5) {
+		strcat(value, "400");
+	} else if (sdl_emulator.speed == 10) {
 		strcat(value, "200");
 	} else if (sdl_emulator.speed == 20) {
 		strcat(value, "100");
@@ -1345,31 +1349,39 @@ int sdl_zxroms_init(void) {
 	int count;
 	FILE *fp;
 
-	for (count = 0; count < 2; count++) {
+	for (count = 0; count < 3; count++) {
 		if ((count == 0 && !sdl_zx80rom.state) || 
-			(count == 1 && !sdl_zx81rom.state)) {
+		    (count == 1 && !sdl_zx81rom.state) ||
+		    (count == 2 && !sdl_aszmicrom.state)) {
 			/* Prepare the relevant filename */
 			if (count == 0) {
 				strcpy(filename, PACKAGE_DATA_DIR);
 				strcatdelimiter(filename);
 				strcat(filename, ROM_ZX80);
-			} else {
+			} else if (count == 1) {
 				strcpy(filename, PACKAGE_DATA_DIR);
 				strcatdelimiter(filename);
 				strcat(filename, ROM_ZX81);
+			} else if (count == 2) {
+				strcpy(filename, PACKAGE_DATA_DIR);
+				strcatdelimiter(filename);
+				strcat(filename, ASZMIC);
 			}
 			/* Open the ROM */
 			if ((fp = fopen(filename, "rb")) == NULL) {
 				fprintf(stderr, "%s: Cannot read from %s\n", __func__, filename);
-				retval = TRUE;
+				if (count < 2) retval = TRUE;
 			} else {
 				/* Read in the data */
 				if (count == 0) {
 					fread(sdl_zx80rom.data, 1, 4 * 1024, fp);
 					sdl_zx80rom.state = TRUE;
-				} else {
+				} else if (count == 1) {
 					fread(sdl_zx81rom.data, 1, 8 * 1024, fp);
 					sdl_zx81rom.state = TRUE;
+				} else if (count == 2) {
+					fread(sdl_aszmicrom.data, 1, 4 * 1024, fp);
+					sdl_aszmicrom.state = TRUE;
 				}
 				fclose(fp);
 			}

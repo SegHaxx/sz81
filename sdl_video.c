@@ -22,7 +22,8 @@
 /* Defines */
 
 /* Variables */
-unsigned char vga_graphmemory[64 * 1024];
+//unsigned char vga_graphmemory[64 * 1024]; // Sorry about that!
+unsigned char vga_graphmemory[800 * 600];
 
 /* \x1 means that a value needs to be placed here.
  * \x2 means to invert the colours.
@@ -206,9 +207,9 @@ int sdl_video_setmode(void) {
 	if (video.xres <= 256 * video.scale) {
 		sdl_emulator.xoffset = 0 - 32 * video.scale;
 	} else {
-		sdl_emulator.xoffset = (video.xres - 320 * video.scale) / 2;
+		sdl_emulator.xoffset = (video.xres - 400 * video.scale) / 2;
 	}
-	sdl_emulator.yoffset = (video.yres - 200 * video.scale) / 2;
+	sdl_emulator.yoffset = (video.yres - 300 * video.scale) / 2;
 
 	#ifdef SDL_DEBUG_VIDEO
 		printf("%s: sdl_emulator.xoffset=%i sdl_emulator.yoffset=%i\n", 
@@ -302,7 +303,7 @@ int cvtChroma(unsigned char c) {
  * 
  * Firstly the component executive is called to check everything is up-to-date.
  * It'll redraw the entire screen if video.redraw is TRUE.
- * The emulator's 8 bit 320x200 VGA memory is scaled-up into the SDL screen surface.
+ * The emulator's 8 bit 400x300 VGA memory is scaled-up into the SDL screen surface.
  * Possibly the load selector, vkeyb, control bar, runtime options and associated
  * hotspots will require overlaying */
 
@@ -384,25 +385,25 @@ void sdl_video_update(void) {
 		/* Set-up destination y coordinates */
 		desy = sdl_emulator.yoffset;
 
-		for (srcy = 0; srcy < 200; srcy++) {
+		for (srcy = 0; srcy < 300; srcy++) {
 
 			/* [Re]set-up x coordinates and src width */
-			if (video.xres < 320 * video.scale) {
+			if (video.xres < 400 * video.scale) {
 				srcx = abs(sdl_emulator.xoffset / video.scale);
 				if (*sdl_emulator.model == MODEL_ZX80 && video.xres < 256 * video.scale)
 					srcx += 8 * 2;	/* The emulator shifts it right 2 chars! */
 				srcw = video.xres / video.scale + srcx; desx = 0;
 			} else {
 				srcx = 0;
-				srcw = 320; desx = sdl_emulator.xoffset;
+				srcw = 400; desx = sdl_emulator.xoffset;
 			}
 
 			for (;srcx < srcw; srcx++) {
 				/* Get 8 bit source pixel and convert to RGB */
 				if (chromamode) {
-					colourRGB = cvtChroma(vga_graphmemory[srcy * 320 + srcx]);
+					colourRGB = cvtChroma(vga_graphmemory[srcy * 400 + srcx]);
 				} else {
-					if (vga_graphmemory[srcy * 320 + srcx] == 0) {
+					if (vga_graphmemory[srcy * 400 + srcx] == 0) {
 						colourRGB = colour0RGB;
 					} else {
 						colourRGB = colour1RGB;
@@ -1480,13 +1481,13 @@ void cycle_resolutions(void) {
 			video.xres = 640; video.yres = 480; video.scale = 2;
 		}
 	#else
-		/* 960x720 | 640x480 | 320x240 */
-		if (video.xres == 960) {
-			video.xres = 640; video.yres = 480; video.scale = 2;
-		} else if (video.xres == 640) {
-			video.xres = 320; video.yres = 240; video.scale = 1;
+		/* used to be (<2.2.0) 960x720 | 640x480 | 320x240 */
+		if (video.xres == 1200) {
+			video.xres = 800; video.yres = 600; video.scale = 2;
+		} else if (video.xres == 800) {
+			video.xres = 400; video.yres = 300; video.scale = 1;
 		} else {
-			video.xres = 960; video.yres = 720; video.scale = 3;
+			video.xres = 1200; video.yres = 900; video.scale = 3;
 		}
 	#endif
 }

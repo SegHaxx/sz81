@@ -20,7 +20,7 @@
  * common.c - various routines/vars common to z81/xz81/sz81.
  */
 
-#define Z81_VER		"2.1"
+#define Z81_VER		"2.2"
 
 #include <string.h>
 
@@ -43,9 +43,12 @@ extern void sdl_set_redraw_video();
 
 #include "common.h"
 #include "sound.h"
-#include "z80.h"
+#include "z80/z80.h"
+#include "zx81/zx81.h"
 #include "allmain.h"
 #include "w5100.h"
+
+extern ZX81 zx81;
 
 unsigned char mem[65536],*helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
@@ -93,10 +96,13 @@ extern int ulacharline;
  * not being accessed from outside this file anyway. I think this code
  * may have been copied from xz80. Also zxpframes and zxpcycles aren't
  * being initialised so I'm setting them to zero too */
-static int zxpframes=0,zxpcycles=0,zxpspeed=0,zxpnewspeed=0;
+
+static unsigned long zxpframes=0, zxpcycles=0;
+static int zxpspeed=0,zxpnewspeed=0;
 static int zxpheight=0,zxppixel=-1,zxpstylus=0;
 #else
-static int zxpframes,zxpcycles,zxpspeed,zxpnewspeed;
+static unsigned long zxpframes=0, zxpcycles=0; 
+static intzxpspeed,zxpnewspeed;
 static int zxpheight,zxppixel,zxpstylus;
 #endif
 static FILE *zxpfile=NULL;
@@ -242,6 +248,16 @@ else
   {
   memcpy(mem,sdl_zx81rom.data,8192);
   }
+
+/* fill first 16k with extra copies of it */
+
+ if (zx81.shadowROM) {
+  int siz=(zx80?4096:8192);
+  memcpy(mem+siz,mem,siz);
+  if(zx80)
+    memcpy(mem+siz*2,mem,siz*2);
+ }
+
 #else
 FILE *in;
 char *fname=libdir(zx80?"zx80.rom":"zx81.rom");
@@ -271,6 +287,240 @@ else
   exit(1);
   }
 #endif
+}
+
+/* the ZX81 char is used to index into this, to give the ascii.
+ * awkward chars are mapped to '_' (underscore), and the ZX81's
+ * all-caps is converted to lowercase.
+ * The mapping is also valid for the ZX80 for alphanumerics.
+ * WARNING: this only covers 0<=char<=63!
+ */
+static char zx2ascii[64]={
+/*  0- 9 */ ' ', '_', '_', '_', '_', '_', '_', '_', '_', '_', 
+/* 10-19 */ '_', '\'','#', '$', ':', '?', '(', ')', '>', '<', 
+/* 20-29 */ '=', '+', '-', '*', '/', ';', ',', '.', '0', '1', 
+/* 30-39 */ '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 
+/* 40-49 */ 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 
+/* 50-59 */ 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 
+/* 60-63 */ 'w', 'x', 'y', 'z'
+};
+
+static char ascii2zx[96]=
+  {
+   0, 0,11,12,13, 0, 0,11,16,17,23,21,26,22,27,24,
+  28,29,30,31,32,33,34,35,36,37,14,25,19,20,18,15,
+  23,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,
+  53,54,55,56,57,58,59,60,61,62,63,16,24,17,11,22,
+  11,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,
+  53,54,55,56,57,58,59,60,61,62,63,16,24,17,11, 0
+  };
+
+
+void kcomm(int a)
+{
+char buf[256], fname[256];
+unsigned char *ptr=mem+a+2;
+char *bptr=buf;
+char *fptr=fname;
+FILE *out;
+int k=0;
+int n=0;
+unsigned int arg1, arg2;
+int itxt=0;
+
+  memset(buf,0,sizeof(buf));
+  memset(fname,0,sizeof(fname));
+
+  do {
+    *bptr=zx2ascii[(*ptr)&63];
+    switch (k) {
+      case 0: if (*bptr=='\'') k++; break;
+      case 1: if (*bptr!='\'') *fptr++ = *bptr; else k++; break;
+      case 2: if (*bptr=='#') itxt=1; break;
+      default :;
+    }
+    bptr++;
+    n++;
+  } while((*(++ptr))!=0x76 && bptr<buf+sizeof(buf)-3);
+  
+  printf("Writing files %s(.a/z)...\n",fname);
+  strcat(fname,".a");
+
+  if((out=fopen(fname,"wb"))==NULL) return;
+  fwrite(buf,n,1,out);
+  fclose(out);
+
+  arg1 = mem[0x4001] | (mem[0x4002] << 8);
+  arg2 = mem[0x4003] | (mem[0x4004] << 8);
+
+  if (itxt) { arg1 -= 2; arg2 +=1; }
+
+  n = arg2-arg1+1;
+  fname[strlen(fname)-1] = 'z';
+  if((out=fopen(fname,"wb"))==NULL) return;
+  fwrite(mem+arg1,n,1, out);
+  fclose(out);
+}
+
+unsigned int getarg1(char *buf)
+{
+int state=0;
+int i;
+int radix=10;
+int n = 0;
+int c;
+
+    for (i=0; i<strlen(buf); i++) {
+      switch (state) {
+        case 0:
+        case 1: if (buf[i]=='\'') state++; break;
+	case 2: if (buf[i]==' ') state=3; break;
+	case 3: if (buf[i]!=' ') state=4;
+	case 4: if (buf[i]==' ') {
+	          state = 5;
+	        } else if (buf[i]==':') {
+	          radix = 16;
+		} else {
+		  if (buf[i]>='a') c=buf[i]-'a'+10; else c=buf[i]-'0';
+		  n = n*radix + c;
+		}
+		break;
+	default:;
+      }
+    }
+    return n;
+}
+
+static char lcomm_fname[256];
+static FILE *lcomm_in;
+static int lcomm_state=0;
+static int lcomm_itxt=0;
+
+unsigned char lcomm(int a1, int a2)
+{
+char buf[256];
+unsigned char c=0;
+unsigned char *ptr=mem+a2+1;
+char *dptr=lcomm_fname;
+unsigned int arg1;
+
+switch (a1) {
+case 0xf0:
+  memset(lcomm_fname,0,sizeof(lcomm_fname));
+  do
+    *dptr++=zx2ascii[(*ptr)&63];
+  while((*(++ptr))!=0x0b && dptr<lcomm_fname+sizeof(lcomm_fname)-3);
+  printf("Reading files %s(.a/z)...\n",lcomm_fname);
+  strcat(lcomm_fname,".a");
+  if((lcomm_in=fopen(lcomm_fname,"rb"))==NULL) return 0xff;
+  lcomm_state = 1;
+  lcomm_itxt = 0;
+
+case 0xf1:
+  if (lcomm_state>2) return 0xff;
+  if (fread(&c,1,1,lcomm_in)!=1) {
+    fclose(lcomm_in);
+    if (lcomm_state==1) {
+      if (lcomm_itxt==1) {
+        if((lcomm_in=fopen(lcomm_fname,"rb"))==NULL) return 0xff;
+        c = fread(buf,sizeof(buf),1,lcomm_in);
+        fclose(lcomm_in);
+        lcomm_state++;
+      }
+      lcomm_fname[strlen(lcomm_fname)-1] = 'z';
+      if((lcomm_in=fopen(lcomm_fname,"rb"))==NULL) return 0xff;
+      if (lcomm_itxt==1) {
+        arg1 = getarg1(buf);
+	c = fread(mem+arg1,0x8000,1,lcomm_in);
+	fclose(lcomm_in);
+	lcomm_state++;
+        return 0x76;
+      }
+    } else {
+      return 0xff;
+    }
+    lcomm_state++;
+  } else {
+    if (lcomm_state==1) {
+      if (c=='#') lcomm_itxt++;
+      c = toupper(c);
+      c = ascii2zx[c-32];
+    }
+  }
+  break;
+}
+
+return c;
+
+}
+
+void aszmic4hacks()
+{
+	mem[0x0690]=0xe1;
+	mem[0x0691]=0xef;
+	mem[0x0692]=0xed;
+	mem[0x0693]=0xfa;
+	mem[0x0694]=0xc9;
+
+	mem[0x06c2]=0xe1;
+	mem[0x06c3]=0x3e;
+	mem[0x06c4]=0xf0;
+	mem[0x06c5]=0xed;
+	mem[0x06c6]=0xfb;
+	mem[0x06c7]=0xfe;
+	mem[0x06c8]=0xff;
+	mem[0x06c9]=0xc8;
+	mem[0x06ca]=0xcd;
+	mem[0x06cb]=0x92;
+	mem[0x06cc]=0x04;
+	mem[0x06cd]=0x3e;
+	mem[0x06ce]=0xf1;
+	mem[0x06cf]=0x18;
+	mem[0x06d0]=0xf4;
+}
+
+void aszmic7hacks()
+{
+	mem[0x0691]=0xe1;
+	mem[0x0692]=0xef;
+	mem[0x0693]=0xed;
+	mem[0x0694]=0xfa;
+	mem[0x0695]=0xc9;
+
+	mem[0x06c3]=0xe1;
+	mem[0x06c4]=0x3e;
+	mem[0x06c5]=0xf0;
+	mem[0x06c6]=0xed;
+	mem[0x06c7]=0xfb;
+	mem[0x06c8]=0xfe;
+	mem[0x06c9]=0xff;
+	mem[0x06ca]=0xc8;
+	mem[0x06cb]=0xcd;
+	mem[0x06cc]=0x90;
+	mem[0x06cd]=0x04;
+	mem[0x06ce]=0x3e;
+	mem[0x06cf]=0xf1;
+	mem[0x06d0]=0x18;
+	mem[0x06d1]=0xf4;
+}
+
+
+void lambdahacks()
+{
+/* patch save routine */
+if(save_hook)
+  {
+  mem[0x0d0d]=0xed; mem[0x0d0e]=0xfd;
+  mem[0x0d0f]=0xc3; mem[0x0d10]=0x03; mem[0x0d11]=0x02;
+  }
+
+/* patch load routine */
+if(load_hook)
+  {
+  mem[0x19ef]=0xeb;
+  mem[0x19f0]=0xed; mem[0x19f1]=0xfc;
+  mem[0x19f2]=0xc3; mem[0x19f3]=0x03; mem[0x19f4]=0x02;
+  }
 }
 
 
@@ -318,7 +568,8 @@ int ramsize;
 int count;
 
 loadrom();
-#ifdef SZ81	/* Added by Thunor */
+
+#ifdef SZ81NO	/* Added by Thunor */ /* Would not give shadow ROMs... */
 if(zx80)
   {
   memset(mem+0x1000,0,0xf000);
@@ -399,6 +650,8 @@ for(f=16;f<32;f++)
  * (2000h) | 8K ROM   |  | 8K ROM   |  | 8K ROM   |  | 8K ROM   | 
  *         |          |  |          |  |          |  |          | 
  *      0  +----------+  +----------+  +----------+  +----------+ 
+
+ * Added: 24K option which is 16K plus 8K in 8192-16383
  */
 
 switch(ramsize)
@@ -425,12 +678,19 @@ switch(ramsize)
   }
 #endif
 
-if(zx80)
+/* changed with 2.2.0 */
+
+if(zx81.machine==MACHINEZX80)
   zx80hacks();
-else
+
+if(zx81.machine==MACHINEZX81)
   zx81hacks();
 
-  w_init();
+if(zx81.machine==MACHINELAMBDA)
+  lambdahacks();
+
+ if (sdl_emulator.networking) w_init();
+
 }
 
 
@@ -467,18 +727,27 @@ else
 #endif
 
 
+// #define DEBUGPRTR
+
+/* versus description of static values... */
+void zxpinit()
+{
+	zxpframes=0,zxpcycles=0,zxpspeed=0,zxpnewspeed=0;
+	zxpheight=0,zxppixel=-1,zxpstylus=0;
+	zxpfile=NULL;
+	zxpfilename=NULL;
+}
+
 void zxpopen(void)
 {
 #ifdef SZ81	/* Added by Thunor */
 static int failcnt = 0;
 #endif
-zxpstylus=zxpspeed=zxpheight=zxpnewspeed=0;
-zxppixel=-1;
 
 if(!zxpfilename)
   return;
 
-fprintf(stdout,"Creating zxprinter file \"%s\"\n", zxpfilename);
+fprintf(stdout,"Creating zxprinter file \"%s\"...\n", zxpfilename);
 
 if((zxpfile=fopen(zxpfilename,"wb"))==NULL)
   {
@@ -525,14 +794,10 @@ if(fseek(zxpfile,pos,SEEK_SET)!=0)
 
 void zxpclose(void)
 {
-unsigned long tmp;
 int f;
 
 /* stop the printer */
-tmp=tstates;
-tstates=tsmax;
-out(0,0xfb,4);
-tstates=tmp;
+zx81_writeport(0xfb,4,0);
 
 if(!zxpfile)
   return;
@@ -550,6 +815,7 @@ zxpupdateheader();
 
 fclose(zxpfile);
 zxpfile=NULL;
+printf("Closing printer file...\n");
 }
 
 
@@ -575,6 +841,25 @@ for(i=0;i<32;i++)
 }
 
 
+/* From http://problemkaputt.de/zxdocs.htm
+
+Port FBh Read - Printer Status
+
+  Bit  Expl.
+  0    Data Request   (0=Busy, 1=Ready/DRQ)
+  1-5  Not used
+  6    Printer Detect (0=Okay, 1=None)
+  7    Newline        (0=Nope, 1=Begin of new line)
+
+Port FBh Write - Printer Output
+
+  Bit  Expl.
+  0    Not used
+  1    Undoc/Speed?   (0=Normal, 1=used to slow-down last 2 scanlines)
+  2    Motor          (0=Start, 1=Stop)
+  3-6  Not used
+  7    Pixel Output   (0=White/Silver, 1=Black)
+*/
 
 /* ZX Printer support, transliterated from IMC's xz80 by a bear of
  * very little brain. :-) Or at least, I don't grok it that well.
@@ -585,13 +870,14 @@ int printer_inout(int is_out,int val)
 /* Note that we go through the motions even if printer support isn't
  * enabled, as the alternative would seem to be to crash... :-)
  */
+
 if(!is_out)
   {
   /* input */
   
   if(!zxpspeed)
-    return 0x3e;
-  else
+	  return 0x3e; /* no newline, printer okay, busy */
+  else                 /* after init, zxpspeed is 0 */
     {
     int frame=frames-zxpframes;
     int cycles=tstates-zxpcycles;
@@ -599,14 +885,13 @@ if(!is_out)
     int sp=zxpnewspeed;
     int x,ans;
     int cpp=440/zxpspeed;
-      
-    if(frame>400)
-      frame=400;
+
+    if(frame>400) frame=400;
     cycles+=frame*tsmax;
     x=cycles/cpp-64;        /* x-coordinate reached */
       
     while(x>320)
-      {           /* if we are on another line, */
+      {                    /* if we are on another line, */
       pix=-1;              /* find out where we are */
       x-=384;
       if(sp)
@@ -617,12 +902,17 @@ if(!is_out)
         sp=0;
         }
       }
+
     if((x>-10 && x<0) | zxpstylus)
-      ans=0xbe;
+	    ans=0xbe; /* newline, printer okay, busy */
     else
-      ans=0x3e;
-    if(x>pix)
-      ans|=1;
+	    ans=0x3e; /* no newline */
+    if(x>pix) ans|=1; /* ready */
+
+#ifdef DEBUGPRTR
+    printf("printer_inout %ld %ld %d 0x%02x %d\n", frames, tstates, is_out, val, zxpspeed);
+#endif
+
     return ans;
     }
   }
@@ -630,39 +920,50 @@ if(!is_out)
 
 /* output */
 
-if(!zxpspeed)
+#ifdef DEBUGPRTR
+ printf("printer_inout %ld %ld %d 0x%02x %d\n", frames, tstates, is_out, val, zxpspeed);
+#endif
+
+if(!zxpspeed)          /* after init, zxpspeed is 0 */
   {
-  if(!(val&4))
-    {
-    zxpspeed=(val&2)?1:2;
-    zxpframes=frames;
-    zxpcycles=tstates;
-    zxpstylus=val&128;
-    zxppixel=-1;
-    }
+	  if(!(val&4)) /* motor start */
+		  {
+			  zxpspeed=(val&2)?1:2;
+			  zxpframes=frames;
+			  zxpcycles=tstates;
+			  zxpstylus=val&128;
+			  zxppixel=-1;
+		  }
   }
-else
+ else                  /* after init, zxpspeed is 0 */
   {
   int frame=frames-zxpframes;
   int cycles=tstates-zxpcycles;
   int i,x;
   int cpp=440/zxpspeed;
       
-  if(frame>400)
-    frame=400; /* limit height of blank paper */
+  if(frame>400) frame=400; /* limit height of blank paper */
   cycles+=frame*tsmax;
-  x=cycles/cpp-64;        /* x-coordinate reached */
+  x=cycles/cpp-64;         /* x-coordinate reached */
   for(i=zxppixel;i<x && i<256;i++)
-    if(i>=0)		/* should be, but just in case */
+    if(i>=0)		   /* should be, but just in case */
       zxpline[i]=zxpstylus;
-  if(x>=256 && zxppixel<256)
+  if(x>=256 && zxppixel<256) {
     zxpout();
-      
+#ifdef DEBUGPRTR
+    printf("zxpout A\n");
+#endif
+  }
+
   while(x>=320)
     {          /* move to next line */
+
+#ifdef DEBUGPRTR
+	    printf("%d %d %d %d %d %d %d %d\n", tstates, zxpframes, zxpcycles, zxpnewspeed, zxpspeed, x, cpp, zxpstylus);
+#endif
+
     zxpcycles+=cpp*384;
-    if(zxpcycles>=tsmax)
-      zxpcycles-=tsmax,zxpframes++;
+    if(zxpcycles>=tsmax) zxpcycles-=tsmax,zxpframes++;
     x-=384;
     if(zxpnewspeed)
       {
@@ -674,18 +975,26 @@ else
       }
     for(i=0;i<x && i<256;i++)
       zxpline[i]=zxpstylus;
-    if(x>=256)
+    if(x>=256) {
       zxpout();
+#ifdef DEBUGPRTR
+      printf("zxpout B\n");
+#endif
     }
-  if(x<0)
-    x=-1;
-  if(val&4)
+    } /* end move to next line */
+
+  if(x<0) x=-1;
+
+  if(val&4) /* motor stop */
     {
     if(x>=0 && x<256)
       {
       for(i=x;i<256;i++)
         zxpline[i]=zxpstylus;
       zxpout();
+#ifdef DEBUGPRTR
+      printf("zxpout C\n");
+#endif
       }
     zxpspeed=zxpstylus=0;
     
@@ -694,7 +1003,7 @@ else
      */
     zxpupdateheader();
     }
-  else
+  else /* motor start */
     {
     zxppixel=x;
     zxpstylus=val&128;
@@ -703,184 +1012,13 @@ else
     else
       {
       zxpnewspeed=(val&2)?1:2;
-      if(zxpnewspeed==zxpspeed)
-        zxpnewspeed=0;
+      if(zxpnewspeed==zxpspeed) zxpnewspeed=0;
       }
     }
   } 
 
 return(0);
 }
-
-
-unsigned int in(int h,int l)
-{
-int ts=0;		/* additional cycles*256 */
-int tapezeromask=0x80;	/* = 0x80 if no tape noise (?) */
-
-if (h==0x7f && l==0xef) {
-//  printf("Checking for Chroma capability\n");
-  return 0; /* chroma available */
-}
-
-if(!(l&4)) l=0xfb;
-if(!(l&1)) l=0xfe;
-
-switch(l)
-  {
-  case WIZ_MODE:
-  case WIZ_ADRH:
-  case WIZ_ADRL:
-  case WIZ_DATA: return w_read(l);
-  case 0xfb:
-    return(printer_inout(0,0));
-  case 0xfe:
-    /* also disables hsync/vsync if nmi off
-     * (yes, vsync requires nmi off too, Flight Simulation confirms this)
-     */
-    if(!nmigen)
-      {
-      hsyncgen=0;
-
-      /* if vsync was on before, record position */
-      if(!vsync)
-        vsync_raise();
-      vsync=1;
-
-#ifdef OSS_SOUND_SUPPORT
-    if (sdl_sound.device == DEVICE_VSYNC) sound_beeper(vsync);
-#endif
-      }
-
-    switch(h)
-      {
-      case 0xfe:	return(ts|(keyports[0]^tapezeromask));
-      case 0xfd:	return(ts|(keyports[1]^tapezeromask));
-      case 0xfb:	return(ts|(keyports[2]^tapezeromask));
-      case 0xf7:	return(ts|(keyports[3]^tapezeromask));
-      case 0xef:	return(ts|(keyports[4]^tapezeromask));
-      case 0xdf:	return(ts|(keyports[5]^tapezeromask));
-      case 0xbf:	return(ts|(keyports[6]^tapezeromask));
-      case 0x7f:	return(ts|(keyports[7]^tapezeromask));
-      default:
-        {
-        int i,mask,retval=0xff;
-        
-        /* some games (e.g. ZX Galaxians) do smart-arse things
-         * like zero more than one bit. What we have to do to
-         * support this is AND together any for which the corresponding
-         * bit is zero.
-         */
-        for(i=0,mask=1;i<8;i++,mask<<=1)
-          if(!(h&mask))
-            retval&=keyports[i];
-        return(ts|(retval^tapezeromask));
-        }
-      }
-    break;
-  }
-
-return(ts|255);
-}
-
-
-unsigned int out(int h,int l,int a)
-{
-/* either in from fe or out to ff takes one extra cycle;
- * experimentation strongly suggests not only that out to
- * ff takes one extra, but that *all* outs do.
- */
-int ts=1;	/* additional cycles */
-
-if (h==0x7f && l==0xef) {	/* chroma */
-	chromamode = a&0x30;
-	if (chromamode) {
-	  printf("Selecting Chroma mode 0x%x.\n",a);
-	  if (sdl_emulator.ramsize < 48) printf("Insufficient RAM Size for Chroma!\n");
-	  bordercolour = a & 0x0f;
-	} else {
-	  printf("Selecting B/W mode.\n");
-	  memset(scrnbmp_old,1,ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8); /* force update */
-	  memset(scrnbmp,0,ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8);
-	}
-	sdl_set_redraw_video();
-	return ts;
-}
-
-if(!(l&4)) l=0xfb;
-if(!(l&2)) l=0xfd;
-if(!(l&1)) l=0xfe;
-
-/*printf("out %2X\n",l);*/
-
-    if(vsync)
-      vsync_lower();
-    vsync=0;
-    hsyncgen=1;
-    ulacharline=-1;
-#ifdef OSS_SOUND_SUPPORT
-    if (sdl_sound.device == DEVICE_VSYNC) sound_beeper(vsync);
-#endif
-
-switch(l)
-  {
-  case WIZ_MODE:
-  case WIZ_ADRH:
-  case WIZ_ADRL:
-  case WIZ_DATA: w_write(l,a); break;
-
-#ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
-  case 0x0f:		/* Zon X data */
-  case 0x1f:		/* Zon X data */
-    if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
-      sound_ay_write(ay_reg,a);
-    break;
-  case 0xcf:		/* Zon X reg. select */
-  case 0xdf:		/* Zon X reg. select */
-    if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
-      ay_reg=(a&15);
-    break;
-#endif
-
-  case 0xfb:
-    return(ts|printer_inout(1,a));
-  case 0xfd:
-    nmigen=0;
-    break;
-  case 0xfe:
-    if(!zx80)
-      {
-      nmigen=1;
-      break;
-      }
-    /* falls through, if zx80 */
-  case 0xff:
-    /* XXX should *any* out turn off vsync? [copied to above] */
-    /* fill screen gap since last raising of vsync */
-    break;
-  }
-
-return(ts);
-}
-
-
-#ifndef SZ81	/* Added by Thunor */
-/* the ZX81 char is used to index into this, to give the ascii.
- * awkward chars are mapped to '_' (underscore), and the ZX81's
- * all-caps is converted to lowercase.
- * The mapping is also valid for the ZX80 for alphanumerics.
- * WARNING: this only covers 0<=char<=63!
- */
-static char zx2ascii[64]={
-/*  0- 9 */ ' ', '_', '_', '_', '_', '_', '_', '_', '_', '_', 
-/* 10-19 */ '_', '\'','#', '$', ':', '?', '(', ')', '>', '<', 
-/* 20-29 */ '=', '+', '-', '*', '/', ';', ',', '.', '0', '1', 
-/* 30-39 */ '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 
-/* 40-49 */ 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 
-/* 50-59 */ 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 
-/* 60-63 */ 'w', 'x', 'y', 'z'
-};
-#endif
 
 
 #ifndef SZ81	/* Added by Thunor */

@@ -28,14 +28,16 @@
 /* full internal image with overscan (but not hsync/vsync areas) */
 #define ZX_VID_MARGIN		55
 #define ZX_VID_HMARGIN		(8*8)
-#define ZX_VID_FULLWIDTH	(2*ZX_VID_HMARGIN+32*8)	/* sic */
-#define ZX_VID_FULLHEIGHT	(2*ZX_VID_MARGIN+192)
+//#define ZX_VID_FULLWIDTH	(2*ZX_VID_HMARGIN+32*8)	/* sic */
+//#define ZX_VID_FULLHEIGHT	(2*ZX_VID_MARGIN+192)
+#define ZX_VID_FULLWIDTH 400
+#define ZX_VID_FULLHEIGHT 300
 
 /* ahem :-) */
 #define FUDGE_FACTOR		(3*8)
 
 /* X image */
-#if 0
+#if 1
 /* for testing QS Defender ;-) - I might want to add a
  * command-line option to show the whole overscan area
  * eventually...
@@ -68,7 +70,8 @@ extern unsigned char mem[];
 extern unsigned char *memptr[64];
 extern int memattr[64];
 extern unsigned char keyports[9];
-extern unsigned long tstates,tsmax;
+extern unsigned long tstates, tsmax;
+extern int borrow;
 extern int help,sound,sound_vsync,sound_ay,sound_ay_type,vsync_visuals;
 extern int invert_screen;
 
@@ -95,6 +98,7 @@ extern void reset81();
 extern void parseoptions(int argc,char *argv[]);
 #endif
 extern void initmem();
+extern void zxpinit(void);
 extern void zxpopen(void);
 extern void zxpclose(void);
 extern unsigned int in(int h,int l);
@@ -110,3 +114,4 @@ extern void common_reset(void);
 extern int chromamode;
 extern unsigned char bordercolour;
 
+int printer_inout(int is_out,int val);

@@ -60,7 +60,7 @@
 
 #include "common.h"
 #include "sound.h"
-#include "z80.h"
+#include "z80/z80.h"
 
 #ifdef SZ81	/* Added by Thunor */
 #include "sdl.h"
@@ -116,8 +116,8 @@ static int sound_framesiz;
 
 static unsigned char ay_tone_levels[16];
 
-static unsigned char *sound_buf;
-static unsigned char *sound_ptr;
+static unsigned char *sound_buf=NULL;
+static unsigned char *sound_ptr=NULL;
 static int sound_oldpos,sound_fillpos,sound_oldval,sound_oldval_orig;
 
 /* timer used for fadeout after beeper-toggle;
@@ -335,8 +335,10 @@ ay_change_count=0;
 #ifdef SZ81	/* Added by Thunor */
 int sound_framesiz_init(void)
 {
-if(sound_buf)
+if(sound_buf) {
   free(sound_buf);
+  sound_buf=NULL;
+}
 
 sound_framesiz=sound_freq/(1000/sdl_emulator.speed);
 
@@ -403,14 +405,16 @@ void sound_end(void)
 {
 if(sound_enabled)
   {
-  if(sound_buf)
+  sound_enabled=0;
+  if(sound_buf) {
     free(sound_buf);
+    sound_buf=NULL;
+  }
 #ifdef SZ81	/* Added by Thunor */
   sdl_sound_end();
 #else
   osssound_end();
 #endif
-  sound_enabled=0;
   }
 }
 
@@ -713,6 +717,7 @@ unsigned char *ptr;
 int newpos,subpos;
 int val,subval;
 int f;
+extern unsigned long tsmax;
 
 if(!sound_enabled || !sound_vsync) return;
 

@@ -52,6 +52,7 @@
 
 #define ROM_ZX80 "zx80.rom"
 #define ROM_ZX81 "zx81.rom"
+#define ASZMIC   "aszmic.rom"
 
 /* Notification function IDs */
 #define NOTIFICATION_SHOW 1

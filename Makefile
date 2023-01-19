@@ -23,8 +23,10 @@ SOUNDDEF=-DOSS_SOUND_SUPPORT
 
 # You won't need to alter these
 TARGET=$(shell cat TARGET)
-SOURCES=sdl_main.c common.c sound.c z80.c w5100.c sdl_engine.c sdl_hotspots.c \
-	sdl_input.c sdl_loadsave.c sdl_resources.c sdl_sound.c sdl_video.c
+SOURCES=sdl_main.c common.c sound.c zx81config.c w5100.c sdl_engine.c sdl_hotspots.c \
+	sdl_input.c sdl_loadsave.c sdl_resources.c sdl_sound.c sdl_video.c \
+	z80/z80.c z80/z80_ops.c zx81/zx81.c zx81/accdraw.c
+
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
 
@@ -33,7 +35,7 @@ VERSION=$(shell cat VERSION)
 #CFLAGS=-O0 -g -pg
 #LDFLAGS=-pg
 SDL_CONFIG?=sdl-config
-CFLAGS?=-O3 -g
+CFLAGS?=-O3
 CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 
 LINK=$(CC)
@@ -62,7 +64,7 @@ open%:
 	fi
 
 clean:
-	rm -f *.o *~ sz81
+	rm -f *.o *~ sz81 z80/*.o z80/*~ zx81/*.o zx81/*~
 
 install:
 	@if [ "$(PREFIX)" = . ] ; then \
@@ -77,6 +79,7 @@ install:
 	cp data/*.bmp $(PACKAGE_DATA_DIR)
 	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/aszmic.rom ]; then cp data/aszmic.rom $(PACKAGE_DATA_DIR); fi
 
 uninstall:
 	@echo "Uninstalling is not currently implemented."

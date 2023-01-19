@@ -1,0 +1,30 @@
+* big screen: 400x300 pixels (by default scaled 2).
+
+- A nice resolution on modern displays may be obtained by
+  specifying "-1200x900" on the command line.
+
+- because of the screen size and the absence of borders,
+  sometimes artefacts are seen (just as in EightyOne with Full Frame).
+
+* Z80 core and pixel generation from EightyOne for proper timing.
+
+  While the graphics possibilities are mostly retained in the code,
+  only WRX is supported out-of-the box.
+
+* networking enabled with -n command line option.
+
+* ASZMIC and SP ROM board compatibility:
+
+- The easiest way to load the SP ROM is by loading "sp.p" in sz81.
+  The RAM size should be 24K.
+  With the command ". NEW" in the Virus, the ASZMIC is started.
+  ASMZIC's "K" and "L" commands work with two data blocks - these are
+  implemented using the ".a" and ".z" extensions - see the "./a2z"
+  directory; for example, try: L "A2Z/A" <Enter>
+  While versions 7 and the older 4 are supported, with version 4, the
+  path separator '/' should be typed with '<' (a hack) due to the
+  differences in the character set.
+
+- There remain a few issues with the display, unfortunately, and a
+  hack is applied for the SP ROM hires demo (exasp).
+

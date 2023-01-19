@@ -1,3 +1,11 @@
+2015-08-01
+* 2.2.0 unofficial version (by Erik Olofsen)
+* big screen: 400x300 pixels (by default scaled 2)
+* Z80 core and pixel generation from EightyOne for proper timing
+* networking only enabled with -n command line option
+* 24K (16K + 8K low) memory option for special setups
+* ASZMIC and SP ROM board compatibility
+
 2014-01-29
 * 2.1.9 unofficial version (by Erik Olofsen)
 * Chroma 81 multi-function SCART interface support -

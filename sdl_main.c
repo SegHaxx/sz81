@@ -25,7 +25,8 @@
 #include "sdl.h"
 #include "common.h"
 #include "sound.h"
-#include "z80.h"
+#include "z80/z80.h"
+#include "zx81/zx81.h"
 #include "allmain.h"
 #ifdef __amigaos4__
 	#include "amiga.h"
@@ -34,7 +35,8 @@
 /* Defines */
 
 /* Variables */
-int hsize = ZX_VID_VGA_WIDTH, vsize = ZX_VID_VGA_HEIGHT;
+//int hsize = ZX_VID_VGA_WIDTH, vsize = ZX_VID_VGA_HEIGHT; // Sorry about that!
+int hsize = ZX_VID_X_WIDTH, vsize = ZX_VID_X_HEIGHT;
 unsigned char *vptr;
 
 /* Function prototypes */
@@ -48,22 +50,21 @@ void update_scrn(void) {
 	unsigned char *ptr, *optr, *cptr, d, dc;
 	int x, y, a, mask;
 
-	for (y = 0; y < ZX_VID_VGA_HEIGHT; y++) {
-		ptr = scrnbmp + (y + ZX_VID_VGA_YOFS) * 
-			ZX_VID_FULLWIDTH / 8 + ZX_VID_VGA_XOFS / 8;
+	for (y = 0; y < ZX_VID_X_HEIGHT; y++) {
+		ptr = scrnbmp + (y + ZX_VID_X_YOFS) * 
+			ZX_VID_FULLWIDTH / 8 + ZX_VID_X_XOFS / 8;
 		optr = scrnbmp_old + (ptr - scrnbmp);
-		cptr = scrnbmpc + (y + ZX_VID_VGA_YOFS) * 
-			ZX_VID_FULLWIDTH / 8 + ZX_VID_VGA_XOFS / 8;
-		for (x = 0; x < ZX_VID_VGA_WIDTH; x += 8, ptr++, optr++, cptr++) {
+		cptr = scrnbmpc + (y + ZX_VID_X_YOFS) * 
+			ZX_VID_FULLWIDTH + ZX_VID_X_XOFS;
+		for (x = 0; x < ZX_VID_X_WIDTH; x += 8, ptr++, optr++) {
 			d = *ptr;
-			dc = *cptr;
 			if (d != *optr || refresh_screen || chromamode) {
 				if (sdl_emulator.invert) d = ~d;
 				for (a = 0, mask = 128; a < 8; a++, mask >>= 1) {
 					if (chromamode) {
-						vptr[y * 320 + x + a] = ((d & mask) ? (dc&0x0f) : ((dc&0xf0)>>4));
+						vptr[y * 400 + x + a] = dc = *(cptr++);
 					} else {
-						vptr[y * 320 + x + a] = ((d & mask) ? 0 : 15);
+						vptr[y * 400 + x + a] = ((d&mask) ? 0 : 15);
 					}
 				}
 			}
@@ -218,6 +219,9 @@ int main(int argc, char *argv[]) {
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
 
+				/* Initialise the ZX80 or ZX81 */
+				zx81_initialise();
+
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 
@@ -227,6 +231,9 @@ int main(int argc, char *argv[]) {
 				while (interrupted != INTERRUPT_EMULATOR_EXIT) {
 
 					interrupted = 0;
+
+					/* Initialise printer variables */
+					zxpinit();
 
 					/* Initialise the printer file */
 					sdl_zxprinter_init();

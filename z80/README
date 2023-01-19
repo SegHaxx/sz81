@@ -1,0 +1,20 @@
+Original files from EightyOne (a few changes marked by "EO"):
+
+config.h
+z80.c
+z80.h
+z80_cb.c
+z80_ddfd.c
+z80_ddfdcb.c
+z80_ed.c
+z80_macros.h
+z80_ops.c
+
+Files created so that the Z80 code compiles (to find out
+what is needed at minimum):
+
+Makefile
+zx81config.h
+zx81config.c
+zx81.h
+z80test.c

@@ -67,21 +67,15 @@
 #define COMP_DIALOG 1024
 #define COMP_ALL ((COMP_DIALOG - 1) | COMP_DIALOG)
 
-/* Emulator variables I require access to */
+/* TODO: Emulator variables I require access to */
 /* Variables from the top of z80.c */
-extern unsigned long tstates, frames;
-extern int liney;
+extern unsigned long tstates;
+extern unsigned long frames;
 extern int vsy;
 extern unsigned long linestart;
 extern int vsync_toggle, vsync_lasttoggle;
 /* Variables liberated from the top of mainloop */
-extern unsigned char a, f, b, c, d, e, h, l;
-extern unsigned char r, a1, f1, b1, c1, d1, e1, h1, l1, i, iff1, iff2, im;
-extern unsigned short pc;
-extern unsigned short ix, iy, sp;
-extern unsigned char radjust;
 extern unsigned long nextlinetime, linegap, lastvsyncpend;
-extern unsigned char ixoriy, new_ixoriy;
 extern unsigned char intsample;
 extern unsigned char op;
 extern int ulacharline;
@@ -119,6 +113,7 @@ extern void do_interrupt(void);
 #ifdef OSS_SOUND_SUPPORT
 	extern void sound_ay_setvol(void);
 	extern void sound_framesiz_init(void);
+        extern void sound_end(void);
 #endif
 
 /* Function prototypes */
