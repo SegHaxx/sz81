@@ -45,19 +45,27 @@ unsigned char *vptr;
 /* redraw the screen */
 
 void update_scrn(void) {
-	unsigned char *ptr, *optr, d;
+	unsigned char *ptr, *optr, *cptr, d, dc;
 	int x, y, a, mask;
 
 	for (y = 0; y < ZX_VID_VGA_HEIGHT; y++) {
 		ptr = scrnbmp + (y + ZX_VID_VGA_YOFS) * 
 			ZX_VID_FULLWIDTH / 8 + ZX_VID_VGA_XOFS / 8;
 		optr = scrnbmp_old + (ptr - scrnbmp);
-		for (x = 0; x < ZX_VID_VGA_WIDTH; x += 8, ptr++, optr++) {
+		cptr = scrnbmpc + (y + ZX_VID_VGA_YOFS) * 
+			ZX_VID_FULLWIDTH / 8 + ZX_VID_VGA_XOFS / 8;
+		for (x = 0; x < ZX_VID_VGA_WIDTH; x += 8, ptr++, optr++, cptr++) {
 			d = *ptr;
-			if (d != *optr || refresh_screen) {
+			dc = *cptr;
+			if (d != *optr || refresh_screen || chromamode) {
 				if (sdl_emulator.invert) d = ~d;
-				for (a = 0, mask = 128; a < 8; a++, mask >>= 1)
-					vptr[y * 320 + x + a] = ((d & mask)?0:15);
+				for (a = 0, mask = 128; a < 8; a++, mask >>= 1) {
+					if (chromamode) {
+						vptr[y * 320 + x + a] = ((d & mask) ? (dc&0x0f) : ((dc&0xf0)>>4));
+					} else {
+						vptr[y * 320 + x + a] = ((d & mask) ? 0 : 15);
+					}
+				}
 			}
 		}
 	}

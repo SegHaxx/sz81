@@ -17,6 +17,7 @@
 
 /* Includes */
 #include "sdl_engine.h"
+#include "common.h"
 
 /* Defines */
 
@@ -34,19 +35,19 @@ char *runtime_options_text0[24] = {
 	"",
 	"  (\x1 \x1) ZX80  (\x1 \x1) ZX81",
 	"",
-	"RAM Size \x90\x2<\x2\x85 \x1  K\x90\x2>\x2\x85",
+	"RAM Size \x90\x2<\x2\x85 \x1  K \x90\x2>\x2\x85",
 	"",
-	"Frameskip\x90\x2<\x2\x85   \x1 \x90\x2>\x2\x85",
+	"M1NOT:",
+	"",
+	"  (\x1 \x1) No    (\x1 \x1) Yes",
+	"",
+	"Frameskip\x90\x2<\x2\x85   \x1  \x90\x2>\x2\x85",
 	"",
 #ifdef ENABLE_EMULATION_SPEED_ADJUST
-	"Emu Speed\x90\x2<\x2\x85\x1   %\x90\x2>\x2\x85",
+	"Emu Speed\x90\x2<\x2\x85\x1    %\x90\x2>\x2\x85",
 #else
 	"",
 #endif
-	"",
-	"",
-	"",
-	"",
 	"",
 	"",
 	"",
@@ -267,6 +268,33 @@ unsigned char *vga_getgraphmem(void) {
 	return vga_graphmemory;
 }
 
+void sdl_set_redraw_video() {
+	video.redraw = TRUE;
+}
+
+int cvtChroma(unsigned char c) {
+	int crgb=0;
+	switch (c) {
+	  case 0x00 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x00); break;
+	  case 0x01 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x7f); break;
+	  case 0x02 : crgb=SDL_MapRGB(video.screen->format, 0x7f,0x00,0x00); break;
+	  case 0x03 : crgb=SDL_MapRGB(video.screen->format, 0x7f,0x00,0x7f); break;
+	  case 0x04 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x7f,0x00); break;
+	  case 0x05 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x7f,0x7f); break;
+	  case 0x06 : crgb=SDL_MapRGB(video.screen->format, 0x7f,0x7f,0x00); break;
+	  case 0x07 : crgb=SDL_MapRGB(video.screen->format, 0x7f,0x7f,0x7f); break;
+	  case 0x08 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x00); break;
+	  case 0x09 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0xff); break;
+	  case 0x0a : crgb=SDL_MapRGB(video.screen->format, 0xff,0x00,0x00); break;
+	  case 0x0b : crgb=SDL_MapRGB(video.screen->format, 0xff,0x00,0xff); break;
+	  case 0x0c : crgb=SDL_MapRGB(video.screen->format, 0x00,0xff,0x00); break;
+	  case 0x0d : crgb=SDL_MapRGB(video.screen->format, 0x00,0xff,0xff); break;
+	  case 0x0e : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0x00); break;
+	  case 0x0f : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0xff); break;
+	}
+	return crgb;
+}
+
 /***************************************************************************
  * Update Video                                                            *
  ***************************************************************************/
@@ -331,11 +359,15 @@ void sdl_video_update(void) {
 	if (video.redraw) {
 		video.redraw = FALSE;
 		/* Wipe the entire screen surface */
+		if (chromamode) {
+			colourRGB = cvtChroma(bordercolour);
+		} else {
 		#ifdef SDL_DEBUG_VIDEO
 			colourRGB = SDL_MapRGB(video.screen->format, 0x0, 0x80, 0xc0);
 		#else
 			colourRGB = bg_colourRGB;
 		#endif
+		}
 		if (SDL_FillRect(video.screen, NULL, colourRGB) < 0) {
 			fprintf(stderr, "%s: FillRect error: %s\n", __func__, SDL_GetError ());
 			exit(1);
@@ -367,10 +399,14 @@ void sdl_video_update(void) {
 
 			for (;srcx < srcw; srcx++) {
 				/* Get 8 bit source pixel and convert to RGB */
-				if (vga_graphmemory[srcy * 320 + srcx] == 0) {
-					colourRGB = colour0RGB;
+				if (chromamode) {
+					colourRGB = cvtChroma(vga_graphmemory[srcy * 320 + srcx]);
 				} else {
-					colourRGB = colour1RGB;
+					if (vga_graphmemory[srcy * 320 + srcx] == 0) {
+						colourRGB = colour0RGB;
+					} else {
+						colourRGB = colour1RGB;
+					}
 				}
 				if (video.screen->format->BitsPerPixel == 16) {
 					/* Write the destination pixel[s] */
@@ -768,14 +804,21 @@ void sdl_video_update(void) {
 							}
 						} else if (count == 4) {
 							sprintf(text, "%2i", runopts_emulator_ramsize);
-						} else if (count == 5) {
+						} else if (count >= 5 && count <= 8) {
+							if (count == 5 || count == 7) strcpy(text, "O");
+							if ((count <= 6 && !sdl_emulator.m1not) || 
+								(count >= 7 && sdl_emulator.m1not)) {
+								/* Invert the colours */
+								invertcolours = !invertcolours;
+							}
+						} else if (count == 9) {
 							sprintf(text, "%1i", sdl_emulator.frameskip);
 					#ifdef ENABLE_EMULATION_SPEED_ADJUST
-						} else if (count == 6) {
-							sprintf(text, "%3i", 2000 / runopts_emulator_speed);
-						} else if (count == 7) {
+						} else if (count == 10) {
+							sprintf(text, "%4i", 2000 / runopts_emulator_speed);
+						} else if (count == 11) {
 					#else
-						} else if (count == 6) {
+						} else if (count == 10) {
 							if (runopts_is_a_reset_scheduled())
 								strcpy(text, "* A reset is scheduled on save *");
 					#endif

@@ -48,7 +48,7 @@
       op=(op&0xf8)|6;
    }
    else{
-      op=fetch(pc);
+      op=fetchm(pc);
       tstates+=4;
       radjust++;
       addr=hl;

@@ -25,7 +25,7 @@
 
 extern int hsize,vsize;
 extern int interrupted;
-extern unsigned char scrnbmp[],scrnbmp_old[];
+extern unsigned char scrnbmp_new[],scrnbmp[],scrnbmp_old[],scrnbmpc_new[],scrnbmpc[];
 extern unsigned long tstates,tsmax,frames;
 extern int ay_reg;
 
@@ -34,10 +34,13 @@ extern void vsync_lower(void);
 extern void mainloop();
 #ifdef SZ81	/* Added by Thunor */
 extern void z80_reset(void);
+#include "sdl.h"
 #endif
 
 #define fetch(x) (memptr[(unsigned short)(x)>>10][(x)&1023])
 #define fetch2(x) ((fetch((x)+1)<<8)|fetch(x))
+
+#define fetchm(x) (pc<49152 ? fetch(pc) : fetch(pc&0x7fff))
 
 /* due to timing constraints, we presume that only one-byte stores
  * are used by programs for memory-mapped AY addons.

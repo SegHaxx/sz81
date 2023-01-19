@@ -31,7 +31,7 @@ char *runtime_options_text1[24];
 char *runtime_options_text2[24];
 char *runtime_options_text3[24];
 
-struct {
+struct video_options {
 	SDL_Surface *screen;
 	int fullscreen;		/* 0 or SDL_FULLSCREEN */
 	int scale;			/* 1, 2 or 3 */

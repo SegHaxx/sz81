@@ -191,10 +191,13 @@ void sdl_hotspots_init(void) {
 	for (count = HS_RUNOPTS0_RUNOPTS0; count <= HS_RUNOPTS0_NEXT; count++)
 		hotspots[count].gid = HS_GRP_RUNOPTS0;
 	hotspots[HS_RUNOPTS0_ZX80].remap_id = SDLK_HOME;
-	hotspots[HS_RUNOPTS0_ZX80].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_RUNOPTS0_ZX81].flags |= HS_PROP_SELECTED;	/* Default selected */
 	hotspots[HS_RUNOPTS0_ZX81].remap_id = SDLK_END;
 	hotspots[HS_RUNOPTS0_RAM_DN].remap_id = SDLK_INSERT;
 	hotspots[HS_RUNOPTS0_RAM_UP].remap_id = SDLK_DELETE;
+	hotspots[HS_RUNOPTS0_M1NOT_NO].remap_id = SDLK_3;
+	hotspots[HS_RUNOPTS0_M1NOT_NO].flags |= HS_PROP_SELECTED;	/* Default selected */
+	hotspots[HS_RUNOPTS0_M1NOT_YES].remap_id = SDLK_4;
 	hotspots[HS_RUNOPTS0_FRAMESKIP_DN].remap_id = SDLK_LEFTBRACKET;
 	hotspots[HS_RUNOPTS0_FRAMESKIP_UP].remap_id = SDLK_RIGHTBRACKET;
 	#ifdef ENABLE_EMULATION_SPEED_ADJUST
@@ -713,17 +716,23 @@ void hotspots_resize(int gid) {
 		hotspots[HS_RUNOPTS0_ZX81].hit_w = 7.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_DN].hit_x += 9.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_DN].hit_y += 5.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_RAM_UP].hit_x += 16.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_RAM_UP].hit_x += 17.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_RAM_UP].hit_y += 5.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_NO].hit_x += 2.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_NO].hit_y += 9.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_NO].hit_w = 7.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_YES].hit_x += 12.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_YES].hit_y += 9.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_M1NOT_YES].hit_w = 7.5 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_FRAMESKIP_DN].hit_x += 9.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_FRAMESKIP_DN].hit_y += 7.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_FRAMESKIP_UP].hit_x += 16.5 * 8 * video.scale;
-		hotspots[HS_RUNOPTS0_FRAMESKIP_UP].hit_y += 7.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_FRAMESKIP_DN].hit_y += 11.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_FRAMESKIP_UP].hit_x += 17.5 * 8 * video.scale;
+		hotspots[HS_RUNOPTS0_FRAMESKIP_UP].hit_y += 11.5 * 8 * video.scale;
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST
 			hotspots[HS_RUNOPTS0_SPEED_DN].hit_x += 9.5 * 8 * video.scale;
-			hotspots[HS_RUNOPTS0_SPEED_DN].hit_y += 9.5 * 8 * video.scale;
-			hotspots[HS_RUNOPTS0_SPEED_UP].hit_x += 16.5 * 8 * video.scale;
-			hotspots[HS_RUNOPTS0_SPEED_UP].hit_y += 9.5 * 8 * video.scale;
+			hotspots[HS_RUNOPTS0_SPEED_DN].hit_y += 13.5 * 8 * video.scale;
+			hotspots[HS_RUNOPTS0_SPEED_UP].hit_x += 17.5 * 8 * video.scale;
+			hotspots[HS_RUNOPTS0_SPEED_UP].hit_y += 13.5 * 8 * video.scale;
 		#endif
 		hotspots[HS_RUNOPTS0_SAVE].hit_x += 10 * 8 * video.scale;
 		hotspots[HS_RUNOPTS0_SAVE].hit_y += 22.5 * 8 * video.scale;
@@ -737,7 +746,8 @@ void hotspots_resize(int gid) {
 		/* Set-up hit_w/h */
 		for (count = HS_RUNOPTS0_ZX80; count <= HS_RUNOPTS0_NEXT; count++) {
 			hotspots[count].hit_h = 2 * 8 * video.scale;
-			if (count >= HS_RUNOPTS0_RAM_DN && count < HS_RUNOPTS0_SAVE) 
+			if ((count >= HS_RUNOPTS0_RAM_DN && count < HS_RUNOPTS0_M1NOT_NO) ||
+			    (count > HS_RUNOPTS0_M1NOT_YES && count < HS_RUNOPTS0_SAVE))
 				hotspots[count].hit_w = 2 * 8 * video.scale;
 		}
 		/* Set-up hl_x/y/w/h */

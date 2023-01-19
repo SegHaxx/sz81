@@ -419,6 +419,8 @@ int sdl_load_file(int parameter, int method) {
 	int count, index;
 	int ramsize;
 	FILE *fp;
+	char *scp = NULL;
+	int addr;
 
 	/* If requested, read and set the preset method instead */
 	if (method == LOAD_FILE_METHOD_DETECT) {
@@ -522,9 +524,14 @@ int sdl_load_file(int parameter, int method) {
 
 				/* Get translated program name */
 				strcpy(filename, strzx81_to_ascii(parameter));
+				scp = strrchr(filename,';');
+				if (scp) {
+					sscanf(scp+1,"%d",&addr);
+					if (!addr) scp = NULL; else strcpy(scp,"");
+				}
 				/* Add a file extension if one hasn't already been affixed */
 				if (sdl_filetype_casecmp(filename, ".p") != 0 &&
-					sdl_filetype_casecmp(filename, ".81") != 0)
+					sdl_filetype_casecmp(filename, ".81") != 0 && !scp)
 					strcat(filename, ".p");
 
 				/* Convert filename to uppercase on second attempt */
@@ -545,6 +552,9 @@ int sdl_load_file(int parameter, int method) {
 				/* Add translated program name */
 				strcat(fullpath, filename);
 			}
+
+
+printf("Opening file %s...\n",fullpath);
 
 			/* Attempt to open the file */
 			if ((fp = fopen(fullpath, "rb")) != NULL) {
@@ -670,7 +680,7 @@ int sdl_load_file(int parameter, int method) {
 							if (sdl_emulator.ramsize == 16) {
 								mem[sp + 2] = 0x22;
 							}
-						} else if (*sdl_emulator.model == MODEL_ZX81) {
+						} else if (*sdl_emulator.model == MODEL_ZX81 && !scp) {
 							/* Registers (common values) */
 							a = 0x0b; f = 0x00; b = 0x00; c = 0x02;
 							d = 0x40; e = 0x9b; h = 0x40; l = 0x99;
@@ -719,7 +729,10 @@ int sdl_load_file(int parameter, int method) {
 					if (*sdl_emulator.model == MODEL_ZX80) {
 						fread(mem + 0x4000, 1, ramsize * 1024, fp);
 					} else if (*sdl_emulator.model == MODEL_ZX81) {
-						fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
+						if (scp)
+							fread(mem + addr, 1, ramsize * 1024, fp);
+						else
+							fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
 					}
 					/* Copy fullpath across to the load file dialog as
 					 * then we have a record of what was last loaded */

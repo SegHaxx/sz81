@@ -107,5 +107,6 @@ extern void frame_pause(void);
 extern void common_reset(void);
 #endif
 
-
+extern int chromamode;
+extern unsigned char bordercolour;
 

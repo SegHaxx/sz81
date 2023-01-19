@@ -23,7 +23,7 @@ SOUNDDEF=-DOSS_SOUND_SUPPORT
 
 # You won't need to alter these
 TARGET=$(shell cat TARGET)
-SOURCES=sdl_main.c common.c sound.c z80.c sdl_engine.c sdl_hotspots.c \
+SOURCES=sdl_main.c common.c sound.c z80.c w5100.c sdl_engine.c sdl_hotspots.c \
 	sdl_input.c sdl_loadsave.c sdl_resources.c sdl_sound.c sdl_video.c
 OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
 VERSION=$(shell cat VERSION)
@@ -33,7 +33,7 @@ VERSION=$(shell cat VERSION)
 #CFLAGS=-O0 -g -pg
 #LDFLAGS=-pg
 SDL_CONFIG?=sdl-config
-CFLAGS?=-O3
+CFLAGS?=-O3 -g
 CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 
 LINK=$(CC)
@@ -62,7 +62,7 @@ open%:
 	fi
 
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ sz81
 
 install:
 	@if [ "$(PREFIX)" = . ] ; then \

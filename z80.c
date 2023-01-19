@@ -21,10 +21,6 @@
 #include "common.h"
 #include "sound.h"
 #include "z80.h"
-#ifdef SZ81	/* Added by Thunor */
-#include "sdl.h"
-#endif
-
 
 #define parity(a) (partable[a])
 
@@ -56,7 +52,13 @@ unsigned char scrnbmp[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];	/* displayed */
 unsigned char scrnbmp_old[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];
 						/* checked against for diffs */
 
+/* chroma */
+unsigned char scrnbmpc_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8]; /* written */
+unsigned char scrnbmpc[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];	/* displayed */
+						/* checked against for diffs */
+
 #ifdef SZ81	/* Added by Thunor. I need these to be visible to sdl_loadsave.c */
+#include "sdl_sound.h"
 int liney=0, lineyi=0;
 int vsy=0;
 unsigned long linestart=0;
@@ -93,7 +95,11 @@ vsync_toggle++;
 /* we don't emulate this stuff by default; if nothing else,
  * it can be fscking annoying when you're typing in a program.
  */
+#ifdef OSS_SOUND_SUPPORT
+if(sdl_sound.device != DEVICE_VSYNC)
+#else
 if(!vsync_visuals)
+#endif
   return;
 
 /* even when we do emulate it, we don't bother with x timing,
@@ -131,6 +137,7 @@ unsigned char radjust;
 unsigned long nextlinetime=0,linegap=208,lastvsyncpend=0;
 unsigned char ixoriy, new_ixoriy;
 unsigned char intsample=0;
+unsigned short videodata=0;
 unsigned char op;
 int ulacharline=0;
 int nmipend=0,intpend=0,vsyncpend=0,vsynclen=0;
@@ -153,6 +160,8 @@ ixoriy=new_ixoriy=0;
 ix=iy=sp=pc=0;
 tstates=radjust=0;
 nextlinetime=linegap;
+
+int ilinex;
 
 #ifdef SZ81	/* Added by Thunor */
 if(sdl_emulator.autoload)
@@ -240,20 +249,51 @@ while(1)
   ixoriy=new_ixoriy;
   new_ixoriy=0;
   intsample=1;
-  op=fetch(pc&0x7fff);
 
-  if (pc&0x8000 && !(op&64) && linestate==0) {
+/*
+Originally, the code to get the opcode was: op=fetch(pc&0x7fff).
+
+This is not correct, as it is possible, without modifications, to have
+the display file in the range 32768-49152.
+
+This is applied in the "fetchm" macro in "z80.h".
+
+In that case, the correct memory contents are loaded - without going 32K
+lower in address space - but the ULA sees the opcode as graphics information.
+
+The M1NOT modification prevents the latter, so that the opcodes are
+executed by the Z80.
+*/
+
+  op = fetchm(pc);
+
+  if (sdl_emulator.m1not && pc<49152) {
+    videodata = 0;
+  } else {
+    videodata = (pc&0x8000 ? 1 : 0);
+  }
+
+  if (videodata) {
+
+  if (!(op&64) && linestate==0) {
     nrmvideo = i<0x20 || radjust==0xdf;
     linestate = 1;
     linex = 5;
     if (liney<ZX_VID_MARGIN) liney=ZX_VID_MARGIN;
   } else if (linestate>=1) {
     if (op&64) {
-      linestate = 0;
-      linex = ZX_VID_FULLWIDTH/8;
-      if (sdl_emulator.ramsize>=4 && !zx80) {
-        liney++;
-        lineyi=1;
+      if (op==0x7f) {
+        for (ilinex=0; ilinex<7; ilinex++) {
+          scrnbmpc_new[liney*(ZX_VID_FULLWIDTH/8)+linex] = bordercolour << 4;
+	  linex += 8;
+        }
+      } else {
+        linestate = 0;
+        linex = ZX_VID_FULLWIDTH/8;
+        if (sdl_emulator.ramsize>=4 && !zx80) {
+          liney++;
+          lineyi=1;
+	}
       }
     } else {
       linestate++;
@@ -263,9 +303,12 @@ while(1)
 
   if (!nrmvideo) ulacharline = 0;
 
-  if((pc&0x8000) && !(op&64))
+  }
+
+  if(videodata && !(op&64))
     {
     int x,y,v;
+    unsigned char op2, color;
     
     /* do the ULA's char-generating stuff */
     x=linex;
@@ -282,10 +325,21 @@ while(1)
       else
         v=mem[(i<<8)|(r&0x80)|(radjust&0x7f)];
       if(taguladisp) v^=128;
-      scrnbmp_new[y*(ZX_VID_FULLWIDTH/8)+x]=((op&128)?~v:v);
+      scrnbmp_new[y*(ZX_VID_FULLWIDTH/8)+x] = ((op&128)?~v:v);
+
+      if (chromamode) {
+        op2 = ((op&0x80)>>1) | (op&0x3f);
+        if (chromamode&0x10)
+	  color = fetch(pc);
+        else
+	  color = fetch(0xc000|(op2<<3)|ulacharline);
+        scrnbmpc_new[y*(ZX_VID_FULLWIDTH/8)+x] = color;
+      }
+
       }
 
     op=0;	/* the CPU sees a nop */
+
     }
 
   pc++;
@@ -367,7 +421,11 @@ while(1)
      * i.e., if we're grinding away in FAST mode. So for that
      * case, we check for vsync being held for a full frame.
      */
+#ifdef OSS_SOUND_SUPPORT
+    if(sdl_sound.device==DEVICE_VSYNC && vsynclen>=tsmax)
+#else
     if(vsync_visuals && vsynclen>=tsmax)
+#endif
       {
       vsyncpend=1;
       vsynclen=1;
@@ -390,8 +448,10 @@ while(1)
     else
       {
       memcpy(scrnbmp,scrnbmp_new,sizeof(scrnbmp));
+      if (chromamode) memcpy(scrnbmpc,scrnbmpc_new,sizeof(scrnbmpc)); /* chroma */
       postcopy:
       memset(scrnbmp_new,0,sizeof(scrnbmp_new));
+      if (chromamode) memset(scrnbmpc_new,bordercolour<<4,sizeof(scrnbmpc_new));
       lastvsyncpend=tstates;
       vsyncpend=0;
       framewait=0;
@@ -420,7 +480,7 @@ while(1)
       /* hardware syncs tstates to falling of NMI pulse (?),
        * so a slight kludge here...
        */
-      if(fetch(pc&0x7fff)==0x76)
+      if (fetchm(pc)==0x76)
         {
         pc++;
         tstates=linestart;
@@ -444,7 +504,7 @@ while(1)
     if(iff1)
       {
 /*      printf("int line %d tst %d\n",liney,tstates);*/
-      if(fetch(pc&0x7fff)==0x76)pc++;
+      if (fetchm(pc)==0x76) pc++;
       iff1=iff2=0;
       tstates+=5; /* accompanied by an input from the data bus */
       switch(im)

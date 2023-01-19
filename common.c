@@ -37,12 +37,15 @@
 
 #ifdef SZ81	/* Added by Thunor */
 #include "sdl.h"
+#include "sdl_sound.h"
+extern void sdl_set_redraw_video();
 #endif
 
 #include "common.h"
 #include "sound.h"
 #include "z80.h"
 #include "allmain.h"
+#include "w5100.h"
 
 unsigned char mem[65536],*helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
@@ -70,6 +73,8 @@ int scrn_freq=2;
 int unexpanded=0;
 int taguladisp=0;
 int fakedispx=0,fakedispy=0;	/* set by main.c/xmain.c */
+
+extern int ulacharline;
 
 /* for the printer */
 #ifdef SZ81	/* Added by Thunor */
@@ -117,6 +122,8 @@ int autolist=0;
 int autoload=0;
 char autoload_filename[1024];
 
+int chromamode=0;
+unsigned char bordercolour=0x0f;
 
 /* not too many prototypes needed... :-) */
 #ifndef SZ81	/* Added by Thunor */
@@ -172,7 +179,7 @@ exit_program_flag=1;
 #ifndef SZ81	/* Added by Thunor */
 void startsigsandtimer()
 {
-int f,tmp=1000/50;	/* 50 ints/sec */ 
+int f,tmp=1000000/50;	/* default 50 ints/sec */ 
 struct sigaction sa;
 struct itimerval itv;
 
@@ -213,8 +220,8 @@ sa.sa_flags=SA_RESTART;
 
 sigaction(SIGALRM,&sa,NULL);
 
-itv.it_interval.tv_sec=tmp/1000;
-itv.it_interval.tv_usec=(tmp%1000)*1000;
+itv.it_interval.tv_sec=  tmp/1000000;
+itv.it_interval.tv_usec=tmp-1000000*itv.it_interval.tv_sec;
 itv.it_value.tv_sec=itv.it_interval.tv_sec;
 itv.it_value.tv_usec=itv.it_interval.tv_usec;
 setitimer(ITIMER_REAL,&itv,NULL);
@@ -422,6 +429,8 @@ if(zx80)
   zx80hacks();
 else
   zx81hacks();
+
+  w_init();
 }
 
 
@@ -468,6 +477,8 @@ zxppixel=-1;
 
 if(!zxpfilename)
   return;
+
+fprintf(stdout,"Creating zxprinter file \"%s\"\n", zxpfilename);
 
 if((zxpfile=fopen(zxpfilename,"wb"))==NULL)
   {
@@ -707,14 +718,22 @@ unsigned int in(int h,int l)
 int ts=0;		/* additional cycles*256 */
 int tapezeromask=0x80;	/* = 0x80 if no tape noise (?) */
 
+if (h==0x7f && l==0xef) {
+//  printf("Checking for Chroma capability\n");
+  return 0; /* chroma available */
+}
+
 if(!(l&4)) l=0xfb;
 if(!(l&1)) l=0xfe;
 
 switch(l)
   {
+  case WIZ_MODE:
+  case WIZ_ADRH:
+  case WIZ_ADRL:
+  case WIZ_DATA: return w_read(l);
   case 0xfb:
     return(printer_inout(0,0));
-    
   case 0xfe:
     /* also disables hsync/vsync if nmi off
      * (yes, vsync requires nmi off too, Flight Simulation confirms this)
@@ -727,8 +746,9 @@ switch(l)
       if(!vsync)
         vsync_raise();
       vsync=1;
+
 #ifdef OSS_SOUND_SUPPORT
-      sound_beeper(vsync);
+    if (sdl_sound.device == DEVICE_VSYNC) sound_beeper(vsync);
 #endif
       }
 
@@ -772,18 +792,20 @@ unsigned int out(int h,int l,int a)
  */
 int ts=1;	/* additional cycles */
 
-if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
-  {
-  /* the examples in the manual (using DF/0F) and the
-   * documented ports (CF/0F) don't match, so decode is
-   * important for that.
-   */
-  if(!(l&0xf0))		/* not sure how many needed, so assume all 4 */
-    l=0x0f;
-  else
-    if(!(l&0x20))		/* bit 5 low is common to DF and CF */
-      l=0xdf;
-  }
+if (h==0x7f && l==0xef) {	/* chroma */
+	chromamode = a&0x30;
+	if (chromamode) {
+	  printf("Selecting Chroma mode 0x%x.\n",a);
+	  if (sdl_emulator.ramsize < 48) printf("Insufficient RAM Size for Chroma!\n");
+	  bordercolour = a & 0x0f;
+	} else {
+	  printf("Selecting B/W mode.\n");
+	  memset(scrnbmp_old,1,ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8); /* force update */
+	  memset(scrnbmp,0,ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8);
+	}
+	sdl_set_redraw_video();
+	return ts;
+}
 
 if(!(l&4)) l=0xfb;
 if(!(l&2)) l=0xfd;
@@ -791,13 +813,29 @@ if(!(l&1)) l=0xfe;
 
 /*printf("out %2X\n",l);*/
 
+    if(vsync)
+      vsync_lower();
+    vsync=0;
+    hsyncgen=1;
+    ulacharline=-1;
+#ifdef OSS_SOUND_SUPPORT
+    if (sdl_sound.device == DEVICE_VSYNC) sound_beeper(vsync);
+#endif
+
 switch(l)
   {
+  case WIZ_MODE:
+  case WIZ_ADRH:
+  case WIZ_ADRL:
+  case WIZ_DATA: w_write(l,a); break;
+
 #ifdef OSS_SOUND_SUPPORT	/* Thunor: this was missing */
   case 0x0f:		/* Zon X data */
+  case 0x1f:		/* Zon X data */
     if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
       sound_ay_write(ay_reg,a);
     break;
+  case 0xcf:		/* Zon X reg. select */
   case 0xdf:		/* Zon X reg. select */
     if(sound_ay && sound_ay_type==AY_TYPE_ZONX)
       ay_reg=(a&15);
@@ -808,13 +846,6 @@ switch(l)
     return(ts|printer_inout(1,a));
   case 0xfd:
     nmigen=0;
-    if(vsync)
-      vsync_lower();
-    vsync=0;
-    hsyncgen=1;
-#ifdef OSS_SOUND_SUPPORT
-    sound_beeper(vsync);
-#endif
     break;
   case 0xfe:
     if(!zx80)
@@ -823,15 +854,9 @@ switch(l)
       break;
       }
     /* falls through, if zx80 */
-  case 0xff:	/* XXX should *any* out turn off vsync? [copied to 0xfd] */
+  case 0xff:
+    /* XXX should *any* out turn off vsync? [copied to above] */
     /* fill screen gap since last raising of vsync */
-    if(vsync)
-      vsync_lower();
-    vsync=0;
-    hsyncgen=1;
-#ifdef OSS_SOUND_SUPPORT
-    sound_beeper(vsync);
-#endif
     break;
   }
 
@@ -1247,8 +1272,7 @@ if(sound_enabled)
 #endif
 
 #ifdef SZ81	/* Added by Thunor */
-while(!signal_int_flag)
-  SDL_Delay(10);
+while(!signal_int_flag) SDL_Delay(10);
 #else
 /* we leave it blocked most of the time, only unblocking
  * temporarily with sigsuspend().

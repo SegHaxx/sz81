@@ -1345,6 +1345,14 @@ void manage_cursor_input(void) {
 					} else {
 						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
 					}
+					if (hs_currently_selected == HS_RUNOPTS0_M1NOT_NO ||
+						hs_currently_selected == HS_RUNOPTS0_M1NOT_YES) {
+						hotspots[hs_currently_selected + 8].flags |= HS_PROP_SELECTED;
+					} else if (hs_currently_selected == HS_RUNOPTS0_NEXT) {
+						hotspots[hs_currently_selected - 3].flags |= HS_PROP_SELECTED;
+					} else {
+						hotspots[hs_currently_selected - 2].flags |= HS_PROP_SELECTED;
+					}
 					#ifndef ENABLE_EMULATION_SPEED_ADJUST
 						hs_currently_selected = get_selected_hotspot(HS_GRP_RUNOPTS0 << runtime_options_which());
 						if (hs_currently_selected == HS_RUNOPTS0_SPEED_DN ||
@@ -1605,6 +1613,7 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX80 ||
 						hs_currently_selected == HS_RUNOPTS0_RAM_DN ||
+						hs_currently_selected == HS_RUNOPTS0_M1NOT_NO ||
 						hs_currently_selected == HS_RUNOPTS0_FRAMESKIP_DN ||
 						hs_currently_selected == HS_RUNOPTS0_SPEED_DN) {
 						hotspots[hs_currently_selected + 1].flags |= HS_PROP_SELECTED;
@@ -1731,6 +1740,7 @@ void manage_cursor_input(void) {
 					hotspots[hs_currently_selected].flags &= ~HS_PROP_SELECTED;
 					if (hs_currently_selected == HS_RUNOPTS0_ZX81 ||
 						hs_currently_selected == HS_RUNOPTS0_RAM_UP ||
+						hs_currently_selected == HS_RUNOPTS0_M1NOT_YES ||
 						hs_currently_selected == HS_RUNOPTS0_FRAMESKIP_UP ||
 						hs_currently_selected == HS_RUNOPTS0_SPEED_UP) {
 						hotspots[hs_currently_selected - 1].flags |= HS_PROP_SELECTED;
@@ -2230,7 +2240,15 @@ void manage_runopts_input(void) {
 				}
 			}
 		} else if (id == SDLK_3 || id == SDLK_4) {
-			if (runtime_options[1].state) {
+			if (runtime_options[0].state) {
+					if (state == SDL_PRESSED) {
+						if (id == SDLK_3) {
+							sdl_emulator.m1not = 0;
+						} else {
+							sdl_emulator.m1not = 1;
+						}
+					}
+			} else if (runtime_options[1].state) {
 				#ifdef OSS_SOUND_SUPPORT
 					if (state == SDL_PRESSED) {
 						if (id == SDLK_3) {
@@ -2818,6 +2836,7 @@ void runopts_transit(int state) {
 	if (state == TRANSIT_OUT) {
 		if (last_state != TRANSIT_SAVE) {
 			/* Restore the original contents of these variables */
+			sdl_emulator.m1not = runopts_emulator_m1not;
 			sdl_emulator.frameskip = runopts_emulator_frameskip;
 			sdl_key_repeat.delay = runopts_key_repeat.delay;
 			sdl_key_repeat.interval = runopts_key_repeat.interval;
@@ -2833,6 +2852,7 @@ void runopts_transit(int state) {
 		runopts_emulator_speed = sdl_emulator.speed;
 		runopts_emulator_model = *sdl_emulator.model;
 		runopts_emulator_ramsize = sdl_emulator.ramsize;
+		runopts_emulator_m1not = sdl_emulator.m1not;
 		runopts_emulator_frameskip = sdl_emulator.frameskip;
 		runopts_sound_device = sdl_sound.device;
 		runopts_sound_stereo = sdl_sound.stereo;

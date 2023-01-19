@@ -17,6 +17,7 @@
 
 /* Includes */
 #include "sdl_engine.h"
+#include "w5100.h"
 
 /* Defines */
 
@@ -81,6 +82,7 @@ int sdl_init(void) {
 	sdl_key_repeat.delay = KEY_REPEAT_DELAY;
 	sdl_key_repeat.interval = KEY_REPEAT_INTERVAL;
 	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
+	sdl_emulator.m1not = 0;
 	sdl_emulator.frameskip = 1;		/* Equivalent to z81's scrn_freq=2 */
 	sdl_emulator.ramsize = 16;		/* 16K is the default */
 	sdl_emulator.invert = 0;		/* Off is the default */
@@ -673,6 +675,8 @@ void clean_up_before_exit(void) {
 	#endif
 
 	if (wm_icon) SDL_FreeSurface(wm_icon);
+
+	w_exit();
 
 	SDL_Quit();
 

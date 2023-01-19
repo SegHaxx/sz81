@@ -1,5 +1,18 @@
+2014-01-29
+* 2.1.9 unofficial version (by Erik Olofsen)
+* Chroma 81 multi-function SCART interface support -
+  note: for Chroma, 56K RAM should be selected.
+* M1NOT circuit emulation.
+* W5100 Ethernet Chip partly emulated, giving ZeddyNet support -
+  note: some ZeddyNet applications need RAM between 8192 and 16384,
+        and M1NOT activated.
+  note: as W5100 needs SDL threads, other than sz81 build targets
+        are not supported.
+* in/out revised for sound, visual effects for vsync enabled
+* binary data may be loaded using a semicolon and an address after the filename
+
 2014-04-13
-* 2.1.8 unoffical version (by Erik Olofsen) with provisional
+* 2.1.8 unofficial version (by Erik Olofsen) with provisional
   patches to z80.c, edops.c, and common.c:
   common.c: out at 0xfd should turn off vsync as well
   edops.c: correction to extended instruction address
