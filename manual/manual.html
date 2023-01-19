@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>sz81 - Manual</title>
+  <link href="sz81.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" type="image/png" href="sz81.png">
+</head>
+
+<body>
+<div class="header">
+  <img src="sz81.bmp" alt="sz81 logo">
+ <h2 id="sz81">sz81</h2>
+</div>
+<p>
+sz81 is a <a href="https://en.wikipedia.org/wiki/ZX81">Sinclair ZX80/ZX81</a> emulator at
+<a href="http://sz81.sourceforge.net/">http://sz81.sourceforge.net</a>,
+very much based on <a href="http://www.svgalib.org/rus/z81.html">z81</a>, but employing the highly
+portable <a href="http://www.libsdl.org/">Simple DirectMedia Layer</a>
+and including additional functionality and features for
+desktop computers and portable devices.</p>
+<p>Key features of sz81 are:</p>
+<ul>
+<li>High Resolution Graphics</li>
+<li>ZON X-81 sound card emulation</li>
+<li>ZXpand, ZXNU, and ZXmore emulation</li>
+<li>ZeddyNet emulation</li>
+<li>Memory sizes from 1K to 48K; RAM at 8-16K available with 8K ROMs</li>
+<li>Graphical User Interface for managing the emulator</li>
+<li>Loads both .P, and .O as well as .81 and .80 files</li>
+</ul>
+<p>The present manual has been adapted from the original README and covers the latest version
+available <a href="http://rullf2.xs4all.nl/sz81/index.html">here</a>.
+</p>
+<div class="header">
+  <img src="sz81.bmp" alt="sz81 logo">
+ <h2 id="toc">Table of Contents</h2>
+</div>
+<ul>
+  <li><a href="#Requirements">Requirements</a></li>
+  <li><a href="#Installation">Installation</a></li>
+  <li><a href="#Operation">Operation</a>
+    <ul>
+      <li><a href="#Controls">Important Controls</a></li>
+      <li><a href="#Keyboard">The Virtual keyboard and Control Bar</a></li>
+      <li><a href="#Navigation">General GUI Navigation</a></li>
+      <li><a href="#Hardware">Hardware Options</a></li>
+      <li><a href="#Loading">Loading a Program File</a></li>
+      <li><a href="#Saving">Saving a Program File</a></li>
+      <li><a href="#Data">Saving and Loading Data Files</a></li>
+      <li><a href="#State">Saving and Loading State Files</a></li>
+      <li><a href="#ConfJoy">Configuring a Joystick</a></li>
+      <li><a href="#RemapJoy">Remapping Joystick Controls</a></li>
+      <li><a href="#Directory">The .sz81 Directory</a></li>
+      <li><a href="#Printer">Using the ZX Printer</a></li>
+      <li><a href="#ConfFile">The Configuration File</a></li>
+      <li><a href="#Exiting">Exiting sz81</a></li>
+    </ul>
+  </li>
+  <li><a href="#CLOptions">Command Line Options</a></li>
+  <li><a href="#History">History</a></li>
+  <li><a href="#Chroma">ZX81 Chroma 81 SCART Interface</a></li>
+  <li><a href="#ZeddyNet">ZeddyNet Emulation</a></li>
+  <li><a href="#ZXpand">ZXpand Emulation</a></li>
+  <li><a href="#ZXmore">ZXmore and ZXNU Emulation</a></li>
+</ul>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="Requirements">Requirements</h3>
+</div>
+<p>sz81 requires that <a href="https://www.libsdl.org/download-1.2.php">Simple DirectMedia Layer (SDL)</a>  version 1.2 be installed.
+</p>
+<p>With Ubuntu, to determine if SDL is installed run the following command:
+</p>
+<pre>dpkg -l | grep sdl</pre>
+<p>SDL is installed with the following command:
+<pre>sudo apt install libsdl1.2-dev</pre>
+<p>sz81 also has a requirement for a C compiler. With Ubuntu, it may be preinstalled;
+otherwise it may be installed with:
+</p>
+<pre>sudo apt install build-essential</pre>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="Installation">Installation</h3>
+</div>
+<p>Linux: Copy the installation archive file to where you want the sz81 directory to reside.  Extract the archive.  Running "make" should create an executable called sz81.  If there are issues, modify the "Makefile" to your needs.  In short, here is the whole process:</p>
+<pre>tar -xvf sz81-2.3.10.tar.gz
+cd sz81-2.3.10
+make
+./sz81
+</pre>
+<p>If there is an issue with the compilation process, once the issue has been resolved, make sure to run:</p>
+<pre>make clean</pre>
+<p>before running the make command again.</p>
+<p>Windows: Unzip the archive in a folder of your choice. The archive contains the required SDL.dll.</p>
+<p>macOS: See <a href="https://drive.google.com/open?id=0B8RnV5G0TZFZRTlJbzdWemtkRm8">https://drive.google.com/open?id=0B8RnV5G0TZFZRTlJbzdWemtkRm8</a></p>
+<p>Other: Compiling the latest sources for the Amiga, Zaurus, and GP2X has not been attempted with the latest versions.</p>
+
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="Operation">Operation</h3>
+</div>
+<p> sz81 can be started from the command line or from a Desktop Shortcut.  If creating a Desktop Shortcut,
+there are three .PNG files that can be used as icons for the Shortcut.</p>
+
+<h4 id="Controls">Important Controls</h4>
+<table>
+<tbody><tr><td>    Click screen  </td> <td> - </td> <td> Toggle virtual keyboard and control bar </td></tr>
+<tr><td>    Backspace     </td> <td> - </td> <td> Rubout i.e. equivalent to using SHIFT + 0 </td></tr>
+<tr><td>    Comma         </td> <td> - </td> <td> Equivalent to using SHIFT + . </td></tr>
+<tr><td>    Cursors       </td> <td> - </td> <td> Equivalent to using SHIFT + 5, 6, 7 and 8 </td></tr>
+<tr><td>    -/=           </td> <td> - </td> <td> Decrease/increase the volume (if supported) </td></tr>
+<tr><td>    ALT + R       </td> <td> - </td> <td> Cycle between 960x720, 640x480 and 320x240 </td></tr>
+<tr><td>    F11           </td> <td> - </td> <td> Toggle between fullscreen and a window </td></tr>
+<tr><td>    F9            </td> <td> - </td> <td> Activate the control remapper for remapping </td></tr>
+<tr><td>                  </td> <td> - </td> <td> joystick controls to keyboard controls </td></tr>
+<tr><td>    PrtScn        </td> <td> - </td> <td> Save a screenshot to the local scnsht folder </td></tr>
+<tr><td>    Pause         </td> <td> - </td> <td> Place emulation on hold but not the GUI </td></tr>
+</tbody></table>
+<h4 id="Keyboard">The Virtual Keyboard and Control Bar</h4>
+<p>
+    Clicking the screen (or F1) brings up the virtual keyboard and the
+    control bar enabling access to several very useful features.
+    If a joystick is detected, the "J" key will be highlighted.
+</p>
+<img src="keyboard.png" alt="keyboard" class="center">
+<p>
+    The functions of the control bar are listed below alongside their keyboard equivalents:
+</p>
+<table>
+<tbody><tr><td><img src="exit.png" alt="exit"></td> <td> - </td> <td> Exit emulator (F10) </td></tr>
+<tr><td><img src="reset.png" alt="reset"></td> <td> - </td> <td> Reset emulator (F12) </td></tr>
+<tr><td><img src="hide.png" alt="hide"></td> <td> - </td> <td> Toggle virtual keyboard between autohide and don't hide (F6) </td></tr>
+<tr><td><img src="sticky.png" alt="sticky"></td> <td> - </td> <td> Toggle between sticky shift and toggle shift (F7) </td></tr>
+<tr><td><img src="opacity.png" alt="opacity"></td> <td> - </td> <td> Reduce (HOME) or increase (END) virtual keyboard opacity </td></tr>
+<tr><td><img src="video.png" alt="video"></td> <td> - </td> <td> Toggle between not inverse and inverse video (F8) </td></tr>
+<tr><td><img src="savestate.png" alt="savestate"></td> <td> - </td> <td> Toggle the save state dialog if available (F4) </td></tr>
+<tr><td><img src="loadstate.png" alt="loadstate"></td> <td> - </td> <td> Toggle the load state dialog if available (F5) </td></tr>
+<tr><td><img src="load.png" alt="load"></td> <td> - </td> <td> Toggle the load file dialog (F3) </td></tr>
+</tbody></table>
+
+<h4 id="Navigation">General GUI Navigation</h4>
+<p>
+    Every component has a green selector that can be moved around using
+    the cursor keys or the joystick. The item
+    currently selected can be activated with the Enter key, a joystick
+    button (selector hit) or by clicking with the mouse. If you use the
+    mouse then of course you are free to activate items directly and can
+    ignore the selector. Page Up and Page Down (or joystick equivalents)
+    will flip between pages and scroll through lists. The Escape key operates as
+    you might expect: it closes the topmost dialog or component and will
+    continue to do so until the emulator window is reached.
+</p>
+<h4 id="Hardware">Hardware Options</h4>
+<p>
+    The F2 key toggles the runtime options which start with the options for
+    the hardware. The defaults are as follows:
+</p>
+<img src="hardware.png" alt="hardware" class="center">
+<p>
+  Most likely, most settings are self-explanatory. "M1NOT" refers to the possibility of running machine
+  code in the 32-48K part of the memory. The next page contains:
+</p>
+<img src="sound.png" alt="sound" class="center">
+<p>
+where the AY Unreal sound emulation has been selected. Use "VSYNC" for the sound that the ZX80/81 normally produces.
+The next page contains:
+</p>
+<img src="gui.png" alt="gui" class="center">
+<p>
+  Note that the volume of the sound may also be adjusted with the "-" and "=" keys.
+</p>  
+<h4 id="Loading">Loading a Program File</h4>
+<p>
+    Typing the ZX80's LOAD ("W", newline) or the ZX81's LOAD "" ("J",
+    SHIFT + "P" twice, newline) will show the load file dialog. There is
+    a much easier way to show the same dialog and that's via the control
+    bar icon or the F3 key (joystick select) but there is a fundamental
+    difference in the way that these two methods work that you should be
+    made aware of: a machine reset will occur if you load a program file
+    by directly activating the dialog but not if you activate it via the
+    machine's LOAD command. For the most part this won't matter at all,
+    but if you are intending to set-up RAMTOP, load a program above it
+    before loading another program then you will lose everything if you
+    load a program by invoking the dialog directly.
+</p>
+<p>
+    If you have an understanding of the ZX81 then you will know that it
+    is possible to load a program by executing LOAD "PROG" in which case
+    sz81's loading mechanism will search for prog.p or PROG.P within the
+    last directory navigated to, or if you've yet to navigate anywhere
+    then the start-up folder. If you'd like to load an .81 file instead
+    then the .p extension can be overridden by appending an .81 suffix
+    e.g LOAD "PROG.81".
+</p>
+<p>
+    There are some additional ways to navigate and utilise the load file
+    dialog that enhance its operability: directories can be opened and
+    programs loaded with a single mouse or stylus click, the scrollbar
+    is interactive and the list can be scrolled using a mouse wheel. It
+    is also possible to select an item by typing its initial letter or
+    number and then cycling to subsequent items with repeated presses.
+</p>
+<img src="loadfile.png" alt="loadfile" class="center">
+
+<h4 id="Saving">Saving a Program File</h4>
+<p>
+    On the ZX80 saving is achieved by executing SAVE ("E", newline), but
+    since there is no way to pass a filename and indeed no native sz81
+    save file dialog either, a choice of two naming methods have been
+    made available: the first and default method is to save the program
+    into the last folder navigated to with the load file dialog (or the
+    start-up directory) with a sequential filename e.g. zx80prog0123.o.
+    The second funkier method is to embed a BASIC line somewhere within
+    the program e.g. 9999 REM SAVE "PROG". The line number used is not
+    important, but the use of the SAVE keyword is so you'll need to type
+    9999 SAVE "PROG" and then move the cursor back before SAVE and add
+    a REM. When the program is saved by executing SAVE, sz81's program
+    saving mechanism will look for this embedded BASIC REM statement and
+    extract the filename. The default .o extension can be overridden by
+    appending a .80 suffix. Please note that if you are using a version
+    of sz81 that's been ported to a non *nix platform, these filenaming
+    methods may have been replaced with a save dialog native to your OS.
+</p>
+
+<h4 id="Data">Saving and Loading Data Files</h4>
+<p>
+  With the commands
+</p>
+  <pre>    SAVE "FILE;ADDRESS,length"
+    LOAD "FILE;ADDRESS"
+  </pre>
+<p>
+  data at the specified location and length can be saved to or loaded from a file.
+  These work with and without <a href="#ZXpand">ZXpand emulation</a>.
+</p>
+
+<h4 id="State">Saving and Loading State Files</h4>
+<p>
+    sz81 supports the saving and later reloading of images that are most
+    commonly known as save state files. They are simply files containing
+    dumps of the emulated machine's memory and the emulator's variables
+    to enable a program to be restored to the same state at some other
+    point in the future. So, after loading a game and playing the first
+    level or two you find that your lunch break is over and you'd like
+    to save your current position within the game to continue with later
+    when distraction beckons - simply activate the save state dialog by
+    pressing F4 or selecting it from the control bar and choose a slot.
+    Slots that are inverse have an existing state already stored there
+    (from the same program) so either choose a new slot or overwrite an
+    existing one. This can be achieved by clicking a slot with the mouse
+    or stylus, moving the selector and pressing enter (selector hit) or
+    pressing a number from 1 to 9.
+</p>
+<p>
+    Loading a save state file requires that the original game is loaded
+    first and then the load state dialog can be activated with F5 or via
+    the control bar. Then simply choose one of the previous slots that
+    you've saved to and away you go.
+</p>
+<img src="savestatedialog.png" alt="savestatedialog" class="center">
+
+<h4 id="ConfJoy">Configuring a Joystick</h4>
+<p>
+    If you have a digital or analogue joystick plugged in and you'd like
+    to use it then open the runtime options (F2 from within the emulator
+    or select the control bar icon) and employ the joystick configurator
+    using either the cursor keys and enter, the mouse or stylus or the
+    joystick once configured. Select a control on the graphical joystick
+    representation (the selector will blink) and follow the instructions
+    configuring as many of the controls as you possibly can for optimum
+    usability. By default, the 'J' key is selected if the joystick has
+    been detected.
+</p>
+<img src="confjoy.png" alt="confjoy" class="center">
+
+<h4 id="RemapJoy">Remapping Joystick Controls</h4>
+<p>
+    With the virtual keyboard and control bar visible, position the
+    selector over the function that you'd like to assign to a joystick
+    control and press the control remapper (the selector will blink).
+    Then press a joystick control to remap the function to the control.
+    Existing controls that have been remapped are active within the
+    emulator (you cannot remap GUI controls) whilst new controls are
+    universally active. It is possible to include the SHIFT modifier
+    within the control as long as it is active before you initiate
+    remapping. To cancel remapping press the control remapper again.
+</p>
+<h4 id="Directory">The .sz81 Directory</h4>
+<p>
+    In the users home directory is a .sz81 directory.  This directory contains local 
+    information on sz81, including the configuration file and the prtout directory.
+</p>
+<h4 id="Printer">Using the ZX Printer</h4>
+<p>
+    Emulated printer output is currently written to sequentially named
+    pbm image files stored within the local prtout directory in the .sz81 directory. A new file is
+    created when either of the ZX81's LLIST, LPRINT, or COPY commands are used
+    and then closed when the emulator is reset or sz81 exited.
+</p>
+<h4 id="ConfFile">The Configuration File</h4>
+<p>
+    Located within the .sz81 directory is the auto-generated configuration
+    file sz81rc (or sz81.ini). It is possible to tweak sz81's operation
+    by editing the contents of this file but the majority of people will
+    leave it as is. Right at the top is show_input_id which can be set
+    to TRUE to show input device id's (SDL_keysym's) which is useful if
+    you are configuring an input device and would like to know the id's
+    of the buttons. Additionally the entire control set is stored within
+    this file and controls can be edited, added or removed. For example
+    there is no print screen (SDLK_PRINT) key on a handheld device with
+    no keyboard and so by default the user cannot take screenshots, but
+    if they have a spare input button and they know its id then they can
+    by adding the following ctrl_remap:
+</p>
+<pre>        ctrl_remap.components=COMP_ALL
+        ctrl_remap.protected=TRUE
+        ctrl_remap.device=DEVICE_JOYSTICK        // or DEVICE_KEYBOARD
+        ctrl_remap.id=19                         // 19 is an example
+        ctrl_remap.remap_device=DEVICE_KEYBOARD
+        ctrl_remap.remap_id=SDLK_PRINT
+        ctrl_remap.remap_mod_id=
+</pre>
+<p>
+    Simply put, this ctrl_remap is active across all program components,
+    protected from being modified by the control remapper, will cause
+    the joystick button with the id of 19 to be intercepted and a PrtScn
+    keyboard key event generated in its place. remap_mod_id can be used
+    to generate an additional event and this is how backspace generates
+    SHIFT + 0 within the emulator. I recommend looking at sdl_input.c
+    and sdl_input.h to understand this system in more detail.
+</p>
+<h4 id="Exiting">Exiting sz81</h4>
+<p>
+    Upon exiting, if you have modified any of the configurable options
+    you will be presented with a dialog requesting that you confirm
+    writing the changes to the configuration file (sz81rc, sz81.ini).
+    If you choose "No" then the changes will be discarded. This is
+    useful for when you have configured the emulator just how you like
+    it and don't wish to disturb it with unimportant modifications.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="CLOptions">Command Line Options</h3>
+</div>
+<p>
+  Typing "sz81 -h" in a terminal or command line window gives the following usage options:
+</p>
+<img src="help.png" alt="help" class="center">
+<p>
+Messages about networking, detecting the joystick, loading and saving 
+files, creating printer images, and screenshots are also displayed in 
+the console. Some further information about the options:
+</p>
+<table>
+<tbody><tr><td>-b</td> <td>Like EightyOne's Full Frame</td></tr>
+<tr><td>-f</td> <td>Full screen</td></tr>
+<tr><td>-n</td> <td>Enable networking (see <a href="#ZeddyNet">ZeddyNet Emulation</a>)</td></tr>
+<tr><td>-Baddr</td> <td>Start address of disassembling</td></tr>
+<tr><td>-Eaddr</td> <td>End address of disassembling</td></tr>
+<tr><td>-N</td> <td>Disable autorun of programs</td></tr>
+<tr><td>-L,&nbsp;-S</td> <td>These disable the GUI for LOADing and 
+SAVEing files; instead the original ROM routines are used. If the Sound 
+Device is configured to "VSYNC", the original sound of saving a program 
+will be created, and can be stored on a recorder. However, loading it is
+ not supported. The options are also useful if other ROMs than those of 
+the ZX80 and ZX81 are used.</td></tr>
+<tr><td>-R,&nbsp;-W</td> <td>Enable the <a href="http://www.user.dccnet.com/wrigter/index_files/HS4.htm">HS-4 system</a></td></tr>
+<tr><td>-XRESxYRES</td> <td>Run with the specified resolution</td></tr>
+</tbody></table>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="History">History</h3>
+</div>
+<p>
+  First, the capability to display high resolution was added. Because it
+ didn't always work correctly, the display and Z80 routines were 
+replaced by those of EightyOne. Next, sound didn't work properly. To 
+solve this, the display routines were completely rewritten, also with 
+the aim that
+  <a href="https://sinclairzxworld.com/viewtopic.php?f=6&amp;t=685">these three programs</a>
+and
+  <a href="http://bodo4all.fortunecity.ws/">25thanni</a>
+would work correctly (in EightyOne, with View, Border Size, Full Frame, 
+the letters of the text are falling down in the bottom left corner).
+  In the meantime, other features were added that are briefly described 
+below.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="Chroma">ZX81 Chroma 81 SCART Interface</h3>
+</div>
+<p>
+  From <a href="http://www.fruitcake.plus.com/Sinclair/ZX81/Chroma/ChromaInterface.htm">http://www.fruitcake.plus.com/Sinclair/ZX81/Chroma/ChromaInterface.htm</a>:
+  "The Chroma 81 interface is a multi-purpose peripheral for the ZX81. 
+Its primary function is to allow the ZX81 to be connected to a TV via a 
+SCART socket to produce an RGB picture that is sharp and bright." Its 
+emulation is enabled by default if there is enough RAM
+  (see <a href="#Hardware">Hardware Options</a>).
+</p>
+<img src="zx0800.png" alt="zx0800" class="center">
+<p>
+The program displayed here may be found <a href="http://www.fruitcake.plus.com/Sinclair/ZX81/Chroma/ChromaInterface_Software_NativeColour.htm">here</a>.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="ZeddyNet">ZeddyNet Emulation</h3>
+</div>
+<p>
+ZeddyNet adds a network interface to the ZX81 using the WIZnet 5100 chip.
+At this page <a href="http://forum.tlienhard.com/phpBB3/viewtopic.php?t=1616">http://forum.tlienhard.com/phpBB3/viewtopic.php?t=1616</a>,
+  a lot of ZeddyNet software may be found. For example <a href="http://rullf2.xs4all.nl/zx81">this page</a> may be viewed with the web browser "ZeddyFox":
+</p>
+  <img src="zeddyfox.png" alt="zeddyfox" class="center">
+<p>
+  The networking code is enabled with the command line option "-n", and configures itself ("IPCONFIG" is not needed).
+  To mount a TNFS server, the program "NFM" may be used.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="ZXpand">ZXpand Emulation</h3>
+</div>
+<p>
+ZXpand is a hardware add-on for the ZX81 that provides an SD Card, 32K RAM, and routines to save
+and load programs from the SD card.  A number of BASIC commands have been changed to add CAT, DELETE, 
+and CONFIG commands.</p>
+<p>For example, this adventure game:
+<a href="https://sinclairzxworld.com/viewtopic.php?t=2845">In Nihilum Reverteris</a>
+needs high resolution, AY sound, and ZXpand emulation. The latter needs a
+ version of sz81 compiled with this emulation feature enabled.
+Files may be stored in the "ZXpand_SD_Card" directory near the sz81 
+installation directory.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3 id="ZXmore">ZXmore and ZXNU Emulation</h3>
+</div>
+<p>
+ZXmore is a new single board computer that behaves like a ZX80, ZX81 and ZX Spectrum.
+ZXNU is another single board computer that behaves like a ZX80 or ZX81.
+  These hardware clones can be partly emulated. Modify the Makefile to 
+enable it and/or contact the sz81 maintainer for further information.
+</p>
+<a href="#sz81">Back to top</a>
+
+<div class="header">
+  <img src="sz81.bmp" alt="logo">
+  <h3>Contact</h3>
+</div>
+<img src="email.png" alt="email" style="border:1px solid darkgray;padding:2px;background-color:white">
+
+</body></html>

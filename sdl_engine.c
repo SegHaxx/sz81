@@ -249,15 +249,17 @@ int sdl_com_line_process(int argc, char *argv[]) {
 			} else if (!strcmp (argv[count], "-n")) {
 				sdl_com_line.networking = TRUE;
 #endif
-			} else if (!strcmp (argv[count], "-w")) {
-				sdl_com_line.fullscreen = FALSE;
 			} else if (sscanf (argv[count], "-B%i",
 				&sdl_com_line.bdis) == 1) {
 			} else if (sscanf (argv[count], "-E%i",
 				&sdl_com_line.edis) == 1) {
 			} else if (sscanf (argv[count], "-%ix%i", 
 				&sdl_com_line.xres, &sdl_com_line.yres) == 2) {
-	// could add resolution check here
+				/* The minimum xres was changed from 240 to 320; 240 is too small to see all pixels */
+				if (sdl_com_line.xres < 320 || sdl_com_line.yres < 240) {
+					fprintf (stdout, "Invalid resolution: a minimum of 320x240 is required.\n");
+					return TRUE;
+				}
 			} else if (sdl_filetype_casecmp(argv[count], ".o") == 0 ||
 				sdl_filetype_casecmp(argv[count], ".80") == 0 ||
 				sdl_filetype_casecmp(argv[count], ".p") == 0 ||
@@ -268,16 +270,16 @@ int sdl_com_line_process(int argc, char *argv[]) {
 				fprintf (stdout,
 					"z81 2.1 - copyright (C) 1994-2004 Ian Collier and Russell Marks.\n"
 					"sz81 " VERSION " (unofficial, see NEWS) - copyright (C) 2007-2011 Thunor and Chris Young.\n\n"
-					"usage: sz81 [-bfhnwNLSRW] [-XRESxYRES] [filename.{o|p|80|81}]\n\n"
+					"usage: sz81 [-bfhnBENLSRW] [-XRESxYRES] [filename.{o|p|80|81}]\n\n"
 					"  -b  use a big screen for display\n"
 					"  -f  run the program fullscreen\n"
 					"  -h  this usage help\n"
 #if defined(SIOCGIFHWADDR) || defined(Win32)
 					"  -n  enable networking\n"
 #endif
-					"  -N  do not autorun (NXTLIN=0)\n"
 					"  -Baddr beginning of region to disassemble\n"
 					"  -Eaddr end of region to disassemble\n"
+					"  -N  do not autorun (NXTLIN=0)\n"
 					"  -L  disable LOAD hook\n"
 					"  -S  disable SAVE hook\n"
 					"  -R  enable reading from shared memory\n"
@@ -443,7 +445,7 @@ void sdl_component_executive(void) {
 		sdl_emulator_wrx = sdl_emulator.wrx;
 		zx81.truehires = sdl_emulator.wrx;
 		/* Reset the emulator */
-		emulator_reset();
+//		emulator_reset();
 	}
 
 	/* Monitor character generator changes */
@@ -451,7 +453,7 @@ void sdl_component_executive(void) {
 		sdl_emulator_chrgen = sdl_emulator.chrgen;
 		zx81.chrgen = sdl_emulator.chrgen;
 		/* Reset the emulator */
-		emulator_reset();
+//		emulator_reset();
 	}
 
 	#ifdef OSS_SOUND_SUPPORT

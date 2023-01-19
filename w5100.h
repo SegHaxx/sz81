@@ -73,14 +73,16 @@
 #define Sn_TTL			0x0416	// Socket 0 time-to-live
 #define Sn_TX_FSR0		0x0420  // Socket 0 free size
 #define Sn_TX_FSR1		0x0421  // (big endian)
-#define Sn_TX_RD0		0x0422	// TX read pointer
-#define Sn_TX_RD1		0x0423	// TX read pointer
-#define Sn_TX_WR0		0x0424  // TX write pointer
+#define Sn_TX_RD0		0x0422	// Socket 0 TX read pointer
+#define Sn_TX_RD1		0x0423
+#define Sn_TX_WR0		0x0424  // Socket 0 TX write pointer
 #define Sn_TX_WR1		0x0425
 #define Sn_RX_RSR0		0x0426  // Socket 0 received size
 #define Sn_RX_RSR1		0x0427
 #define Sn_RX_RD0		0x0428  // Socket 0 RX read pointer
 #define Sn_RX_RD1		0x0429
+#define Sn_RX_WR0		0x042A  // Socket 0 RX write pointer
+#define Sn_RX_WR1		0x042B
 
 // Register bit values for ORing into bitfields
 // Mode register
@@ -117,6 +119,7 @@
 #define S_MR_PPPoE 		5
 #define S_MR_NDMC 		32	// Use no delayed ACK
 #define S_MR_MULTI 		128	// enable multicasting
+#define S_MR_MODEMASK 		7
 
 // Socket commands
 #define S_CR_OPEN		1
@@ -135,7 +138,6 @@
 #define S_IR_RECV 		4	// Data received
 #define S_IR_TIMEOUT 		8	// Timeout occurred
 #define S_IR_SEND_OK 		16	// Send completed
-#define S_IR_RECV_WT 		128	// Receive completed (hack)
 
 // poll(2) definitions (see above)
 #define POLLIN			5	// S_IR_RECV | S_IR_CON
@@ -173,10 +175,6 @@
 #define MEMMGMT			0xE0	// memory manager port
 
 #define INVALID_SOCKNUM		4	// >4 is not valid.
-
-// Buffer memory should be paged into area A.
-#define gSn_RX_MASK 	0x07FF
-#define gSn_TX_MASK 	0x07FF
 
 void w_init();
 void w_exit();

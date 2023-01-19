@@ -1,3 +1,10 @@
+2019-04-22
+* 2.3.10 unofficial version (by Erik Olofsen)
+* Much improved WIZnet W5100 emulation
+* Added support for AMD 9511 APU (see am9511/am9511.cpp for credits)
+* Includes manual (with help from Tim Swenson)
+* A few bug fixes
+
 2018-07-28
 * 2.3.9 unofficial version (by Erik Olofsen)
 * A few bug fixes with selecting options

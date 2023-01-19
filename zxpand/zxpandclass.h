@@ -32,7 +32,7 @@ public:
       {
          if (milliseconds <= 1)
          {
-            delay -= 10;
+            delay -= 30;
          }
          else
          {

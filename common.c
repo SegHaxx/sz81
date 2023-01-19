@@ -567,6 +567,9 @@ if(load_hook)
 
 void zx80hacks()
 {
+#ifndef ZXPAND
+#ifndef ZXNU
+
 /* patch save routine */
 if(save_hook)
   {
@@ -580,6 +583,8 @@ if(load_hook)
   mem[0x206]=0xed; mem[0x207]=0xfc;
   mem[0x208]=0xc3; mem[0x209]=0x83; mem[0x20a]=0x02;
   }
+#endif
+#endif
 }
 
 #ifdef ZXMORE

@@ -37,8 +37,9 @@ VERSION=$(shell cat VERSION)
 SDL_CONFIG?=sdl-config
 CFLAGS?=-O3
 CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
-	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -D_DZ80_EXCLUDE_SCRIPT
+	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -D_DZ80_EXCLUDE_SCRIPT -DAPU
 # options:
+# -DAPU
 # -DZXPAND
 # -DZXNU
 # -DZXMORE (-DZXMSHMEM)
@@ -51,8 +52,8 @@ LIBS=`$(SDL_CONFIG) --libs` -lrt -Lsndrender -lsndrender -Lzxpand -lzxpand
 # You won't need to alter anything below
 all: $(SOURCES) $(TARGET)
 
-$(TARGET): $(OBJECTS) sndrender/libsndrender.a zxpand/libzxpand.a
-	g++ $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+$(TARGET): $(OBJECTS) sndrender/libsndrender.a zxpand/libzxpand.a am9511/am9511.o
+	g++ $(LDFLAGS) $(OBJECTS) $(LIBS) am9511/am9511.o -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -62,6 +63,9 @@ sndrender/libsndrender.a: sndrender/sndbuffer.cpp sndrender/sndchip.cpp sndrende
 
 zxpand/libzxpand.a: zxpand/zxpand_emu.cpp zxpand/zxpandclass.cpp zxpand/smbsd.cpp zxpand/zxpandcom.cpp zxpand/usart.cpp zxpand/zxpandcore.cpp zxpand/js.cpp zxpand/wildcard.cpp zxpand/ff.cpp
 	cd zxpand && CXXFLAGS='$(CFLAGS) -Wno-trigraphs' $(MAKE)
+
+am9511/am9511.o: am9511/am9511.cpp
+	cd am9511 && $(CXX) -c $(CFLAGS) am9511.cpp
 
 .PHONY: all clean install
 
@@ -78,7 +82,7 @@ open%:
 clean:
 	cd sndrender && $(MAKE) clean
 	cd zxpand && $(MAKE) clean
-	rm -f *.o *~ sz81 z80/*.o z80/*~ stzxfs
+	rm -f *.o *~ sz81 z80/*.o z80/*~ am9511/am9511.o stzxfs
 
 install:
 	@if [ "$(PREFIX)" = . ] ; then \

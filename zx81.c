@@ -126,6 +126,11 @@ extern int ZXpand_IO_ReadStatus();
 extern int ZXpand_IO_Read(int addr);
 #endif
 
+#ifdef APU
+void am_write_io8(uint8_t addr, uint8_t data);
+uint8_t am_read_io8(uint8_t addr);
+#endif
+
 #ifdef ZXMORE
 
 int zxmAddress(int Address, int rd)
@@ -283,7 +288,7 @@ void disassemble(const unsigned int dAddr, const BYTE opcode)
                         printf("**** dZ80 error:  %s\n", dZ80_GetErrorText(err));
                         }
 /* Display the disassembled line, using the hex dump and disassembly buffers in the DISZ80 structure */
-#ifndef ZXMORE                
+#ifdef ZXMORE                
         printf(" %6ld %02X %02X %d %d %04X %04X %04X %04X %04X %04X %04X %04X%10s:  %s\n",
 	       tstates, zxmroml, zxmraml, zxmnmi, zxmvideo, dAddr,
 	       z80.af.w, z80.bc.w, z80.de.w, z80.hl.w, z80.sp.w, z80.ix.w, z80.iy.w,
@@ -703,9 +708,13 @@ BYTE zx81_opcode_fetch_org(int Address)
 #ifdef ZXPAND
 // very rough timing here;
 // assuming a 1mhz call rate it will be 1ms every 1000 calls.
+// it may be too rough, with "in" and "jp" instructions;
+// what is the unit of the delay in zxpand/zxpandcom.h"?
+// ms is too much; for now microseconds are assumed.
+// 10 calls may be 30 us.
 
         ++calls;
-        if (calls == 1000)
+        if (calls == 10)
         {
                 calls = 0;
                 ZXpand_Update(1);
@@ -736,7 +745,11 @@ BYTE zx81_opcode_fetch_org(int Address)
         // 48-64k region if a 64k RAM Pack is used.  How does the real
         // Hardware work?
 
+#ifdef ZXMORE
         data = zxm_readbyte((Address>=zx81.m1not)?Address&32767:Address);
+#else
+        data = zxm_readbyte((Address>=49152)?Address&32767:Address);
+#endif
         opcode=data;
         bit6=opcode&64;
 
@@ -850,7 +863,7 @@ BYTE zx81_opcode_fetch_org(int Address)
 
                 if (z80.i<64 || (z80.i>=128 && z80.i<192 && zx81.chrgen==CHRGENCHR16))
                 {
-                        if ((zx81.extfont && z80.i==0x1e) || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
+                        if ((zx81.extfont && z80.i<32) || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
                                 data=font[(data<<3) + rowcounter];
                         else    data=zxm_readbyte((((z80.i&254)<<8) + (data<<3)) + rowcounter);
                 }
@@ -1211,6 +1224,13 @@ void zx81_writeport(int Address, int Data, int *tstates)
                 if (zx81.aytype==AY_TYPE_ZONX) SelectAYReg=Data&15;
                 break;
 
+#ifdef APU
+        case 0x67:
+        case 0xe7:
+		am_write_io8(Address&255,Data);
+                break;
+#endif
+
 		/*
         case 0x3f:
                 if (zx81.aytype==AY_TYPE_FULLER)
@@ -1277,8 +1297,8 @@ void zx81_writeport(int Address, int Data, int *tstates)
 		     else fprintf(stderr,"Setting ZXmore to power mode %d %d\n", RasterX, RasterY);
 #endif
 		   }
-		   zx81.machine = (zxmroml&0x07)>0 ? MACHINEZX81 : MACHINEZX80;
-		   *sdl_emulator.model = (zxmroml&0x07)>0 ? MODEL_ZX81 : MODEL_ZX80;
+		   //zx81.machine = (zxmroml&0x07)>0 ? MACHINEZX81 : MACHINEZX80;
+		   //*sdl_emulator.model = (zxmroml&0x07)>0 ? MODEL_ZX81 : MODEL_ZX80;
 		   //zx80 = zx81.machine==MACHINEZX81;
 	           switch (zxmroml&0x07) {
 		   	case 0: paper = 0x08 | 7; break;
@@ -1487,6 +1507,12 @@ BYTE zx81_readport(int Address, int *tstates)
 #ifdef ZXMORE
 	if (l==0xf7) return read_usb();
 	if (l==0xf4) { zxmnmicounter = 52; }
+#endif
+
+#ifdef APU
+        if (l==0x67 || l==0xe7) {
+		return am_read_io8(l);
+	}
 #endif
 
 #ifdef ZXNU
@@ -1888,10 +1914,10 @@ void zx81_initialise(void)
 #endif
 
 #ifdef ZXMORE
-	sdl_emulator.ramsize = 56;
+	sdl_emulator.ramsize = 48;
 #endif
 #ifdef ZXNU
-	sdl_emulator.ramsize = 56;
+	sdl_emulator.ramsize = 48;
 #endif
 #ifdef ZXPAND
 	sdl_emulator.ramsize = 32;

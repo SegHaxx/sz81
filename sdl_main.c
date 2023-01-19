@@ -32,6 +32,10 @@
 	#include "amiga.h"
 #endif
 
+#ifdef APU
+void am_reset();
+#endif
+
 /* Defines */
 
 /* Variables */
@@ -228,6 +232,11 @@ int main(int argc, char *argv[]) {
 				while (interrupted != INTERRUPT_EMULATOR_EXIT) {
 
 					interrupted = 0;
+
+#ifdef APU
+					/* Reset APU */
+					am_reset();
+#endif
 
 					/* Initialise printer variables */
 					zxpinit();

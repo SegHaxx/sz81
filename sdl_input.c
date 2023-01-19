@@ -2177,9 +2177,7 @@ void manage_runopts_input(void) {
 				if (state == SDL_PRESSED) {
 					key_repeat_manager(KRM_FUNC_REPEAT, &event, COMP_RUNOPTS0 * id);
 					if (id == SDLK_INSERT) {
-						if (runopts_emulator_ramsize == 56) {
-							runopts_emulator_ramsize = 48;
-						} else if (runopts_emulator_ramsize == 48) {
+						if (runopts_emulator_ramsize == 48) {
 							runopts_emulator_ramsize = 32;
 						} else if (runopts_emulator_ramsize == 32) {
 							runopts_emulator_ramsize = 16;
@@ -2198,8 +2196,6 @@ void manage_runopts_input(void) {
 							runopts_emulator_ramsize = 32;
 						} else if (runopts_emulator_ramsize == 32) {
 							runopts_emulator_ramsize = 48;
-						} else if (runopts_emulator_ramsize == 48) {
-							runopts_emulator_ramsize = 56;
 						}
 					}
 				} else if (state == SDL_RELEASED) {
@@ -2298,7 +2294,6 @@ void manage_runopts_input(void) {
 						runopts_emulator_wrx=HIRESDISABLED;
 					} else {
 						runopts_emulator_wrx=HIRESWRX;
-						runopts_emulator_chrgen=CHRGENSINCLAIR;
 					}
 				}
 			} else if (runtime_options[1].state) {
@@ -2332,7 +2327,6 @@ void manage_runopts_input(void) {
 						runopts_emulator_chrgen=CHRGENSINCLAIR;
 					} else {
 						runopts_emulator_chrgen=CHRGENCHR16;
-						runopts_emulator_wrx=HIRESDISABLED;
 					}
 				}
 			} else if (runtime_options[2].state) {
@@ -2827,9 +2821,9 @@ int runopts_is_a_reset_scheduled(void) {
 
 	if (runopts_emulator_model != *sdl_emulator.model || 
 		runopts_emulator_ramsize != sdl_emulator.ramsize ||
-		runopts_emulator_m1not != sdl_emulator.m1not ||
-		runopts_emulator_wrx != sdl_emulator.wrx ||
-		runopts_emulator_chrgen != sdl_emulator.chrgen ) {
+		runopts_emulator_m1not != sdl_emulator.m1not) {
+//		runopts_emulator_wrx != sdl_emulator.wrx ||
+//		runopts_emulator_chrgen != sdl_emulator.chrgen ) {
 		retval = TRUE;
 #ifdef OSS_SOUND_SUPPORT
 	} else if (runopts_sound_device != sdl_sound.device) {

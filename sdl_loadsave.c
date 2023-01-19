@@ -697,7 +697,7 @@ int sdl_load_file(int parameter, int method) {
 							/* Registers (common values) */
 							A = 0x0b; F = 0x00; B = 0x00; C = 0x02;
 							D = 0x40; E = 0x9b; H = 0x40; L = 0x99;
-							PC = zx81.machine==MACHINELAMBDA ? 0x0203 : 0x0207;
+							PC = zx81.machine==MACHINELAMBDA ? 0x0221 : 0x0207;
 							IX = 0x0281; IY = 0x4000; I = 0x1e; R7 = 0xdd;
 							A_ = 0xf8; F_ = 0xa9; B_ = 0x00; C_ = 0x00;
 							D_ = 0x00; E_ = 0x2b; H_ = 0x00; L_ = 0x00;
@@ -713,9 +713,15 @@ int sdl_load_file(int parameter, int method) {
 							mem[SP + 1] = 0x06;
 							mem[SP + 2] = 0x00;
 							mem[SP + 3] = 0x3e;
+#if 0							
+//							SP = mem[0x4004] + (mem[0x4005]<<8) - 4;
+							SP = 0xc000 - 4;
+							mem[SP + 0] = 0x85;
+							mem[SP + 1] = 0x07;
+#endif
 							/* Now override if RAM configuration changes things
 							 * (there's a possibility these changes are unimportant) */
-							if (sdl_emulator.ramsize >= 4) {
+							if (sdl_emulator.ramsize >= 4 && 0) {
 								D = 0x43; H = 0x43;
 								A_ = 0xec; B_ = 0x81; C_ = 0x02;
 								R = 0xa9;
