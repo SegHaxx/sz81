@@ -58,6 +58,8 @@
 #include <sys/soundcard.h>
 #endif
 
+#include <sys/stat.h>
+
 #include "common.h"
 #include "sound.h"
 #include "z80/z80.h"
@@ -174,6 +176,16 @@ static struct ay_states {
 	struct ay_change_tag ay_change[AY_CHANGE_MAX];
 	int ay_change_count;
 } ays_states[2];
+
+#ifdef SNDPRC
+#define SP_TOTAL 114746
+int sp_on;
+static unsigned char sp_data[SP_TOTAL];
+static unsigned int sp_ptrs[64];
+static float sp_durs[64];
+static int sp_ptr;
+static float sp_dt1, sp_dt2, sp_ts1, sp_ts2, sp_t, sp_dur;
+#endif
 
 void ay_states_reset(struct ay_states* as)
 {
@@ -385,6 +397,168 @@ return 0;
 }
 #endif
 
+#ifdef SNDPRC
+
+int sp_hash(char *s)
+{
+	int k=0;
+
+	k = *s-96;
+	k += *(s+1)-96;
+
+	return k;
+}
+
+void sp_load(char *name, unsigned int *p, unsigned int *i, float d)
+{
+	char filnam[256];
+	FILE *f;
+	struct stat buf;
+	unsigned int n;
+
+	fprintf(stderr, "%s",name);
+
+	strcpy(filnam, PACKAGE_DATA_DIR);
+	strcat(filnam, "/allophones/");
+	strcat(filnam, name);
+	strcat(filnam, ".wav");
+
+	f = fopen(filnam, "rb");
+	if (!f) {
+	  fprintf(stderr, "sp_load: error opening \"%s\"\n", filnam);
+	  return;
+	}
+	fstat(fileno(f), &buf);
+	n = buf.st_size-44;
+	fread(filnam, 44, 1, f);
+	fread(sp_data+(*p), n, 1, f);
+	fclose(f);
+
+	sp_ptrs[*i] = *p;
+	sp_durs[*i] = d;
+	*p += n;
+	++(*i);
+}
+
+void sp_init()
+{
+	unsigned int p=0, i=0;
+	
+	sp_load("pa1", &p, &i, 0.0064); // 00
+	sp_load("pa2", &p, &i, 0.0256);
+	sp_load("pa3", &p, &i, 0.0448);
+	sp_load("pa4", &p, &i, 0.0960);
+	sp_load("pa5", &p, &i, 0.1984);
+	sp_load("oy", &p, &i,  0.2912);
+	sp_load("ay", &p, &i,  0.1729);
+	sp_load("eh", &p, &i,  0.0546);
+
+	sp_load("kk3", &p, &i, 0.0768); // 08
+	sp_load("pp", &p, &i,  0.1472);
+	sp_load("jh", &p, &i,  0.0984);
+	sp_load("nn1", &p, &i, 0.1729);
+	sp_load("ih", &p, &i,  0.0455);
+	sp_load("tt2", &p, &i, 0.0960);
+	sp_load("rr1", &p, &i, 0.1274);
+	sp_load("ax", &p, &i,  0.0546);
+
+	sp_load("mm", &p, &i,  0.1820); // 10
+	sp_load("tt1", &p, &i, 0.0768);
+	sp_load("dh1", &p, &i, 0.1365);
+	sp_load("iy", &p, &i,  0.1729);
+	sp_load("ey", &p, &i,  0.2002);
+	sp_load("dd1", &p, &i, 0.0455);
+	sp_load("uw1", &p, &i, 0.0637);
+	sp_load("ao", &p, &i,  0.0728);
+
+	sp_load("aa", &p, &i,  0.0637); // 18
+	sp_load("yy2", &p, &i, 0.1274);
+	sp_load("ae", &p, &i,  0.0819);
+	sp_load("hh1", &p, &i, 0.0896);
+	sp_load("bb1", &p, &i, 0.0364);
+	sp_load("th", &p, &i,  0.1280);
+	sp_load("uh", &p, &i,  0.0728);
+	sp_load("uw2", &p, &i, 0.1729);
+
+	sp_load("aw", &p, &i,  0.2548); // 20
+	sp_load("dd2", &p, &i, 0.0721);
+	sp_load("gg3", &p, &i, 0.1105);
+	sp_load("vv", &p, &i,  0.1274);
+	sp_load("gg1", &p, &i, 0.0721);
+	sp_load("sh", &p, &i,  0.1984);
+	sp_load("zh", &p, &i,  0.1341);
+	sp_load("rr2", &p, &i, 0.0819);
+
+	sp_load("ff", &p, &i,  0.1088); // 28
+	sp_load("kk2", &p, &i, 0.1344);
+	sp_load("kk1", &p, &i, 0.1152);
+	sp_load("zz", &p, &i,  0.1486);
+	sp_load("ng", &p, &i,  0.2002);
+	sp_load("ll", &p, &i,  0.0819);
+	sp_load("ww", &p, &i,  0.1456);
+	sp_load("xr", &p, &i,  0.2457);
+
+	sp_load("wh", &p, &i,  0.1452); // 30
+	sp_load("yy1", &p, &i, 0.0910);
+	sp_load("ch", &p, &i,  0.1472);
+	sp_load("er1", &p, &i, 0.1092);
+	sp_load("er2", &p, &i, 0.2093);
+	sp_load("ow", &p, &i,  0.1729);
+	sp_load("dh2", &p, &i, 0.1820);
+	sp_load("ss", &p, &i,  0.0640);
+
+	sp_load("nn2", &p, &i, 0.1365); // 38
+	sp_load("hh2", &p, &i, 0.1260);
+	sp_load("or", &p, &i,  0.2360);
+	sp_load("ar", &p, &i,  0.2002);
+	sp_load("yr", &p, &i,  0.2457);
+	sp_load("gg2", &p, &i, 0.0694);
+	sp_load("el", &p, &i,  0.1365);
+	sp_load("bb2", &p, &i, 0.0502);
+
+	sp_on = 0;
+
+	sp_dt1 = 1./11025;
+	sp_dt2 = 1./sound_freq;
+
+}
+
+void sp_start(int idx)
+{
+
+	sp_ptr = sp_ptrs[idx];
+	sp_dur = sp_durs[idx];
+
+	sp_ts1 = 0.;
+	sp_ts2 = sp_dt1;
+	sp_t = 0.;
+
+	sp_on = 1;
+}
+
+unsigned char sp_sample()
+{
+	unsigned char s1, s2, s;
+
+	if (sp_t > sp_ts2) {
+	  sp_ptr++;
+	  sp_ts1 += sp_dt1;
+	  sp_ts2 += sp_dt1;
+	}
+
+	s1 = sp_data[sp_ptr];
+	s2 = sp_data[sp_ptr+1];
+
+	s = (unsigned char) ((float)s1 + (s2-s1)*(sp_t-sp_ts1)/sp_dt1);
+
+	sp_t += sp_dt2;
+
+	if (sp_t >= sp_dur) sp_on = 0;
+
+	return s;
+}
+
+#endif
 
 void sound_init(void)
 {
@@ -434,11 +608,16 @@ beeper_tick_incr=(1<<24)/sound_freq;
 sndhandle = fopen("sound.raw", "wb");
 #endif
 
+#ifdef SNDPRC
+ sp_init();
+#endif
+
  if(sound_ay) {
    sound_ay_init();
    snd_init();
    snd_start_frame();
  }
+
 }
 
 
@@ -696,6 +875,33 @@ if(tstates>=0 && count<AY_CHANGE_MAX)
   }
 }
 
+#ifdef FNMI
+
+/* 50 notes music interface" by Gaetano Marano, implementation by Stefano Bodrato */
+
+void sound_fnmi(int Data)
+{
+        float freq;
+        unsigned int val;
+
+	/* keep only audio channel 2/c */
+	sound_ay_write(7,251,0);
+	/* set volume to zero if "magic key" found to disable audio */
+	if ((Data & 15) == 15) {sound_ay_write(10,0,0);}
+	else {
+	  /* enable the 555 oscillator */
+	  freq=(60.0 + 5.4*(float)(~Data>>3&1) + 9.4*(float)(~Data>>2&1) + 13.2*(float)(~Data>>1&1) + 22.1*(float)(~Data&1) + 17.5*(float)(Data>>4&1) + 42.1*(float)(Data>>5&1)) * (float)(1<<(Data>>6));
+	  val=(1625000/(16*freq));
+	  /* raise volume */
+	  sound_ay_write(10,7,0);
+	  sound_ay_write(4,(val)&255,0);
+	  sound_ay_write(5,(val>>8)&15,0);
+	  sound_ay_write(6,0,0);
+	}
+}
+
+#endif
+
 /* no need to call this initially, but should be called
  * on reset otherwise.
  */
@@ -749,6 +955,10 @@ void sound_frame(void)
 unsigned char *ptr;
 int f;
 int r;
+#ifdef SNDPRC
+int i, j;
+unsigned char s;
+#endif
 
 if(!sound_enabled) return;
 
@@ -759,6 +969,20 @@ if (sound_ay && sound_ay_unreal) {
 #ifdef SIMPLE_RECORD
      fwrite(sndplaybuf,r*2,1,sndhandle);
 #endif
+
+#ifdef SNDPRC
+     if (sp_on) { 
+       j = 0;
+       for (i=0; i<r; i++) {
+	  s = sp_sample();
+	  sndplaybuf[j] = s;
+	  ++j;
+	  sndplaybuf[j] = s;
+	  ++j;
+       }
+     }
+#endif
+
      sdl_sound_frame((Uint16 *)sndplaybuf,r);
      snd_start_frame();
      return;

@@ -31,10 +31,20 @@
 
 #endif
 
-// #define W_DEBUG
+//#define W_DEBUG
 
 #define W_BUFSIZ 0x0800
 #define W_BUFMSK 0x07ff
+
+#ifdef ZXMORE
+#ifdef ZXMSHMEM
+#define zxmoffset 0xf0000 /* all instances can use ZeddyNet */
+#else
+#define zxmoffset 0xe0000 /* for now, only the first ZX81 instance can use ZeddyNet */
+#endif
+#else
+#define zxmoffset 0
+#endif
 
 struct threadData {
        int so;
@@ -77,10 +87,10 @@ void w_wn4(int addr, uint32_t data)
 
 void wn4(int addr, uint32_t data)
 {
-	mem[addr]   = (data & 0x000000ff);
-	mem[addr+1] = (data & 0x0000ff00) >> 8;
-	mem[addr+2] = (data & 0x00ff0000) >> 16;
-	mem[addr+3] = (data & 0xff000000) >> 24;
+	mem[addr+zxmoffset]   = (data & 0x000000ff);
+	mem[addr+zxmoffset+1] = (data & 0x0000ff00) >> 8;
+	mem[addr+zxmoffset+2] = (data & 0x00ff0000) >> 16;
+	mem[addr+zxmoffset+3] = (data & 0xff000000) >> 24;
 }
 
 #ifdef Win32
@@ -213,6 +223,9 @@ void w_init()
 	WSAStartup(MAKEWORD(1,1), &wsaData);
 #endif
 
+	for (i=0x2000; i<0x4000; i++) mem[zxmoffset+i] = 0;
+	for (i=0x3000; i<0x3400; i++) mem[zxmoffset+i] = 0xaa;
+
 	for (i=0; i<0x8000; i++) w_mem[i] = 0;
 	for (i=0; i<4; i++) w_prd[i] = 0;
 
@@ -245,7 +258,7 @@ void w_init()
 
 // ZX81 sockets
 
-	mem[0x3f14] = mem[0x3f15] = mem[0x3f16] = mem[0x3f17] = 0x80;
+	mem[0x3f14+zxmoffset] = mem[0x3f15+zxmoffset] = mem[0x3f16+zxmoffset] = mem[0x3f17+zxmoffset] = 0x80;
 
 #ifndef Win32
 
@@ -323,7 +336,7 @@ w_dns();
 
 // ethflags
 
-	mem[0x3ff5] = 1;
+	mem[0x3ff5+zxmoffset] = 1;
 
 // initialize sockets and threads
 
@@ -374,7 +387,7 @@ void w_sendto(int so, int sn)
    lbuf = i2 - i1;
    for (i=0; i<lbuf; i++) {
      i1 &= W_BUFMSK;
-     buf[i] = w_mem[0x4000+so*W_BUFSIZ+i1];
+     buf[i] = w_mem[0x4000+sn*W_BUFSIZ+i1];
      i1++;
    }
 
@@ -409,7 +422,9 @@ int w_recvfrom(void *data)
 
    for (;;) {
 
-   n = recvfrom(w_sockfd[sn],buf,W_BUFSIZ,0,(struct sockaddr *)&from, &length);
+   /* -8 for the fake header */
+
+   n = recvfrom(w_sockfd[sn],buf,W_BUFSIZ-8,0,(struct sockaddr *)&from, &length);
 
    if (n < 0) {
      perror("w_recvfrom");
@@ -439,7 +454,7 @@ int w_recvfrom(void *data)
 
      for (i=0; i<8; i++) {
        i1 &= W_BUFMSK;
-       w_mem[0x6000+so*W_BUFSIZ+i1] = 0;
+       w_mem[0x6000+sn*W_BUFSIZ+i1] = 0;
        i1++;
      }
 
@@ -448,7 +463,7 @@ int w_recvfrom(void *data)
 
      for (i=0; i<4; i++) {
        i1 &= W_BUFMSK;
-       w_mem[0x6000+so*W_BUFSIZ+i1] = buf[12+i];
+       w_mem[0x6000+sn*W_BUFSIZ+i1] = buf[12+i];
        i1++;
      }
 
@@ -456,17 +471,17 @@ int w_recvfrom(void *data)
      ioff = 20;
 
      i1 &= W_BUFMSK;
-     w_mem[0x6000+so*W_BUFSIZ+i1] = (n & 0xff00) >> 8;
+     w_mem[0x6000+sn*W_BUFSIZ+i1] = (n & 0xff00) >> 8;
      i1++;
      i1 &= W_BUFMSK;
-     w_mem[0x6000+so*W_BUFSIZ+i1] = (n & 0x00ff);
+     w_mem[0x6000+sn*W_BUFSIZ+i1] = (n & 0x00ff);
      i1++;
 
    }
 
    for (i=0; i<n; i++) {
      i1 &= W_BUFMSK;
-     w_mem[0x6000+so*W_BUFSIZ+i1] = buf[i+ioff];
+     w_mem[0x6000+sn*W_BUFSIZ+i1] = buf[i+ioff];
 #ifdef W_DEBUG
      printf("w_recvfrom: %x %x %x %c\n", i, i1, buf[i+ioff], (buf[i+ioff]>32?buf[i+ioff]:32));
 #endif
@@ -498,7 +513,7 @@ void w_send(int so, int sn)
    lbuf = i2 - i1;
    for (i=0; i<lbuf; i++) {
      i1 &= W_BUFMSK;
-     buf[i] = w_mem[0x4000+so*W_BUFSIZ+i1];
+     buf[i] = w_mem[0x4000+sn*W_BUFSIZ+i1];
 #ifdef W_DEBUG
      printf("w_send: %x %x %c\n", i, buf[i], (buf[i]>32?buf[i]:32));
 #endif
@@ -550,7 +565,7 @@ int w_recv(void *data)
    i1 = w_rn2(so+Sn_RX_RD0);
    for (i=0; i<n; i++) {
      i1 &= W_BUFMSK;
-     w_mem[0x6000+so*W_BUFSIZ+i1] = buf[i];
+     w_mem[0x6000+sn*W_BUFSIZ+i1] = buf[i];
 #ifdef W_DEBUG
      printf("w_recv: %x %x %x %c\n", i, i1, buf[i], (buf[i]>32?buf[i]:32));
 #endif
@@ -689,12 +704,12 @@ void w_socket(int addr, int val)
 					     dlt = w_rn2(so+Sn_RX_RSR0)-dlt;
 					     w_wn2(so+Sn_RX_RSR0, dlt);
 					     if (dlt==0) {
-					       /*
+#if 1
 			      		       if (w_mem[so+Sn_SR]==S_SR_SOCK_UDP || w_mem[so+Sn_SR]==S_SR_SOCK_IPRAW) {
 					         w_wn2(so+Sn_RX_RD0, 0);
 						 w_prd[sn] = 0;
 					       }
-					       */
+#endif
 					       w_mem[so+Sn_IR] &= ~S_IR_RECV_WT;
 					     } else {
 					       w_mem[so+Sn_IR] |= S_IR_RECV;
@@ -720,7 +735,7 @@ void w_socket(int addr, int val)
 					     }
 			      		     break;
 		         default           : printf("w5100: command 0x%02x not implemented...\n",val);
-	       	           		     exit(EXIT_FAILURE);
+				 //exit(EXIT_FAILURE);
 		       }
 	       	       break;
 	  case Sn_IR : if (val==0x1f) val |= S_IR_RECV_WT;
@@ -764,7 +779,7 @@ void w_write(int port, int val)
 			   if (val >= 0x04) {
 			     printf("w5100: changing operation mode (from 0x%02x to 0x%02x) not implemented...\n",
 				    w_mem[MR], val);
-			     exit(EXIT_FAILURE);
+			     // exit(EXIT_FAILURE);
 			   }
 			   w_mem[MR] = val;
 			 }

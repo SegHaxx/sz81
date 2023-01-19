@@ -15,10 +15,10 @@
 #define _MAX_PATH	260			/* Max length of filename, inc. path. */
 #endif
 
-
+#ifndef Z80_CONFIG
 typedef unsigned char	BYTE;
 typedef unsigned short	WORD;
 typedef unsigned long	DWORD;
-
+#endif
 
 #endif		/* __MITYPES__ */

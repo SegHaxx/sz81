@@ -12,6 +12,26 @@ Notes for version 2.3.x:
   Otherwise, it initially contains copies of the ROM, but may be used, for
   example, for UDG.
 
+Notes for version 2.3.7:
+
+* Some first ZXmore support is included (add -DZXMORE to the compile flags):
+  - "ZXM-DATA.BIN" is expected to be in the "data" directory.
+  - Possibly some sz81 settings and features interfere with ZXmore's operation
+    and vice versa; the 56K memory option is required.
+  - The "powered down" mode gives a horizontal shift with z88dk's hires programs.
+  - No USB support, but files can be loaded/saved as usual, although not via the command line
+  - ROM in an instance may be "flashed" for example with LOAD "NAME.ROM;#ADDRESS".
+  - ZeddyNet support only in instance 1.
+  - memory in the range 0x2000-0x4000 may be made shareable by adding -DZXMSHMEM
+    (only ZXmaster version 1.7 is compatible with this mode).
+* "50 notes music interface" by Gaetano Marano added (implementation by Stefano Bodrato)
+   (add -DFNMI to the compile flags to enable it).
+* Some SP012 support
+* LOAD and STORE for H4TH. Configure sz81 to use 24K and without M1NOT support.
+  The ROM may be loaded with LOAD "h4th.rom;0" or by copying the ROM over the
+  zx81.rom file in the "data" directory, but then the command line options "-L -S"
+  are needed.
+
 Notes for version 2.3.5:
 
 * The Unreal sound code may be enabled at the Sound Options screen;

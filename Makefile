@@ -38,6 +38,9 @@ SDL_CONFIG?=sdl-config
 CFLAGS?=-O3
 CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -D_DZ80_EXCLUDE_SCRIPT
+# -DZXMORE
+# -DZXMROML=0xF8 -DZXMRAML=0x13
+
 LINK=$(CC)
 LDFLAGS=
 LIBS=`$(SDL_CONFIG) --libs` -Lsndrender -lsndrender -lrt
@@ -46,7 +49,7 @@ LIBS=`$(SDL_CONFIG) --libs` -Lsndrender -lsndrender -lrt
 all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS) sndrender/libsndrender.a
-	$(LINK) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+	g++ $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -84,6 +87,7 @@ install:
 	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
 	@if [ -f data/aszmic.rom ]; then cp data/aszmic.rom $(PACKAGE_DATA_DIR); fi
+	@if [ -f data/h4th.rom ]; then cp data/h4th.rom $(PACKAGE_DATA_DIR); fi
 
 uninstall:
 	@echo "Uninstalling is not currently implemented."

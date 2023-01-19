@@ -1,3 +1,10 @@
+2016-11-12
+* 2.3.7 unofficial version (by Erik Olofsen)
+* ZXmore support
+* 50 notes music interface support
+* Some SP012 support
+* LOAD and STORE for H4TH
+
 2015-12-14
 * 2.3.6 unofficial version (by Erik Olofsen)
 * some compatibility changes to the W5100 emulation

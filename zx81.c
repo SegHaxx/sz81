@@ -12,13 +12,19 @@
 #include "types.h"
 #include "dissz80.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #define LASTINSTNONE  0
 #define LASTINSTINFE  1
 #define LASTINSTOUTFE 2
 #define LASTINSTOUTFD 3
 #define LASTINSTOUTFF 4
 
-// #define WAITMOD
+#ifdef ZXMORE
+#define WAITMOD
+#endif
+
 // #define VRCNTR
 
 ZX81 zx81;
@@ -84,7 +90,136 @@ int rowcounter=0;
 int zx81_stop=0;
 int hsync_counter=0;
 int ispeedup;
-int doda;
+int ffetch;
+
+/* ZXmore stuff */
+
+int zxmspeed=1;
+int zxmoff=0;
+int zxmnmicounter=0;
+int zxmnmi=0;
+int zxmfetching=0;
+int zxmroml=0x3f, zxmraml=0xf3;
+int zxmvideo=0;
+int zxmrowcounter=0;
+unsigned int zxmoffset=0;
+
+int zxmflash=0, zxmmod=0;
+
+#ifdef SNDPRC
+extern int sp_on;
+extern void sp_start(int idx);
+#endif
+
+#ifdef ZXMORE
+
+int zxmAddress(int Address, int rd)
+{
+  int romsize, swap, offset;
+
+  romsize = 0x1000 + ((zxmraml & 0x0f) << 12);
+  swap = zxmraml & 0x10;
+
+  if ((swap && Address>=romsize) || (!swap && Address<romsize)) {
+
+/* ram access */
+
+    // if (zxmvideo) Address &= 0x7fff; /* more or less what happened with early CPLDs */
+
+    if ((!zxmnmi || !rd) && (zxmroml&0x40)) Address |= 0x8000;
+
+#ifdef ZXMSHMEM
+    if ((zxmnmi && rd) || (Address>=0x2000 && Address<0x4000)) offset = 0x70000;
+#else
+    if (zxmnmi && rd) offset = 0x70000;
+#endif
+    else offset = (zxmraml & 0xe0) << 11;
+
+    offset += 0x80000;
+
+  } else {
+
+/* rom access */
+
+    if (zxmnmi) offset = 0x70000;
+    else offset = (zxmroml & 0x07) << 16;
+
+  }
+
+  return Address + offset;
+
+}
+
+void zxm_writebyte(int Address, int Data)
+{
+        int iAddress, ib, ie;
+
+	iAddress = zxmAddress(Address,0);
+
+	if (iAddress>=0x80000) {
+		memory[iAddress] = Data;
+		return;
+	}
+
+	if (zxmroml&0x08) return;
+
+/* modifications are saved in exitmem() in common.c */
+
+	switch (zxmflash) {
+		case    0: if (Address==0x5555 && Data==0xaa) zxmflash++;
+			   break;
+		case    1: if (Address==0x2aaa && Data==0x55) zxmflash++; else zxmflash=0;
+			   break;
+		case    2: if (Address==0x5555) zxmflash=Data; else zxmflash=0;
+			   break;
+		case 0x80: if (Address==0x5555 && Data==0xaa) zxmflash++; else zxmflash=0;
+			   break;
+		case 0x81: if (Address==0x2aaa && Data==0x55) zxmflash++; else zxmflash=0;
+			   break;
+		case 0x82: ib = iAddress & 0xff000;
+			   ie = ib | 0x00fff;
+			   while (ib<=ie) memory[ib++] = 0xff;
+//			   fprintf(stdout,"SERS %04x: %05x %02x %02x\n", z80.pc.w, iAddress, Data, zxmflash);
+		           zxmflash = 0;
+			   zxmmod = 1;
+			   break;
+		case 0xa0: memory[iAddress] = Data;
+//			   fprintf(stdout,"BPRG %04x: %05x %02x %02x\n", z80.pc.w, iAddress, Data, zxmflash);
+		           zxmflash = 0;
+			   zxmmod = 1;
+			   break;
+		default: zxmflash = 0;
+	}
+}
+
+BYTE zxm_readbyte(int Address)
+{
+        int iAddress;
+        int romsize;
+
+	romsize = 0x1000 + ((zxmraml & 0x0f) << 12);
+	if (!zxmfetching && zxmnmi && Address>=romsize && (zxmraml&0xe0)!=0xe0) {
+	  zxmnmi = 0;
+	}
+
+	iAddress = zxmAddress(Address,1);
+
+	return memory[iAddress];
+}
+
+#else
+
+void zxm_writebyte(int Address, int Data)
+{
+	memory[Address] = Data;
+}
+
+BYTE zxm_readbyte(int Address)
+{
+	return memory[Address];
+}
+
+#endif
 
 /* in common.c */
 void aszmic4hacks();
@@ -132,13 +267,18 @@ void disassemble(const unsigned int dAddr, const BYTE opcode)
                         {
                         printf("**** dZ80 error:  %s\n", dZ80_GetErrorText(err));
                         }
-                
 /* Display the disassembled line, using the hex dump and disassembly buffers in the DISZ80 structure */
-        printf(" %6ld %04X %04X %04X %04X %04X %04x %10s:  %s\n",
+#ifdef ZXMORE                
+        printf(" %6ld %02X %02X %d %d %04X %04X %04X %04X %04X %04X %04X %04X%10s:  %s\n",
+	       tstates, zxmroml, zxmraml, zxmnmi, zxmvideo, dAddr,
+	       z80.af.w, z80.bc.w, z80.de.w, z80.hl.w, z80.sp.w, z80.ix.w, z80.iy.w,
+	       d->hexDisBuf, d->disBuf);
+#else
+        printf(" %6ld %04X %04X %04X %04X %04X %04X %10s:  %s\n",
 	       tstates, dAddr,
 	       z80.af.w, z80.bc.w, z80.de.w, z80.hl.w, z80.sp.w,
 	       d->hexDisBuf, d->disBuf);
-                
+#endif
         free(d);
 }
 
@@ -191,22 +331,106 @@ int myrandom( int x )
   return rand() % ( x + 1 );
 }
 
+BYTE zx81_readbyte(int Address);
+void zx81_writebyte(int Address, int Data);
+
+void h4th_store(int n)
+{
+	FILE *f;
+	char filnam[10];
+	int blkloc, i, j;
+	unsigned char data;
+
+	sprintf(filnam,"%05d.4th", n);
+	blkloc = (zx81_readbyte(0xfc77) << 8) | zx81_readbyte(0xfc76);
+
+	fprintf(stderr,"STOREing %s...\n",filnam);
+
+	f = fopen(filnam,"w");
+	for (j=0; j<16; j++) {
+		for (i=0; i<32; i++) {
+			data = zx81_readbyte(blkloc++);
+			data = (data&0x80) + 32 + (data&0x7f);
+			fprintf(f,"%c", data);
+		}
+		blkloc++;
+		fprintf(f,"\n");
+	}
+	fclose(f);
+}
+
+int h4th_load(int n)
+{
+	FILE *f;
+	char filnam[10];
+	int blkloc, blkend, i, inv;
+	unsigned char data;
+
+	sprintf(filnam,"%05d.4th", n);
+	blkloc = (zx81_readbyte(0xfc77) << 8) | zx81_readbyte(0xfc76);
+	blkend = blkloc + 16*32;
+
+	fprintf(stderr,"LOADing %s...\n",filnam);
+
+	while (blkloc<blkend) zx81_writebyte(blkloc++,0);
+	blkloc = blkend - 16*32;
+
+	f = fopen(filnam,"r");
+	if (!f) return 0;
+
+	i = 0;
+	while (blkloc<blkend) {
+		data = fgetc(f);
+		if (feof(f)) break;
+		inv = data&0x80;
+		data &= 0x7f;
+		if (data < 0x20) {
+			while (i&0x1f) { blkloc++; i++; }
+			i = 0;
+		} else {
+			if (data>=0x60) data -= 0x40; else data -= 0x20;
+			if (inv) data |= 0x80;
+			zx81_writebyte(blkloc++,data);
+			i++;
+		}
+	}
+	fclose(f);
+
+	return 1;
+}
+
 /* zx97 code has been removed */
 
 /* In sz81, the extended instructions were called within edops.c;
    to keep the current Philip Kendall's z80_ed.c clean, the instructions are
    tested here in line with EightyOne */
 
+/* TODO: zxmoffset ;-) */
+
 int PatchTest(int pc)
 {
-        int byte, edbyte;
-        byte=memory[pc];
+        int byte, edbyte, offset=0;
+
+#ifdef ZXMORE
+	offset = (zxmroml & 0x07) << 16;
+	if (offset==0x70000) return(pc);
+#endif
+
+	byte = memory[pc+offset];
 
 	if (byte==0xed) {
-		edbyte = memory[pc+1];
+		edbyte = memory[pc+offset+1];
+#ifdef ZXMORE
+		offset += 0x80000;
+		if (zxmroml&0x40)  offset += 0x8000;
+#endif
 		switch (edbyte) {
 		case 0xfa: if (pc==0x0692 || pc==0x0693) {
 				kcomm(z80.hl.w);
+				return(pc+2);
+			    }
+			    if (pc==0x157b) {
+				h4th_store(z80.hl.w);
 				return(pc+2);
 			    }
 			    break;
@@ -214,36 +438,76 @@ int PatchTest(int pc)
 				z80.af.b.h=lcomm(z80.af.b.h,z80.hl.w);
 				return(pc+2);
 			    }
+			    if (pc==0x1611) {
+				if (h4th_load(z80.hl.w)) return(pc+0x7b);
+				return(pc+2);
+			    }
 			    break;
 	        case 0xfc: if (pc==0x348 && zx81.machine==MACHINEZX81) {
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
 			     if (z80.hl.w < 0x8000)
-			       sdl_load_file(z80.hl.w,LOAD_FILE_METHOD_NAMEDLOAD);
+			       sdl_load_file(z80.hl.w+offset,LOAD_FILE_METHOD_NAMEDLOAD);
 		             else
-			       sdl_load_file(z80.hl.w,LOAD_FILE_METHOD_SELECTLOAD);
+			       sdl_load_file(z80.hl.w+offset,LOAD_FILE_METHOD_SELECTLOAD);
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 		             return(z80.pc.w);
 	                   }
 	                   if (zx81.machine==MACHINEZX80 && pc==0x206) {
-		               sdl_load_file(z80.hl.w,LOAD_FILE_METHOD_SELECTLOAD);
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
+		               sdl_load_file(z80.hl.w+offset,LOAD_FILE_METHOD_SELECTLOAD);
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 		               return(pc+2);
 	                   }
 			   if (pc==0x19f0 && zx81.machine==MACHINELAMBDA) {
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
 			     if (z80.hl.w < 0x8000)
-			       sdl_load_file(z80.hl.w,LOAD_FILE_METHOD_NAMEDLOAD);
+			       sdl_load_file(z80.hl.w+offset,LOAD_FILE_METHOD_NAMEDLOAD);
 		             else
-			       sdl_load_file(z80.hl.w,LOAD_FILE_METHOD_SELECTLOAD);
+			       sdl_load_file(z80.hl.w+offset,LOAD_FILE_METHOD_SELECTLOAD);
+#ifdef ZXMORE
+			     if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 		             return(z80.pc.w);
 	                   }
 			   break;
 		case 0xfd: if (zx81.machine==MACHINEZX81 && pc==0x02fc) {
-				sdl_save_file(z80.hl.w,SAVE_FILE_METHOD_NAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
+				sdl_save_file(z80.hl.w+offset,SAVE_FILE_METHOD_NAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 				return(pc+2);
 			   }
 			   if (zx81.machine==MACHINEZX80 && pc==0x01b6) {
-			        sdl_save_file(z80.hl.w,SAVE_FILE_METHOD_UNNAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
+			        sdl_save_file(z80.hl.w+offset,SAVE_FILE_METHOD_UNNAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 		                return(pc+2);
 		           }
 			   if (zx81.machine==MACHINELAMBDA && pc==0x0d0d) {
-			        sdl_save_file(z80.hl.w,SAVE_FILE_METHOD_UNNAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset += 0x8000;
+#endif
+			        sdl_save_file(z80.hl.w+offset,SAVE_FILE_METHOD_UNNAMEDSAVE);
+#ifdef ZXMORE
+			        if (zxmroml&0x40) zxmoffset -= 0x8000;
+#endif
 		                return(pc+2);
 		           }
 			    break;
@@ -292,7 +556,7 @@ void zx81_writebyte(int Address, int Data)
 			return;
 		}
                 Address = (Address&1023)+8192;
-                memory[Address]=Data;
+                zxm_writebyte(Address,Data);
                 return;
         }
 
@@ -314,7 +578,7 @@ void zx81_writebyte(int Address, int Data)
 				memcpy(mem,sdl_zx81rom.data,8192);
 			}
 		}
-		if (zx81.RAMTOP==0xbfff) Address = memory[Address&0x7fff];
+		if (zx81.RAMTOP==0xbfff) Address &= 0x7fff;
 		else Address = (Address&(zx81.RAMTOP));
 	}
 
@@ -322,15 +586,24 @@ void zx81_writebyte(int Address, int Data)
         {
                 if ((zx81.truehires==HIRESMEMOTECH) && (Address<1024))
                                 memhrg[Address]=Data;
+#ifdef ZXMORE
+// possibly flash programming
+		zxm_writebyte(Address,Data);
+#endif
                 return;
         }
+
+#ifdef FNMI
+	/* 50 notes music interface" by Gaetano Marano, implementation by Stefano Bodrato */
+        if (Address>8191 && Address<16384) sound_fnmi(Data);
+#endif
 
         if (Address>8191 && Address<16384 && zx81.shadowROM && zx81.protectROM) return;
         if (Address<10240 && zx81.truehires==HIRESMEMOTECH) return;
         if (Address>=10240 && Address<12288 && zx81.truehires==HIRESG007) return;
 
         if (zx81.wsz81mem && Address>=0x4000 && Address<0x8000) sz81mem[Address-0x4000]=Data;
-        memory[Address]=Data;
+        zxm_writebyte(Address,Data);
 }
 
 BYTE zx81_readbyte(int Address)
@@ -344,31 +617,31 @@ BYTE zx81_readbyte(int Address)
 					  || (Address>=49152 && Address<57344)))
         {
 		if ((Address&0x3000) == 0x3000) {
-			data=memory[Address];
+			data=zxm_readbyte(Address);
 			printf("Read Lambda colour RAM (0x%04X:0x%02X)\n", Address, data);
 		} else {
 			Address = (Address&1023)+8192;
-			data=memory[Address];
+			data=zxm_readbyte(Address);
 		}
                 return(data);
         }
 
         if (zx81.rsz81mem && Address>=0xc000) return sz81mem[Address-0xc000];
 
-        if (Address<=zx81.RAMTOP) data=memory[Address];
+        if (Address<=zx81.RAMTOP) data=zxm_readbyte(Address);
 	//        else data=memory[(Address&(zx81.RAMTOP-16384))+16384];
-        else if (zx81.RAMTOP==0xbfff) data=memory[Address&0x7fff];
-	else data=memory[Address&zx81.RAMTOP];
+        else if (zx81.RAMTOP==0xbfff) data=zxm_readbyte(Address&0x7fff);
+	else data=zxm_readbyte(Address&zx81.RAMTOP);
 
         if ((Address<1024 && (zx81.truehires==HIRESMEMOTECH)) && (z80.i&1))
                         data=memhrg[Address];
 
         if ((Address>=0x0c00 && Address<=0x0cff) && (zx81.truehires==HIRESG007))
-                data=memory[Address+8192];
+	  data=zxm_readbyte(Address+8192);
 
         if ((Address<256 || (Address>=512 && Address<768))
-                && (z80.i&1) && (zx81.truehires==HIRESG007))
-                        data=memory[Address+8192];
+	    && (z80.i&1) && (zx81.truehires==HIRESG007))
+	  data=zxm_readbyte(Address+8192);
 
 #ifdef VISUALS
 	if (Address>=0x8000 && !(data&64) && !NMI_generator) {
@@ -404,13 +677,24 @@ BYTE zx81_opcode_fetch_org(int Address)
 {
         int inv;
         int opcode, bit6, update=0;
-        BYTE data, data2;
-
+	BYTE data;
+#ifndef ZXMORE
+        BYTE data2;
+#endif
+#ifdef ZXMORE
+        if (!zxmvideo || Address<zx81.m1not)
+#else
         if (Address<zx81.m1not)
+#endif
         {
                 // This is not video related, so just return the opcode
                 // and make some noise onscreen.
-                data = zx81_readbyte(Address);
+	        zxmfetching = 1;
+                data = zxm_readbyte(Address);
+	        zxmfetching = 0;
+#ifdef ZXMORE
+	        if (data==0xc9) zxmnmi = 0;
+#endif
                 noise |= data;
                 return(data);
         }
@@ -421,7 +705,7 @@ BYTE zx81_opcode_fetch_org(int Address)
         // 48-64k region if a 64k RAM Pack is used.  How does the real
         // Hardware work?
 
-        data = zx81_readbyte((Address>=49152)?Address&32767:Address);
+        data = zxm_readbyte((Address>=zx81.m1not)?Address&32767:Address);
         opcode=data;
         bit6=opcode&64;
 
@@ -442,17 +726,22 @@ BYTE zx81_opcode_fetch_org(int Address)
         {
                 if (zx81.colour==COLOURCHROMA)
                 {
+#ifdef ZXMORE
+			ink = 0;
+			paper = 15;
+#else
                         int c;
                         // If the Chroma 81 interface is enabled, we had better fetch
                         // the ink and paper colour from memory too.
 
-                        c = memory[Address];
+                        c = zxm_readbyte(Address);
                                 
                         ink = c&15;
                         paper = (c>>4) & 15;
+#endif
 		}
 
-                data=zx81_readbyte((z80.i<<8) | (z80.r7 & 128) | ((z80.r-1) & 127));
+                data=zxm_readbyte((z80.i<<8) | (z80.r7 & 128) | ((z80.r-1) & 127));
                 update=1;
         }
         else if ((z80.i&1) && MemotechMode)
@@ -487,22 +776,26 @@ BYTE zx81_opcode_fetch_org(int Address)
 
                 if (zx81.colour==COLOURCHROMA)
                 {
+#ifdef ZXMORE
+			ink = 0;
+			paper = 15;
+#else
                         int c;
 
                         // If the Chroma 81 interface is enabled, we had better fetch
                         // the ink and paper colour from memory too.
 
                         if (zx81.chromamode&0x10) {    // Attribute file
-                                c=memory[Address];
+                                c=zxm_readbyte(Address);
 			} else {                       // Character code
                                 data2 = ((data&0x80)>>1) | (data&0x3f);
-	                        c=memory[0xc000 + (data2<<3) + rowcounter];
+	                        c=zxm_readbyte(0xc000 + (data2<<3) + rowcounter);
 			}
                                 
                         ink = c&15;
                         paper = (c>>4) & 15;
+#endif
                 }
-
                 // First try to figure out which character set we're going
                 // to use if CHR$x16 is in use.  Else, standard ZX81
                 // character sets are only 64 characters in size.
@@ -510,8 +803,10 @@ BYTE zx81_opcode_fetch_org(int Address)
                 if ((zx81.chrgen==CHRGENCHR16 && (z80.i&1))
 		 || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
                         data = ((data&128)>>1)|(data&63);
-                else    data = data&63;
-
+#if ZXMORE
+                else if (z80.i&1) data = ((data&128)>>1)|(data&63);
+#endif
+                else data = data&63;
 
                 // If I points to ROM, OR I points to the 8-16k region for
                 // CHR$x16, we'll fetch the bitmap from there.
@@ -526,7 +821,7 @@ BYTE zx81_opcode_fetch_org(int Address)
                 {
                         if (zx81.extfont || (zx81.chrgen==CHRGENQS && zx81.enableqschrgen))
                                 data= font[(data<<3) | rowcounter];
-                        else    data=zx81_readbyte((((z80.i&254)<<8) + (data<<3)) | rowcounter);
+                        else    data=zxm_readbyte((((z80.i&254)<<8) + (data<<3)) + rowcounter);
                 }
                 else data=255;
 
@@ -546,7 +841,7 @@ BYTE zx81_opcode_fetch_org(int Address)
                         // If Lambda colour is enabled, we had better fetch
                         // the ink and paper colour from memory too.
 
-                        c = memory[8192+(Address&1023)+1];
+                        c = zxm_readbyte(8192+(Address&1023)+1);
 
                         ink = c&15;
                         paper = (c>>4) & 15;
@@ -602,15 +897,231 @@ BYTE zx81_opcode_fetch(int Address)
 
 	opcode = zx81_opcode_fetch_org(Address);
 
-	if (Address>=sdl_emulator.bdis && Address<=sdl_emulator.edis && doda)
+#if 0
+	if ((opcode==0xcd || (opcode&0xc7) == 0xc4) && Address>0x08cf ) // one of the nine calls
+	  disassemble(Address, opcode);
+#endif
+
+	if (Address>=sdl_emulator.bdis && Address<=sdl_emulator.edis && ffetch)
 	        disassemble(Address, opcode);
-	doda = 0;
+	ffetch = 0;
 
 	return opcode;
 }
 
+#ifdef ZXMORE
+
+BYTE zxmusbb[0x10000];
+int zxmusbr=0, zxmusbrl=0;
+int zxmusbw=0, zxmusbwf=0, zxmusbwl=0;
+int zxmusbc=0, zxmusbs=0;
+FILE *zxmusbf;
+#define ZXMUSBCS 1018
+
+void load_usb(int reset)
+{
+	static int stage, total, parts;
+	int n, n1, n2, n3, n4, i;
+	struct stat buf;
+
+	zxmusbr = zxmusbrl = 0;
+
+#ifdef DEBUGUSB
+        fprintf(stdout,"load_usb %d %d\n", reset, stage);
+#endif
+
+	if (reset) {
+		stage = 1;
+		return;
+	}
+
+	i = 0;
+	switch (stage) {
+		case 1: zxmusbb[18]=0;
+			printf("Opening file %s...\n", zxmusbb+6);
+			zxmusbf = fopen((const char*)(zxmusbb+6),"rb");
+			if (zxmusbf) {
+			  fstat(fileno(zxmusbf),&buf);
+			  total = buf.st_size;
+			} else {
+			  total = -1;
+			}
+			n1 = (total & 0x000000ff);
+			n2 = (total & 0x0000ff00) >> 8;
+			n3 = (total & 0x00ff0000) >> 16;
+			n4 = (total & 0xff000000) >> 24;
+			zxmusbb[i++]=0xff; zxmusbb[i++]=0x00;
+			zxmusbb[i++]=n1; zxmusbb[i++]=n2;
+			zxmusbb[i++]=n3; zxmusbb[i++]=n4;
+			zxmusbrl = 6;
+			if (total<0) {
+				stage = 0;
+				return;
+			}
+			parts = (n3>0) || (n4>0);
+	       case 2: if ((total>ZXMUSBCS) && parts) {
+				n = fread(zxmusbb+zxmusbrl+6, 1, ZXMUSBCS, zxmusbf);
+				total -= ZXMUSBCS;
+			} else {
+				n = fread(zxmusbb+zxmusbrl+6, 1, total, zxmusbf);
+				fclose(zxmusbf);
+				total = 0;
+			}
+			n1 = (n & 0x000000ff);
+			n2 = (n & 0x0000ff00) >> 8;
+			zxmusbb[i++]=0xff; zxmusbb[i++]=0x00;
+			zxmusbb[i++]=n1; zxmusbb[i++]=n2;
+			zxmusbb[i++]=0; zxmusbb[i++]=0;
+			zxmusbrl += 6 + n;
+			if (stage==1) stage++;
+			if (total==0) stage = 0;
+			break;
+		default:;
+	}
+}
+
+void save_usb(int stage)
+{
+	switch (stage) {
+		case 1: zxmusbb[18]=0;
+			printf("Opening file %s...\n", zxmusbb+6);
+			zxmusbf = fopen((const char*)(zxmusbb+6), "wb");
+			break;
+		case 2: fwrite(zxmusbb+zxmusbwf,zxmusbwl-zxmusbwf,1,zxmusbf);
+			fflush(zxmusbf);
+			break;
+		case 3: fclose(zxmusbf);
+			break;
+	}
+}
+
+BYTE read_usb()
+{
+	BYTE b;
+
+	zxmusbs = 0;
+
+	b = zxmusbb[zxmusbr];
+
+#ifdef DEBUGUSB
+        fprintf(stdout,"RUSB %d,%d,%d %02x at %04X\n", zxmusbs, zxmusbr, zxmusbrl, b, z80.pc.w);
+#endif
+
+	zxmusbr++;
+
+	if (zxmusbr>=0x10000) {
+		fprintf(stdout,"Error reading from USB buffer\n");
+		zxmusbr = 0;
+	} else if (zxmusbr==zxmusbrl) {
+#ifdef DEBUGUSB
+		fprintf(stdout,"All bytes read from USB buffer\n");
+#endif
+		load_usb(0);
+	}
+
+        return b;
+}
+
+void write_usb(int Data)
+{
+	int n;
+
+#ifdef DEBUGUSB
+	fprintf(stdout,"WUSB %d,%d,%d %02x at %04X\n", zxmusbs, zxmusbw, zxmusbwl, Data, z80.pc.w);
+#endif
+
+	zxmusbr = 0;
+
+	switch(zxmusbs) {
+		case  0: if (Data!=0xa5) {
+			 	 fprintf(stdout,"USB I/O out of sync\n");
+			 } else {
+			         zxmusbs++;
+			 }
+			 break;
+		case  1: zxmusbs++;
+			 zxmusbc = Data;
+#ifdef DEBUGUSB
+			 fprintf(stdout,"USB command: %02x\n", zxmusbc);
+#endif
+			 zxmusbb[0]=0xff; zxmusbb[1]=0x00;
+			 switch(zxmusbc) {
+				 case 0x0f: /* version */
+					    zxmusbb[2]=1; zxmusbb[3]=2; zxmusbb[4]=3; zxmusbb[5]=4;
+					    zxmusbrl = 6+64;
+					    zxmusbs = 0;
+					    break;
+				 case 0x11: /* filename - load */
+					    zxmusbrl = 6;
+					    break;
+				 case 0x18: /* filename - save */
+#ifdef DEBUGUSB
+					    printf("Saving 18a %s\n", zxmusbb+6);
+#endif
+					    zxmusbrl = 12;
+					    break;
+				 case 0x19: /* save */
+#ifdef DEBUGUSB
+					    printf("Saving 19a %s\n", zxmusbb+6);
+#endif
+					    zxmusbwl += 2;
+					    zxmusbs++;
+					    break;
+				 default  : ;
+			 }
+			 break;
+		case  2: zxmusbs++;
+			 switch(zxmusbc) {
+				 case 0x11: load_usb(1);
+				 case 0x18: /* filename */
+					    zxmusbw = 6;
+					    zxmusbwl = 6 + Data;
+				 default  : ;
+			 }
+			 break;
+		case  3: zxmusbb[zxmusbw++] = Data;
+			 if (zxmusbw==zxmusbwl) switch(zxmusbc) {
+				 case 0x11: load_usb(0);
+					    break;
+				 case 0x18: save_usb(1);
+					    break;
+			 	 case 0x19: n = (zxmusbb[zxmusbw-1] << 8) | zxmusbb[zxmusbw-2];
+#ifdef DEBUGUSB
+					    printf("Saving 19b %s %d\n", zxmusbb+6, n);
+#endif
+					    if (n==0) {
+						    save_usb(3);
+						    zxmusbs = 0;
+					    } else {
+						    zxmusbwf = zxmusbw;
+						    zxmusbwl += n;
+						    zxmusbs++;
+					    }
+					    break;
+				 default  : ;
+			 }
+			 break;
+		case  4: zxmusbb[zxmusbw++] = Data;
+			 if (zxmusbw==zxmusbwl) switch(zxmusbc) {
+			 	 case 0x19: save_usb(2);
+#ifdef DEBUGUSB
+					    printf("Saving 19c %s %d %d\n", zxmusbb+6, zxmusbwf, zxmusbwl);
+#endif
+					    zxmusbw = zxmusbwf-2;
+					    zxmusbwl = zxmusbw;
+					    break;
+				 default  : fprintf(stdout,"USB I/O out of sync\n");
+			 }
+	}
+}
+
+#endif
+
 void zx81_writeport(int Address, int Data, int *tstates)
 {
+#ifdef ZXMORE
+        int speed;
+#endif
         if (Address==0x7fef && zx81.Chroma81) {
                 chromamode = Data&0x30; // TODO should be 0x20
                 zx81.colour = chromamode ? COLOURCHROMA : COLOURDISABLED;
@@ -633,11 +1144,25 @@ void zx81_writeport(int Address, int Data, int *tstates)
                 break;
 
         case 0x0f:
+#ifdef SNDPRC
+		if (SelectAYReg >= 15) {
+			if (Data<64) sp_start(Data);
+			return;
+		}
+#endif
                 if (zx81.aytype==AY_TYPE_ZONX)
                         sound_ay_write(SelectAYReg, Data, 0);
                 break;
         case 0x1f:
+#ifndef ZXMORE
         case 0xf7:
+#endif
+#ifdef SNDPRC
+		if (SelectAYReg >= 15) {
+			if (Data<64) sp_start(Data);
+			return;
+		}
+#endif
                 if (zx81.aytype==AY_TYPE_ZONX)
                         sound_ay_write(SelectAYReg, Data, 1);
                 break;
@@ -699,6 +1224,61 @@ void zx81_writeport(int Address, int Data, int *tstates)
 	case WIZ_ADRL:
 	case WIZ_DATA: if (sdl_emulator.networking) w_write(Address&255,Data); break;
 
+#ifdef ZXMORE
+	case 0xf5:
+#ifdef ZXMROML
+		   break;
+#endif
+		   zxmroml = Data;
+	           speed = (zxmroml & 0x10) ? 2 : 1;
+		   zxmoff = (zxmroml & 0x80) ? 1 : 0;
+		   if (zxmoff) zxmnmi = 0;
+		   if (speed != zxmspeed) {
+		     zxmspeed = speed;
+#if 0
+		     if (zxmspeed == 1) fprintf(stderr,"Setting ZXmore to normal speed %d %d\n", RasterX, RasterY);
+		     else fprintf(stderr,"Setting ZXmore to power mode %d %d\n", RasterX, RasterY);
+#endif
+		   }
+		   zx81.machine = (zxmroml&0x07)>0 ? MACHINEZX81 : MACHINEZX80;
+		   *sdl_emulator.model = (zxmroml&0x07)>0 ? MODEL_ZX81 : MODEL_ZX80;
+		   //zx80 = zx81.machine==MACHINEZX81;
+	           switch (zxmroml&0x07) {
+		   	case 0: paper = 0x08 | 7; break;
+		   	case 1: paper = 0x08 | 6; break;
+		   	case 2: paper = 0x08 | 3; break;
+		   	case 3: paper = 0x08 | 2; break;
+		   	case 4: paper = 0x08 | 5; break;
+		   	case 5: paper = 0x08 | 4; break;
+		   	case 6: paper = 0x08 | 1; break;
+		   	case 7: paper = 0x00 | 7; break;
+	           }
+		   refresh_screen = 1;
+		   break;
+	case 0xf6:
+#ifdef ZXMRAML
+		   break;
+#endif
+		   zxmraml = Data;
+		   nmi_pending = 0;
+		   zxmoffset = 0x80000 + ((zxmraml & 0xe0) << 11); // for LOAD/SAVE
+		   zx81.colour = COLOURCHROMA;
+	           switch ((zxmraml&0xe0) >> 5) {
+		   	case 0: zx81.chromamode = chromamode = 0x28 | 7; break;
+		   	case 1: zx81.chromamode = chromamode = 0x28 | 6; break;
+		   	case 2: zx81.chromamode = chromamode = 0x28 | 3; break;
+		   	case 3: zx81.chromamode = chromamode = 0x28 | 2; break;
+		   	case 4: zx81.chromamode = chromamode = 0x28 | 5; break;
+		   	case 5: zx81.chromamode = chromamode = 0x28 | 4; break;
+		   	case 6: zx81.chromamode = chromamode = 0x28 | 1; break;
+		   	case 7: zx81.chromamode = chromamode = 0x20 | 7; break;
+	           }
+		   refresh_screen = 1;
+		   break;
+	case 0xf7: write_usb(Data);
+		   break;
+#endif
+
         case 0xff: // default out handled below
 	        break;
 
@@ -729,6 +1309,11 @@ BYTE zx81_readport(int Address, int *tstates)
         if (Address==0x7fef) {
                 return zx81.Chroma81 ? 0 : 255;
         }
+
+#ifdef ZXMORE
+	if (l==0xf7) return read_usb();
+	if (l==0xf4) { zxmnmicounter = 52; }
+#endif
 
 	if (!(Address&1)) {
                 LastInstruction=LASTINSTINFE;
@@ -797,6 +1382,11 @@ BYTE zx81_readport(int Address, int *tstates)
                 case 0xfb:
 			data = printer_inout(0,0);
                         return (BYTE) data;
+
+#ifdef SNDPRC
+		case 0xdf:
+		        return sp_on ? 255 : 0;
+#endif
 
 		case WIZ_MODE:
 		case WIZ_ADRH:
@@ -876,7 +1466,9 @@ int zx81_do_scanlines(int tstotal)
         int ts;
 	int i, ipixel, istate;
 	int tswait;
-
+#ifdef ZXMORE
+	int phalted=0;
+#endif
         do
         {
 
@@ -887,6 +1479,10 @@ int zx81_do_scanlines(int tstotal)
 		ts = 0;
 
                 if (int_pending && !nmi_pending) {
+#ifdef ZXMORE
+			rowcounter = zxmrowcounter;
+			zxmvideo++;
+#endif
                         ts = z80_interrupt(0);
 #ifndef VRCNTR
 			hsync_counter = -2;             /* INT ACK after two tstates */
@@ -899,12 +1495,21 @@ int zx81_do_scanlines(int tstotal)
 #endif
                 }
 
-		if (nmi_pending) ts = z80_nmi(0);
+		if (nmi_pending) {
+		  if (zxmnmicounter > 0) zxmnmicounter--;
+		  if (zxmnmicounter == 0) {
+		    if (!zxmoff) zxmnmi = 1;
+		    ts = z80_nmi(0);
+		  }
+		}
 
 		LastInstruction = LASTINSTNONE;
 		if (!nmi_pending && !int_pending) {
-		        doda = 1;
+		        ffetch = 1;
 			z80.pc.w = PatchTest(z80.pc.w);
+#ifdef ZXMORE
+			phalted = z80.halted;
+#endif
 			ts = z80_do_opcode();
 		}
 		nmi_pending = int_pending = 0;
@@ -921,11 +1526,14 @@ int zx81_do_scanlines(int tstotal)
                 switch(LastInstruction)
                 {
                 case LASTINSTOUTFD:
-                        NMI_generator=0;
+                        NMI_generator = nmi_pending = 0;
 			anyout();
                         break;
                 case LASTINSTOUTFE:
-                        if (zx81.machine!=MACHINEZX80) NMI_generator=1;
+#ifdef ZXMORE
+		        zxmvideo = 0;
+#endif
+		        if (zx81.machine!=MACHINEZX80) { NMI_generator=1; zxmnmicounter=0; }
 			anyout();
                         break;
                 case LASTINSTINFE:
@@ -982,7 +1590,7 @@ int zx81_do_scanlines(int tstotal)
 			}
 
 			hsync_counter++;
-			if (hsync_counter>=machine.tperscanline) {
+			if (hsync_counter >= machine.tperscanline*(zxmvideo?1:zxmspeed)) {
 				hsync_counter = 0;
 				if (zx81.machine!=MACHINEZX80) hsync_pending = 1;
 			}
@@ -1004,12 +1612,24 @@ int zx81_do_scanlines(int tstotal)
 				HSYNC_state = 1;
 
 				if (VSYNC_state) {
+#ifdef ZXMORE
+					zxmrowcounter = 0;
+#endif
 					rowcounter = 0;
+#ifndef ZXMORE
 				} else {
 					rowcounter++;
 					rowcounter &= 7;
+#endif
 				}
 
+#if 0
+				if (!VSYNC_state) {
+					zxmrowcounter++;
+					zxmrowcounter &= 7;
+					rowcounter = zxmrowcounter;
+				}
+#endif
 				hsync_pending = 2;
 			}
 
@@ -1028,6 +1648,16 @@ int zx81_do_scanlines(int tstotal)
 			checksync();
 
 		}
+
+#ifdef ZXMORE
+		if (z80.halted && !phalted) {
+			if (zxmvideo>=2) {
+				zxmrowcounter++;
+				zxmrowcounter &= 7;
+			}
+			zxmvideo++;
+		}
+#endif
 
                 tstotal -= ts;
 
@@ -1057,6 +1687,15 @@ void zx81_initialise(void)
 
 	memory = mem;
 
+#ifdef ZXMORE
+#ifdef ZXMROML
+	zxmroml = ZXMROML;
+#endif
+#ifdef ZXMRAML
+	zxmraml = ZXMRAML;
+#endif
+#endif
+
 /* Configuration variables used in EightyOne code */
 
 	zx81.chrgen          = CHRGENSINCLAIR;
@@ -1068,7 +1707,7 @@ void zx81_initialise(void)
 	zx81.m1not           = (sdl_emulator.m1not && (sdl_emulator.ramsize>=32)) ? 49152 : 32768;
 	zx81.machine         = zx80 ? MACHINEZX80 : MACHINEZX81;
 	zx81.maxireg         = (sdl_emulator.ramsize==24 || sdl_emulator.ramsize==56) ? 0x20 : 0x40;
-	zx81.NTSC            = 0;    // set to 1 for H.E.R.O.
+	zx81.NTSC            = 0;
 	zx81.protectROM      = 1;
 	zx81.RAMTOP          = (sdl_emulator.ramsize < 16) ? (0x4000+sdl_emulator.ramsize*0x400-1) : ((sdl_emulator.ramsize < 48) ? ((sdl_emulator.ramsize == 32) ? 0xbfff : 0x7fff) : 0xffff);
 	zx81.ROMTOP          = zx80 ? 0x0fff : 0x1fff;
@@ -1179,6 +1818,8 @@ void mainloop()
 if(sdl_emulator.autoload)
   {
   sdl_emulator.autoload=0;
+#ifdef ZXMORE
+#endif
   /* This could be an initial autoload or a later forcedload */
   if(!sdl_load_file(0,LOAD_FILE_METHOD_DETECT))
     /* wait for a real frame, to avoid an annoying frame `jump'. */

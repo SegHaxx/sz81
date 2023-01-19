@@ -25,6 +25,12 @@
 extern MACHINE machine;
 extern ZX81 zx81;
 
+#ifdef ZXMORE
+extern unsigned int zxmoffset;
+#else
+#define zxmoffset 0
+#endif
+
 /* for shared memory */
 extern BYTE *sz81mem;
 
@@ -365,12 +371,12 @@ printf("Creating file %s...\n",fullpath);
 			} else {
 				/* Write up to and including E_LINE */
 				if (*sdl_emulator.model == MODEL_ZX80) {
-					fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
+					fwrite(mem + 0x4000 + zxmoffset, 1, (mem[0x400b+zxmoffset] << 8 | mem[0x400a+zxmoffset]) - 0x4000, fp);
 				} else if (*sdl_emulator.model == MODEL_ZX81) {
 					if (scp)
-						fwrite(mem + addr, 1, slen, fp);
+						fwrite(mem + addr + zxmoffset, 1, slen, fp);
 					else
-						fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+						fwrite(mem + 0x4009 + zxmoffset, 1, (mem[0x4015+zxmoffset] << 8 | mem[0x4014+zxmoffset]) - 0x4009, fp);
 				}
 				/* Copy fullpath across to the load file dialog as
 				 * then we have a record of what was last saved */
@@ -426,6 +432,9 @@ int sdl_load_file(int parameter, int method) {
 	char *scp = NULL;
 	char *fsp = NULL;
 	int addr;
+#ifdef ZXMORE
+	int flash=0;
+#endif
 
 	/* If requested, read and set the preset method instead */
 	if (method == LOAD_FILE_METHOD_DETECT) {
@@ -532,7 +541,13 @@ int sdl_load_file(int parameter, int method) {
 				scp = strrchr(filename,';');
 				if (scp) {
 					addr = 0;
-					sscanf(scp+1,"%d",&addr);
+#ifdef ZXMORE
+					if (scp[1]=='#') {
+						flash = 1;
+						sscanf(scp+2,"%d",&addr);
+					} else
+#endif
+						sscanf(scp+1,"%d",&addr);
 					strcpy(scp,"");
 				}
 				/* Add a file extension if one hasn't already been affixed */
@@ -671,6 +686,9 @@ int sdl_load_file(int parameter, int method) {
 								mem[SP + 2] = 0x22;
 							}
 						} else if (*sdl_emulator.model == MODEL_ZX81 && !scp) {
+#ifdef ZXMORE
+							PC = 0x0676;
+#else
 							/* Registers (common values) */
 							A = 0x0b; F = 0x00; B = 0x00; C = 0x02;
 							D = 0x40; E = 0x9b; H = 0x40; L = 0x99;
@@ -707,6 +725,7 @@ int sdl_load_file(int parameter, int method) {
 							mem[0x4006] = 0x00;			/* MODE */
 							mem[0x4007] = 0xfe;			/* PPC lo */
 							mem[0x4008] = 0xff;			/* PPC hi */
+#endif
 						}
 					}
 
@@ -717,12 +736,19 @@ int sdl_load_file(int parameter, int method) {
 						ramsize = sdl_emulator.ramsize;
 					}
 					if (*sdl_emulator.model == MODEL_ZX80) {
-						fread(mem + 0x4000, 1, ramsize * 1024, fp);
+						fread(mem + 0x4000 + zxmoffset, 1, ramsize * 1024, fp);
 					} else if (*sdl_emulator.model == MODEL_ZX81) {
-						if (scp)
+						if (scp) {
+#ifdef ZXMORE
+							if (flash)
+								fread(mem + addr + zxmoffset - 0x80000, 1, ramsize * 1024, fp);
+							else
+								fread(mem + addr + zxmoffset, 1, ramsize * 1024, fp);
+#else
 							fread(mem + addr, 1, ramsize * 1024, fp);
-						else {
-							fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
+#endif
+						} else {
+							fread(mem + 0x4009 + zxmoffset, 1, ramsize * 1024 - 9, fp);
 							if (!sdl_com_line.nxtlin) mem[0x4029] = mem[0x402a] = 0;
 							if (sdl_com_line.wsz81mem==TRUE) memcpy(sz81mem, mem+0x4000, 0x4000);
 						}
@@ -1117,7 +1143,7 @@ char *strtoupper(char *original) {
  *  On exit: returns a pointer to the translated string */
 
 char *strzx81_to_ascii(int memaddr) {
-	static unsigned char zx81table[17] = {'\"', '_', '$', ':', '?', '(',
+	static unsigned char zx81table[17] = {'\"', '#', '$', ':', '?', '(',
 		')', '>', '<', '=', '+', '-', '*', '/', ';', ',', '.'};
 	static char translated[256];
 	unsigned char sinchar;

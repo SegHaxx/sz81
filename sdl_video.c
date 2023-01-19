@@ -279,6 +279,26 @@ void sdl_set_redraw_video() {
 
 int cvtChroma(unsigned char c) {
 	int crgb=0;
+#ifdef ZXMORE
+	switch (c) {
+	  case 0x00 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x00); break;
+	  case 0x01 : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xbf,0xdf); break;
+	  case 0x02 : crgb=SDL_MapRGB(video.screen->format, 0xdf,0xbf,0xbf); break;
+	  case 0x03 : crgb=SDL_MapRGB(video.screen->format, 0xdf,0xbf,0xdf); break;
+	  case 0x04 : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xdf,0xbf); break;
+	  case 0x05 : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xdf,0xdf); break;
+	  case 0x06 : crgb=SDL_MapRGB(video.screen->format, 0xdf,0xdf,0xbf); break;
+	  case 0x07 : crgb=SDL_MapRGB(video.screen->format, 0xdf,0xdf,0xdf); break;
+	  case 0x08 : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xbf,0xbf); break;
+	  case 0x09 : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xbf,0xff); break;
+	  case 0x0a : crgb=SDL_MapRGB(video.screen->format, 0xff,0xbf,0xbf); break;
+	  case 0x0b : crgb=SDL_MapRGB(video.screen->format, 0xff,0xbf,0xff); break;
+	  case 0x0c : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xff,0xbf); break;
+	  case 0x0d : crgb=SDL_MapRGB(video.screen->format, 0xbf,0xff,0xff); break;
+	  case 0x0e : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0xbf); break;
+	  case 0x0f : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0xff); break;
+	}
+#else
 	switch (c) {
 	  case 0x00 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x00); break;
 	  case 0x01 : crgb=SDL_MapRGB(video.screen->format, 0x00,0x00,0x7f); break;
@@ -297,6 +317,7 @@ int cvtChroma(unsigned char c) {
 	  case 0x0e : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0x00); break;
 	  case 0x0f : crgb=SDL_MapRGB(video.screen->format, 0xff,0xff,0xff); break;
 	}
+#endif
 	return crgb;
 }
 
@@ -1653,6 +1674,8 @@ void save_screenshot(void) {
 	nextnum = get_filename_next_highest(fullpath, "scnsht%4d");
 	sprintf(filename, "scnsht%04i.bmp", nextnum);
 	strcat(fullpath, filename);
+
+	fprintf(stderr,"screenshot filename: %s\n", fullpath);
 
 	if (SDL_SaveBMP(video.screen, fullpath) < 0) {
 		fprintf(stderr, "%s: Cannot save screenshot: %s\n", __func__,

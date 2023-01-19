@@ -395,7 +395,9 @@ void sdl_component_executive(void) {
 		/* Resize relevant hotspots */
 		hotspots_resize(HS_GRP_VKEYB | HS_GRP_LDFILE);
 		/* Reset the emulator */
+#ifndef ZXMORE
 		emulator_reset();
+#endif
 	}
 
 	/* Monitor RAM size changes */
