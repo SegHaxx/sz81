@@ -18,6 +18,10 @@
 /* Includes */
 #include "sdl_engine.h"
 #include "w5100.h"
+#include "zx81.h"
+#ifndef Win32
+#include <sys/ioctl.h>
+#endif
 
 /* Defines */
 
@@ -26,6 +30,7 @@ extern int zx80, ramsize;
 extern int load_hook, save_hook;
 extern int rwsz81mem;
 extern void exitmem();
+extern ZX81 zx81;
 
 /* Variables */
 
@@ -86,6 +91,13 @@ int sdl_init(void) {
 	sdl_key_repeat.interval = KEY_REPEAT_INTERVAL;
 	sdl_emulator.model = &zx80;		/* It's a lot easier to do this */
 	sdl_emulator.m1not = 0;
+#ifdef UDG_CHAR16
+	sdl_emulator.wrx = HIRESDISABLED;
+	sdl_emulator.chrgen = CHRGENCHR16;
+#else
+	sdl_emulator.wrx = HIRESWRX;
+	sdl_emulator.chrgen = CHRGENSINCLAIR;
+#endif
 	sdl_emulator.frameskip = 1;		/* Equivalent to z81's scrn_freq=2 */
 	sdl_emulator.ramsize = 16;		/* 16K is the default */
 	sdl_emulator.invert = 0;		/* Off is the default */
@@ -233,8 +245,10 @@ int sdl_com_line_process(int argc, char *argv[]) {
 				sdl_com_line.bigscreen = TRUE;
 			} else if (!strcmp (argv[count], "-f")) {
 				sdl_com_line.fullscreen = TRUE;
+#if defined(SIOCGIFHWADDR) || defined(Win32)
 			} else if (!strcmp (argv[count], "-n")) {
 				sdl_com_line.networking = TRUE;
+#endif
 			} else if (!strcmp (argv[count], "-w")) {
 				sdl_com_line.fullscreen = FALSE;
 			} else if (sscanf (argv[count], "-B%i",
@@ -258,7 +272,9 @@ int sdl_com_line_process(int argc, char *argv[]) {
 					"  -b  use a big screen for display\n"
 					"  -f  run the program fullscreen\n"
 					"  -h  this usage help\n"
+#if defined(SIOCGIFHWADDR) || defined(Win32)
 					"  -n  enable networking\n"
+#endif
 					"  -N  do not autorun (NXTLIN=0)\n"
 					"  -Baddr beginning of region to disassemble\n"
 					"  -Eaddr end of region to disassemble\n"
@@ -340,6 +356,14 @@ void sdl_component_executive(void) {
 	static int ctrl_remapper_state = FALSE;
 	static int sdl_emulator_model = 0;
 	static int sdl_emulator_ramsize = 16;
+	static int sdl_emulator_m1not = FALSE;
+#ifdef UDG_CHAR16
+	static int sdl_emulator_wrx = HIRESDISABLED;
+	static int sdl_emulator_chrgen = CHRGENCHR16;
+#else
+	static int sdl_emulator_wrx = HIRESWRX;
+	static int sdl_emulator_chrgen = CHRGENSINCLAIR;
+#endif
 	static int sdl_emulator_invert = 0;
 	#ifdef OSS_SOUND_SUPPORT
 		static int sdl_sound_device = 0;
@@ -403,6 +427,29 @@ void sdl_component_executive(void) {
 	/* Monitor RAM size changes */
 	if (sdl_emulator_ramsize != sdl_emulator.ramsize) {
 		sdl_emulator_ramsize = sdl_emulator.ramsize;
+		/* Reset the emulator */
+		emulator_reset();
+	}
+
+	/* Monitor M1NOT changes */
+	if (sdl_emulator_m1not != sdl_emulator.m1not) {
+		sdl_emulator_m1not = sdl_emulator.m1not;
+		/* Reset the emulator */
+		emulator_reset();
+	}
+
+	/* Monitor WRX changes */
+	if (sdl_emulator_wrx != sdl_emulator.wrx) {
+		sdl_emulator_wrx = sdl_emulator.wrx;
+		zx81.truehires = sdl_emulator.wrx;
+		/* Reset the emulator */
+		emulator_reset();
+	}
+
+	/* Monitor character generator changes */
+	if (sdl_emulator_chrgen != sdl_emulator.chrgen) {
+		sdl_emulator_chrgen = sdl_emulator.chrgen;
+		zx81.chrgen = sdl_emulator.chrgen;
 		/* Reset the emulator */
 		emulator_reset();
 	}

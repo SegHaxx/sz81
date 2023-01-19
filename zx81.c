@@ -1698,7 +1698,11 @@ void zx81_initialise(void)
 
 /* Configuration variables used in EightyOne code */
 
-	zx81.chrgen          = CHRGENSINCLAIR;
+	if (sdl_emulator.ramsize<=2) {
+		sdl_emulator.chrgen = CHRGENSINCLAIR;
+		sdl_emulator.wrx = HIRESWRX;
+	}
+	zx81.chrgen          = sdl_emulator.chrgen;
 	zx81.Chroma81        = sdl_emulator.ramsize < 48 ? 0 : 1;
 	zx81.dirtydisplay    = 0;
 	zx81.enableqschrgen  = 0;
@@ -1706,7 +1710,13 @@ void zx81_initialise(void)
 	zx81.colour          = COLOURDISABLED;
 	zx81.m1not           = (sdl_emulator.m1not && (sdl_emulator.ramsize>=32)) ? 49152 : 32768;
 	zx81.machine         = zx80 ? MACHINEZX80 : MACHINEZX81;
-	zx81.maxireg         = (sdl_emulator.ramsize==24 || sdl_emulator.ramsize==56) ? 0x20 : 0x40;
+	zx81.truehires       = sdl_emulator.wrx; // HIRESWRX or HIRESDISABLED
+	if (zx81.chrgen == CHRGENCHR16)
+	{
+		zx81.maxireg         = 0x40;
+	} else {
+		zx81.maxireg         = (zx81.truehires==HIRESWRX) ? 0x20 : 0x40;
+	}
 	zx81.NTSC            = 0;
 	zx81.protectROM      = 1;
 	zx81.RAMTOP          = (sdl_emulator.ramsize < 16) ? (0x4000+sdl_emulator.ramsize*0x400-1) : ((sdl_emulator.ramsize < 48) ? ((sdl_emulator.ramsize == 32) ? 0xbfff : 0x7fff) : 0xffff);
@@ -1715,7 +1725,6 @@ void zx81_initialise(void)
 	zx81.shadowROM       = 0;
 	zx81.simpleghost     = 0;
 	zx81.single_step     = 0;
-	zx81.truehires       = HIRESWRX; // or HIRESDISABLED and check zx81.maxireg
 	zx81.ts2050          = 0;
 	zx81.vsyncsound      = sdl_sound.device==DEVICE_VSYNC ? 1 : 0;
 	zx81.rsz81mem       = rwsz81mem==1 ? 1 : 0;

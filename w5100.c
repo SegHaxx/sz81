@@ -31,6 +31,8 @@
 
 #endif
 
+#if defined(Win32) || defined(SIOCGIFHWADDR)
+
 //#define W_DEBUG
 
 #define W_BUFSIZ 0x0800
@@ -818,3 +820,20 @@ unsigned int w_read(int port)
 	return val;
 }
 
+#else
+// Mac OS X network functions will go here, for now networking is not supported
+// on Mac OS X due to no definition for SIOCGIFHWADDR and no /proc file system.
+void w_init()
+{
+}
+void w_exit()
+{
+}
+unsigned int w_read()
+{
+	return(0);
+}
+void w_write()
+{
+}
+#endif

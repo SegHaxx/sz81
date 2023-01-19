@@ -1,3 +1,10 @@
+2017-11-28
+* 2.3.8 unofficial version (by Barry Nelson and Erik Olofsen)
+* Added support to select WRX on or off
+* Added support to select UDG character generator on or off
+* Added support to compile on Mac OS X
+* Added support of hexadecimal notation with LOAD and SAVE addresses
+
 2016-11-12
 * 2.3.7 unofficial version (by Erik Olofsen)
 * ZXmore support

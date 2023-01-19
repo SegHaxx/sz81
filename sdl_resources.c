@@ -142,6 +142,7 @@ void sdl_rcfile_read(void) {
 	struct keyrepeat read_key_repeat;
 	struct colourtable read_colours;
 	int read_emulator_m1not, read_emulator_speed, read_emulator_frameskip, read_emulator_model;
+	int read_emulator_wrx, read_emulator_chrgen;
 	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
 	int read_sound_volume, read_sound_device, read_sound_stereo, read_sound_ay_unreal;
 	int read_emulator_ramsize, read_emulator_invert;
@@ -175,6 +176,8 @@ void sdl_rcfile_read(void) {
 	read_key_repeat.delay = UNDEFINED;
 	read_key_repeat.interval = UNDEFINED;
 	read_emulator_m1not = UNDEFINED;
+	read_emulator_wrx = UNDEFINED;
+	read_emulator_chrgen = UNDEFINED;
 	read_emulator_speed = UNDEFINED;
 	read_emulator_frameskip = UNDEFINED;
 	read_emulator_model = UNDEFINED;
@@ -254,6 +257,14 @@ void sdl_rcfile_read(void) {
 			strcpy(key, "emulator.m1not=");
 			if (!strncmp(line, key, strlen(key))) {
 				sscanf(&line[strlen(key)], "%i", &read_emulator_m1not);
+			}
+			strcpy(key, "emulator.wrx=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_emulator_wrx);
+			}
+			strcpy(key, "emulator.chrgen=");
+			if (!strncmp(line, key, strlen(key))) {
+				sscanf(&line[strlen(key)], "%i", &read_emulator_chrgen);
 			}
 			strcpy(key, "emulator.speed=");
 			if (!strncmp(line, key, strlen(key))) {
@@ -505,6 +516,8 @@ void sdl_rcfile_read(void) {
 		printf("read_key_repeat.delay=%i\n", read_key_repeat.delay);
 		printf("read_key_repeat.interval=%i\n", read_key_repeat.interval);
 		printf("read_emulator_m1not=%i\n", read_emulator_m1not);
+		printf("read_emulator_wrx=%i\n", read_emulator_wrx);
+		printf("read_emulator_chrgen=%i\n", read_emulator_chrgen);
 		printf("read_emulator_speed=%i\n", read_emulator_speed);
 		printf("read_emulator_frameskip=%i\n", read_emulator_frameskip);
 		printf("read_emulator_model=%i\n", read_emulator_model);
@@ -585,6 +598,8 @@ void sdl_rcfile_read(void) {
 		}
 
 		if (read_emulator_m1not != UNDEFINED) sdl_emulator.m1not = read_emulator_m1not;
+		if (read_emulator_wrx != UNDEFINED) sdl_emulator.wrx = read_emulator_wrx;
+		if (read_emulator_chrgen != UNDEFINED) sdl_emulator.chrgen = read_emulator_chrgen;
 
 		#ifdef ENABLE_EMULATION_SPEED_ADJUST
 			/* Emulation speed (it's vetted) */
@@ -729,6 +744,8 @@ void rcfile_write(void) {
 	fprintf(fp, "key_repeat.interval=%i\n", sdl_key_repeat.interval);
 
 	fprintf(fp, "emulator.m1not=%i\n", sdl_emulator.m1not);
+	fprintf(fp, "emulator.wrx=%i\n", sdl_emulator.wrx);
+	fprintf(fp, "emulator.chrgen=%i\n", sdl_emulator.chrgen);
 
 	/* sdl_emulator.speed */
 	strcpy(key, "emulator.speed"); strcpy(value, "");

@@ -1,0 +1,18 @@
+CCFLAGS=-O3 -Wall -mmacosx-version-min=10.6 -arch i386 -arch x86_64
+CXXFLAGS=-O3 -Wall -DUSE_SND_EXTERNAL_BUFFER -mmacosx-version-min=10.6 -arch i386 -arch x86_64
+
+SOURCES = sndrender.cpp sndcounter.cpp sndbuffer.cpp sndchip.cpp sndinterface.cpp
+OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.c
+	$(CC) $(CCFLAGS) -c $< -o $@
+
+libsndrender.a: $(OBJECTS)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
+	ranlib libsndrender.a
+
+clean:
+	rm -f *.o *.a *~

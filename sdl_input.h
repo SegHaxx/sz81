@@ -81,6 +81,8 @@ int runopts_emulator_speed;
 int runopts_emulator_model;
 int runopts_emulator_ramsize;
 int runopts_emulator_m1not;
+int runopts_emulator_wrx;
+int runopts_emulator_chrgen;
 int runopts_sound_device;
 int runopts_sound_stereo;
 int runopts_sound_ay_unreal;

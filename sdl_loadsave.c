@@ -210,7 +210,7 @@ int sdl_save_file(int parameter, int method) {
 		if (scp) {
 			addr = 0;
 			slen = 1;
-			sscanf(scp+1,"%d,%d",&addr,&slen);
+			sscanf(scp+1,"%i,%i",&addr,&slen);
 			strcpy(scp,"");
 		}
 		/* Add a file extension if one hasn't already been affixed */
@@ -544,10 +544,10 @@ int sdl_load_file(int parameter, int method) {
 #ifdef ZXMORE
 					if (scp[1]=='#') {
 						flash = 1;
-						sscanf(scp+2,"%d",&addr);
+						sscanf(scp+2,"%i",&addr);
 					} else
 #endif
-						sscanf(scp+1,"%d",&addr);
+						sscanf(scp+1,"%i",&addr);
 					strcpy(scp,"");
 				}
 				/* Add a file extension if one hasn't already been affixed */

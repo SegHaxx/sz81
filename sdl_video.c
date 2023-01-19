@@ -53,10 +53,10 @@ char *runtime_options_text0[24] = {
 	"",
 #endif
 	"",
-	"",
-	"",
-	"",
-	"",
+	"WRX:",
+	"  (\x1 \x1) No    (\x1 \x1) Yes",
+	"UDG:",
+	"  (\x1 \x1) No    (\x1 \x1) Yes",
 	"",
 	"\x1 ",
 	"",
@@ -841,8 +841,8 @@ void sdl_video_update(void) {
 							sprintf(text, "%2i", runopts_emulator_ramsize);
 						} else if (count >= 5 && count <= 8) {
 							if (count == 5 || count == 7) strcpy(text, "O");
-							if ((count <= 6 && !sdl_emulator.m1not) || 
-								(count >= 7 && sdl_emulator.m1not)) {
+							if ((count <= 6 && !runopts_emulator_m1not) || 
+								(count >= 7 && runopts_emulator_m1not)) {
 								/* Invert the colours */
 								invertcolours = !invertcolours;
 							}
@@ -851,13 +851,41 @@ void sdl_video_update(void) {
 					#ifdef ENABLE_EMULATION_SPEED_ADJUST
 						} else if (count == 10) {
 							sprintf(text, "%4i", 2000 / runopts_emulator_speed);
-						} else if (count == 11) {
+						} else if (count == 19) {
 					#else
-						} else if (count == 10) {
+						} else if (count == 18) {
 					#endif
 							if (runopts_is_a_reset_scheduled())
 								strcpy(text, "* A reset is scheduled on save *");
 						}
+// WRX and UDG
+					#ifdef ENABLE_EMULATION_SPEED_ADJUST
+						if (count >= 11 && count<=18) {
+							if (count >= 11 && count <= 12 && runopts_emulator_wrx != HIRESWRX)
+								invertcolours = !invertcolours;
+							if (count >= 13 && count <= 14 && runopts_emulator_wrx == HIRESWRX)
+								invertcolours = !invertcolours;
+							if (count >= 15 && count <= 16 && runopts_emulator_chrgen!=CHRGENCHR16 )
+								invertcolours = !invertcolours;
+							if (count >= 17 && count <=18 && runopts_emulator_chrgen==CHRGENCHR16 )
+								invertcolours = !invertcolours;
+							if (count==11 || count==13 || count==15 || count==17)
+								strcpy(text, "O");
+						}
+					#else
+						if (count >= 10 && count<=17) {
+							if (count >= 10 && count <= 11 && runopts_emulator_wrx != HIRESWRX)
+								invertcolours = !invertcolours;
+							if (count >= 12 && count <= 13 && runopts_emulator_wrx == HIRESWRX)
+								invertcolours = !invertcolours;
+							if (count >= 14 && count <= 15 && runopts_emulator_chrgen!=CHRGENCHR16 )
+								invertcolours = !invertcolours;
+							if (count >= 16 && count <=17 && runopts_emulator_chrgen==CHRGENCHR16 )
+								invertcolours = !invertcolours;
+							if (count==10 || count==12 || count==14 || count==16)
+								strcpy(text, "O");
+						}
+					#endif
 					} else if (runtime_options[1].state) {
 						/* The colour inversion here is conditional and so there are
 						 * two \x1's embedded within the text. The first \x1 will
