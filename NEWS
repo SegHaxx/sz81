@@ -1,3 +1,46 @@
+2015-12-14
+* 2.3.6 unofficial version (by Erik Olofsen)
+* some compatibility changes to the W5100 emulation
+
+2015-12-08
+* 2.3.5 unofficial version (by Erik Olofsen)
+* includes sound code from Unreal Speccy Project
+  created under public domain license by SMT, jan.2006
+
+2015-11-12
+* 2.3.4 unofficial version (by Erik Olofsen)
+* includes disassembler by Mark Incley
+
+2015-10-28
+* 2.3.3 unofficial version (by Erik Olofsen)
+* support for two AY devices
+
+2015-10-13
+* 2.3.2 unofficial version (by Erik Olofsen)
+* new command line options (see README-2.3):
+  -R  enable reading from shared memory
+  -W  enable writing to shared memory
+
+2015-10-10
+* 2.3.1 unofficial version (by Erik Olofsen)
+* new command line options:
+  -b (bigscreen)
+  -N  do not autorun (NXTLIN=0)
+  -L  disable LOAD hook
+  -S  disable SAVE hook
+* "Simple TZX File System" utility
+
+2015-10-03
+* 2.3.0 unofficial version (by Erik Olofsen)
+* rewritten zx81_do_scanlines()
+* runs almost at 100% speed of the real ZX81
+* less jitter in the VSYNC sound output
+
+2015-09-03
+* 2.2.1 unofficial version (by Erik Olofsen)
+* fixed bug with ZX80/ZX81 machine selection and reset
+* added visual effects with A15
+
 2015-08-01
 * 2.2.0 unofficial version (by Erik Olofsen)
 * big screen: 400x300 pixels (by default scaled 2)

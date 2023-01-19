@@ -73,6 +73,8 @@ typedef struct
         int speedup;
         int Chroma81;
         int chromamode;
+        int rsz81mem;
+        int wsz81mem;
 } ZX81;
 
 void zx81_initialise(void);

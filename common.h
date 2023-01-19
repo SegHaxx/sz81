@@ -98,6 +98,7 @@ extern void reset81();
 extern void parseoptions(int argc,char *argv[]);
 #endif
 extern void initmem();
+extern void exitmem();
 extern void zxpinit(void);
 extern void zxpopen(void);
 extern void zxpclose(void);

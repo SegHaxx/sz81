@@ -6,18 +6,30 @@
 #include <unistd.h> 
 #include <string.h>
 #include <sys/types.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_thread.h>
+#include "w5100.h"
+
+#ifdef Win32
+
+#include <winsock2.h>
+#include <iphlpapi.h>
+
+#define SHUT_RDWR SD_BOTH
+
+#else
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-#include <sys/ioctl.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
 #include <ifaddrs.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_thread.h>
-#include "w5100.h"
+#include <sys/ioctl.h>
+
+#endif
 
 // #define W_DEBUG
 
@@ -71,6 +83,115 @@ void wn4(int addr, uint32_t data)
 	mem[addr+3] = (data & 0xff000000) >> 24;
 }
 
+#ifdef Win32
+
+/* modified example code found on the web */
+
+void w_dns()
+{
+#define WORKING_BUFFER_SIZE 15000
+#define MAX_TRIES 3
+
+#define MALLOC malloc
+#define FREE free
+
+    /* Declare and initialize variables */
+
+	struct sockaddr_in *addr;
+
+    DWORD dwSize = 0;
+    DWORD dwRetVal = 0;
+
+    unsigned int i = 0;
+
+    // Set the flags to pass to GetAdaptersAddresses
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX;
+
+    // default to unspecified address family (both)
+    ULONG family = AF_INET;
+
+    LPVOID lpMsgBuf = NULL;
+
+    PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+    ULONG outBufLen = 0;
+    ULONG Iterations = 0;
+
+    PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
+    PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
+    PIP_ADAPTER_ANYCAST_ADDRESS pAnycast = NULL;
+    PIP_ADAPTER_MULTICAST_ADDRESS pMulticast = NULL;
+    IP_ADAPTER_DNS_SERVER_ADDRESS *pDnServer = NULL;
+    IP_ADAPTER_PREFIX *pPrefix = NULL;
+
+    // Allocate a 15 KB buffer to start with.
+    outBufLen = WORKING_BUFFER_SIZE;
+
+    do {
+
+        pAddresses = (IP_ADAPTER_ADDRESSES *) MALLOC(outBufLen);
+        if (pAddresses == NULL) {
+            printf
+                ("Memory allocation failed for IP_ADAPTER_ADDRESSES struct\n");
+            exit(1);
+        }
+
+        dwRetVal = GetAdaptersAddresses(family, flags, NULL, pAddresses, &outBufLen);
+
+        if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
+            FREE(pAddresses);
+            pAddresses = NULL;
+        } else {
+            break;
+        }
+
+        Iterations++;
+
+    } while ((dwRetVal == ERROR_BUFFER_OVERFLOW) && (Iterations < MAX_TRIES));
+
+    if (dwRetVal == NO_ERROR) {
+        // If successful, output some information from the data we received
+        pCurrAddresses = pAddresses;
+        while (pCurrAddresses) {
+
+            pDnServer = pCurrAddresses->FirstDnsServerAddress;
+            if (pDnServer) {
+            	addr = (struct sockaddr_in *) pDnServer->Address.lpSockaddr;
+				printf("- First DNS server at: %s\n",inet_ntoa(addr->sin_addr));
+ 				wn4(0x3f39, (uint32_t)addr->sin_addr.S_un.S_addr);
+ 				FREE(pAddresses);
+				return;
+            }
+
+            pCurrAddresses = pCurrAddresses->Next;
+        }
+    } else {
+        printf("Call to GetAdaptersAddresses failed with error: %d\n",
+               dwRetVal);
+        if (dwRetVal == ERROR_NO_DATA)
+            printf("\tNo addresses were found for the requested parameters\n");
+        else {
+
+            if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, 
+                    NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),   
+                    // Default language
+                    (LPTSTR) & lpMsgBuf, 0, NULL)) {
+                printf("\tError: %s", lpMsgBuf);
+                LocalFree(lpMsgBuf);
+                if (pAddresses)
+                    FREE(pAddresses);
+                exit(1);
+            }
+        }
+    }
+
+    if (pAddresses) {
+        FREE(pAddresses);
+    }
+	
+}
+#endif
+
 void w_init()
 {
 	FILE *fp;
@@ -79,10 +200,18 @@ void w_init()
 	int i;
 	int a, b, c, d;
 	int sd;
-	struct ifreq buffer;
 	unsigned int addr;
 	struct ifaddrs *addrs, *tmp;
 	struct sockaddr_in *paddr;
+#ifndef Win32
+	struct ifreq buffer;
+#else
+	struct WSAData wsaData;
+	struct hostent *phe;
+	struct in_addr an_addr;
+	
+	WSAStartup(MAKEWORD(1,1), &wsaData);
+#endif
 
 	for (i=0; i<0x8000; i++) w_mem[i] = 0;
 	for (i=0; i<4; i++) w_prd[i] = 0;
@@ -117,6 +246,8 @@ void w_init()
 // ZX81 sockets
 
 	mem[0x3f14] = mem[0x3f15] = mem[0x3f16] = mem[0x3f17] = 0x80;
+
+#ifndef Win32
 
 // the first iface and gateway
 
@@ -162,7 +293,7 @@ void w_init()
 
 // DNS
 	res_init();
-        printf("- First DNS server at : %s\n",inet_ntoa(_res.nsaddr_list[0].sin_addr));
+	printf("- First DNS server at : %s\n",inet_ntoa(_res.nsaddr_list[0].sin_addr));
 	addr = _res.nsaddr_list[0].sin_addr.s_addr;
 	wn4(0x3f39, addr);
 
@@ -184,6 +315,12 @@ void w_init()
 	      tmp = tmp->ifa_next;
 	}
 
+#else
+
+w_dns();
+
+#endif
+
 // ethflags
 
 	mem[0x3ff5] = 1;
@@ -204,9 +341,18 @@ void w_exit()
 	printf("- Shutting down W5100.\n");
 
 	for (i=0; i<4; i++) if (w_thread[i]) {
+#ifndef Win32
 	  shutdown(w_sockfd[i], SHUT_RDWR);
+#else
+	  closesocket(w_sockfd[i]);
+#endif
 	  SDL_WaitThread(w_thread[i],&retval);
         }
+        
+#ifdef Win32
+	printf("- WSACleanup().\n");
+	WSACleanup();
+#endif
 }
 
 void w_sendto(int so, int sn)
@@ -232,7 +378,10 @@ void w_sendto(int so, int sn)
      i1++;
    }
 
-   printf("- Exchanging via UDP  : %s", inet_ntoa(server.sin_addr));
+   if (w_mem[so+Sn_MR] == S_MR_UDP)
+     printf("- Exchanging via UDP  : %s", inet_ntoa(server.sin_addr));
+   else
+     printf("- Exchanging via RAW  : %s", inet_ntoa(server.sin_addr));
 
    n = sendto(w_sockfd[sn],buf,lbuf,0,(const struct sockaddr *)&server,length);
    if (n < 0) {
@@ -248,7 +397,7 @@ void w_sendto(int so, int sn)
 int w_recvfrom(void *data)
 {
    int so, sn;
-   int i, i1, n;
+   int i, ioff, i1, n;
    unsigned int length;
    struct sockaddr_in from;
    unsigned char buf[W_BUFSIZ];
@@ -272,29 +421,64 @@ int w_recvfrom(void *data)
      return 0;
    }
 
+   while (w_mem[so+Sn_IR] & S_IR_RECV_WT) {
+     SDL_Delay(10);
+#ifdef W_DEBUG
+     printf(".");
+#endif
+   }
+
    printf(" *\n");
 
-   i1 = 0;
+   i1 = w_rn2(so+Sn_RX_RD0);
 
+   ioff = 0;
+
+   if (w_mem[so+Sn_MR] == S_MR_UDP) {
  // 8 byte (fake) header
 
-   for (i=0; i<8; i++) {
-     w_mem[0x6000+so*W_BUFSIZ+i1] = 0;
+     for (i=0; i<8; i++) {
+       i1 &= W_BUFMSK;
+       w_mem[0x6000+so*W_BUFSIZ+i1] = 0;
+       i1++;
+     }
+
+   } else if (w_mem[so+Sn_MR] == S_MR_IPRAW) {
+ // change 20 byte to 6 byte header header
+
+     for (i=0; i<4; i++) {
+       i1 &= W_BUFMSK;
+       w_mem[0x6000+so*W_BUFSIZ+i1] = buf[12+i];
+       i1++;
+     }
+
+     n -= 20;
+     ioff = 20;
+
+     i1 &= W_BUFMSK;
+     w_mem[0x6000+so*W_BUFSIZ+i1] = (n & 0xff00) >> 8;
      i1++;
+     i1 &= W_BUFMSK;
+     w_mem[0x6000+so*W_BUFSIZ+i1] = (n & 0x00ff);
+     i1++;
+
    }
 
    for (i=0; i<n; i++) {
-     w_mem[0x6000+so*W_BUFSIZ+i1] = buf[i];
+     i1 &= W_BUFMSK;
+     w_mem[0x6000+so*W_BUFSIZ+i1] = buf[i+ioff];
 #ifdef W_DEBUG
-     printf("w_recvfrom: %x %x %x %c\n", i, i1, buf[i], (buf[i]>32?buf[i]:32));
+     printf("w_recvfrom: %x %x %x %c\n", i, i1, buf[i+ioff], (buf[i+ioff]>32?buf[i+ioff]:32));
 #endif
      i1++;
    }
 
-   n += 8;
+   if (w_mem[so+Sn_MR] == S_MR_UDP) n += 8;
+   else if (w_mem[so+Sn_MR] == S_MR_IPRAW) n += 6;
 
    w_wn2(so+Sn_RX_RSR0, n);
    w_mem[so+Sn_IR] |= S_IR_RECV;
+   w_mem[so+Sn_IR] |= S_IR_RECV_WT;
 
    }
 
@@ -354,7 +538,7 @@ int w_recv(void *data)
      return 0;
    }
 
-   while (w_mem[so+Sn_IR] & S_IR_RECV) {
+   while (w_mem[so+Sn_IR] & S_IR_RECV_WT) {
      SDL_Delay(10);
 #ifdef W_DEBUG
      printf(".");
@@ -375,6 +559,7 @@ int w_recv(void *data)
 
    w_wn2(so+Sn_RX_RSR0, n);
    w_mem[so+Sn_IR] |= S_IR_RECV;
+   w_mem[so+Sn_IR] |= S_IR_RECV_WT;
 
    }
 
@@ -428,38 +613,54 @@ void w_socket(int addr, int val)
 		         case S_CR_OPEN    : if (w_mem[so+Sn_MR] == S_MR_UDP) {
 			      		       w_sockfd[sn] = socket(AF_INET, SOCK_DGRAM, 0);
 					       w_mem[so+Sn_SR] = S_SR_SOCK_UDP;
-					       w_wn2(so+Sn_RX_RD0, 0);
-					       w_prd[sn] = 0;
 					     } else if (w_mem[so+Sn_MR] == (S_MR_TCP|S_MR_NDMC)) {
 			      		       w_sockfd[sn] = socket(AF_INET, SOCK_STREAM, 0);
 					       w_mem[so+Sn_SR] = S_SR_SOCK_INIT;
+			                     } else if (w_mem[so+Sn_MR] == S_MR_IPRAW) {
+			                       w_sockfd[sn] = socket(AF_INET, SOCK_RAW, w_mem[so+Sn_PROTO]);
+					       if (w_sockfd[sn]>0) {
+					         w_mem[so+Sn_SR] = S_SR_SOCK_IPRAW;
+					       } else {
+		                                 perror("ipraw");
+					       }
 					     } else {
 					       printf("w5100: command not implemented...\n");
 	       	           		       exit(EXIT_FAILURE);
 					     }
 			      		     w_mem[so+Sn_IR] = 0;
+					     w_wn2(so+Sn_RX_RD0, 0);
+					     w_prd[sn] = 0;
 					     break;
 			 case S_CR_DISCON  : printf("- Disconnecting.\n");
 					     if (w_thread[sn]) {
-			      		       shutdown(w_sockfd[sn], SHUT_RDWR);
+#ifdef Win32
+			      		       closesocket(w_sockfd[sn]);
+#else
+					       shutdown(w_sockfd[sn], SHUT_RDWR);
+#endif
 					       SDL_WaitThread(w_thread[sn],&retval);
 					       w_thread[sn] = NULL;
 					     }
+			      		     w_mem[so+Sn_IR] |= S_IR_DISCON;
 					     break;
 		         case S_CR_CLOSE   : if (w_thread[sn]) {
-			      		       shutdown(w_sockfd[sn], SHUT_RDWR);
+#ifdef Win32
+			      		       closesocket(w_sockfd[sn]);
+#else
+					       shutdown(w_sockfd[sn], SHUT_RDWR);
+#endif
 					       SDL_WaitThread(w_thread[sn],&retval);
 					       w_thread[sn] = NULL;
 					     }
+#ifndef Win32
 			      		     close(w_sockfd[sn]);
+#endif
 			      		     w_sockfd[sn] = -1;
 			      		     w_mem[so+Sn_SR] = S_SR_SOCK_CLOSED;
-			      		     w_mem[so+Sn_IR] &= ~S_IR_CON;
-			      		     w_mem[so+Sn_IR] |= S_IR_DISCON;
 			      		     w_mem[so+Sn_MR] = 0;
 					     printf("- Close command done.\n");
 			      		     break;
-		         case S_CR_SEND    : if (w_mem[so+Sn_SR] == S_SR_SOCK_UDP) {
+		         case S_CR_SEND    : if (w_mem[so+Sn_SR]==S_SR_SOCK_UDP || w_mem[so+Sn_SR]==S_SR_SOCK_IPRAW) {
 			      		       w_sendto(so,sn);
 					       if (!w_thread[sn]) {
 					         w_threadData[sn].so = so;
@@ -488,11 +689,13 @@ void w_socket(int addr, int val)
 					     dlt = w_rn2(so+Sn_RX_RSR0)-dlt;
 					     w_wn2(so+Sn_RX_RSR0, dlt);
 					     if (dlt==0) {
-			      		       if (w_mem[so+Sn_SR] == S_SR_SOCK_UDP) {
+					       /*
+			      		       if (w_mem[so+Sn_SR]==S_SR_SOCK_UDP || w_mem[so+Sn_SR]==S_SR_SOCK_IPRAW) {
 					         w_wn2(so+Sn_RX_RD0, 0);
 						 w_prd[sn] = 0;
 					       }
-					       w_mem[so+Sn_IR] &= ~S_IR_RECV;
+					       */
+					       w_mem[so+Sn_IR] &= ~S_IR_RECV_WT;
 					     } else {
 					       w_mem[so+Sn_IR] |= S_IR_RECV;
 					     }
@@ -502,12 +705,26 @@ void w_socket(int addr, int val)
 #endif
 			      		     break;
 		         case S_CR_CONNECT : w_connect(so,sn);
+			                     if (w_mem[so+Sn_SR]==S_SR_SOCK_UDP || w_mem[so+Sn_SR]==S_SR_SOCK_IPRAW) {
+					       if (!w_thread[sn]) {
+					         w_threadData[sn].so = so;
+					         w_threadData[sn].sn = sn;
+					         w_thread[sn] = SDL_CreateThread(w_recvfrom, (void *)&(w_threadData[sn]));
+					       }
+					     } else {
+					       if (!w_thread[sn]) {
+					         w_threadData[sn].so = so;
+					         w_threadData[sn].sn = sn;
+					         w_thread[sn] = SDL_CreateThread(w_recv, (void *)&(w_threadData[sn]));
+					       }
+					     }
 			      		     break;
 		         default           : printf("w5100: command 0x%02x not implemented...\n",val);
 	       	           		     exit(EXIT_FAILURE);
 		       }
 	       	       break;
-	  case Sn_IR : if (val==0x1f) w_mem[addr] = 0; else w_mem[addr] |= val;
+	  case Sn_IR : if (val==0x1f) val |= S_IR_RECV_WT;
+		       w_mem[addr] &= ~val;
 	       	       break;
 	  default    : w_mem[addr] = val;
 	}
@@ -528,9 +745,15 @@ void w_write(int port, int val)
 #endif
 			 break;
 	  case WIZ_DATA: addr = (w_ah<<8)|w_al;
+		         if (w_mem[MR] & 0x02) {
+				 addr++;
+				 w_ah = (addr & 0xff00) >> 8;
+				 w_al = addr & 0x00ff;
+				 addr--;
+			 }
 	       		 if (addr==RMSR || addr==TMSR) {
 			   printf("w5100: changing buffer sizes not implemented...\n");
-	       	           exit(EXIT_FAILURE);
+	       	           // exit(EXIT_FAILURE);
 			 }
 #ifdef W_DEBUG
 			 printf("w_write: %x %x %c\n", addr, val, (val>32?val:32));
@@ -538,9 +761,12 @@ void w_write(int port, int val)
 			 w_socket(addr,val);
 			 break;
 	  case WIZ_MODE: if (w_mem[MR]!=val) {
-			   printf("w5100: changing operation mode (from 0x%02x to 0x%02x) not implemented...\n",
-			     w_mem[MR], val);
-	       	           exit(EXIT_FAILURE);
+			   if (val >= 0x04) {
+			     printf("w5100: changing operation mode (from 0x%02x to 0x%02x) not implemented...\n",
+				    w_mem[MR], val);
+			     exit(EXIT_FAILURE);
+			   }
+			   w_mem[MR] = val;
 			 }
 	}
 }
@@ -560,6 +786,13 @@ unsigned int w_read(int port)
 	addr = (w_ah<<8)|w_al;
 	val = w_mem[addr];
 
+	if (w_mem[MR] & 0x02) {
+		addr++;
+		w_ah = (addr & 0xff00) >> 8;
+		w_al = addr & 0x00ff;
+		addr--;
+	}
+
 #ifdef W_DEBUG
 	so = addr & 0x0300;
 	sn = so >> 8;
@@ -569,3 +802,4 @@ unsigned int w_read(int port)
 #endif
 	return val;
 }
+

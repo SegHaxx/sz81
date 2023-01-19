@@ -135,6 +135,7 @@
 #define S_IR_RECV 		4	// Data received
 #define S_IR_TIMEOUT 		8	// Timeout occurred
 #define S_IR_SEND_OK 		16	// Send completed
+#define S_IR_RECV_WT 		128	// Receive completed (hack)
 
 // poll(2) definitions (see above)
 #define POLLIN			5	// S_IR_RECV | S_IR_CON

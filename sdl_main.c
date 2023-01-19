@@ -26,7 +26,7 @@
 #include "common.h"
 #include "sound.h"
 #include "z80/z80.h"
-#include "zx81/zx81.h"
+#include "zx81.h"
 #include "allmain.h"
 #ifdef __amigaos4__
 	#include "amiga.h"
@@ -219,9 +219,6 @@ int main(int argc, char *argv[]) {
 				/* Load both the ZX80 and ZX81 ROMs */
 				sdl_zxroms_init();
 
-				/* Initialise the ZX80 or ZX81 */
-				zx81_initialise();
-
 				/* Initialise the emulator timer */
 				sdl_timer_init();
 
@@ -237,6 +234,9 @@ int main(int argc, char *argv[]) {
 
 					/* Initialise the printer file */
 					sdl_zxprinter_init();
+
+					/* Initialise the ZX80 or ZX81 */
+					zx81_initialise();
 
 					/* Initialise the required ROM and RAM */
 					initmem();

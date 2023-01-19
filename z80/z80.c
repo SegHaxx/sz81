@@ -133,24 +133,17 @@ int z80_interrupt( int ts )
 /* Process a z80 non-maskable interrupt */
 int z80_nmi( int ts )
 {
-        int waitstates=0;
-
         IFF1 = 0;
 
         if (z80.halted)
         {
                 z80.halted=0;
                 PC++;
-
-                waitstates=(ts/2)-machine.tperscanline;
-                //len=ts%16;
-                waitstates = 4-waitstates;
-                if (waitstates<0) waitstates=0;
         }
 
         writebyte( --SP, PCH ); writebyte( --SP, PCL );
         R++;
         PC = 0x0066;
 
-        return(4+waitstates);
+        return(11);
 }

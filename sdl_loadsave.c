@@ -20,13 +20,16 @@
 #include "z80/z80.h"
 #include "z80/z80_macros.h"
 #include "zx81config.h"
-#include "zx81/zx81.h"
+#include "zx81.h"
 
 extern MACHINE machine;
 extern ZX81 zx81;
 
+/* for shared memory */
+extern BYTE *sz81mem;
+
 /* for state load/save */
-extern int NMI_generator, HSYNC_generator, rowcounter;
+extern int NMI_generator, hsync_counter, int_pending, nmi_pending;
 
 /* Defines */
 
@@ -174,6 +177,8 @@ int sdl_save_file(int parameter, int method) {
 	int retval = FALSE;
 	int index;
 	FILE *fp;
+	char *scp = NULL;
+	int addr, slen;
 	#ifndef __amigaos4__
 		/*struct tm *timestruct;	Redundant
 		time_t rightnow;*/
@@ -195,9 +200,16 @@ int sdl_save_file(int parameter, int method) {
 #endif
 		/* Add translated program name */
 		strcat(fullpath, strzx81_to_ascii(parameter));
+		scp = strrchr(fullpath,';');
+		if (scp) {
+			addr = 0;
+			slen = 1;
+			sscanf(scp+1,"%d,%d",&addr,&slen);
+			strcpy(scp,"");
+		}
 		/* Add a file extension if one hasn't already been affixed */
 		if (sdl_filetype_casecmp(fullpath, ".p") != 0 &&
-			sdl_filetype_casecmp(fullpath, ".81") != 0)
+		    sdl_filetype_casecmp(fullpath, ".81") != 0 && !scp)
 			strcat(fullpath, ".p");
 	} else if (method == SAVE_FILE_METHOD_UNNAMEDSAVE) {
 		#ifdef __amigaos4__
@@ -344,8 +356,9 @@ printf("Creating file %s...\n",fullpath);
 
 				/* Hardware */
 				fwrite_int_little_endian(&NMI_generator, fp);
-				fwrite_int_little_endian(&HSYNC_generator, fp);
-				fwrite_int_little_endian(&rowcounter, fp);
+				fwrite_int_little_endian(&hsync_counter, fp);
+				fwrite_int_little_endian(&int_pending, fp);
+				fwrite_int_little_endian(&nmi_pending, fp);
 
 				/* 65654/0x10076 bytes to here for 2.1.7 */
 
@@ -354,7 +367,10 @@ printf("Creating file %s...\n",fullpath);
 				if (*sdl_emulator.model == MODEL_ZX80) {
 					fwrite(mem + 0x4000, 1, (mem[0x400b] << 8 | mem[0x400a]) - 0x4000, fp);
 				} else if (*sdl_emulator.model == MODEL_ZX81) {
-					fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
+					if (scp)
+						fwrite(mem + addr, 1, slen, fp);
+					else
+						fwrite(mem + 0x4009, 1, (mem[0x4015] << 8 | mem[0x4014]) - 0x4009, fp);
 				}
 				/* Copy fullpath across to the load file dialog as
 				 * then we have a record of what was last saved */
@@ -408,6 +424,7 @@ int sdl_load_file(int parameter, int method) {
 	int ramsize;
 	FILE *fp;
 	char *scp = NULL;
+	char *fsp = NULL;
 	int addr;
 
 	/* If requested, read and set the preset method instead */
@@ -542,6 +559,13 @@ int sdl_load_file(int parameter, int method) {
 				strcat(fullpath, filename);
 			}
 
+/* auto-change directory */
+
+			if (!strlen(load_file_dialog.loaded)) if (strrchr(fullpath,'/')) {
+				strcpy(load_file_dialog.dir,fullpath);
+				fsp = strrchr(load_file_dialog.dir,'/');
+				if (fsp) strcpy(fsp,"");
+			}
 
 			printf("Opening file %s...\n",fullpath);
 
@@ -598,8 +622,9 @@ int sdl_load_file(int parameter, int method) {
 
 					/* Hardware */
 					fread_int_little_endian(&NMI_generator, fp);
-					fread_int_little_endian(&HSYNC_generator, fp);
-					fread_int_little_endian(&rowcounter, fp);
+					fread_int_little_endian(&hsync_counter, fp);
+					fread_int_little_endian(&int_pending, fp);
+					fread_int_little_endian(&nmi_pending, fp);
 
 					/* 65654/0x10076 bytes to here for 2.1.7 */
 
@@ -696,8 +721,11 @@ int sdl_load_file(int parameter, int method) {
 					} else if (*sdl_emulator.model == MODEL_ZX81) {
 						if (scp)
 							fread(mem + addr, 1, ramsize * 1024, fp);
-						else
+						else {
 							fread(mem + 0x4009, 1, ramsize * 1024 - 9, fp);
+							if (!sdl_com_line.nxtlin) mem[0x4029] = mem[0x402a] = 0;
+							if (sdl_com_line.wsz81mem==TRUE) memcpy(sz81mem, mem+0x4000, 0x4000);
+						}
 					}
 					/* Copy fullpath across to the load file dialog as
 					 * then we have a record of what was last loaded */

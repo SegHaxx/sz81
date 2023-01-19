@@ -11,6 +11,9 @@
   While the graphics possibilities are mostly retained in the code,
   only WRX is supported out-of-the box.
 
+* Usually if hires is not ok, this is due to the maxireg setting in
+  zx81/zx81.c; try for example 0x20 instead of 0x40.
+
 * networking enabled with -n command line option.
 
 * ASZMIC and SP ROM board compatibility:
@@ -24,7 +27,4 @@
   While versions 7 and the older 4 are supported, with version 4, the
   path separator '/' should be typed with '<' (a hack) due to the
   differences in the character set.
-
-- There remain a few issues with the display, unfortunately, and a
-  hack is applied for the SP ROM hires demo (exasp).
 

@@ -93,7 +93,7 @@ extern char *zxpfilename;
 extern int load_selector_state;
 extern int refresh_screen;
 /* Variables from the top of sound.c */
-extern int sound_stereo, sound_stereo_acb;
+extern int sound_stereo, sound_stereo_acb, sound_ay_unreal;
 
 /* Variables */
 char startdir[256];

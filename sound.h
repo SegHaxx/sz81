@@ -25,6 +25,7 @@ extern int sound_enabled;
 extern int sound_freq;
 extern int sound_stereo;
 extern int sound_stereo_acb;
+extern int sound_ay_unreal;
 
 #ifdef SZ81	/* Added by Thunor */
 extern void sound_ay_setvol(void);
@@ -34,7 +35,7 @@ extern void sound_reset(void);
 extern void sound_init(void);
 extern void sound_end(void);
 extern void sound_frame(void);
-extern void sound_ay_write(int reg,int val);
+extern void sound_ay_write(int reg,int val, int dev);
 extern void sound_ay_reset(void);
 extern void sound_beeper(int on);
 

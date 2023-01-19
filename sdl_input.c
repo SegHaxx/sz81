@@ -2285,10 +2285,9 @@ void manage_runopts_input(void) {
 				#ifdef OSS_SOUND_SUPPORT
 					if (state == SDL_PRESSED) {
 						if (id == SDLK_5) {
-							/* ACB Stereo */
-							if (runopts_sound_device == DEVICE_QUICKSILVA ||
-								runopts_sound_device == DEVICE_ZONX)
-								runopts_sound_stereo = !runopts_sound_stereo;
+							/* Unreal */
+							if (runopts_sound_device == DEVICE_ZONX)
+								runopts_sound_ay_unreal = !runopts_sound_ay_unreal;
 						} else {
 							/* Sound Device: VSYNC */
 							runopts_sound_device = DEVICE_VSYNC;
@@ -2807,6 +2806,9 @@ int runopts_is_a_reset_scheduled(void) {
 		runopts_sound_device != DEVICE_NONE && 
 		runopts_sound_device != DEVICE_VSYNC) {
 		retval = TRUE;
+	} else if (runopts_sound_ay_unreal != sdl_sound.ay_unreal &&
+		runopts_sound_device == DEVICE_ZONX) {
+	        retval = TRUE;
 #endif
 	}
 
@@ -2865,6 +2867,7 @@ void runopts_transit(int state) {
 		runopts_emulator_frameskip = sdl_emulator.frameskip;
 		runopts_sound_device = sdl_sound.device;
 		runopts_sound_stereo = sdl_sound.stereo;
+		runopts_sound_ay_unreal = sdl_sound.ay_unreal;
 		runopts_key_repeat.delay = sdl_key_repeat.delay;
 		runopts_key_repeat.interval = sdl_key_repeat.interval;
 		runopts_colours_emu_fg = colours.emu_fg;
@@ -2910,6 +2913,12 @@ void runopts_transit(int state) {
 				/* The component executive monitors this variable and
 				 * manages emulator and component reinitialisation */
 				sdl_sound.stereo = runopts_sound_stereo;
+			}
+			/* Update Unreal */
+			if (runopts_sound_ay_unreal != sdl_sound.ay_unreal) {
+				/* The component executive monitors this variable and
+				 * manages emulator and component reinitialisation */
+				sdl_sound.ay_unreal = runopts_sound_ay_unreal;
 			}
 		#endif
 		/* If the joycfg was used then update/insert the controls that

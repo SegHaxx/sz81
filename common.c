@@ -20,7 +20,7 @@
  * common.c - various routines/vars common to z81/xz81/sz81.
  */
 
-#define Z81_VER		"2.2"
+#define Z81_VER		"2.1"
 
 #include <string.h>
 
@@ -41,10 +41,16 @@
 extern void sdl_set_redraw_video();
 #endif
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "common.h"
 #include "sound.h"
 #include "z80/z80.h"
-#include "zx81/zx81.h"
+#include "zx81.h"
 #include "allmain.h"
 #include "w5100.h"
 
@@ -52,6 +58,10 @@ extern ZX81 zx81;
 
 unsigned char mem[65536],*helpscrn;
 unsigned char keyports[9]={0xff,0xff,0xff,0xff, 0xff,0xff,0xff,0xff, 0xff};
+
+#define SHMSIZ 0x4000
+BYTE *sz81mem;
+int rwsz81mem, fdsz81mem;
 
 /* this two work on a per-k basis, so we can support 1k etc. properly */
 unsigned char *memptr[64];
@@ -691,8 +701,39 @@ if(zx81.machine==MACHINELAMBDA)
 
  if (sdl_emulator.networking) w_init();
 
+/* initialise shared memory */
+
+ if (rwsz81mem==1) {
+	 fdsz81mem = shm_open("/sz81mem", O_RDONLY, S_IRUSR | S_IWUSR);
+	 if (fdsz81mem < 0) {
+		 perror("open");
+		 exit(1);
+	 } else {
+		 sz81mem = mmap(NULL, SHMSIZ, PROT_READ, MAP_SHARED, fdsz81mem, 0);
+		 if (sz81mem == MAP_FAILED) { perror("map"); exit(1); }
+	 }
+ } else if (rwsz81mem==2) {
+	 fdsz81mem = shm_open("/sz81mem", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	 if (fdsz81mem < 0) {
+		 perror("open");
+		 exit(1);
+	 } else {
+		 if (ftruncate(fdsz81mem, SHMSIZ) < 0) { perror("ftruncate"); exit(1); }
+		 sz81mem = mmap(NULL, SHMSIZ, PROT_WRITE, MAP_SHARED, fdsz81mem, 0);
+		 if (sz81mem == MAP_FAILED) { perror("map"); exit(1); }
+	}
 }
 
+}
+
+void exitmem()
+{
+	if (rwsz81mem) {
+		if (munmap(sz81mem, SHMSIZ) < 0) perror("munmap");
+		if (close(fdsz81mem < 0)) perror("close");
+		if (rwsz81mem==2) { if (shm_unlink("/sz81mem") < 0) perror("shm_unlink"); }
+	}
+}
 
 #ifndef SZ81	/* Added by Thunor */
 void loadhelp(void)
@@ -747,7 +788,7 @@ static int failcnt = 0;
 if(!zxpfilename)
   return;
 
-fprintf(stdout,"Creating zxprinter file \"%s\"...\n", zxpfilename);
+fprintf(stdout,"Creating zxprinter file %s...\n", zxpfilename);
 
 if((zxpfile=fopen(zxpfilename,"wb"))==NULL)
   {

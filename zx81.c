@@ -1,16 +1,16 @@
 #include "zx81.h"
-#include "../sdl.h"
-#include "../sdl_loadsave.h"
-#include "../sdl_sound.h"
-#include "../config.h"
-#include "../zx81config.h"
-#include "../common.h"
-#include "../sound.h"
-#include "../z80/z80.h"
-#include "../w5100.h"
+#include "sdl.h"
+#include "sdl_loadsave.h"
+#include "sdl_sound.h"
+#include "config.h"
+#include "zx81config.h"
+#include "common.h"
+#include "sound.h"
+#include "z80/z80.h"
+#include "w5100.h"
 
-#define HBLANKCOLOUR (0*16)
-#define VBLANKCOLOUR (0*16)
+#include "types.h"
+#include "dissz80.h"
 
 #define LASTINSTNONE  0
 #define LASTINSTINFE  1
@@ -18,12 +18,49 @@
 #define LASTINSTOUTFD 3
 #define LASTINSTOUTFF 4
 
+// #define WAITMOD
+// #define VRCNTR
+
 ZX81 zx81;
 BYTE *memory;
-int int_pending=0;
+extern BYTE *sz81mem;
+extern int rwsz81mem;
+
+/* odd place to have this, but the display does work in an odd way :-) */
+unsigned char scrnbmp_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];  /* written */
+unsigned char scrnbmp[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];      /* displayed */
+unsigned char scrnbmp_old[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];  /* checked against for diffs */
+
+/* chroma */
+unsigned char scrnbmpc_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT];   /* written */
+unsigned char scrnbmpc[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT];       /* displayed */
+
+static int RasterX = 0;
+static int RasterY = 0;
+static int TVP;
+static int dest;
+
+/* TV specifications */
+
+#define HTOLMIN 414-30
+#define HTOLMAX 414+30
+#define VTOLMIN 310-100
+#define VTOLMAX 310+100
+#define HMIN 8
+#define HMAX 32
+#define VMIN 170
+
+static int HSYNC_TOLERANCEMIN = HTOLMIN;
+static int HSYNC_TOLERANCEMAX = HTOLMAX;
+static int VSYNC_TOLERANCEMIN = VTOLMIN;
+static int VSYNC_TOLERANCEMAX = VTOLMAX;
+static int HSYNC_MINLEN = HMIN;
+static int HSYNC_MAXLEN = HMAX;
+static int VSYNC_MINLEN = VMIN;
+
+int int_pending, nmi_pending, hsync_pending;
 long noise;
 int border, ink, paper;
-int pink, ppaper;
 int SelectAYReg;
 BYTE font[512];
 BYTE memhrg[1024];
@@ -36,32 +73,74 @@ unsigned long frames=0;
 /* I/O port 1 allows reading of the zx81 structure */
 int configbyte=0;
 
-int NMI_generator=0;
-int HSYNC_generator=0;
-int sync_len, sync_valid;
+int NMI_generator;
+int VSYNC_state, HSYNC_state, SYNC_signal;
+int psync, sync_len;
 int setborder=0;
 int LastInstruction;
 int MemotechMode=0;
-int HWidthCounter=0;
-int shift_register=0, shift_reg_inv, shift_store=0;
+int shift_register, shift_reg_inv;
 int rowcounter=0;
 int zx81_stop=0;
 int hsync_counter=0;
-BYTE scanline[800*50];
-int scanline_len=0;
-
-/* in accdraw.c */
-int myrandom( int x );
-void add_blank( int tstates, BYTE colour );
-void update_variables( int option );
-void AccurateInit();
-void AccurateDraw();
+int ispeedup;
+int doda;
 
 /* in common.c */
 void aszmic4hacks();
 void aszmic7hacks();
 void kcomm(int a);
 unsigned char lcomm(int a1, int a2);
+
+void disassemble(const unsigned int dAddr, const BYTE opcode)
+{
+        DISZ80  *d;                     /* Pointer to the Disassembly structure */
+        int     err;
+
+/* Allocate the dZ80 structure */
+        d = (DISZ80*) malloc(sizeof(DISZ80));
+        if (d == NULL)
+                {
+                printf("dz80: cannot allocate %ld bytes\n", sizeof(DISZ80));
+                exit(1);
+                }
+
+/* Set up dZ80's structure - it's not too fussy */
+        memset(d, 0, sizeof(DISZ80));
+
+/* Set the default radix and strings (comments and "db") */ 
+        dZ80_SetDefaultOptions(d);              
+
+/* Set the CPU type */
+        d->cpuType = DCPU_Z80;
+
+/* Set the start of the Z80's memory space - not used */
+        d->mem0Start = NULL;
+
+/* Indicate we're disassembling a single instruction */
+        d->flags |= DISFLAG_SINGLE;
+
+/* Set the disassembly address */
+        d->start = d->end = dAddr;
+
+/* :-) */
+	d->op = opcode;
+	d->availop = 1;
+
+        err = dZ80_Disassemble(d);
+        if (err != DERR_NONE)
+                        {
+                        printf("**** dZ80 error:  %s\n", dZ80_GetErrorText(err));
+                        }
+                
+/* Display the disassembled line, using the hex dump and disassembly buffers in the DISZ80 structure */
+        printf(" %6ld %04X %04X %04X %04X %04X %04x %10s:  %s\n",
+	       tstates, dAddr,
+	       z80.af.w, z80.bc.w, z80.de.w, z80.hl.w, z80.sp.w,
+	       d->hexDisBuf, d->disBuf);
+                
+        free(d);
+}
 
 /* EightyOne  - A Windows ZX80/81/clone emulator.
  * Copyright (C) 2003-2006 Michael D Wynne
@@ -84,11 +163,39 @@ unsigned char lcomm(int a1, int a2);
  *
  */
 
+/* Used to be in AccDraw */
+
+void Plot(int c)
+{
+	int k, kh, kl;
+	unsigned char b, m;
+
+	k = TVP + dest + RasterX;
+	RasterX++;
+	if (RasterX >= ZX_VID_FULLWIDTH) return;
+
+	if (k >= ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT) return;
+
+	kh = k >> 3;
+	kl = k & 7;
+	m = 0x80 >> kl;
+
+	b = scrnbmp_new[kh];
+	if (c&0x01) b |= m; else b &= ~m;
+	if (zx81.colour!=COLOURDISABLED) scrnbmpc_new[k] = c >> 4;
+	scrnbmp_new[kh] = b;
+}
+
+int myrandom( int x )
+{
+  return rand() % ( x + 1 );
+}
+
 /* zx97 code has been removed */
 
 /* In sz81, the extended instructions were called within edops.c;
    to keep the current Philip Kendall's z80_ed.c clean, the instructions are
-   tested here in line with EightOne */
+   tested here in line with EightyOne */
 
 int PatchTest(int pc)
 {
@@ -161,12 +268,17 @@ int zx81_contend(int Address, int states, int time)
 
 void zx81_writebyte(int Address, int Data)
 {
+#ifdef VISUALS
+	if (Address>=0x8000 && !(Data&64) && !NMI_generator) {
+		shift_register |= Data;
+	}
+#endif
         noise = (noise<<8) | Data;
 
         if (zx81.aytype == AY_TYPE_QUICKSILVA)
         {
                 if (Address == 0x7fff) SelectAYReg=Data&15;
-                if (Address == 0x7ffe) sound_ay_write(SelectAYReg,Data);
+                if (Address == 0x7ffe) sound_ay_write(SelectAYReg,Data,0);
         }
 
         // The lambda colour board has 1k of RAM mapped between 8k-16k (8 shadows)
@@ -217,6 +329,7 @@ void zx81_writebyte(int Address, int Data)
         if (Address<10240 && zx81.truehires==HIRESMEMOTECH) return;
         if (Address>=10240 && Address<12288 && zx81.truehires==HIRESG007) return;
 
+        if (zx81.wsz81mem && Address>=0x4000 && Address<0x8000) sz81mem[Address-0x4000]=Data;
         memory[Address]=Data;
 }
 
@@ -240,6 +353,8 @@ BYTE zx81_readbyte(int Address)
                 return(data);
         }
 
+        if (zx81.rsz81mem && Address>=0xc000) return sz81mem[Address-0xc000];
+
         if (Address<=zx81.RAMTOP) data=memory[Address];
 	//        else data=memory[(Address&(zx81.RAMTOP-16384))+16384];
         else if (zx81.RAMTOP==0xbfff) data=memory[Address&0x7fff];
@@ -255,6 +370,11 @@ BYTE zx81_readbyte(int Address)
                 && (z80.i&1) && (zx81.truehires==HIRESG007))
                         data=memory[Address+8192];
 
+#ifdef VISUALS
+	if (Address>=0x8000 && !(data&64) && !NMI_generator) {
+		shift_register |= data;
+	}
+#endif
         noise = (noise<<8) | data;
         return(data);
 }
@@ -280,7 +400,7 @@ BYTE zx81_readbyte(int Address)
 // on which bus RAM is placed, it can either be used for extended
 // Fonts OR WRX style hi-res graphics, but never both.
 
-BYTE zx81_opcode_fetch(int Address)
+BYTE zx81_opcode_fetch_org(int Address)
 {
         int inv;
         int opcode, bit6, update=0;
@@ -328,8 +448,8 @@ BYTE zx81_opcode_fetch(int Address)
 
                         c = memory[Address];
                                 
-                        pink = c&15;
-                        ppaper = (c>>4) & 15;
+                        ink = c&15;
+                        paper = (c>>4) & 15;
 		}
 
                 data=zx81_readbyte((z80.i<<8) | (z80.r7 & 128) | ((z80.r-1) & 127));
@@ -339,10 +459,9 @@ BYTE zx81_opcode_fetch(int Address)
         {
                 // Next Check Memotech Hi-res.  Memotech is only enabled
                 // When the I register is odd.
+		// TODO: RasterX<66 check
 
-                extern int RasterY;
-
-                if ((opcode!=118 || scanline_len<66) && RasterY>=56 && RasterY<=(56+192))
+                if ((opcode!=118 || RasterX<(13+58-2)*2) && RasterY>=56 && RasterY<=(56+192))
                 {
                         opcode=0;
                         inv=(MemotechMode==3);
@@ -380,8 +499,8 @@ BYTE zx81_opcode_fetch(int Address)
 	                        c=memory[0xc000 + (data2<<3) + rowcounter];
 			}
                                 
-                        pink = c&15;
-                        ppaper = (c>>4) & 15;
+                        ink = c&15;
+                        paper = (c>>4) & 15;
                 }
 
                 // First try to figure out which character set we're going
@@ -427,7 +546,7 @@ BYTE zx81_opcode_fetch(int Address)
                         // If Lambda colour is enabled, we had better fetch
                         // the ink and paper colour from memory too.
 
-                        c = memory[8192+(Address&1023)];
+                        c = memory[8192+(Address&1023)+1];
 
                         ink = c&15;
                         paper = (c>>4) & 15;
@@ -462,9 +581,14 @@ BYTE zx81_opcode_fetch(int Address)
                 // bit 6 set in the display file.  We actually execute these
                 // opcodes, and generate the noise.
 
+                if (zx81.colour==COLOURLAMBDA)
+                {
+                        ink = paper = 0;
+		}
+
                 if (zx81.colour==COLOURCHROMA)
                 {
-                        pink = ppaper = zx81.chromamode & 15;
+                        ink = paper = zx81.chromamode & 15;
 		}
 
                 noise |= data;
@@ -472,16 +596,33 @@ BYTE zx81_opcode_fetch(int Address)
         }
 }
 
+BYTE zx81_opcode_fetch(int Address)
+{
+        BYTE opcode;
+
+	opcode = zx81_opcode_fetch_org(Address);
+
+	if (Address>=sdl_emulator.bdis && Address<=sdl_emulator.edis && doda)
+	        disassemble(Address, opcode);
+	doda = 0;
+
+	return opcode;
+}
+
 void zx81_writeport(int Address, int Data, int *tstates)
 {
         if (Address==0x7fef && zx81.Chroma81) {
                 chromamode = Data&0x30; // TODO should be 0x20
                 zx81.colour = chromamode ? COLOURCHROMA : COLOURDISABLED;
-                zx81.chromamode = Data | 0x20;
-		if (chromamode)
+		if (chromamode) {
+			zx81.chromamode = Data | 0x20;
 			printf("Selecting Chroma 81 mode 0x%x...\n",zx81.chromamode);
-		else
+		} else {
 			printf("Switching off Chroma 81...\n");
+			zx81.chromamode = 0;
+			ink=0; paper=border=7;
+			refresh_screen = 1;
+		}
                 return; 
         }
 
@@ -490,20 +631,21 @@ void zx81_writeport(int Address, int Data, int *tstates)
         case 0x01:
                 configbyte=Data;
                 break;
-        case 0x03:
-		printf("Setting tstates per scanline to %d...\n", Data);
-                machine.tperscanline=Data;
-		machine.tperframe=machine.tperscanline * machine.scanlines;
-		break;
+
         case 0x0f:
-        case 0x1f:
                 if (zx81.aytype==AY_TYPE_ZONX)
-                        sound_ay_write(SelectAYReg, Data);
+                        sound_ay_write(SelectAYReg, Data, 0);
+                break;
+        case 0x1f:
+        case 0xf7:
+                if (zx81.aytype==AY_TYPE_ZONX)
+                        sound_ay_write(SelectAYReg, Data, 1);
                 break;
 
+        case 0xbf:
         case 0xcf:
         case 0xdf:
-                if (zx81.aytype==AY_TYPE_ACE) sound_ay_write(SelectAYReg, Data);
+                if (zx81.aytype==AY_TYPE_ACE) sound_ay_write(SelectAYReg, Data, 0);
                 if (zx81.aytype==AY_TYPE_ZONX) SelectAYReg=Data&15;
                 break;
 
@@ -546,14 +688,10 @@ void zx81_writeport(int Address, int Data, int *tstates)
         case 0xfd:
                 if (zx81.machine==MACHINEZX80) break;
                 LastInstruction = LASTINSTOUTFD;
-                //NMI_generator=0;
-                // Nasty Hack Alert!
-                //tstates-=7;
                 break;
         case 0xfe:
                 if (zx81.machine==MACHINEZX80) break;
                 LastInstruction = LASTINSTOUTFE;
-                //NMI_generator=1;
                 break;
 
 	case WIZ_MODE:
@@ -570,14 +708,6 @@ void zx81_writeport(int Address, int Data, int *tstates)
         }
 
         if (!LastInstruction) LastInstruction=LASTINSTOUTFF;
-
-        if ((zx81.machine != MACHINELAMBDA) && zx81.vsyncsound) {
-		sound_beeper(0);
-	}
-
-        //if (!HSYNC_generator) rowcounter=0;
-        //if (sync_len) sync_valid=SYNCTYPEV;
-        //HSYNC_generator=1;
 }
 
 BYTE zx81_readport(int Address, int *tstates)
@@ -603,9 +733,6 @@ BYTE zx81_readport(int Address, int *tstates)
 	if (!(Address&1)) {
                 LastInstruction=LASTINSTINFE;
 		setborder=1;
-		if ((zx81.machine!=MACHINELAMBDA) && zx81.vsyncsound && !NMI_generator) {
-			sound_beeper(1);
-		}
 
 		if (l==0x7e) return zx81.NTSC ? 1 : 0; // for Lambda
 
@@ -665,8 +792,7 @@ BYTE zx81_readport(int Address, int *tstates)
 
                 case 0xf5:
                         beeper = 1-beeper;
-                        if ((zx81.machine==MACHINELAMBDA) && zx81.vsyncsound)
-                                sound_beeper(beeper);
+                        if ((zx81.machine==MACHINELAMBDA) && zx81.vsyncsound) sound_beeper(beeper);
                         return(255);
                 case 0xfb:
 			data = printer_inout(0,0);
@@ -683,189 +809,243 @@ BYTE zx81_readport(int Address, int *tstates)
         return(255);
 }
 
-int zx81_do_scanline()
+/* Normally, these sync checks are done by the TV :-) */
+
+void checkhsync(int tolchk)
 {
-        int ts,i;
-        int MaxScanLen;
-        int PrevRev=0, PrevBit=0, PrevGhost=0;
-        int tstotal=0;
-        int pixels;
+	if ( ( !tolchk && sync_len >= HSYNC_MINLEN && sync_len <= HSYNC_MAXLEN && RasterX>=HSYNC_TOLERANCEMIN ) ||
+	     (  tolchk &&                                                         RasterX>=HSYNC_TOLERANCEMAX ) )
+	{
+		RasterX = 0;
+		RasterY++;
+		dest += TVP;
+	}
+}
 
-        scanline_len=0;
+void checkvsync(int tolchk)
+{
+	if ( ( !tolchk && sync_len >= VSYNC_MINLEN && RasterY>=VSYNC_TOLERANCEMIN ) ||
+	     (  tolchk &&                             RasterY>=VSYNC_TOLERANCEMAX ) )
+	{
+		RasterY = 0;
+		dest = 0;
 
-        MaxScanLen = (zx81.single_step? 1:420);
+		memcpy(scrnbmp,scrnbmp_new,sizeof(scrnbmp));
+		if (zx81.colour!=COLOURDISABLED) memcpy(scrnbmpc,scrnbmpc_new,sizeof(scrnbmpc));
+	}
+}
 
-        if (sync_valid)
-        {
-                add_blank(borrow, HSYNC_generator ? (16*paper) : VBLANKCOLOUR ); // TODO: bit
-               if (sync_len>machine.tperscanline && machine.tperscanline==208 )
-                        hsync_counter=machine.tperscanline-10;
-                borrow=0;
-                sync_valid=0;
-		sync_len=0;
-        }
+void checksync()
+{
+	if (!SYNC_signal) {
+		if (psync==1) sync_len = 0;
+		sync_len++;
+		checkhsync(1);
+		checkvsync(1);
+	} else {
+		if (!psync) {
+			checkhsync(0);
+			checkvsync(0);
+		}
+	}
+	psync = SYNC_signal;
+}
+
+/* The rowcounter is a 7493; as long as both reset inputs are high, the counter is at zero
+   and cannot count. Any out sets it free. */
+
+void anyout()
+{
+	if (VSYNC_state) {
+		if (zx81.machine==MACHINEZX80)
+			VSYNC_state = 2; // will be reset by HSYNC circuitry
+		else
+			VSYNC_state = 0;
+		if ((zx81.machine!=MACHINELAMBDA) && zx81.vsyncsound) sound_beeper(0);
+#ifdef VRCNTR
+		/* due to differences in when the "207" counters give the /HSYNC, and OUT instruction delay */
+		hsync_counter = 25;
+#endif
+	}
+}
+
+/* Rewritten zx81_do_scanlines() and AccurateDraw()  */
+
+int zx81_do_scanlines(int tstotal)
+{
+        int ts;
+	int i, ipixel, istate;
+	int tswait;
 
         do
         {
-                LastInstruction=LASTINSTNONE;
-                z80.pc.w=PatchTest(z80.pc.w);
-                ts = z80_do_opcode();
 
-                if (int_pending)
-                {
-                        int tsint = z80_interrupt(ts);
+/* at this point, z80.pc points to the instruction to be executed;
+   so if nmi or int is pending, the RST instruction with the right number of tstates
+   is emulated */
 
-                        if (tsint)
-                        {
-                                ts += tsint;
-                                if (HWidthCounter>200 && HWidthCounter<216) {
-					if (machine.tperscanline!=HWidthCounter) {
-						// printf("Setting tstates per scanline to %d...\n", HWidthCounter); // commented out because of printfs in FAST mode...
-						machine.tperscanline=HWidthCounter;
-						machine.tperframe=machine.tperscanline * machine.scanlines;
-					}
-				}
-                                HWidthCounter=0;
-                        }
-                        paper=border;
-                        int_pending=0;
+		ts = 0;
+
+                if (int_pending && !nmi_pending) {
+                        ts = z80_interrupt(0);
+#ifndef VRCNTR
+			hsync_counter = -2;             /* INT ACK after two tstates */
+			hsync_pending = 1;              /* a HSYNC may be started */
+#else
+			if (zx81.machine==MACHINEZX80) {
+				hsync_counter = -2;
+				hsync_pending = 1;
+		        }
+#endif
                 }
 
-                HWidthCounter+=ts;
+		if (nmi_pending) ts = z80_nmi(0);
 
-                tstates += ts;
+		LastInstruction = LASTINSTNONE;
+		if (!nmi_pending && !int_pending) {
+		        doda = 1;
+			z80.pc.w = PatchTest(z80.pc.w);
+			ts = z80_do_opcode();
+		}
+		nmi_pending = int_pending = 0;
 
-                shift_store=shift_register;
-                pixels=ts<<1;
+		tstates += ts;
 
-                for (i=0; i<pixels; i++)
-                {
-                        int colour, bit;
+/* check iff1 even though it is checked in z80_interrupt() */
 
-                        bit=((shift_register^shift_reg_inv)&32768);
-
-                        if (HSYNC_generator) {
-				colour = (bit ? ink:paper);
-				if (zx81.colour==COLOURLAMBDA) switch (colour&0x07) {
-					// see http://www.2kb.dk/pic/farvemodul_side1_s.jpg
-					case 2  : colour = 12; break;
-					case 3  : colour = 13; break;
-					case 4  : colour = 10; break;
-					case 5  : colour = 11; break;
-					default : colour += 8;
-			        }
-				colour <<= 4;
-			} else {
-				colour=VBLANKCOLOUR;
-				bit = 1;
-			}
-
-                        if (zx81.dirtydisplay)
-                        {
-                                if (PrevGhost) colour|=4;
-                                PrevGhost=0;
-
-                                if (PrevBit && (PrevRev || zx81.simpleghost))
-                                        { colour|=2; PrevGhost=1; }
-
-                                if (noise&1) colour|=1;
-                                noise>>=1;
-                                PrevRev=shift_reg_inv&32768;
-                                PrevBit= bit;
-                        }
-
-                        scanline[scanline_len++] = colour + (bit ? 1 : 0); // hack for B/W & Chroma
-
-                        shift_register<<=1;
-                        shift_reg_inv<<=1;
-
-			if (zx81.colour==COLOURCHROMA && i==7) {
-			  ink = pink;
-			  paper = ppaper;
-			}
-
-                }
+                if (!((z80.r-1) & 64) && z80.iff1) {
+			int_pending = 1;
+                        paper = border;
+		}
 
                 switch(LastInstruction)
                 {
                 case LASTINSTOUTFD:
                         NMI_generator=0;
-                        if (!HSYNC_generator) rowcounter=0;
-                        if (sync_len) sync_valid=SYNCTYPEV;
-                        HSYNC_generator=1;
+			anyout();
                         break;
                 case LASTINSTOUTFE:
-                        NMI_generator=1;
-                        if (!HSYNC_generator) rowcounter=0;
-                        if (sync_len) sync_valid=SYNCTYPEV;
-                        HSYNC_generator=1;
+                        if (zx81.machine!=MACHINEZX80) NMI_generator=1;
+			anyout();
                         break;
                 case LASTINSTINFE:
                         if (!NMI_generator)
                         {
-                                HSYNC_generator=0;
-                                if (sync_len==0) sync_valid=0;
+                                if (VSYNC_state==0) {
+					VSYNC_state = 1;
+					if ((zx81.machine!=MACHINELAMBDA) && zx81.vsyncsound) sound_beeper(1);
+				}
                         }
                         break;
                 case LASTINSTOUTFF:
-                        if (!HSYNC_generator) rowcounter=0;
-                        if (sync_len) sync_valid=SYNCTYPEV;
-                        HSYNC_generator=1;
+			anyout();
+                        if (zx81.machine==MACHINEZX80) hsync_pending=1;
                         break;
                 default:
                         break;
                 }
 
-                hsync_counter -= ts;
+/* do what happened during the last instruction */
 
- // check iff1 to avoid changing border color in some WRX modes
+		for (istate=0, ipixel=0; istate<ts; istate++)
+		{
+			/* draw two pixels for this tstate */
 
-                if (!(z80.r & 64) && z80.iff1)
-                        int_pending=1;
+			for (i=0; i<2; i++, ipixel++) {
 
-                if (!HSYNC_generator) sync_len += ts;
+				int colour, bit;
 
-                if (hsync_counter<=0)
-                {
-                        if (NMI_generator)
-                        {
-                                int nmilen;
-                                nmilen = z80_nmi(scanline_len);
-                                //if (nmilen!=11) add_blank(nmilen-11,60);
-                                hsync_counter -= nmilen;
-                                ts += nmilen;
-                        }
+				bit=((shift_register^shift_reg_inv)&128);
 
-                        borrow=-hsync_counter;
+				if (SYNC_signal) {
+					colour = (bit ? ink:paper);
+					if (zx81.colour==COLOURLAMBDA) switch (colour&0x07) {
+							// see http://www.2kb.dk/pic/farvemodul_side1_s.jpg
+						case 2  : colour = 12; break;
+						case 3  : colour = 13; break;
+						case 4  : colour = 10; break;
+						case 5  : colour = 11; break;
+						default : colour += 8;
+						}
+					colour <<= 4;
+				} else {
+					colour = border << 4;
+				        bit = 1; // set to 0 for no SYNC effects
+				}
 
-                        if (HSYNC_generator && sync_len==0)
-                        {
-                                sync_len=10;
-                                sync_valid=SYNCTYPEH;
-                                if (scanline_len>=(machine.tperscanline*2))
-                                        scanline_len=machine.tperscanline*2;
-                                //for(i=0;i<24;i++) scanline[i]=HBLANKCOLOUR;
-                                rowcounter++;
-                                rowcounter &= 7;
-                        }
-                        hsync_counter += machine.tperscanline;
-                }
+				colour += (bit ? 1 : 0); // hack for B/W & Chroma
 
-                tstotal += ts;
+				shift_register<<=1;
+				shift_reg_inv<<=1;
 
-        } while(scanline_len<MaxScanLen && !sync_valid && !zx81_stop);
+				Plot(colour);
+			}
 
-        if (sync_valid==SYNCTYPEV)
-        {
-                hsync_counter=machine.tperscanline;
-                //borrow=0;
-        }
+			hsync_counter++;
+			if (hsync_counter>=machine.tperscanline) {
+				hsync_counter = 0;
+				if (zx81.machine!=MACHINEZX80) hsync_pending = 1;
+			}
+
+			// Start of HSYNC, and NMI if enabled
+
+			if (hsync_pending==1 && hsync_counter>=16) {
+				if (NMI_generator) {
+					nmi_pending = 1;
+#ifndef WAITMOD
+					if (ts==4) tswait = 14+istate; else tswait = 14;
+#else
+					if (z80.halted) tswait = 14+istate; else tswait = 0;
+#endif
+					ts += tswait;
+					tstates += ts;
+				}
+
+				HSYNC_state = 1;
+
+				if (VSYNC_state) {
+					rowcounter = 0;
+				} else {
+					rowcounter++;
+					rowcounter &= 7;
+				}
+
+				hsync_pending = 2;
+			}
+
+			// end of HSYNC
+
+			if (hsync_pending==2 && hsync_counter>=32) {
+				if (VSYNC_state==2) VSYNC_state = 0;
+				HSYNC_state = 0;
+				hsync_pending = 0;
+			}
+
+			// NOR the vertical and horizontal SYNC states to create the SYNC signal
+
+			SYNC_signal = (VSYNC_state || HSYNC_state) ? 0 : 1;
+
+			checksync();
+
+		}
+
+                tstotal -= ts;
+
+		if (tstates >= tsmax) {
+			if (ispeedup==-1) frame_pause();
+			ispeedup++;
+			if (ispeedup>=zx81.speedup) ispeedup=-1;
+			frames++;
+			tstates -= tsmax;
+		}
+
+	} while (tstotal>0 && !zx81_stop);
 
         return(tstotal);
 }
 
 
-/* EightyOne code ends here */
+/* (Modified) EightyOne code ends here */
 
 void zx81_initialise(void)
 {
@@ -887,18 +1067,20 @@ void zx81_initialise(void)
 	zx81.colour          = COLOURDISABLED;
 	zx81.m1not           = (sdl_emulator.m1not && (sdl_emulator.ramsize>=32)) ? 49152 : 32768;
 	zx81.machine         = zx80 ? MACHINEZX80 : MACHINEZX81;
-	zx81.maxireg         = 0x40;
-	zx81.NTSC            = 0;
+	zx81.maxireg         = (sdl_emulator.ramsize==24 || sdl_emulator.ramsize==56) ? 0x20 : 0x40;
+	zx81.NTSC            = 0;    // set to 1 for H.E.R.O.
 	zx81.protectROM      = 1;
-	zx81.RAMTOP          = (sdl_emulator.ramsize < 48) ? ((sdl_emulator.ramsize == 32) ? 0xbfff : 0x7fff) : 0xffff;
+	zx81.RAMTOP          = (sdl_emulator.ramsize < 16) ? (0x4000+sdl_emulator.ramsize*0x400-1) : ((sdl_emulator.ramsize < 48) ? ((sdl_emulator.ramsize == 32) ? 0xbfff : 0x7fff) : 0xffff);
 	zx81.ROMTOP          = zx80 ? 0x0fff : 0x1fff;
 	zx81.speedup         = 0;
-	zx81.shadowROM       = (sdl_emulator.ramsize==24 || sdl_emulator.ramsize==56) ? 0 : 1;
+	zx81.shadowROM       = 0;
 	zx81.simpleghost     = 0;
 	zx81.single_step     = 0;
 	zx81.truehires       = HIRESWRX; // or HIRESDISABLED and check zx81.maxireg
 	zx81.ts2050          = 0;
 	zx81.vsyncsound      = sdl_sound.device==DEVICE_VSYNC ? 1 : 0;
+	zx81.rsz81mem       = rwsz81mem==1 ? 1 : 0;
+	zx81.wsz81mem       = rwsz81mem==2 ? 1 : 0;
 
         machine.contendmem   = zx81_contend;
         machine.contendio    = zx81_contend;
@@ -909,22 +1091,34 @@ void zx81_initialise(void)
         machine.writeport    = zx81_writeport;
 
 	machine.tperscanline = 207;
-	machine.scanlines    = zx81.NTSC ? 262 : 312;
-	machine.tperframe    = machine.tperscanline * machine.scanlines;
+	machine.scanlines    = 310; /* PokeMon */
+	if (zx81.NTSC) machine.scanlines -= (55-31)*2; /* difference in MARGINs */
 
-	tsmax = machine.tperframe;
+	if (zx81.machine==MACHINEZX80)
+		machine.tperframe    = machine.tperscanline * machine.scanlines - 3;
+	else
+		machine.tperframe    = machine.tperscanline * machine.scanlines - 7;
+
+	tsmax = 65000; //machine.tperframe;
 
 /* Initialise Accurate Drawing */
 
-	AccurateInit();
+	RasterX = 0;
+	RasterY = myrandom(VSYNC_TOLERANCEMAX);
+	dest = 0;
+	psync = 1;
+	sync_len = 0;
+	TVP = ZX_VID_X_WIDTH;
+
+/* ULA */
 
         NMI_generator=0;
-        HSYNC_generator=0;
-        sync_len=0;
-        sync_valid=0;
+	int_pending=0;
+	hsync_pending=0;
+        VSYNC_state=HSYNC_state=0;
         MemotechMode=0;
 
-/* Here are some alternatives to try */
+/* Here are some alternatives to try (no fopen fail message!) */
 
 	//zx81.truehires = HIRESMEMOTECH;
 	if (zx81.truehires == HIRESMEMOTECH) {
@@ -932,12 +1126,12 @@ void zx81_initialise(void)
 		strcatdelimiter(filename);
 		strcat(filename, "memohrg.rom");
                 if ((fp = fopen(filename, "rb")) != NULL) {
-			fread(memhrg, 1, 1 * 1024, fp);
+			fread(memory+8192, 1, 2 * 1024, fp);
 			fclose(fp);
 		}
 	}
 
-        //zx81.truehires = HIRESG007; // use 24K RAM setting
+        //zx81.truehires = HIRESG007; // use 24K RAM setting; rowcounter is one line off (as in EightyOne)
 	if (zx81.truehires == HIRESG007) {
 		strcpy(filename, PACKAGE_DATA_DIR);
 		strcatdelimiter(filename);
@@ -964,15 +1158,14 @@ void zx81_initialise(void)
 			fread(font, 1, 512, fp);
 			fclose(fp);
 		}
-		zx81.shadowROM = 0;
 		zx81.Chroma81 = 0;
 		zx81.extfont = 1;
 		zx81.colour = COLOURLAMBDA;
 		chromamode = 1;
         }
 
-        if (zx81.machine==MACHINELAMBDA) { ink=6; paper=border=1; }
-        else { ink=pink=0; paper=ppaper=border=7; }
+        if (zx81.machine==MACHINELAMBDA) { ink=paper=border=0; }
+        else { ink=0; paper=border=7; }
 
         z80_init();
         z80_reset();
@@ -980,7 +1173,7 @@ void zx81_initialise(void)
 
 void mainloop()
 {
-	static int j, borrow;
+	int j, borrow=0;
 
 #ifdef SZ81	/* Added by Thunor */
 if(sdl_emulator.autoload)
@@ -994,6 +1187,7 @@ if(sdl_emulator.autoload)
 #endif
 
   tstates = 0;
+  ispeedup = -1;
 
   while (1) {
 
@@ -1016,23 +1210,9 @@ if(sdl_emulator.autoload)
 	  j += ( zx81.speedup * machine.tperframe ); // EO; was / machine.tperscanline;
   }
 
-   while ( j > 0 && !zx81_stop )
-  {
-    j -= zx81_do_scanline();
-    AccurateDraw();
-  }
+  borrow = zx81_do_scanlines(j);
 
- if ( !zx81_stop )
-  {
-    borrow = j;
-  }
-
- while (tstates >= tsmax) {
-  frames++;
-  tstates -= tsmax;
- }
-
- frame_pause();
+  borrow = 0;
 
   /* this isn't used for any sort of Z80 interrupts,
    * purely for the emulator's UI.

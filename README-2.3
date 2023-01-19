@@ -1,0 +1,40 @@
+Notes for version 2.3.x:
+
+* The rewritten zx81_do_scanlines() resets the HSYNC "207" counter with
+  INT ACK, rather than VSYNC. This should remove the few artefacts seen
+  with the rowcounter, and the check for tperscanline. Thanks to Andy Rea's
+  and Grant Searle's detailed information on the internet.
+
+* The WAIT hardware emulation should on average be close to the original,
+  and is always active, as in the unmodified ZX81.
+
+* The 24K and 56K memory options enables the memory region 8K to 16K for WRX.
+  Otherwise, it initially contains copies of the ROM, but may be used, for
+  example, for UDG.
+
+Notes for version 2.3.5:
+
+* The Unreal sound code may be enabled at the Sound Options screen;
+  in this version sound is always ACB stereo.
+
+Notes for version 2.3.4:
+
+* A memory region to be disassembled while running may be specified with the
+  "-Baddr" and "-Eaddr" command line options. If "-E" is missing, the region
+  consists of one address given with the "-B" option. Addresses prefixed by "0x"
+  are interpreted as hexadecimal. With the Z80 code, also the number of tstates
+  within the frame, the address, and the contents of the AF, BC, DE, HL and SP
+  registers are displayed. Example: with "sz81 -B0x695" the line numbers of the
+  BASIC lines to be executed may be traced in the DE register.
+
+Notes for version 2.3.2:
+
+* Wilf Rigter's HS4 high speed interface (http://www.user.dccnet.com/wrigter/index_files/HS4.htm)
+  may be emulated using the "-W" and "-R" command line options:
+
+  - start the first instance of sz81 with "sz81 -W &"
+  - and a next one with "sz81 -R hs4.p &"
+
+  The first instance may next be set in FAST mode; the other instance(s)
+  continue(s) showing the screen. The shared memory on the host system will remain
+  active while the first instance is running.

@@ -66,12 +66,23 @@
 #include "sdl.h"
 #endif
 
+#include "sndrender/sndinterface.h"
+/* "Unreal" buffer; times two because ticks within a frame may be varying a little */
+unsigned char sndplaybuf[640*4];
+
+// #define SIMPLE_RECORD
+
+#ifdef SIMPLE_RECORD
+FILE *sndhandle=NULL;
+#endif
+
 
 /* configuration */
 int sound_enabled=0;
 int sound_freq=32000;
-int sound_stereo=0;
-int sound_stereo_acb=0;		/* 1 for ACB stereo, else 0 */
+int sound_stereo=1;
+int sound_stereo_acb=1;		/* 1 for ACB stereo, else 0 */
+int sound_ay_unreal=0;
 
 /* sound_vsync and sound_ay are in common.c */
 
@@ -106,12 +117,6 @@ int sound_stereo_acb=0;		/* 1 for ACB stereo, else 0 */
 #define VOL_BEEPER		(AMPL_BEEPER*2)
 #endif
 
-/* max. number of sub-frame AY port writes allowed;
- * given the number of port writes theoretically possible in a
- * 50th I think this should be plenty.
- */
-#define AY_CHANGE_MAX		8000
-
 static int sound_framesiz;
 
 static unsigned char ay_tone_levels[16];
@@ -125,21 +130,7 @@ static int sound_oldpos,sound_fillpos,sound_oldval,sound_oldval_orig;
  */
 static unsigned int beeper_tick,beeper_tick_incr;
 
-/* tick/incr/periods are all fixed-point with low 16 bits as
- * fractional part, except ay_env_{tick,period} which count as the chip does.
- */
-static unsigned int ay_tone_tick[3],ay_noise_tick;
-static unsigned int ay_env_tick,ay_env_subcycles;
-static unsigned int ay_tick_incr;
-static unsigned int ay_tone_period[3],ay_noise_period,ay_env_period;
-
-static int env_held=0,env_alternating=0;
-
 static int beeper_last_subpos=0;
-
-/* AY registers */
-/* we have 16 so we can fake an 8910 if needed */
-static unsigned char sound_ay_registers[16];
 
 struct ay_change_tag
   {
@@ -147,10 +138,6 @@ struct ay_change_tag
   unsigned short ofs;
   unsigned char reg,val;
   };
-
-static struct ay_change_tag ay_change[AY_CHANGE_MAX];
-static int ay_change_count;
-
 
 #ifndef SZ81	/* Added by Thunor */
 static int soundfd=-1;
@@ -163,6 +150,56 @@ static int sixteenbit=0;
 #define BASE_SOUND_FRAG_PWR	6
 #endif
 
+static unsigned int ay_tick_incr;
+
+/* max. number of sub-frame AY port writes allowed;
+ * given the number of port writes theoretically possible in a
+ * 50th I think this should be plenty.
+ */
+#define AY_CHANGE_MAX		8000
+
+/* tick/incr/periods are all fixed-point with low 16 bits as
+ * fractional part, except ay_env_{tick,period} which count as the chip does.
+ */
+/* AY registers */
+/* we have 16 so we can fake an 8910 if needed */
+
+static struct ay_states {
+	unsigned char sound_ay_registers[16];
+	unsigned int ay_tone_tick[3],ay_noise_tick;
+	unsigned int ay_env_tick,ay_env_subcycles;
+	unsigned int ay_tone_period[3],ay_noise_period,ay_env_period;
+	int env_held, env_alternating;
+	int rng, noise_toggle, env_level;
+	struct ay_change_tag ay_change[AY_CHANGE_MAX];
+	int ay_change_count;
+} ays_states[2];
+
+void ay_states_reset(struct ay_states* as)
+{
+	int count;
+
+	for (count=0; count<16; count++) as->sound_ay_registers[count] = 0;
+	for (count=0; count<3; count++) as->ay_tone_tick[count] = 0;
+	as->ay_noise_tick = 0;
+	as->ay_env_tick = 0;
+	as->ay_env_subcycles = 0;
+	for (count=0; count<3; count++)	as->ay_tone_period[count] = 0;
+	as->ay_noise_period = 0;
+	as->ay_env_period = 0;
+	as->env_held = 0;
+	as->env_alternating = 0;
+	as->rng = 1;
+	as->noise_toggle = 1;
+	as->env_level = 0;
+	for (count=0; count<AY_CHANGE_MAX; count++) {
+		as->ay_change[count].tstates=0;
+		as->ay_change[count].ofs=0;
+		as->ay_change[count].reg=0;
+		as->ay_change[count].val=0;
+	}
+	as->ay_change_count=0;
+}
 
 #ifndef SZ81	/* Added by Thunor */
 /* returns non-zero on success, and adjusts freq/stereo args to reflect
@@ -261,7 +298,7 @@ if(sixteenbit)
   }
 
 #ifdef SZ81	/* Added by Thunor */
-sdl_sound_frame(data, len);
+ sdl_sound_frame((Uint16 *)data, len/2);
 #else
 while(len)
   {
@@ -307,10 +344,8 @@ for(f=15;f>0;f--)
   }
 ay_tone_levels[0]=0;
 
-ay_noise_tick=ay_noise_period=0;
-ay_env_tick=ay_env_period=0;
-for(f=0;f<3;f++)
-  ay_tone_tick[f]=ay_tone_period[f]=0;
+ay_states_reset(&ays_states[0]);
+ay_states_reset(&ays_states[1]);
 
 switch(sound_ay_type)
   {
@@ -328,7 +363,6 @@ switch(sound_ay_type)
 
 ay_tick_incr=(int)(65536.*clock/sound_freq);
 
-ay_change_count=0;
 }
 
 
@@ -396,8 +430,15 @@ sound_ptr=sound_buf;
 beeper_tick=0;
 beeper_tick_incr=(1<<24)/sound_freq;
 
-if(sound_ay)
-  sound_ay_init();
+#ifdef SIMPLE_RECORD
+sndhandle = fopen("sound.raw", "wb");
+#endif
+
+ if(sound_ay) {
+   sound_ay_init();
+   snd_init();
+   snd_start_frame();
+ }
 }
 
 
@@ -416,6 +457,12 @@ if(sound_enabled)
   osssound_end();
 #endif
   }
+#ifdef SIMPLE_RECORD
+ if (sndhandle) {
+   fclose(sndhandle);
+   sndhandle=NULL;
+ }
+#endif
 }
 
 
@@ -431,47 +478,53 @@ if(sound_enabled)
   was_high=0;								\
   if(level)								\
     {									\
-    if(ay_tone_tick[chan]>=ay_tone_period[chan])			\
+    if(dev->ay_tone_tick[chan]>=dev->ay_tone_period[chan])		\
       (*(ptr))+=(level),was_high=1;					\
     else								\
       (*(ptr))-=(level);						\
     }									\
   									\
-  ay_tone_tick[chan]+=ay_tick_incr;					\
-  if(level && !was_high && ay_tone_tick[chan]>=ay_tone_period[chan])	\
-    (*(ptr))+=AY_GET_SUBVAL(ay_tone_tick[chan],ay_tone_period[chan]);	\
+  dev->ay_tone_tick[chan]+=ay_tick_incr;				\
+  if(level && !was_high && dev->ay_tone_tick[chan]>=dev->ay_tone_period[chan])	\
+    (*(ptr))+=AY_GET_SUBVAL(dev->ay_tone_tick[chan],dev->ay_tone_period[chan]);	\
   									\
-  if(ay_tone_tick[chan]>=ay_tone_period[chan]*2)			\
+  if(dev->ay_tone_tick[chan]>=dev->ay_tone_period[chan]*2)		\
     {									\
-    ay_tone_tick[chan]-=ay_tone_period[chan]*2;				\
+    dev->ay_tone_tick[chan]-=dev->ay_tone_period[chan]*2;		\
     /* sanity check needed to avoid making samples sound terrible */ 	\
-    if(level && ay_tone_tick[chan]<ay_tone_period[chan]) 		\
-      (*(ptr))-=AY_GET_SUBVAL(ay_tone_tick[chan],0);			\
+    if(level && dev->ay_tone_tick[chan]<dev->ay_tone_period[chan]) 	\
+      (*(ptr))-=AY_GET_SUBVAL(dev->ay_tone_tick[chan],0);		\
     }
 
 
 static void sound_ay_overlay(void)
 {
-static int rng=1;
-static int noise_toggle=1;
-static int env_level=0;
+struct ay_states *dev;
 int tone_level[3];
 int mixer,envshape;
 int f,g,level;
 int v=0;
+unsigned char tmp;
 unsigned char *ptr;
-struct ay_change_tag *change_ptr=ay_change;
-int changes_left=ay_change_count;
+struct ay_change_tag *change_ptr;
+int changes_left;
 int reg,r;
 int was_high;
 int channels=(sound_stereo?2:1);
+int count;
 
-/* If no AY chip, don't produce any AY sound (!) */
-if(!sound_ay) return;
+/* If no AY chip(s), don't produce any AY sound (!) */
+if (!sound_ay) return;
+
+for (count=0; count<2; count++) {
+
+dev = &ays_states[count];
+change_ptr = dev->ay_change;
+changes_left = dev->ay_change_count;
 
 /* convert change times to sample offsets */
-for(f=0;f<ay_change_count;f++)
-  ay_change[f].ofs=(ay_change[f].tstates*sound_freq)/3250000;
+for(f=0;f<changes_left;f++)
+	change_ptr[f].ofs=(change_ptr[f].tstates*sound_freq)/3250000;
 
 for(f=0,ptr=sound_buf;f<sound_framesiz;f++,ptr+=channels)
   {
@@ -482,12 +535,15 @@ for(f=0,ptr=sound_buf;f<sound_framesiz;f++,ptr+=channels)
    *
    * Ok, maybe that's no big deal on the ZX81, but even so. :-)
    * (Though, due to tstate-changing games in z80.c, we can
-   * rarely `lose' one this way - hence "f==.." bit below
+   * rarely `lose' one this way - hence "f!=.." bit below
    * to catch any that slip through.)
    */
-  while(changes_left && (f>=change_ptr->ofs || f==sound_framesiz-1))
-    {
-    sound_ay_registers[reg=change_ptr->reg]=change_ptr->val;
+
+    while (changes_left) {
+
+    if (f<change_ptr->ofs && f!=sound_framesiz-1) break;
+
+    dev->sound_ay_registers[reg=change_ptr->reg] = change_ptr->val;
     change_ptr++; changes_left--;
 
     /* fix things as needed for some register changes */
@@ -495,96 +551,97 @@ for(f=0,ptr=sound_buf;f<sound_framesiz;f++,ptr+=channels)
       {
       case 0: case 1: case 2: case 3: case 4: case 5:
         r=reg>>1;
-        ay_tone_period[r]=(8*(sound_ay_registers[reg&~1]|
-                              (sound_ay_registers[reg|1]&15)<<8))<<16;
+        dev->ay_tone_period[r] = (8*(dev->sound_ay_registers[reg&~1]|
+                                    (dev->sound_ay_registers[reg|1]&15)<<8))<<16;
 
         /* important to get this right, otherwise e.g. Ghouls 'n' Ghosts
          * has really scratchy, horrible-sounding vibrato.
          */
-        if(ay_tone_period[r] && ay_tone_tick[r]>=ay_tone_period[r]*2)
-          ay_tone_tick[r]%=ay_tone_period[r]*2;
+        if (dev->ay_tone_period[r] && dev->ay_tone_tick[r]>=dev->ay_tone_period[r]*2)
+		dev->ay_tone_tick[r]%=dev->ay_tone_period[r]*2;
         break;
       case 6:
-        ay_noise_tick=0;
-        ay_noise_period=(16*(sound_ay_registers[reg]&31))<<16;
+        dev->ay_noise_tick = 0;
+        dev->ay_noise_period = (16*(dev->sound_ay_registers[reg]&31))<<16;
         break;
       case 11: case 12:
         /* this one *isn't* fixed-point */
-        ay_env_period=sound_ay_registers[11]|(sound_ay_registers[12]<<8);
+        dev->ay_env_period = dev->sound_ay_registers[11]|(dev->sound_ay_registers[12]<<8);
         break;
       case 13:
-        ay_env_tick=ay_env_subcycles=0;
-        env_held=env_alternating=0;
-        env_level=0;
+        dev->ay_env_tick = dev->ay_env_subcycles = 0;
+        dev->env_held = dev->env_alternating = 0;
+        dev->env_level = 0;
         break;
       }
     }
-  
+
   /* the tone level if no enveloping is being used */
   for(g=0;g<3;g++)
-    tone_level[g]=ay_tone_levels[sound_ay_registers[8+g]&15];
+    tone_level[g] = ay_tone_levels[dev->sound_ay_registers[8+g]&15];
 
   /* envelope */
-  envshape=sound_ay_registers[13];
-  if(ay_env_period)
+  envshape = dev->sound_ay_registers[13];
+  if(dev->ay_env_period)
     {
-    if(!env_held)
+    if(!dev->env_held)
       {
-      v=((int)ay_env_tick*15)/ay_env_period;
-      if(v<0) v=0;
-      if(v>15) v=15;
-      if((envshape&4)==0) v=15-v;
-      if(env_alternating) v=15-v;
-      env_level=ay_tone_levels[v];
+      v=((int)dev->ay_env_tick*15)/dev->ay_env_period;
+      if (v<0) v=0;
+      if (v>15) v=15;
+      if ((envshape&4)==0) v=15-v;
+      if (dev->env_alternating) v=15-v;
+      dev->env_level=ay_tone_levels[v];
       }
     }
   
   for(g=0;g<3;g++)
-    if(sound_ay_registers[8+g]&16)
-      tone_level[g]=env_level;
+    if(dev->sound_ay_registers[8+g]&16)
+      tone_level[g]=dev->env_level;
 
-  if(ay_env_period)
+  if(dev->ay_env_period)
     {
     /* envelope gets incr'd every 256 AY cycles */
-    ay_env_subcycles+=ay_tick_incr;
-    if(ay_env_subcycles>=(256<<16))
+    dev->ay_env_subcycles+=ay_tick_incr;
+    if(dev->ay_env_subcycles>=(256<<16))
       {
-      ay_env_subcycles-=(256<<16);
+      dev->ay_env_subcycles-=(256<<16);
       
-      ay_env_tick++;
-      if(ay_env_tick>=ay_env_period)
+      dev->ay_env_tick++;
+      if(dev->ay_env_tick>=dev->ay_env_period)
         {
-        ay_env_tick-=ay_env_period;
-        if(!env_held && ((envshape&1) || (envshape&8)==0))
+        dev->ay_env_tick -= dev->ay_env_period;
+        if(!dev->env_held && ((envshape&1) || (envshape&8)==0))
           {
-          env_held=1;
+          dev->env_held=1;
           if((envshape&2) || (envshape&0xc)==4)
-            env_level=ay_tone_levels[15-v];
+            dev->env_level=ay_tone_levels[15-v];
           }
-        if(!env_held && (envshape&2))
-          env_alternating=!env_alternating;
+        if(!dev->env_held && (envshape&2))
+          dev->env_alternating=!dev->env_alternating;
         }
       }
     }
 
   /* generate tone+noise */
-  /* channel C first to make ACB easier */
-  mixer=sound_ay_registers[7];
+  /* channel C first (used to make ACB easier) */
+  mixer=dev->sound_ay_registers[7];
   if((mixer&4)==0 || (mixer&0x20)==0)
     {
-    level=(noise_toggle || (mixer&0x20))?tone_level[2]:0;
+    level=(dev->noise_toggle || (mixer&0x20))?tone_level[2]:0;
+    tmp = *ptr;
     AY_OVERLAY_TONE(ptr,2,level);
     if(sound_stereo && sound_stereo_acb)
-      ptr[1]=*ptr;
+      ptr[1] += *ptr-tmp;
     }
   if((mixer&1)==0 || (mixer&0x08)==0)
     {
-    level=(noise_toggle || (mixer&0x08))?tone_level[0]:0;
+    level=(dev->noise_toggle || (mixer&0x08))?tone_level[0]:0;
     AY_OVERLAY_TONE(ptr,0,level);
     }
   if((mixer&2)==0 || (mixer&0x10)==0)
     {
-    level=(noise_toggle || (mixer&0x10))?tone_level[1]:0;
+    level=(dev->noise_toggle || (mixer&0x10))?tone_level[1]:0;
     AY_OVERLAY_TONE(ptr+sound_stereo_acb,1,level);
     }
   
@@ -592,43 +649,52 @@ for(f=0,ptr=sound_buf;f<sound_framesiz;f++,ptr+=channels)
     ptr[1]=*ptr;
 
   /* update noise RNG/filter */
-  ay_noise_tick+=ay_tick_incr;
-  if(ay_noise_tick>=ay_noise_period)
+  dev->ay_noise_tick+=ay_tick_incr;
+  if (dev->ay_noise_tick >= dev->ay_noise_period)
     {
-    if((rng&1)^((rng&2)?1:0))
-      noise_toggle=!noise_toggle;
+    if((dev->rng&1)^((dev->rng&2)?1:0))
+      dev->noise_toggle=!dev->noise_toggle;
     
     /* rng is 17-bit shift reg, bit 0 is output.
      * input is bit 0 xor bit 2.
      */
-    rng|=((rng&1)^((rng&4)?1:0))?0x20000:0;
-    rng>>=1;
+    dev->rng|=((dev->rng&1)^((dev->rng&4)?1:0))?0x20000:0;
+    dev->rng>>=1;
     
-    ay_noise_tick-=ay_noise_period;
+    dev->ay_noise_tick -= dev->ay_noise_period;
     }
   }
+}
 }
 
 
 /* don't make the change immediately; record it for later,
  * to be made by sound_frame() (via sound_ay_overlay()).
  */
-void sound_ay_write(int reg,int val)
+void sound_ay_write(int reg,int val,int dev)
 {
+int count;
+
 if(!sound_enabled || !sound_ay) return;
+
+if (sound_ay_unreal) {
+  snd_select(dev, reg);
+  snd_write(dev, tstates, val);
+}
 
 /* accept r15, in case of the two-I/O-port 8910 */
 if(reg>=16) return;
 
-if(tstates>=0 && ay_change_count<AY_CHANGE_MAX)
+count = ays_states[dev].ay_change_count;
+
+if(tstates>=0 && count<AY_CHANGE_MAX)
   {
-  ay_change[ay_change_count].tstates=tstates;
-  ay_change[ay_change_count].reg=reg;
-  ay_change[ay_change_count].val=val;
-  ay_change_count++;
+  ays_states[dev].ay_change[count].tstates=tstates;
+  ays_states[dev].ay_change[count].reg=reg;
+  ays_states[dev].ay_change[count].val=val;
+  ays_states[dev].ay_change_count++;
   }
 }
-
 
 /* no need to call this initially, but should be called
  * on reset otherwise.
@@ -637,8 +703,10 @@ void sound_ay_reset(void)
 {
 int f;
 
-for(f=0;f<16;f++)
-  sound_ay_write(f,0);
+ for(f=0;f<16;f++) {
+	sound_ay_write(f,0,0);
+	sound_ay_write(f,0,1);
+ }
 }
 
 
@@ -680,8 +748,21 @@ void sound_frame(void)
 {
 unsigned char *ptr;
 int f;
+int r;
 
 if(!sound_enabled) return;
+
+if (sound_ay && sound_ay_unreal) {
+     snd_end_frame(tstates);
+     snd_count();
+     r = snd_fill_buf(sndplaybuf, sdl_sound.volume);
+#ifdef SIMPLE_RECORD
+     fwrite(sndplaybuf,r*2,1,sndhandle);
+#endif
+     sdl_sound_frame((Uint16 *)sndplaybuf,r);
+     snd_start_frame();
+     return;
+}
 
 if(sound_vsync)
   {
@@ -695,19 +776,19 @@ if(sound_vsync)
     }
   }
 else
-  /* must be AY then, so `zero' buffer ready for it */
-  memset(sound_buf,128,sound_framesiz*(sound_stereo+1));
+ /* must be AY then, so `zero' buffer ready for it */
+ memset(sound_buf,128,sound_framesiz*(sound_stereo+1));
 
-if(sound_ay)
-  sound_ay_overlay();
+ if (sound_ay) sound_ay_overlay();
 
-osssound_frame(sound_buf,sound_framesiz*(sound_stereo+1));
+ osssound_frame(sound_buf,sound_framesiz*(sound_stereo+1));
 
-sound_oldpos=-1;
-sound_fillpos=0;
-sound_ptr=sound_buf;
+ sound_oldpos=-1;
+ sound_fillpos=0;
+ sound_ptr=sound_buf;
 
-ay_change_count=0;
+ ays_states[0].ay_change_count=0;
+ ays_states[1].ay_change_count=0;
 }
 
 
@@ -801,31 +882,14 @@ sound_oldpos=0;
 sound_fillpos=0;
 sound_oldval=0;
 sound_oldval_orig=0;
+
+ay_states_reset(&ays_states[0]);
+ay_states_reset(&ays_states[1]);
+
 beeper_tick=0;
 beeper_tick_incr=0;
-for(count=0;count<3;count++)
-  ay_tone_tick[count]=0;
-ay_noise_tick=0;
-ay_env_tick=0;
-ay_env_subcycles=0;
-ay_tick_incr=0;
-for(count=0;count<3;count++)
-  ay_tone_period[count]=0;
-ay_noise_period=0;
-ay_env_period=0;
-env_held=0;
-env_alternating=0;
 beeper_last_subpos=0;
-for(count=0;count<16;count++)
-  sound_ay_registers[count]=0;
-for(count=0;count<AY_CHANGE_MAX;count++)
-  {
-  ay_change[count].tstates=0;
-  ay_change[count].ofs=0;
-  ay_change[count].reg=0;
-  ay_change[count].val=0;
-  }
-ay_change_count=0;
+
 sixteenbit=0;
 }
 #endif

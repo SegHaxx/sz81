@@ -123,9 +123,12 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len) {
 
 	/* Keep writing to the stream until it's full or our linear
 	 * buffer's end reaches its start i.e. no more sound data */
+
+	len /= 2;
 	while (len--) {
 		if (sdl_sound.buffer_start == sdl_sound.buffer_end) break;
-		*(stream++) = sdl_sound.buffer[sdl_sound.buffer_start++];
+		*(stream++) = sdl_sound.buffer[sdl_sound.buffer_start] & 0xff;
+		*(stream++) = (sdl_sound.buffer[sdl_sound.buffer_start++] & 0xff00) >> 8;
 		if (sdl_sound.buffer_start >= SOUND_BUFFER_SIZE) sdl_sound.buffer_start = 0;
 	}
 }
@@ -139,9 +142,10 @@ void sdl_sound_callback(void *userdata, Uint8 *stream, int len) {
  * SDL_UnlockAudio are used to lockout the callback function to prevent it
  * from interfering with what we're doing here */
 
-void sdl_sound_frame(unsigned char *data, int len) {
+void sdl_sound_frame(Uint16 *data, int len) {
+#ifdef SDL_DEBUG_SOUND
 	static int ovfcnt = 0;
-	
+#endif	
 	SDL_LockAudio();
 	while (len--) {
 		sdl_sound.buffer[sdl_sound.buffer_end++] = *(data++);
@@ -149,7 +153,9 @@ void sdl_sound_frame(unsigned char *data, int len) {
 		if (sdl_sound.buffer_end == sdl_sound.buffer_start) {
 			sdl_sound.buffer_start++;
 			if (sdl_sound.buffer_start >= SOUND_BUFFER_SIZE) sdl_sound.buffer_start = 0;
+#ifdef SDL_DEBUG_SOUND
 			if (ovfcnt++ < 10) fprintf(stderr, "%s: Sound buffer overflow\n", __func__);
+#endif
 		}
 	}
 	SDL_UnlockAudio();

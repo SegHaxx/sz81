@@ -18,12 +18,15 @@
 /* Includes */
 #include "sdl_engine.h"
 #include "common.h"
+#include "zx81.h"
 
 /* Defines */
 
 /* Variables */
 //unsigned char vga_graphmemory[64 * 1024]; // Sorry about that!
 unsigned char vga_graphmemory[800 * 600];
+
+extern ZX81 zx81;
 
 /* \x1 means that a value needs to be placed here.
  * \x2 means to invert the colours.
@@ -73,7 +76,7 @@ char *runtime_options_text1[24] = {
 	"",
 	"     (\x1 \x1) BI-PAK ZON X-81",
 	"",
-	"     (\x1 \x1) ACB Stereo",
+	"     (\x1 \x1) Unreal",
 	"",
 	"  (\x1 \x1) VSYNC (TV Speaker)",
 	"",
@@ -203,13 +206,14 @@ int sdl_video_setmode(void) {
 		SDL_ShowCursor(SDL_DISABLE);
 	#endif
 	
-	/* Set-up the emulator's screen offset */
-	if (video.xres <= 256 * video.scale) {
-		sdl_emulator.xoffset = 0 - 32 * video.scale;
-	} else {
+	/* Set-up the emulator's screen offset - not used at the moment */
+	if (video.bigscreen) {
 		sdl_emulator.xoffset = (video.xres - 400 * video.scale) / 2;
+		sdl_emulator.yoffset = (video.yres - 300 * video.scale) / 2;
+	} else {
+		sdl_emulator.xoffset = (video.xres - 320 * video.scale) / 2;
+		sdl_emulator.yoffset = (video.yres - 240 * video.scale) / 2;
 	}
-	sdl_emulator.yoffset = (video.yres - 300 * video.scale) / 2;
 
 	#ifdef SDL_DEBUG_VIDEO
 		printf("%s: sdl_emulator.xoffset=%i sdl_emulator.yoffset=%i\n", 
@@ -303,13 +307,14 @@ int cvtChroma(unsigned char c) {
  * 
  * Firstly the component executive is called to check everything is up-to-date.
  * It'll redraw the entire screen if video.redraw is TRUE.
- * The emulator's 8 bit 400x300 VGA memory is scaled-up into the SDL screen surface.
+ * The emulator's 8 bit 320x240 or 400x300 VGA memory is scaled-up into the SDL screen surface.
  * Possibly the load selector, vkeyb, control bar, runtime options and associated
  * hotspots will require overlaying */
 
 void sdl_video_update(void) {
 	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
-	int srcx, srcy, desx, desy, srcw, count, offset, invertcolours;
+	int srcx, srcy, desx, desy, count, offset, invertcolours;
+	int mrgx1, mrgx2, mrgy1, mrgy2;
 	Uint32 fg_colour, bg_colour, *screen_pixels_32;
 	int xpos, ypos, xmask, ybyte;
 	SDL_Surface *renderedtext;
@@ -383,22 +388,30 @@ void sdl_video_update(void) {
 		screen_pixels_32 = video.screen->pixels;
 
 		/* Set-up destination y coordinates */
+		desx = sdl_emulator.xoffset;
 		desy = sdl_emulator.yoffset;
 
-		for (srcy = 0; srcy < 300; srcy++) {
+		if (video.bigscreen) {
+			mrgx1 = mrgx2 = 0;
+			mrgy1 = mrgy2 = 0;
+		} else {
+			mrgx1 = (video.xres/video.scale - 256) / 2;			
+			mrgy1 = (video.yres/video.scale - 192) / 2;
+			mrgx1 = (13+58-2-32)*2 - mrgx1;
+			mrgy1 = 55+2 - mrgy1;
+			mrgx2 = 400 - mrgx1 - video.xres/video.scale;
+			mrgy2 = 300 - mrgy1 - video.yres/video.scale;
+		}
 
-			/* [Re]set-up x coordinates and src width */
-			if (video.xres < 400 * video.scale) {
-				srcx = abs(sdl_emulator.xoffset / video.scale);
-				if (*sdl_emulator.model == MODEL_ZX80 && video.xres < 256 * video.scale)
-					srcx += 8 * 2;	/* The emulator shifts it right 2 chars! */
-				srcw = video.xres / video.scale + srcx; desx = 0;
-			} else {
-				srcx = 0;
-				srcw = 400; desx = sdl_emulator.xoffset;
-			}
+		if (mrgx1<0) mrgx2 = 0;
+		if (mrgx2<0) mrgx2 = 0;
+		if (mrgy1<0) mrgy1 = 0;
+		if (mrgy2<0) mrgy2 = 0;
 
-			for (;srcx < srcw; srcx++) {
+		desy = 0;
+		for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+			desx = 0;
+			for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
 				/* Get 8 bit source pixel and convert to RGB */
 				if (chromamode) {
 					colourRGB = cvtChroma(vga_graphmemory[srcy * 400 + srcx]);
@@ -820,9 +833,9 @@ void sdl_video_update(void) {
 						} else if (count == 11) {
 					#else
 						} else if (count == 10) {
+					#endif
 							if (runopts_is_a_reset_scheduled())
 								strcpy(text, "* A reset is scheduled on save *");
-					#endif
 						}
 					} else if (runtime_options[1].state) {
 						/* The colour inversion here is conditional and so there are
@@ -856,7 +869,7 @@ void sdl_video_update(void) {
 							}
 						} else if (count >= 8 && count <= 9) {
 							if (!(count % 2)) strcpy(text, "X");
-							if (runopts_sound_stereo) {
+							if (runopts_sound_ay_unreal) {
 								/* Invert the colours */
 								invertcolours = !invertcolours;
 							}
@@ -1482,12 +1495,22 @@ void cycle_resolutions(void) {
 		}
 	#else
 		/* used to be (<2.2.0) 960x720 | 640x480 | 320x240 */
-		if (video.xres == 1200) {
-			video.xres = 800; video.yres = 600; video.scale = 2;
-		} else if (video.xres == 800) {
-			video.xres = 400; video.yres = 300; video.scale = 1;
+		if (video.bigscreen) {
+			if (video.xres == 1200) {
+				video.xres = 800; video.yres = 600; video.scale = 2;
+			} else if (video.xres == 800) {
+				video.xres = 400; video.yres = 300; video.scale = 1;
+			} else {
+				video.xres = 1200; video.yres = 900; video.scale = 3;
+			}
 		} else {
-			video.xres = 1200; video.yres = 900; video.scale = 3;
+			if (video.xres == 960) {
+				video.xres = 640; video.yres = 480; video.scale = 2;
+			} else if (video.xres == 640) {
+				video.xres = 320; video.yres = 240; video.scale = 1;
+			} else {
+				video.xres = 960; video.yres = 720; video.scale = 3;
+			}
 		}
 	#endif
 }

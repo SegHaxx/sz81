@@ -143,7 +143,7 @@ void sdl_rcfile_read(void) {
 	struct colourtable read_colours;
 	int read_emulator_m1not, read_emulator_speed, read_emulator_frameskip, read_emulator_model;
 	int read_vkeyb_alpha, read_vkeyb_autohide, read_vkeyb_toggle_shift;
-	int read_sound_volume, read_sound_device, read_sound_stereo;
+	int read_sound_volume, read_sound_device, read_sound_stereo, read_sound_ay_unreal;
 	int read_emulator_ramsize, read_emulator_invert;
 	int count, index, line_count, found;
 	int read_joystick_dead_zone;
@@ -183,6 +183,7 @@ void sdl_rcfile_read(void) {
 	read_sound_volume = UNDEFINED;
 	read_sound_device = UNDEFINED;
 	read_sound_stereo = UNDEFINED;
+	read_sound_ay_unreal = UNDEFINED;
 	read_vkeyb_alpha = UNDEFINED;
 	read_vkeyb_autohide = UNDEFINED;
 	read_vkeyb_toggle_shift = UNDEFINED;
@@ -320,6 +321,15 @@ void sdl_rcfile_read(void) {
 						read_sound_stereo = TRUE;
 					} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
 						read_sound_stereo = FALSE;
+					}
+				}
+				strcpy(key, "sound.ay_unreal=");
+				if (!strncmp(line, key, strlen(key))) {
+					strcpy(value, &line[strlen(key)]);
+					if (strcmp(value, "TRUE") == 0 || strcmp(value, "1") == 0) {
+						read_sound_ay_unreal = TRUE;
+					} else if (strcmp(value, "FALSE") == 0 || strcmp(value, "0") == 0) {
+						read_sound_ay_unreal = FALSE;
 					}
 				}
 			#endif
@@ -503,6 +513,7 @@ void sdl_rcfile_read(void) {
 		printf("read_sound_volume=%i\n", read_sound_volume);
 		printf("read_sound_device=%i\n", read_sound_device);
 		printf("read_sound_stereo=%i\n", read_sound_stereo);
+		printf("read_sound_ay_unreal=%i\n", read_sound_ay_unreal);
 		printf("read_vkeyb_alpha=%i\n", read_vkeyb_alpha);
 		printf("read_vkeyb_autohide=%i\n", read_vkeyb_autohide);
 		printf("read_vkeyb_toggle_shift=%i\n", read_vkeyb_toggle_shift);
@@ -625,6 +636,9 @@ void sdl_rcfile_read(void) {
 
 			/* Sound stereo (it's vetted) */
 			if (read_sound_stereo != UNDEFINED) sdl_sound.stereo = read_sound_stereo;
+
+			/* Sound ay_unreal (it's vetted) */
+			if (read_sound_ay_unreal != UNDEFINED) sdl_sound.ay_unreal = read_sound_ay_unreal;
 		#endif
 
 		/* Vkeyb alpha */
@@ -771,6 +785,15 @@ void rcfile_write(void) {
 	/* sdl_sound.stereo */
 	strcpy(key, "sound.stereo"); strcpy(value, "");
 	if (sdl_sound.stereo) {
+		strcat(value, "TRUE");
+	} else {
+		strcat(value, "FALSE");
+	}
+	fprintf(fp, "%s=%s\n", key, value);
+
+	/* sdl_sound.ay_unreal */
+	strcpy(key, "sound.ay_unreal"); strcpy(value, "");
+	if (sdl_sound.ay_unreal) {
 		strcat(value, "TRUE");
 	} else {
 		strcat(value, "FALSE");

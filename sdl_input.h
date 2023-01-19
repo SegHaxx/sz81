@@ -83,6 +83,7 @@ int runopts_emulator_ramsize;
 int runopts_emulator_m1not;
 int runopts_sound_device;
 int runopts_sound_stereo;
+int runopts_sound_ay_unreal;
 
 struct ctrlremap {
 	int components;		/* An OR'd combination of COMP_ IDs */
