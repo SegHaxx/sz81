@@ -1,3 +1,7 @@
+2022-04-02
+* 2.3.12 unofficial version (by Erik Olofsen)
+* bug fix for sdl_loadsave.c (Thanks to Barry Nelson)
+
 2021-03-20
 * 2.3.11 unofficial version (by Erik Olofsen)
 * "multiple definition" building issue solved

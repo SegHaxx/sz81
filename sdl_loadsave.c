@@ -957,7 +957,7 @@ void file_dialog_cd(char *dir, char *direntry) {
 
 void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 	int *dirlist_count, int filetypes) {
-	char cwd[256], swap[256], *realloclist;
+	char cwd[256], *swap=NULL, *realloclist;
 	int parentfound = FALSE, offset = 0;
 	int count, found, swapped;
 	struct dirent *direntry;
@@ -990,8 +990,10 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 		while ((direntry = readdir(dirstream))) {
 
 			/* Store the size of the list element once */
-			if (*dirlist_sizeof == 0)
+			if (*dirlist_sizeof == 0) {
 				*dirlist_sizeof = sizeof(direntry->d_name) + 2;
+				swap = malloc(*dirlist_sizeof);
+			}
 
 			/* Get directory entry status information */
 			if (stat(direntry->d_name, &filestatus)) {
@@ -1100,13 +1102,15 @@ void dirlist_populate(char *dir, char **dirlist, int *dirlist_sizeof,
 				strcpy(swap, *dirlist + *dirlist_sizeof * (count + 1));
 				memmove(*dirlist + *dirlist_sizeof * (count + 1),
 					*dirlist + *dirlist_sizeof * count,
-					strlen(*dirlist + *dirlist_sizeof * count));
+					strlen(*dirlist + *dirlist_sizeof * count) + 1);
 				strcpy(*dirlist + *dirlist_sizeof * count, swap);
 			}
 		}
 	}
 	while (swapped);
 
+	if (swap) free(swap);
+	
 	/* Restore the current working directory */
 	chdir(cwd);
 }

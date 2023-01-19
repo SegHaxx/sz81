@@ -357,7 +357,7 @@ FRESULT f_chdir (
 /* Open Directory ready for reading                                      */
 /*-----------------------------------------------------------------------*/
 
-FRESULT f_opendir (
+FRESULT __attribute__((optimize("O0"))) f_opendir (
    DIR **dj,         /* Pointer to directory object to create */
    const XCHAR *path /* Pointer to the directory path */
 )
