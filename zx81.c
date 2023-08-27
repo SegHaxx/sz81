@@ -95,6 +95,7 @@ int LastInstruction;
 int MemotechMode=0;
 int shift_register, shift_reg_inv;
 int rowcounter=0;
+int rowcounter_hold = 0;
 int zx81_stop=0;
 int hsync_counter=0;
 int ispeedup;
@@ -2027,7 +2028,15 @@ void anyout()
 		if (zx81.machine==MACHINEZX80)
 			VSYNC_state = 2; // will be reset by HSYNC circuitry
 		else
+		{
 			VSYNC_state = 0;
+			// A fairly arbitrary value selected after comparing with a "real" ZX81
+      		if ((hsync_counter < 16) || (hsync_counter >= 178) )
+      		{
+        		rowcounter_hold = 1;
+      		}
+		}
+
 		if ((zx81.machine!=MACHINELAMBDA) && zx81.vsyncsound) sound_beeper(0);
 #ifdef VRCNTR
 		/* due to differences in when the "207" counters give the /HSYNC, and OUT instruction delay */
@@ -2188,11 +2197,12 @@ int zx81_do_scanlines(int tstotal)
 
 				HSYNC_state = 1;
 
-				if (VSYNC_state) {
+				if (VSYNC_state || rowcounter_hold) {
 #ifdef ZXMORE
 					zxmrowcounter = 0;
 #endif
 					rowcounter = 0;
+					rowcounter_hold = 0;
 #ifndef ZXMORE
 				} else {
 					rowcounter++;
