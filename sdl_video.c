@@ -24,7 +24,7 @@
 
 /* Variables */
 //unsigned char vga_graphmemory[64 * 1024]; // Sorry about that!
-unsigned char vga_graphmemory[400 * 300];
+unsigned char vga_graphmemory[ZX_VID_X_WIDTH * ZX_VID_X_HEIGHT];
 
 extern ZX81 zx81;
 
@@ -432,8 +432,8 @@ void sdl_video_update(void) {
 			mrgy1 = (video.yres/video.scale - 192) / 2;
 			mrgx1 = (13+58-2-32)*2 - mrgx1;
 			mrgy1 = 55+2 - mrgy1;
-			mrgx2 = 400 - mrgx1 - video.xres/video.scale;
-			mrgy2 = 300 - mrgy1 - video.yres/video.scale;
+			mrgx2 = ZX_VID_X_WIDTH - mrgx1 - video.xres/video.scale;
+			mrgy2 = ZX_VID_X_HEIGHT - mrgy1 - video.yres/video.scale;
 		}
 
 		if (mrgx1<0) mrgx2 = 0;
@@ -443,7 +443,7 @@ void sdl_video_update(void) {
 
 		desy = 0;
 		desx = 0;
-		sx = 400 * mrgy1 + mrgx1;
+		sx = ZX_VID_X_WIDTH * mrgy1 + mrgx1;
 		sy = sx;
 
 		if (video.screen->format->BitsPerPixel == 16) {
@@ -453,8 +453,8 @@ void sdl_video_update(void) {
 				int line1 = video.xres;
 				int line2 = video.xres * 2;
 
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -472,13 +472,13 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres * 3;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}
 			}
 			else if (video.scale > 1) {
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -491,14 +491,14 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres * 2;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}
 			}
 			else
 			{
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -508,7 +508,7 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}				
 			}
@@ -520,8 +520,8 @@ void sdl_video_update(void) {
 				int line1 = video.xres;
 				int line2 = video.xres * 2;
 
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -539,13 +539,13 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres * 3;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}
 			}
 			else if (video.scale > 1) {
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -558,14 +558,14 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres * 2;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}
 			}
 			else
 			{
-				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+				for (srcy = mrgy1; srcy < ZX_VID_X_HEIGHT-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < ZX_VID_X_WIDTH-mrgx2; srcx++) {
 						/* Get 8 bit source pixel and convert to RGB */
 						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
 									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
@@ -575,7 +575,7 @@ void sdl_video_update(void) {
 					}
 					desy += video.xres;
 					desx = desy;
-					sy += 400;
+					sy += ZX_VID_X_WIDTH;
 					sx = sy;
 				}				
 			}

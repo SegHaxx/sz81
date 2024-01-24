@@ -577,13 +577,12 @@ static const uint64_t lookupv[] = {
  * Update Screen                                                           *
  ***************************************************************************/
 /* redraw the screen */
-#if 1
 void update_scrn(void) {
 	int x, y;
 
 	if (!chromamode) 
 	{
-		unsigned char* ptr = scrnbmp + (ZX_VID_X_YOFS-8) * ZX_VID_FULLWIDTH / 8 + ZX_VID_X_XOFS / 8;
+		unsigned char* ptr = scrnbmp + ZX_VID_X_YOFS * ZX_VID_FULLWIDTH / 8 + ZX_VID_X_XOFS / 8;
 		uint64_t* v64ptr = (uint64_t*)vptr;
 
 		if (sdl_emulator.invert)
@@ -626,40 +625,7 @@ void update_scrn(void) {
 	refresh_screen = 0;
 	sdl_video_update();
 }
-#else
-void update_scrn(void) {
-	unsigned char *ptr, *optr, *cptr, d, dc;
-	int x, y, a, mask;
 
-	for (y = 0; y < ZX_VID_X_HEIGHT; y++) {
-		ptr = scrnbmp + (y + ZX_VID_X_YOFS) * 
-			ZX_VID_FULLWIDTH / 8 + ZX_VID_X_XOFS / 8;
-		optr = scrnbmp_old + (ptr - scrnbmp);
-		cptr = scrnbmpc + (y + ZX_VID_X_YOFS) * 
-			ZX_VID_FULLWIDTH + ZX_VID_X_XOFS;
-		for (x = 0; x < ZX_VID_X_WIDTH; x += 8, ptr++, optr++) {
-			d = *ptr;
-			if (d != *optr || refresh_screen || chromamode) {
-				if (sdl_emulator.invert) d = ~d;
-				for (a = 0, mask = 128; a < 8; a++, mask >>= 1) {
-					if (chromamode) {
-						vptr[y * 400 + x + a] = dc = *(cptr++);
-					} else {
-						vptr[y * 400 + x + a] = ((d&mask) ? 0 : 15);
-					}
-				}
-			}
-		}
-	}
-
-	/* now, copy new to old for next time */
-	memcpy(scrnbmp_old, scrnbmp, ZX_VID_FULLHEIGHT * ZX_VID_FULLWIDTH / 8);
-
-	refresh_screen = 0;
-
-	sdl_video_update();
-}
-#endif
 /***************************************************************************
  * Check Events                                                            *
  ***************************************************************************/
