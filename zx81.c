@@ -43,7 +43,6 @@ extern int rwsz81mem;
 /* odd place to have this, but the display does work in an odd way :-) */
 unsigned char scrnbmp_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];  /* written */
 unsigned char scrnbmp[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];      /* displayed */
-unsigned char scrnbmp_old[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT/8];  /* checked against for diffs */
 
 /* chroma */
 unsigned char scrnbmpc_new[ZX_VID_FULLWIDTH*ZX_VID_FULLHEIGHT];   /* written */
@@ -1979,7 +1978,7 @@ BYTE zx81_readport(int Address, int *tstates)
 
 /* Normally, these sync checks are done by the TV :-) */
 
-void checkhsync(int tolchk)
+static inline void checkhsync(int tolchk)
 {
 	if ( ( !tolchk && sync_len >= HSYNC_MINLEN && sync_len <= HSYNC_MAXLEN && RasterX>=HSYNC_TOLERANCEMIN ) ||
 	     (  tolchk &&                                                         RasterX>=HSYNC_TOLERANCEMAX ) )
@@ -1990,7 +1989,7 @@ void checkhsync(int tolchk)
 	}
 }
 
-void checkvsync(int tolchk)
+static inline void checkvsync(int tolchk)
 {
 	if ( ( !tolchk && sync_len >= VSYNC_MINLEN && RasterY>=VSYNC_TOLERANCEMIN ) ||
 	     (  tolchk &&                             RasterY>=VSYNC_TOLERANCEMAX ) )
@@ -2003,7 +2002,7 @@ void checkvsync(int tolchk)
 	}
 }
 
-void checksync()
+static inline void checksync()
 {
 	if (!SYNC_signal) {
 		if (psync==1) sync_len = 0;

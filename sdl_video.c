@@ -24,7 +24,7 @@
 
 /* Variables */
 //unsigned char vga_graphmemory[64 * 1024]; // Sorry about that!
-unsigned char vga_graphmemory[800 * 600];
+unsigned char vga_graphmemory[400 * 300];
 
 extern ZX81 zx81;
 
@@ -340,15 +340,18 @@ int cvtChroma(unsigned char c) {
  * hotspots will require overlaying */
 
 void sdl_video_update(void) {
-	Uint32 colourRGB, fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
-	int srcx, srcy, desx, desy, count, offset, invertcolours;
+	static Uint32 fg_colourRGB, bg_colourRGB, colour0RGB, colour1RGB;
+	static Uint32 fg_colour, bg_colour;
+	static int first = TRUE;
+
+	Uint32 colourRGB;
+	int srcx, srcy, sx, sy, desx, desy, count, offset, invertcolours;
 	int mrgx1, mrgx2, mrgy1, mrgy2;
-	Uint32 fg_colour, bg_colour, *screen_pixels_32;
 	int xpos, ypos, xmask, ybyte;
 	SDL_Surface *renderedtext;
-	Uint16 *screen_pixels_16;
 	char text[33], *direntry;
 	SDL_Rect dstrect;
+
 	#ifdef SDL_DEBUG_FONTS
 		struct bmpfont *ptrfont;
 		int fontcount;
@@ -368,25 +371,30 @@ void sdl_video_update(void) {
 	/* Monitor and manage component states */
 	sdl_component_executive();
 
-	/* Prepare the colours we shall be using (these remain unchanged throughout) */
-	if (!sdl_emulator.invert) {
-		fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
-			colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
-		bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
-			colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
-		colour0RGB = fg_colourRGB;
-		colour1RGB = bg_colourRGB;
-		fg_colour = colours.emu_fg;
-		bg_colour = colours.emu_bg;
-	} else {
-		fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
-			colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
-		bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
-			colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
-		colour0RGB = bg_colourRGB;
-		colour1RGB = fg_colourRGB;
-		fg_colour = colours.emu_bg;
-		bg_colour = colours.emu_fg;
+	if (first == TRUE)
+	{
+		first = FALSE;
+
+		/* Prepare the colours we shall be using (these remain unchanged throughout) */
+		if (!sdl_emulator.invert) {
+			fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
+				colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
+			bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
+				colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
+			colour0RGB = fg_colourRGB;
+			colour1RGB = bg_colourRGB;
+			fg_colour = colours.emu_fg;
+			bg_colour = colours.emu_bg;
+		} else {
+			fg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_bg >> 16 & 0xff,
+				colours.emu_bg >> 8 & 0xff, colours.emu_bg & 0xff);
+			bg_colourRGB = SDL_MapRGB(video.screen->format, colours.emu_fg >> 16 & 0xff,
+				colours.emu_fg >> 8 & 0xff, colours.emu_fg & 0xff);
+			colour0RGB = bg_colourRGB;
+			colour1RGB = fg_colourRGB;
+			fg_colour = colours.emu_bg;
+			bg_colour = colours.emu_fg;
+		}
 	}
 
 	/* Should everything be redrawn? */
@@ -412,9 +420,6 @@ void sdl_video_update(void) {
 	if (sdl_emulator.state) {
 		if (SDL_MUSTLOCK(video.screen)) SDL_LockSurface(video.screen);
 
-		screen_pixels_16 = video.screen->pixels;
-		screen_pixels_32 = video.screen->pixels;
-
 		/* Set-up destination y coordinates */
 		desx = sdl_emulator.xoffset;
 		desy = sdl_emulator.yoffset;
@@ -437,59 +442,144 @@ void sdl_video_update(void) {
 		if (mrgy2<0) mrgy2 = 0;
 
 		desy = 0;
-		for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
-			desx = 0;
-			for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
-				/* Get 8 bit source pixel and convert to RGB */
-				if (chromamode) {
-					colourRGB = cvtChroma(vga_graphmemory[srcy * 400 + srcx]);
-				} else {
-					if (vga_graphmemory[srcy * 400 + srcx] == 0) {
-						colourRGB = colour0RGB;
-					} else {
-						colourRGB = colour1RGB;
-					}
-				}
-				if (video.screen->format->BitsPerPixel == 16) {
-					/* Write the destination pixel[s] */
-					screen_pixels_16[desy * video.xres + desx] = colourRGB;
-					if (video.scale > 1) {
-						/* x2 scaling */
-						screen_pixels_16[desy * video.xres + desx + 1] = colourRGB;
-						screen_pixels_16[(desy + 1) * video.xres + desx] = colourRGB;
-						screen_pixels_16[(desy + 1) * video.xres + desx + 1] = colourRGB;
-						if (video.scale > 2) {
-							/* x3 scaling */
-							screen_pixels_16[desy * video.xres + desx + 2] = colourRGB;
-							screen_pixels_16[(desy + 1) * video.xres + desx + 2] = colourRGB;
-							screen_pixels_16[(desy + 2) * video.xres + desx] = colourRGB;
-							screen_pixels_16[(desy + 2) * video.xres + desx + 1] = colourRGB;
-							screen_pixels_16[(desy + 2) * video.xres + desx + 2] = colourRGB;
-						}
-					}
-				} else if (video.screen->format->BitsPerPixel == 32) {
-					/* Write the destination pixel[s] */
-					screen_pixels_32[desy * video.xres + desx] = colourRGB;
-					if (video.scale > 1) {
-						/* x2 scaling */
-						screen_pixels_32[desy * video.xres + desx + 1] = colourRGB;
-						screen_pixels_32[(desy + 1) * video.xres + desx] = colourRGB;
-						screen_pixels_32[(desy + 1) * video.xres + desx + 1] = colourRGB;
-						if (video.scale > 2) {
-							/* x3 scaling */
-							screen_pixels_32[desy * video.xres + desx + 2] = colourRGB;
-							screen_pixels_32[(desy + 1) * video.xres + desx + 2] = colourRGB;
-							screen_pixels_32[(desy + 2) * video.xres + desx] = colourRGB;
-							screen_pixels_32[(desy + 2) * video.xres + desx + 1] = colourRGB;
-							screen_pixels_32[(desy + 2) * video.xres + desx + 2] = colourRGB;
-						}
-					}
-				}
-				desx += video.scale;
-			}
-			desy += video.scale;
-		}
+		desx = 0;
+		sx = 400 * mrgy1 + mrgx1;
+		sy = sx;
 
+		if (video.screen->format->BitsPerPixel == 16) {
+			Uint16 *screen_pixels = video.screen->pixels;
+
+			if (video.scale > 2) {
+				int line1 = video.xres;
+				int line2 = video.xres * 2;
+
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+					}
+					desy += video.xres * 3;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}
+			}
+			else if (video.scale > 1) {
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[video.xres + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[video.xres + desx++] = colourRGB;
+					}
+					desy += video.xres * 2;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}
+			}
+			else
+			{
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx++] = colourRGB;
+					}
+					desy += video.xres;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}				
+			}
+		}				
+		else {
+			Uint32 *screen_pixels = video.screen->pixels;
+
+			if (video.scale > 2) {
+				int line1 = video.xres;
+				int line2 = video.xres * 2;
+
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[line1 + desx] = colourRGB;
+						screen_pixels[line2 + desx++] = colourRGB;
+					}
+					desy += video.xres * 3;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}
+			}
+			else if (video.scale > 1) {
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[video.xres + desx++] = colourRGB;
+						screen_pixels[desx] = colourRGB;
+						screen_pixels[video.xres + desx++] = colourRGB;
+					}
+					desy += video.xres * 2;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}
+			}
+			else
+			{
+				for (srcy = mrgy1; srcy < 300-mrgy2; srcy++) {
+					for (srcx = mrgx1; srcx < 400-mrgx2; srcx++) {
+						/* Get 8 bit source pixel and convert to RGB */
+						colourRGB = chromamode ? cvtChroma(vga_graphmemory[sx++]) : 
+									(vga_graphmemory[sx++] == 0) ? colour0RGB : colour1RGB;
+
+						/* Write the destination pixel[s] */
+						screen_pixels[desx++] = colourRGB;
+					}
+					desy += video.xres;
+					desx = desy;
+					sy += 400;
+					sx = sy;
+				}				
+			}
+		}
 		if (SDL_MUSTLOCK(video.screen)) SDL_UnlockSurface(video.screen);
 
 		/* Has the user paused the emulator? */
