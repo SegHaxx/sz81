@@ -1,0 +1,12 @@
+Source: sz81
+Maintainer: Seg <seg@haxxed.com>
+Section: misc
+Priority: optional
+Standards-Version: 4.7.0
+Build-Depends: debhelper-compat (= 13),
+ libsdl-dev
+
+Package: sz81
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Sinclair ZX81 Emulator

@@ -1,9 +1,9 @@
 # Comment/uncomment these to choose an installation destination
 # System wide installation
-#PREFIX?=/usr/local
-#BINDIR?=$(PREFIX)/bin
-#DOCDIR?=$(PREFIX)/share/doc/$(TARGET)
-#PACKAGE_DATA_DIR?=$(PREFIX)/share/$(TARGET)
+PREFIX?=/usr
+BINDIR?=$(PREFIX)/bin
+DOCDIR?=$(PREFIX)/share/doc/$(TARGET)
+PACKAGE_DATA_DIR?=$(PREFIX)/share/$(TARGET)
 
 # Local installation within your home folder
 #PREFIX?=$(HOME)/Games/$(TARGET)
@@ -12,10 +12,10 @@
 #PACKAGE_DATA_DIR?=$(PREFIX)/data
 
 # Run from current folder i.e. no installation
-PREFIX?=.
-BINDIR?=$(PREFIX)
-DOCDIR?=$(PREFIX)
-PACKAGE_DATA_DIR?=$(PREFIX)/data
+#PREFIX?=.
+#BINDIR?=$(PREFIX)
+#DOCDIR?=$(PREFIX)
+#PACKAGE_DATA_DIR?=$(PREFIX)/data
 
 # For sz81 OSS_SOUND_SUPPORT is now synonymous with SDL_SOUND_SUPPORT.
 # Comment this out if you don't want sound support.
@@ -90,19 +90,19 @@ install:
 		echo "Installing into the current folder is not allowed."; \
 		exit 2; \
 	fi
-	mkdir -p $(BINDIR)
-	mkdir -p $(DOCDIR)
-	mkdir -p $(PACKAGE_DATA_DIR)
-	cp $(TARGET) $(BINDIR)
-	cp AUTHORS COPYING ChangeLog NEWS README $(DOCDIR)
-	cp data/*.bmp $(PACKAGE_DATA_DIR)
-	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/aszmic.rom ]; then cp data/aszmic.rom $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/h4th.rom ]; then cp data/h4th.rom $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/zx81font.rom ]; then cp data/zx81font.rom $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/zx81.zxpand.ovl ]; then cp data/zx81.zxpand.ovl $(PACKAGE_DATA_DIR); fi
-	@if [ -f data/zxnu.rom ]; then cp data/zxnu.rom $(PACKAGE_DATA_DIR); fi
+	mkdir -p $(DESTDIR)$(BINDIR)
+	mkdir -p $(DESTDIR)$(DOCDIR)
+	mkdir -p $(DESTDIR)$(PACKAGE_DATA_DIR)
+	cp $(TARGET) $(DESTDIR)$(BINDIR)
+	cp AUTHORS COPYING ChangeLog NEWS README $(DESTDIR)$(DOCDIR)
+	cp data/*.bmp $(DESTDIR)$(PACKAGE_DATA_DIR)
+	@if [ -f data/zx80.rom ]; then cp data/zx80.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81.rom ]; then cp data/zx81.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/aszmic.rom ]; then cp data/aszmic.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/h4th.rom ]; then cp data/h4th.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81font.rom ]; then cp data/zx81font.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zx81.zxpand.ovl ]; then cp data/zx81.zxpand.ovl $(DESTDIR)$(PACKAGE_DATA_DIR); fi
+	@if [ -f data/zxnu.rom ]; then cp data/zxnu.rom $(DESTDIR)$(PACKAGE_DATA_DIR); fi
 
 uninstall:
 	@echo "Uninstalling is not currently implemented."
