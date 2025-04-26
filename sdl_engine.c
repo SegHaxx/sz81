@@ -65,19 +65,20 @@ int sdl_init(void) {
 	/* Set-up a default video resolution depending on platform */
 	#if defined(PLATFORM_GP2X)
 		video.xres = 320; video.yres = 240; video.scale = 1;
-		video.fullscreen = SDL_FULLSCREEN;
+		video.fullscreen=true;
 	#elif defined(PLATFORM_ZAURUS)
 		video.xres = 640; video.yres = 480; video.scale = 2;
-		video.fullscreen = SDL_FULLSCREEN;
+		video.fullscreen=true;
 	#else
 		video.xres = 640; video.yres = 480; video.scale = 2;
-		video.bigscreen = video.fullscreen = FALSE;
+		video.bigscreen=FALSE;
+		video.fullscreen=false;
 	#endif
 
 	/* All SDL pointers are initialised to NULL here since we could
 	 * exit prematurely and we don't want to cause seg faults by
 	 * freeing nothing. As long as they are NULL everything is fine */
-	sdl_emulator.timer_id = NULL;
+	sdl_emulator.timer_id=0;
 	control_bar.scaled = NULL;
 	vkeyb.zx80original = vkeyb.zx81original = vkeyb.scaled = NULL;
 	sz81icons.original = sz81icons.scaled = NULL;
@@ -207,11 +208,15 @@ int sdl_init(void) {
 			fprintf(stderr, "%s: Cannot load window manager icon %s: %s\n",
 				__func__, filename, SDL_GetError ());
 		} else {
+#if SDL_MAJOR_VERSION<2
 			SDL_WM_SetIcon (wm_icon, NULL);
+#endif
 		}
 
 		/* Set display window title */
+#if SDL_MAJOR_VERSION<2
 		SDL_WM_SetCaption("sz81", "sz81");
+#endif
 	#endif
 
 	/* Set-up the local data directory */
@@ -303,7 +308,7 @@ int sdl_com_line_process(int argc, char *argv[]) {
 	video.bigscreen = sdl_com_line.bigscreen == UNDEFINED ? FALSE : sdl_com_line.bigscreen;
 	if (video.bigscreen) { video.xres = 800; video.yres = 600; } /* re-init */
 	if (sdl_com_line.fullscreen != UNDEFINED && sdl_com_line.fullscreen)
-		video.fullscreen = SDL_FULLSCREEN;
+		video.fullscreen=true;
 	sdl_emulator.networking = sdl_com_line.networking==UNDEFINED ? FALSE : TRUE;
 	if (sdl_com_line.xres != UNDEFINED) {
 		/* Calculate the scale for the requested resolution */

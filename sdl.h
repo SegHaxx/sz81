@@ -29,7 +29,7 @@
  */
 
 /* Includes */
-#include <SDL/SDL.h>
+#include "SDL.h"
 
 /* Defines */
 #define MAX_KEYCODES 358	/* SDL stops at 322 and then I extend them */
@@ -66,7 +66,6 @@
 #endif
 
 /* Variables */
-extern int keyboard_buffer[MAX_KEYCODES];
 
 typedef struct {
 	int nxtlin;
@@ -165,5 +164,5 @@ void sdl_sound_end(void);
 int sdl_filetype_casecmp(char *filename, char *filetype);
 int sdl_load_file(int parameter, int method);
 int sdl_save_file(int parameter, int method);
-
+int key_get(int);
 #endif

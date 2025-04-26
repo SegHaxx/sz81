@@ -21,7 +21,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SDL/SDL_main.h>
 #include "sdl.h"
 #include "common.h"
 #include "sound.h"
@@ -50,8 +49,6 @@ keyrepeat_ sdl_key_repeat;
 //int hsize = ZX_VID_VGA_WIDTH, vsize = ZX_VID_VGA_HEIGHT; // Sorry about that!
 int hsize = ZX_VID_X_WIDTH, vsize = ZX_VID_X_HEIGHT;
 unsigned char *vptr;
-
-int keyboard_buffer[MAX_KEYCODES];
 
 /* Function prototypes */
 
@@ -110,65 +107,65 @@ void check_events(void) {
 			switch (y) {			/* below comments given in order b1->b5 */
 				/* left-hand side */
 				case 0:	/* sft,z,x,c,v */
-					if (keyboard_buffer[SDLK_LSHIFT] ||
-						keyboard_buffer[SDLK_RSHIFT] ||
-						keyboard_buffer[SDLK_LCTRL] ||
-						keyboard_buffer[SDLK_RCTRL])
+					if (key_get(SDLK_LSHIFT) ||
+						key_get(SDLK_RSHIFT) ||
+						key_get(SDLK_LCTRL) ||
+						key_get(SDLK_RCTRL))
 						b |= 1;
-					if (keyboard_buffer[SDLK_z]) b |= 2;
-					if (keyboard_buffer[SDLK_x]) b |= 4;
-					if (keyboard_buffer[SDLK_c]) b |= 8;
-					if (keyboard_buffer[SDLK_v]) b |= 16;
+					if (key_get(SDLK_z)) b |= 2;
+					if (key_get(SDLK_x)) b |= 4;
+					if (key_get(SDLK_c)) b |= 8;
+					if (key_get(SDLK_v)) b |= 16;
 					break;
 				case 1:	/* a,s,d,f,g */
-					if (keyboard_buffer[SDLK_a]) b |= 1;
-					if (keyboard_buffer[SDLK_s]) b |= 2;
-					if (keyboard_buffer[SDLK_d]) b |= 4;
-					if (keyboard_buffer[SDLK_f]) b |= 8;
-					if (keyboard_buffer[SDLK_g]) b |= 16;
+					if (key_get(SDLK_a)) b |= 1;
+					if (key_get(SDLK_s)) b |= 2;
+					if (key_get(SDLK_d)) b |= 4;
+					if (key_get(SDLK_f)) b |= 8;
+					if (key_get(SDLK_g)) b |= 16;
 					break;
 				case 2:	/* q,w,e,r,t */
-					if (keyboard_buffer[SDLK_q]) b |= 1;
-					if (keyboard_buffer[SDLK_w]) b |= 2;
-					if (keyboard_buffer[SDLK_e]) b |= 4;
-					if (keyboard_buffer[SDLK_r]) b |= 8;
-					if (keyboard_buffer[SDLK_t]) b |= 16;
+					if (key_get(SDLK_q)) b |= 1;
+					if (key_get(SDLK_w)) b |= 2;
+					if (key_get(SDLK_e)) b |= 4;
+					if (key_get(SDLK_r)) b |= 8;
+					if (key_get(SDLK_t)) b |= 16;
 					break;
 				case 3:	/* 1,2,3,4,5 */
-					if (keyboard_buffer[SDLK_1]) b |= 1;
-					if (keyboard_buffer[SDLK_2]) b |= 2;
-					if (keyboard_buffer[SDLK_3]) b |= 4;
-					if (keyboard_buffer[SDLK_4]) b |= 8;
-					if (keyboard_buffer[SDLK_5]) b |= 16;
+					if (key_get(SDLK_1)) b |= 1;
+					if (key_get(SDLK_2)) b |= 2;
+					if (key_get(SDLK_3)) b |= 4;
+					if (key_get(SDLK_4)) b |= 8;
+					if (key_get(SDLK_5)) b |= 16;
 					break;
 				/* right-hand side */
 				case 4:	/* 0,9,8,7,6 */
-					if (keyboard_buffer[SDLK_0]) b |= 1;
-					if (keyboard_buffer[SDLK_9]) b |= 2;
-					if (keyboard_buffer[SDLK_8]) b |= 4;
-					if (keyboard_buffer[SDLK_7]) b |= 8;
-					if (keyboard_buffer[SDLK_6]) b |= 16;
+					if (key_get(SDLK_0)) b |= 1;
+					if (key_get(SDLK_9)) b |= 2;
+					if (key_get(SDLK_8)) b |= 4;
+					if (key_get(SDLK_7)) b |= 8;
+					if (key_get(SDLK_6)) b |= 16;
 					break;
 				case 5:	/* p,o,i,u,y */
-					if (keyboard_buffer[SDLK_p]) b |= 1;
-					if (keyboard_buffer[SDLK_o]) b |= 2;
-					if (keyboard_buffer[SDLK_i]) b |= 4;
-					if (keyboard_buffer[SDLK_u]) b |= 8;
-					if (keyboard_buffer[SDLK_y]) b |= 16;
+					if (key_get(SDLK_p)) b |= 1;
+					if (key_get(SDLK_o)) b |= 2;
+					if (key_get(SDLK_i)) b |= 4;
+					if (key_get(SDLK_u)) b |= 8;
+					if (key_get(SDLK_y)) b |= 16;
 					break;
 				case 6:	/* ent,l,k,j,h */
-					if (keyboard_buffer[SDLK_RETURN]) b |= 1;
-					if (keyboard_buffer[SDLK_l]) b |= 2;
-					if (keyboard_buffer[SDLK_k]) b |= 4;
-					if (keyboard_buffer[SDLK_j]) b |= 8;
-					if (keyboard_buffer[SDLK_h]) b |= 16;
+					if (key_get(SDLK_RETURN)) b |= 1;
+					if (key_get(SDLK_l)) b |= 2;
+					if (key_get(SDLK_k)) b |= 4;
+					if (key_get(SDLK_j)) b |= 8;
+					if (key_get(SDLK_h)) b |= 16;
 					break;
 				case 7:	/* spc,dot,m,n,b */
-					if (keyboard_buffer[SDLK_SPACE]) b |= 1;
-					if (keyboard_buffer[SDLK_PERIOD]) b |= 2;
-					if (keyboard_buffer[SDLK_m]) b |= 4;
-					if (keyboard_buffer[SDLK_n]) b |= 8;
-					if (keyboard_buffer[SDLK_b]) b |= 16;
+					if (key_get(SDLK_SPACE)) b |= 1;
+					if (key_get(SDLK_PERIOD)) b |= 2;
+					if (key_get(SDLK_m)) b |= 4;
+					if (key_get(SDLK_n)) b |= 8;
+					if (key_get(SDLK_b)) b |= 16;
 					break;
 			}
 			/* some things need top bits to be 1 */

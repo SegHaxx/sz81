@@ -1132,10 +1132,11 @@ int vkeyb_init(void) {
 			}
 			/* Convert the keyboard surface to the same pixel
 			 * format as the screen for fast blitting */
+			SDL_Surface* temp=SDL_DisplayFormat(unconverted);
 			if (count == 0) {
-				vkeyb.zx80original = SDL_DisplayFormat(unconverted);
+				vkeyb.zx80original=temp;
 			} else {
-				vkeyb.zx81original = SDL_DisplayFormat(unconverted);
+				vkeyb.zx81original=temp;
 			}
 			SDL_FreeSurface(unconverted);	/* Free the redundant surface */
 			/* Check the result of SDL_DisplayFormat */

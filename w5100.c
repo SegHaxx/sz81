@@ -15,6 +15,10 @@
 #endif
 #include "w5100.h"
 
+#if SDL_MAJOR_VERSION>1
+#define SDL2
+#endif
+
 #ifdef Win32
 
 #include <winsock2.h>

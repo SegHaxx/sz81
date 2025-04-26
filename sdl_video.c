@@ -186,6 +186,7 @@ int sdl_video_setmode(void) {
 	int original_xres = video.xres;
 	int count;
 
+#if SDL_MAJOR_VERSION<2
 	/* Try the requested video resolution and if it's unavailable
 	 * try the next one down and continue until one is accepted.
 	 * Note: I first used SDL_VideoModeOK() but it didn't work on
@@ -194,7 +195,7 @@ int sdl_video_setmode(void) {
 	 * sz81 uses alpha and so it must use an SDL_SWSURFACE */
 	do {
 		video.screen = SDL_SetVideoMode(video.xres, video.yres, 16,
-			SDL_SWSURFACE | SDL_ANYFORMAT | video.fullscreen);
+			SDL_SWSURFACE | SDL_ANYFORMAT | (video.fullscreen?SDL_FULLSCREEN:0));
 		if (video.screen == NULL) {
 			fprintf(stderr, "%s: Cannot set video mode: %i x %i: %s\n",
 				__func__, video.xres, video.yres, SDL_GetError());
@@ -207,6 +208,20 @@ int sdl_video_setmode(void) {
 		printf("%s: video.screen->format->BitsPerPixel=%i\n", __func__,
 			video.screen->format->BitsPerPixel);
 	#endif
+
+#else // SDL2
+	video.window = SDL_CreateWindow("sz81",
+			SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,
+			video.xres,video.yres,0);
+	video.renderer=SDL_CreateRenderer(video.window,-1,0);
+	//SDL_RenderSetLogicalSize(video.renderer,video.xres,video.yres);
+	video.screen=SDL_CreateRGBSurfaceWithFormat(0,video.xres,video.yres,
+			32,SDL_PIXELFORMAT_ABGR8888);
+
+	video.texture=SDL_CreateTexture(video.renderer,
+			*(Uint32*)video.screen->format,SDL_TEXTUREACCESS_STREAMING,
+			video.xres,video.yres);
+#endif
 
 	/* Hide the mouse pointer for certain devices */
 	#if defined(PLATFORM_GP2X) || defined(PLATFORM_ZAURUS)
@@ -1219,7 +1234,15 @@ void sdl_video_update(void) {
 		}
 	#endif
 
+#if SDL_MAJOR_VERSION<2
 	SDL_Flip(video.screen);
+#else
+	SDL_UpdateTexture(video.texture,NULL,
+			video.screen->pixels,video.screen->pitch);
+	SDL_RenderClear(video.renderer);
+	SDL_RenderCopy(video.renderer,video.texture,NULL,NULL);
+	SDL_RenderPresent(video.renderer);
+#endif
 }
 
 /***************************************************************************

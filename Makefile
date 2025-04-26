@@ -34,9 +34,9 @@ VERSION=$(shell cat VERSION)
 # For debugging/profiling uncomment the following two lines:
 #CFLAGS=-O0 -g -pg
 #LDFLAGS=-pg
-SDL_CONFIG?=sdl-config
+SDL_CONFIG?=sdl2-config
 CFLAGS?=-O3
-CFLAGS+=-Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
+CFLAGS+=-g -Wall -Wno-unused-result `$(SDL_CONFIG) --cflags` -DVERSION=\"$(VERSION)\" -DENABLE_EMULATION_SPEED_ADJUST \
 	-DPACKAGE_DATA_DIR=\"$(PACKAGE_DATA_DIR)\" $(SOUNDDEF) -DSZ81 -D_DZ80_EXCLUDE_SCRIPT
 # options:
 # -DAPU
@@ -55,6 +55,8 @@ all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS) sndrender/libsndrender.a zxpand/libzxpand.a am9511/am9511.o
 	g++ $(LDFLAGS) $(OBJECTS) $(LIBS) am9511/am9511.o -o $@
+	@size $@
+	@du -b $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

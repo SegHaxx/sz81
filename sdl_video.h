@@ -15,6 +15,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <stdbool.h>
+
 /* Defines */
 #define MAX_RUNTIME_OPTIONS 4
 #define MAX_FRAMESKIP 9
@@ -32,13 +34,18 @@ extern char *runtime_options_text2[24];
 extern char *runtime_options_text3[24];
 
 typedef struct video_options {
-	SDL_Surface *screen;
+#if SDL_MAJOR_VERSION>1
+	SDL_Window* window;
+	SDL_Renderer* renderer;
+	SDL_Texture* texture;
+#endif
+	SDL_Surface* screen;
 	int bigscreen;
-	int fullscreen;		        /* 0 or SDL_FULLSCREEN */
 	int scale;			/* 1, 2 or 3 */
 	int xres;
 	int yres;
 	int redraw;			/* TRUE to redraw entire screen */
+	bool fullscreen;
 } video_;
 
 extern video_ video;

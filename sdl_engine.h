@@ -34,6 +34,18 @@
 	#include "amiga.h" /* Amiga-specifics */
 #endif
 
+// some SDL1 API backwards compatability stubs
+#if SDL_MAJOR_VERSION>1
+#define SDLK_PRINT SDLK_PRINTSCREEN
+#define SDL_SRCCOLORKEY SDL_TRUE
+static SDL_Surface* SDL_DisplayFormat(SDL_Surface* surface){
+	return SDL_ConvertSurfaceFormat(surface,
+			*(Uint32*)video.screen->format,0);}
+#define SDL_SRCALPHA 0
+static int SDL_SetAlpha(SDL_Surface* shadow,int flag,int alpha){
+	return SDL_SetSurfaceAlphaMod(shadow,alpha);}
+#endif
+
 /* Defines */
 /* Uncomment all of these to view the inner workings. Then monitor
  * the console output and press alt+r to cycle the resolutions.

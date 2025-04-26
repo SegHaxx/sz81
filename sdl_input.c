@@ -46,6 +46,9 @@ extern ZX81 zx81;
 #define JOYDEADZONE (32767 * joystick_dead_zone / 100)
 
 /* Extended SDL state definitions */
+#if SDL_MAJOR_VERSION>1 // FIXME
+#define SDL_NOEVENT 0
+#endif
 #define SDL_DRAGGED 2
 
 /* Cursor (virtual) device control IDs */
@@ -99,6 +102,8 @@ int last_vkeyb_state;
 
 /* This is used by the joystick configurator to store control ids */
 int runopts_joy_cfg_id[12];
+
+#if SDL_MAJOR_VERSION<2
 
 char *keysyms[] = {
 	"SDLK_UNKNOWN", "SDLK_FIRST", "SDLK_BACKSPACE", "SDLK_TAB", "SDLK_CLEAR", 
@@ -161,6 +166,8 @@ int keycodes[] = {
 	SDLK_EURO, SDLK_UNDO, SDLK_LAST, CURSOR_REMAP, CURSOR_N, 
 	CURSOR_S, CURSOR_W, CURSOR_E, CURSOR_HIT};
 
+#endif
+
 /* Function prototypes */
 void manage_cursor_input(void);
 void manage_all_input(void);
@@ -172,6 +179,20 @@ void toggle_runopts_state(void);
 void manage_ldfile_input(void);
 void manage_sstate_input(void);
 
+#if SDL_MAJOR_VERSION<2
+static int keyboard_buffer[MAX_KEYCODES];
+static void key_press(int n){keyboard_buffer[n]=SDL_PRESSED;}
+static void key_release(int n){keyboard_buffer[n]=SDL_RELEASED;}
+int key_get(int n){return keyboard_buffer[n];}
+#else
+static void key_release(int n){}
+int key_get(int n){
+	static const Uint8* state=0;
+	if(!state) state=SDL_GetKeyboardState(NULL);
+	SDL_Keycode code=SDL_GetScancodeFromKey(n);
+	return state[code]?SDL_PRESSED:SDL_RELEASED;
+}
+#endif
 
 /***************************************************************************
  * Keyboard Initialise                                                     *
@@ -184,7 +205,7 @@ void sdl_keyboard_init(void) {
 	
 	/* Erase the keyboard buffer */
 	for (count = 0; count < MAX_KEYCODES; count++)
-		keyboard_buffer[count] = SDL_RELEASED;
+		key_release(count);
 	
 	/* Undefine all the control remappings */
 	for (count = 0; count < MAX_CTRL_REMAPS; count++) {
@@ -805,7 +826,11 @@ int keyboard_update(void) {
 	int hs_vkeyb_ctb_selected;
 	int hs_runopts_selected;
 	int axis_end = 0;
+#if SDL_MAJOR_VERSION<2
 	SDLMod modstate;
+#else
+	SDL_Keymod modstate;
+#endif
 	#ifdef SDL_DEBUG_TIMING
 		static Uint32 lasttime = 0;
 		static int Hz = 0;
@@ -868,7 +893,7 @@ int keyboard_update(void) {
 								hotspots[count].flags & HS_PROP_VISIBLE &&
 								hotspots[count].flags & HS_PROP_DRAGGABLE &&
 								hotspots[count].remap_id != UNDEFINED &&
-								keyboard_buffer[hotspots[count].remap_id] == SDL_PRESSED) {
+								key_get(hotspots[count].remap_id)==SDL_PRESSED){
 								device = DEVICE_KEYBOARD;
 								id = hotspots[count].remap_id;
 								state = SDL_DRAGGED;
@@ -938,6 +963,7 @@ int keyboard_update(void) {
 							}
 						}
 						if (!found) device = UNDEFINED;	/* Ignore id */
+#if SDL_MAJOR_VERSION<2 // FIXME
 					} else if (event.button.button == SDL_BUTTON_WHEELUP ||
 						event.button.button == SDL_BUTTON_WHEELDOWN) {
 						/* Remap mouse wheel movement to SDLK_MULTIUP & SDLK_MULTIDOWN */
@@ -952,6 +978,7 @@ int keyboard_update(void) {
 						} else {
 							state = SDL_PRESSED;
 						}
+#endif
 					}
 					break;
 				case SDL_JOYBUTTONUP:
@@ -1149,19 +1176,21 @@ int keyboard_update(void) {
 				 * processed, but we don't need to store drag events) */
 				if (device == DEVICE_KEYBOARD) {
 					eventfound = TRUE;
+#if SDL_MAJOR_VERSION<2
 					if (state == SDL_PRESSED) {
-						keyboard_buffer[id] = SDL_PRESSED;
-						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_PRESSED;
+						key_press(id);
+						if(mod_id!=UNDEFINED)key_press(mod_id);
 					} else if (state == SDL_RELEASED) {
-						keyboard_buffer[id] = SDL_RELEASED;
-						if (mod_id != UNDEFINED) keyboard_buffer[mod_id] = SDL_RELEASED;
+						key_release(id);
+						if(mod_id!=UNDEFINED)key_release(mod_id);
 					}
+#endif
 				}
 
 				/* Should the vkeyb be hidden on ENTER? */
 				if (device == DEVICE_KEYBOARD && id == SDLK_RETURN &&
 					state == SDL_RELEASED && vkeyb.state && vkeyb.autohide &&
-					keyboard_buffer[SDLK_LSHIFT] == SDL_RELEASED) {
+					key_get(SDLK_LSHIFT)==SDL_RELEASED){
 					vkeyb.state = FALSE;
 				}
 
@@ -1208,7 +1237,7 @@ int keyboard_update(void) {
 									ctrl_remaps[count].remap_device = DEVICE_KEYBOARD;
 									ctrl_remaps[count].remap_id = hotspots[hs_vkeyb_ctb_selected].remap_id;
 									ctrl_remaps[count].remap_mod_id = UNDEFINED;
-									if (keyboard_buffer[SDLK_LSHIFT] == SDL_PRESSED)
+									if(key_get(SDLK_LSHIFT)==SDL_PRESSED)
 										ctrl_remaps[count].remap_mod_id = SDLK_LSHIFT;
 									rcfile.rewrite = TRUE;
 								}
@@ -1930,7 +1959,7 @@ void manage_all_input(void) {
 			#if !defined(PLATFORM_GP2X) && !defined(PLATFORM_ZAURUS)
 				/* Toggle fullscreen on supported platforms */
 				if (state == SDL_PRESSED) {
-					video.fullscreen ^= SDL_FULLSCREEN;
+					video.fullscreen=!video.fullscreen;
 					sdl_video_setmode();
 				}
 			#endif
@@ -3315,7 +3344,7 @@ void keyboard_buffer_reset(int shift_reset, int exclude1, int exclude2) {
 			(keycode == SDLK_LSHIFT && !shift_reset)) {
 			/* Do nothing */
 		} else {
-			keyboard_buffer[keycode] = SDL_RELEASED;
+			key_release(keycode);
 		}
 	}
 }
@@ -3329,6 +3358,7 @@ void keyboard_buffer_reset(int shift_reset, int exclude1, int exclude2) {
  * 
  * On exit: returns UNDEFINED if keysym not found */
 
+#if SDL_MAJOR_VERSION<2
 int keysym_to_keycode(char *keysym) {
 	int count, keycode, found = FALSE;
 	
@@ -3348,6 +3378,11 @@ int keysym_to_keycode(char *keysym) {
 	
 	return UNDEFINED;
 }
+#else
+int keysym_to_keycode(char* keysym){
+	return UNDEFINED;
+}
+#endif
 
 /***************************************************************************
  * Keycode to Keysym                                                       *
@@ -3358,6 +3393,7 @@ int keysym_to_keycode(char *keysym) {
  * 
  * On exit: returns a pointer to "" if keycode not found */
 
+#if SDL_MAJOR_VERSION<2
 char *keycode_to_keysym(int keycode) {
 	int count, found = FALSE;
 	static char nullstring[1] = "";
@@ -3373,8 +3409,9 @@ char *keycode_to_keysym(int keycode) {
 
 	return nullstring;
 }
-
-
-
-
-
+#else
+char* keycode_to_keysym(int keycode){
+	static char nullstring[1]="";
+	return nullstring;
+}
+#endif
