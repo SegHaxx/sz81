@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timex Sinclair 1000</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14120f;
+    --panel: #23201b;
+    --ink: #141414;
+    --paper: #d7d2c4;
+    --amber: #e4b15a;
+    --red: #e07a62;
+    --muted: #a39b8c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, #2a261f 0%, var(--bg) 55%);
+    color: #f3efe4;
+    font: 15px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
+  }
+  main {
+    width: min(980px, calc(100% - 24px));
+    margin: 0 auto;
+    padding: 28px 0 48px;
+  }
+  header { margin-bottom: 16px; }
+  h1 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: 0.01em;
+  }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  .toolbar, .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .toolbar { margin: 14px 0; }
+  button, select, label.file {
+    font: 14px/1 "Segoe UI", sans-serif;
+    color: #f6f1e6;
+    background: #3a342c;
+    border: 1px solid #5c5348;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  button:hover, label.file:hover { background: #4a4338; }
+  select { padding-right: 8px; }
+  label.file input { display: none; }
+  .tv {
+    background: #0c0c0c;
+    border-radius: 18px;
+    padding: 18px 18px 22px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.45), inset 0 0 0 2px #2b2b2b;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--paper);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border-radius: 4px;
+  }
+  .status { margin-top: 10px; color: var(--muted); font: 13px/1.4 sans-serif; }
+  .keys { margin-top: 18px; display: grid; gap: 6px; }
+  .row { display: grid; gap: 6px; }
+  .row.r10 { grid-template-columns: repeat(10, 1fr); }
+  .key {
+    min-height: 64px;
+    padding: 4px 2px 6px;
+    border-radius: 6px;
+    border: 1px solid #4e463c;
+    background: linear-gradient(#3c362e, #2a261f);
+    color: #f4efe4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .key small { font: 9px/1.1 sans-serif; letter-spacing: 0.01em; }
+  .key .kw { color: #f4efe4; }
+  .key .shift { color: var(--red); }
+  .key b { font: 700 14px/1 sans-serif; }
+  .key.down, .key:active { background: #1c1915; transform: translateY(1px); }
+  .key.latched { outline: 1px solid var(--amber); }
+  .help {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .help kbd {
+    font: 12px sans-serif;
+    border: 1px solid #5c5348;
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .games { margin-top: 26px; color: var(--muted); font-size: 14px; }
+  .games h2, .games h3 { color: #f3efe4; font-weight: 600; margin: 0 0 6px; }
+  .games h2 { font-size: 20px; }
+  .games h3 { font-size: 16px; margin-top: 18px; }
+  .games ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+  .games li {
+    display: grid;
+    grid-template-columns: auto 10.5em 1fr;
+    gap: 4px 12px;
+    align-items: baseline;
+  }
+  .games li button { padding: 6px 12px; }
+  .games .name { white-space: nowrap; }
+  .games a { color: #c8bba4; }
+  .games kbd, .games code {
+    font: 12px sans-serif;
+    border: 1px solid #5c5348;
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .games code { border: 0; padding: 0; font-family: ui-monospace, monospace; }
+  @media (max-width: 640px) {
+    .games li { grid-template-columns: auto 1fr; }
+    .games li > span:last-child { grid-column: 1 / -1; }
+  }
+  footer { margin-top: 22px; color: #7d7568; font: 12px/1.4 sans-serif; }
+  footer a { color: #c8bba4; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Timex Sinclair 1000</h1>
+    <p>A 2K NTSC ZX81, running the sz81 emulator core in the browser.</p>
+  </header>
+  <div class="toolbar">
+    <button id="reset" type="button">Reset</button>
+    <label>RAM
+      <select id="ram">
+        <option value="2" selected>2K</option>
+        <option value="16">16K</option>
+        <option value="32">32K</option>
+        <option value="48">48K</option>
+      </select>
+    </label>
+    <label class="file">Load .p<input id="load" type="file" accept=".p,.81,.P,.81"></label>
+    <button id="save" type="button">Save .p</button>
+  </div>
+  <div class="tv">
+    <canvas id="screen" width="400" height="300" tabindex="0" aria-label="Timex Sinclair 1000 screen"></canvas>
+    <div class="status" id="status">Starting…</div>
+  </div>
+  <div class="keys" id="keys"></div>
+  <p class="help">
+    Click the screen, then type. At the <b>K</b> cursor a letter key enters a whole BASIC keyword:
+    <kbd>P</kbd> is PRINT, <kbd>R</kbd> is RUN. Hold <kbd>Shift</kbd> for the red legends
+    (DELETE is shift-0, quotes are shift-P, the arrows are shift-5 through shift-8).
+    Shift and New Line together enters function mode.
+  </p>
+  <section class="games">
+    <h2>Test games</h2>
+    <p>
+      These come from the
+      <a href="https://github.com/SegHaxx/sz81/tree/main/games-etc">games-etc folder</a>
+      of the sz81 repository, where you'll also find their source and notes.
+      <b>Play</b> loads one straight into the machine, picking enough RAM for it.
+    </p>
+    <ul>
+      <li>
+        <button type="button" data-game="tetris1k.p">Play</button>
+        <span class="name"><a href="games/tetris1k.p" download>tetris1k.p</a> (2K)</span>
+        <span>Tetris that fits in 1K. It shows only a <kbd>?</kbd>; press any key to start.
+        <kbd>S</kbd> rotates, <kbd>K</kbd>/<kbd>L</kbd> move, <kbd>D</kbd> drops.
+        Don't press Shift: the game hangs (a known bug in the original).</span>
+      </li>
+      <li>
+        <button type="button" data-game="tetris.p">Play</button>
+        <span class="name"><a href="games/tetris.p" download>tetris.p</a> (16K)</span>
+        <span>The full-size version. Same keys: <kbd>S</kbd> rotates,
+        <kbd>K</kbd>/<kbd>L</kbd> move, <kbd>D</kbd> drops.</span>
+      </li>
+      <li>
+        <button type="button" data-game="tetrishr.p">Play</button>
+        <span class="name"><a href="games/tetrishr.p" download>tetrishr.p</a> (16K)</span>
+        <span>Tetris in a pseudo-hi-res graphics mode. Same keys as above.</span>
+      </li>
+      <li>
+        <button type="button" data-game="mine81.p">Play</button>
+        <span class="name"><a href="games/mine81.p" download>mine81.p</a> (16K)</span>
+        <span>Minesweeper. Move with <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd>
+        (left, down, up, right), step on a square with <kbd>Space</kbd>,
+        mark a mine with <kbd>M</kbd>, unmark with <kbd>U</kbd>.</span>
+      </li>
+      <li>
+        <button type="button" data-game="pipepanic.p">Play</button>
+        <span class="name"><a href="games/pipepanic.p" download>pipepanic.p</a> (16K)</span>
+        <span>Connect the pipes. Press a key at the title screen; the menu shows the
+        controls (<kbd>Q</kbd> <kbd>A</kbd> <kbd>O</kbd> <kbd>P</kbd> to move,
+        <kbd>K</kbd> to select).</span>
+      </li>
+    </ul>
+    <h3>Loading your own programs</h3>
+    <p>
+      Use <b>Load .p</b> to open any ZX81 or Timex Sinclair 1000 <code>.p</code> file.
+      The machine resets with enough RAM for it and runs <code>LOAD ""</code>.
+      Programs saved with auto-run start by themselves; otherwise type
+      <kbd>R</kbd> then <kbd>Enter</kbd> to RUN. <b>Save .p</b> downloads whatever
+      program is in memory, and so does a BASIC <code>SAVE "NAME"</code>.
+    </p>
+  </section>
+  <footer>
+    Emulation core from <a href="https://github.com/SegHaxx/sz81">sz81</a>, GPL-2.0.
+    The 8K ROM is the ZX81 ROM used by the Timex Sinclair 1000.
+  </footer>
+</main>
+<script src="ts1000.js"></script>
+<script>
+const KEY = {
+  backspace: 8, enter: 13, space: 32, comma: 44, period: 46,
+  d0: 48, d1: 49, d2: 50, d3: 51, d4: 52, d5: 53, d6: 54, d7: 55, d8: 56, d9: 57,
+  a: 97, b: 98, c: 99, d: 100, e: 101, f: 102, g: 103, h: 104, i: 105,
+  j: 106, k: 107, l: 108, m: 109, n: 110, o: 111, p: 112, q: 113, r: 114,
+  s: 115, t: 116, u: 117, v: 118, w: 119, x: 120, y: 121, z: 122,
+  up: 273, down: 274, right: 275, left: 276, shift: 304
+};
+
+const ROWS = [
+  [
+    ["1", "EDIT", KEY.d1], ["2", "AND", KEY.d2], ["3", "THEN", KEY.d3], ["4", "TO", KEY.d4],
+    ["5", "←", KEY.d5], ["6", "↓", KEY.d6], ["7", "↑", KEY.d7], ["8", "→", KEY.d8],
+    ["9", "GRAPHICS", KEY.d9], ["0", "DELETE", KEY.d0]
+  ],
+  [
+    ["PLOT", "\"\"", KEY.q], ["UNPLOT", "OR", KEY.w], ["REM", "STEP", KEY.e], ["RUN", "<=", KEY.r],
+    ["RAND", "<>", KEY.t], ["RETURN", ">=", KEY.y], ["IF", "$", KEY.u], ["INPUT", "(", KEY.i],
+    ["POKE", ")", KEY.o], ["PRINT", "\"", KEY.p]
+  ],
+  [
+    ["NEW", "STOP", KEY.a], ["SAVE", "LPRINT", KEY.s], ["DIM", "SLOW", KEY.d], ["FOR", "FAST", KEY.f],
+    ["GOTO", "LLIST", KEY.g], ["GOSUB", "**", KEY.h], ["LOAD", "−", KEY.j], ["LIST", "+", KEY.k],
+    ["LET", "=", KEY.l], ["NEW LINE", "", KEY.enter]
+  ],
+  [
+    ["SHIFT", "", KEY.shift], ["COPY", ":", KEY.z], ["CLEAR", ";", KEY.x], ["CONT", "?", KEY.c],
+    ["CLS", "/", KEY.v], ["SCROLL", "*", KEY.b], ["NEXT", "<", KEY.n], ["PAUSE", ">", KEY.m],
+    [".", ",", KEY.period], ["SPACE", "£", KEY.space]
+  ]
+];
+
+const screen = document.getElementById("screen");
+const ctx = screen.getContext("2d", { alpha: false });
+const status = document.getElementById("status");
+const keysEl = document.getElementById("keys");
+const image = ctx.createImageData(400, 300);
+let mod = null;
+let stickyShift = false;
+let api = null;
+const releaseAfterFrame = new Map();
+
+function paintKey(btn, down) {
+  btn.classList.toggle("down", down);
+}
+
+function setStatus(text) { status.textContent = text; }
+
+function capFor(code, main) {
+  if (code === KEY.enter) return "↵";
+  if (code === KEY.shift) return "⇧";
+  if (code === KEY.space) return "";
+  if (code === KEY.period) return ".";
+  if (code >= KEY.d0 && code <= KEY.d9) return String(code - KEY.d0);
+  if (code >= KEY.a && code <= KEY.z) return String.fromCharCode(code - KEY.a + 65);
+  return main;
+}
+
+function buildKeyboard() {
+  ROWS.forEach((row, index) => {
+    const line = document.createElement("div");
+    line.className = "row r10";
+    row.forEach(([main, shift, code]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key";
+      const keyword = main.length > 1 ? main : "";
+      btn.innerHTML = "<small class='kw'>" + keyword + "</small><b>" +
+        capFor(code, main) + "</b><small class='shift'>" + shift + "</small>";
+      btn.dataset.code = String(code);
+      const press = (down) => {
+        if (!api) return;
+        if (code === KEY.shift && down) {
+          stickyShift = !stickyShift;
+          api.key(KEY.shift, stickyShift ? 1 : 0);
+          btn.classList.toggle("latched", stickyShift);
+          return;
+        }
+        if (down) releaseAfterFrame.delete(code);
+        else releaseAfterFrame.set(code, 5);
+        if (down) api.key(code, 1);
+        paintKey(btn, down);
+      };
+      btn.addEventListener("pointerdown", (ev) => {
+        ev.preventDefault();
+        screen.focus();
+        press(true);
+      });
+      btn.addEventListener("pointerup", () => { if (code !== KEY.shift) press(false); });
+      btn.addEventListener("pointerleave", () => { if (code !== KEY.shift) press(false); });
+      line.appendChild(btn);
+    });
+    keysEl.appendChild(line);
+  });
+}
+
+function draw() {
+  const ptr = api.screen();
+  const src = mod.HEAPU8;
+  const data = image.data;
+  let p = 0;
+  for (let y = 0; y < 300; y++) {
+    const row = ptr + y * 50;
+    for (let x = 0; x < 50; x++) {
+      const bits = src[row + x];
+      for (let mask = 128; mask > 0; mask >>= 1) {
+        const on = (bits & mask) !== 0;
+        const c = on ? 12 : 212;
+        data[p++] = c;
+        data[p++] = on ? c : 208;
+        data[p++] = on ? c : 188;
+        data[p++] = 255;
+      }
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
+function downloadBytes(ptr, len, name) {
+  const bytes = mod.HEAPU8.slice(ptr, ptr + len);
+  const blob = new Blob([bytes], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function noteRam() {
+  const kb = api.ramKb();
+  document.getElementById("ram").value = String(kb);
+  setStatus(kb + "K RAM  ·  NTSC  ·  click the screen to type");
+}
+
+const physical = {
+  ShiftLeft: KEY.shift, ShiftRight: 303,
+  Enter: KEY.enter, NumpadEnter: KEY.enter,
+  Backspace: KEY.backspace, Space: KEY.space,
+  Comma: KEY.comma, Period: KEY.period,
+  ArrowLeft: KEY.left, ArrowDown: KEY.down, ArrowUp: KEY.up, ArrowRight: KEY.right
+};
+
+function codeFromEvent(ev) {
+  if (physical[ev.code] != null) return physical[ev.code];
+  if (/^Digit[0-9]$/.test(ev.code)) return KEY.d0 + Number(ev.code.slice(5));
+  if (/^Key[A-Z]$/.test(ev.code)) return KEY.a + (ev.code.charCodeAt(3) - 65);
+  return null;
+}
+
+function typingTarget(ev) {
+  const tag = ev.target && ev.target.tagName;
+  return tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+}
+window.addEventListener("keydown", (ev) => {
+  if (!api || typingTarget(ev)) return;
+  const code = codeFromEvent(ev);
+  if (code == null || ev.repeat) return;
+  ev.preventDefault();
+  releaseAfterFrame.delete(code);
+  api.key(code, 1);
+});
+window.addEventListener("keyup", (ev) => {
+  if (!api || typingTarget(ev)) return;
+  const code = codeFromEvent(ev);
+  if (code == null) return;
+  ev.preventDefault();
+  if (code === KEY.shift) stickyShift = false;
+  releaseAfterFrame.set(code, 5);
+  document.querySelectorAll(".key").forEach((btn) => {
+    if (Number(btn.dataset.code) === code) btn.classList.remove("down", "latched");
+  });
+});
+
+document.getElementById("reset").onclick = () => {
+  api.reset();
+  noteRam();
+};
+document.getElementById("ram").onchange = (ev) => {
+  api.setRam(Number(ev.target.value));
+  noteRam();
+};
+function loadProgram(bytes, name) {
+  const ptr = mod._malloc(bytes.length);
+  mod.HEAPU8.set(bytes, ptr);
+  const err = api.stage(ptr, bytes.length);
+  mod._free(ptr);
+  if (err || api.loadStaged()) {
+    setStatus("Could not load " + name);
+    return;
+  }
+  noteRam();
+  setStatus("Loaded " + name + "  ·  " + api.ramKb() + "K  ·  if it doesn't start by itself, type R then Enter to RUN");
+  screen.focus();
+}
+document.getElementById("load").onchange = async (ev) => {
+  const file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  loadProgram(new Uint8Array(await file.arrayBuffer()), file.name);
+};
+document.querySelectorAll("[data-game]").forEach((btn) => {
+  btn.onclick = async () => {
+    if (!api) return;
+    const name = btn.dataset.game;
+    setStatus("Fetching " + name + "…");
+    try {
+      const res = await fetch("games/" + name);
+      if (!res.ok) throw new Error(res.status + " " + res.statusText);
+      loadProgram(new Uint8Array(await res.arrayBuffer()), name);
+      screen.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (err) {
+      setStatus("Could not fetch " + name + ": " + err.message);
+    }
+  };
+});
+document.getElementById("save").onclick = () => {
+  const len = api.programLen();
+  if (!len) {
+    setStatus("Nothing to save yet");
+    return;
+  }
+  downloadBytes(api.programPtr(), len, "program.p");
+};
+
+function frame(now) {
+  if (!frame.then || now - frame.then >= 15) {
+    frame.then = now;
+    api.frame();
+    if (releaseAfterFrame.size) {
+      for (const [code, left] of releaseAfterFrame) {
+        if (left <= 1) {
+          api.key(code, 0);
+          releaseAfterFrame.delete(code);
+        } else {
+          releaseAfterFrame.set(code, left - 1);
+        }
+      }
+    }
+    const saveLen = api.saveLen();
+    if (saveLen) {
+      downloadBytes(api.savePtr(), saveLen, "program.p");
+      api.saveAck();
+      setStatus("Saved program.p from the SAVE command");
+    }
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+
+buildKeyboard();
+createTS1000().then((m) => {
+  mod = m;
+  const wrap = (name, ret, args) => m.cwrap(name, ret, args);
+  api = {
+    key: wrap("ts1000_key", null, ["number", "number"]),
+    frame: wrap("ts1000_frame", null, []),
+    init: wrap("ts1000_init", "number", []),
+    reset: wrap("ts1000_reset", "number", []),
+    setRam: wrap("ts1000_set_ram", "number", ["number"]),
+    ramKb: wrap("ts1000_ram_kb", "number", []),
+    screen: wrap("ts1000_screen", "number", []),
+    stage: wrap("ts1000_stage", "number", ["number", "number"]),
+    loadStaged: wrap("ts1000_load_staged", "number", []),
+    saveLen: wrap("ts1000_save_len", "number", []),
+    savePtr: wrap("ts1000_save_ptr", "number", []),
+    saveAck: wrap("ts1000_save_ack", null, []),
+    programLen: wrap("ts1000_program_len", "number", []),
+    programPtr: wrap("ts1000_program_ptr", "number", [])
+  };
+  if (api.init()) {
+    setStatus("The 8K ROM did not load.");
+    return;
+  }
+  noteRam();
+  screen.focus();
+  requestAnimationFrame(frame);
+}).catch((err) => {
+  setStatus(String(err));
+});
+</script>
+</body>
+</html>
